@@ -65,7 +65,7 @@ module.exports = (grunt) ->
 
   grunt.initConfig gruntConfig
 
-#  grunt.loadNpmTasks 'grunt-contrib'
+  grunt.loadNpmTasks 'grunt-contrib'
   grunt.loadNpmTasks 'grunt-shell' #https://npmjs.org/package/grunt-shell
 
   # Default task.

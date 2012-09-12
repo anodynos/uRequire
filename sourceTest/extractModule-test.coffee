@@ -1,4 +1,4 @@
-console.log 'extractModule-test loading'
+console.log '\nextractModule-test loading'
 
 #`if (typeof define !== 'function') {
 #  var define = require('amdefine')(module);

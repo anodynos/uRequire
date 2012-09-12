@@ -14,7 +14,7 @@ myPackage =
     url: "http://www.opensource.org/licenses/mit-license.php"
   ]
 
-  keywords: ["AMD", "UMD", "UMDjs", "requirejs", "require", "define", "modules", "modular", "converter", "umdify"]
+  keywords: ["AMD", "UMD", "UMDjs", "requirejs", "require", "define", "modules", "modular", "converter", "umdify", "dependency", "dependencies"]
 
 #  repository:
 #    type: "git"

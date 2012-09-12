@@ -11,7 +11,7 @@
   # @param from {to} the destination path
   # @option dot4Current ????
   # @return {String} the path that connects from -> to
-module.exports = calcPath = (from, to, options)->
+module.exports = (from, to, options)->
     options or= {}
     # replace '\' with '/' and split 'em (to an array). I lOOOOOOve coffeescript!
     [from, to] =
@@ -67,7 +67,6 @@ module.exports = calcPath = (from, to, options)->
       return null # no path found
 
 
-#calcPath = myModule()
 #_path = require("path")
 #from =  "Y:/work/p/a/../b/c/../../../" # I am back in work
 #to =    "Y:/work/p/d"
