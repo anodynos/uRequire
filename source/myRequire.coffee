@@ -15,29 +15,34 @@ module.exports = {
     template = require("./templates/UMD")
     extractModule = require("./extractModule")
 
-    #create outputPath ?
-    #    if not fs.existsSync options.outputPath
-    #      wrench.mkdirSyncRecursive opt.outputPath, 0777
+    if not (_fs.existsSync outputDir)
+      log "creating output folder #{options.outputPath}"
+      _wrench.mkdirSyncRecursive(options.outputPath)
 
-    modulePaths = _wrench.readdirSyncRecursive(options.bundlePath)
-
-    for mp in modulePaths
-      modulePath = _path.join(options.bundlePath, mp)
-      if _fs.statSync(modulePath).isFile()
-        if (_path.extname modulePath) is '.js'
-          log 'myRequire: processing file:' + modulePath
+    for mp in _wrench.readdirSyncRecursive(options.bundlePath)
+      module = _path.join(options.bundlePath, mp)
+      if not _fs.statSync(module).isFile()
+        outputDir = _path.join(options.outputPath, mp)
+        if not (_fs.existsSync outputDir)
+          log "creating folder #{outputDir}"
+          _wrench.mkdirSyncRecursive(outputDir)
+      else
+        if (_path.extname module) is '.js'
           data =
-            version: options.version
-            bundlePath: options.bundlePath
-            filePath: modulePath
+#            version: options.version
+#            bundlePath: options.bundlePath
+            filePath: _path.dirname mp
             # export in one *global* (root) variable.
             # Todo:check for existence, allow more than one!
-            rootExports: 'myAwesomeModule'
-
-          oldJs = _fs.readFileSync(modulePath, 'utf-8')
-          newJs = template _.extend data, extractModule(oldJs)
+#            rootExports: 'myAwesomeModule'
+          oldJs = _fs.readFileSync(module, 'utf-8')
+          moduleInfo = extractModule(oldJs)
+          log '\nmyRequire: processing file:', mp
+          log data
+          log _.pick moduleInfo, 'deps'
+          newJs = template _.extend data, moduleInfo
           _fs.writeFileSync (_path.join options.outputPath, mp), newJs, 'utf-8'
 
 
-  makeRequire: ()-> require('./makeRequire')
+  getMakeRequire: ()-> require('./makeRequire')
 }

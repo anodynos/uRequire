@@ -8,7 +8,7 @@ module.exports = (basePath)->
     console.log 'callback = ' + callback
 
     for dep in dependencies
-      depPath = relativePath '$LIB/' + basePath, "$LIB/" + dep, dot4Current:true
+      depPath = relativePath '$bundle/' + basePath, "$bundle/" + dep, dot4Current:true
 #      resolvedDeps.push require(depPath)
       resolvedDeps.push depPath
 
