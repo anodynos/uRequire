@@ -1,8 +1,2 @@
 /.idea/
-/doc/
-/dist*
-/build*
 /node_modules/
-/gruntfile.js
-/package.json
-

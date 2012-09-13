@@ -1,16 +1,16 @@
 pathRelative = require('../utils/pathRelative')
-
 #
 #  A 'simple' template for a UMD module. Based on https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js
 #
 #  @param d {Object} with
 #   {
 #     modulePath: where the module is, within bundle
+#     type: 'define' or 'require'
 #     dependencies: Array of dependencies, as delcared in the original AMD, (eg 'views/PersonView'
 #     frDependencies: Array for file-relative dependencies, as required by node (eg '../PersonView')
-#     arguments: Array of argument names, as declared on the original AMD.
-#     rootExports: the name of the root variable to export on the browser side (or false/absent to not export global)
-#     factoryBody: The actual code, that returns our module (define) or just runs some code having dependencies resolved (require).
+#     parameters: Array of parameter names, as declared on the original AMD.
+#     rootExports: the name of the root variable to export on the browser side (or false/absent)
+#     factoryBody: The actual code that returns our module (define) or just runs some code having dependencies resolved (require).
 #  }
 #
 
@@ -35,14 +35,14 @@ UMDtemplate = (d)->
             // AMD. Register as an anonymous module.
             define(['require'#{(", '#{dep}'" for dep in d.dependencies).join('')}], #{
             if d.rootExports # Adds browser/root globals if needed
-              "function (require#{(', ' + par for par in d['arguments']).join('')}) { \n" +
+              "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
               "#{pd}   return (root.#{d.rootExports} = factory(require#{(', ' + par for par in d['arguments']).join('')})); \n" +
               "#{pd} });"
             else
               'factory);'
             }
         }
-    }(this, function(require#{ (", #{par}" for par in d.arguments).join ''}) {
+    }(this, function(require#{ (", #{par}" for par in d.parameters).join ''}) {
         #{d.factoryBody}
     }));
  """

@@ -42,19 +42,20 @@ module:
 ###
 
 
-#bundle-cache.json - an automatic cache for what was found on the last bundling. Used when import-ed to save from scanning all sources again.
+**modules-cache.json**
+an automatic cache for what was found on the last bundling. Used when import-ed to save from scanning all sources again.
 bundle:
   import:[
 
   ]
   modules:[
     "main/App":
-      define:true
+      type: 'define'
       deps: [ "views/PersonView", "views/PersonDetailView"]
       args: [ 'PersonView', "PersonEditView"]
 
     "views/PersonView":
-      require:true
+      type: 'require'
       deps: [ "views/MasterView", "utils/uGetScore", "amd-utils"]
       args: [ 'MasterView', "PersonEditView"]
   ]

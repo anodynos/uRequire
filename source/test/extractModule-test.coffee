@@ -30,8 +30,9 @@ describe "extractModule()", ->
     js = """
     if (typeof define !== 'function') { var define = require('amdefine')(module) };
     ({
-      a:"alpha",
-      b:"beta"
+      module: {
+        rootExports: 'vourtses'
+      }
     });
 
     require(['underscore', 'depdir1/dep1'], function(_, dep1) {
@@ -47,7 +48,8 @@ describe "extractModule()", ->
     console.log parseAMD js
 
     expect(parseAMD js).to.deep.equal
-      require: true,
+      rootExports: 'vourtses'
+      type: 'require'
       dependencies: [ 'underscore', 'depdir1/dep1' ],
-      arguments: [ '_', 'dep1' ],
+      parameters: [ '_', 'dep1' ],
       factoryBody: 'console.log("\\n main starting....");\ndep1 = new dep1;\ndep1.myEach([ 1, 2, 3 ], function(val) {\n    return console.log("each :" + val);\n});\nreturn "main";\n'

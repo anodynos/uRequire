@@ -32,16 +32,16 @@ myPackage =
   engines:
     "node": "*"
 
-#  dependencies:
-#    underscore: ">= 1.3.x" # or "lodash": "0.5.x"
-#    commander: ">= 1.0.4"
-#    wrench : "~1.3.9"
-#
-#  devDependencies:
-#    "coffee-script": "1.3.x"
-#    "mocha": "*"
-#    "chai": "*"
-#    "grunt-shell": "0.1.x"  # mocha
-#    "grunt-contrib": "0.1.x" # using clean, copy
+  dependencies:
+    underscore: ">= 1.3.x" # or "lodash": "0.5.x"
+    commander: ">= 1.0.4"
+    wrench : "~1.3.9"
+
+  devDependencies:
+    "coffee-script": "1.3.x"
+    "mocha": "*"
+    "chai": "*"
+    "grunt-shell": "0.1.x"  # mocha
+    "grunt-contrib": "0.1.x" # using clean, copy
 
 require('fs').writeFileSync('./package.json', JSON.stringify(myPackage), 'utf-8')

@@ -13,7 +13,7 @@ cmd
   #.option('-i, --imports <items>', 'Comma seperated module bundles to import.', toArray)
   .option('-o, --outputPath <outputPath>', 'Output converted files on this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite source* files')
-  .option('-n, --noExports', 'Ignore all exports in module definitions')
+  .option('-n, --noExports', 'Ignore all root exports in module definitions')
   .option('-v, --verbose', 'Fill you screen with useless? info', true)
 
 
