@@ -13,7 +13,7 @@
   # @return {String} the path that connects from -> to
 module.exports = (from, to, options)->
     options or= {}
-    console.log "from: #{from}, to: #{to}"
+    #console.log "from: #{from}, to: #{to}"
     # replace '\' with '/' and split 'em (to an array). I lOOOOOOve coffeescript!
     [from, to] =
       for path in [from, to]
@@ -60,7 +60,7 @@ module.exports = (from, to, options)->
               finalPath.pop();
 
       if options.dot4Current #todo decide if needed, default value, add specs
-        if finalPath[0] isnt '..' #going forwards
+        if finalPath[0] isnt '..' # if path isnt backwards
           finalPath.unshift '.'
 
       return finalPath.join "/"

@@ -2,47 +2,63 @@
   processes each .js file in 'bundlePath', extracting AMD/module information
   It then tranforms each file using template to 'outputPath'
 ###
-log = console.log
+
+
+processBundle = (options)->
+  l = require('./utils/logger')
+  if not options.verbose then l.log = ->
+
+  l.log 'process called with options\n', options
+
+  _ = require 'underscore'
+  _fs = require 'fs'
+  _path = require 'path'
+  _wrench = require 'wrench'
+  template = require "./templates/UMD"
+  extractModule = require "./extractModule"
+  fileRelativeDependencies = require './fileRelativeDependencies'
+
+
+  bundleFiles = [] # read bundle dir & keep only .js files
+  for mp in _wrench.readdirSyncRecursive(options.bundlePath)
+    mFile = _path.join(options.bundlePath, mp)
+    if _fs.statSync(mFile).isFile() and (_path.extname mFile) is '.js'
+      #todo: make sure its an AMD module
+      bundleFiles.push mp.replace /\\/g, '/'
+
+  l.log '\nbundleFiles=', bundleFiles
+
+  for modyle in bundleFiles
+    l.log '\n', 'processing module:', modyle
+    oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
+    moduleInfo = extractModule(oldJs)
+
+    moduleInfo.frDependencies = fileRelativeDependencies modyle, bundleFiles, moduleInfo.dependencies
+
+    if options.noExports
+      moduleInfo.rootExports = false #Todo:check for existence, allow more than one,
+
+    templateInfo = _.extend moduleInfo, {
+    version: options.version
+    modulePath: _path.dirname modyle # module path within bundle
+    }
+
+    l.log _.pick templateInfo, 'dependencies', 'frDependencies', 'modulePath'
+
+    newJs = template templateInfo
+    outputFile = _path.join options.outputPath, modyle
+
+    if not (_fs.existsSync _path.dirname(outputFile))
+      l.log "creating directory #{_path.dirname(outputFile)}"
+      _wrench.mkdirSyncRecursive(_path.dirname(outputFile))
+
+    _fs.writeFileSync outputFile, newJs, 'utf-8'
+
+
+
+
 module.exports = {
-
-  processBundle: (options)->
-    log 'myRequire: process called with options\n', options
-    _ = require('underscore')
-    _fs = require('fs')
-    _path = require('path')
-    _wrench = require('wrench')
-
-    template = require("./templates/UMD")
-    extractModule = require("./extractModule")
-
-    if not (_fs.existsSync outputDir)
-      log "creating output folder #{options.outputPath}"
-      _wrench.mkdirSyncRecursive(options.outputPath)
-
-    for mp in _wrench.readdirSyncRecursive(options.bundlePath)
-      module = _path.join(options.bundlePath, mp)
-      if not _fs.statSync(module).isFile()
-        outputDir = _path.join(options.outputPath, mp)
-        if not (_fs.existsSync outputDir)
-          log "creating folder #{outputDir}"
-          _wrench.mkdirSyncRecursive(outputDir)
-      else
-        if (_path.extname module) is '.js'
-          data =
-#            version: options.version
-#            bundlePath: options.bundlePath
-            filePath: _path.dirname mp
-            # export in one *global* (root) variable.
-            # Todo:check for existence, allow more than one!
-#            rootExports: 'myAwesomeModule'
-          oldJs = _fs.readFileSync(module, 'utf-8')
-          moduleInfo = extractModule(oldJs)
-          log '\nmyRequire: processing file:', mp
-          log data
-          log _.pick moduleInfo, 'deps'
-          newJs = template _.extend data, moduleInfo
-          _fs.writeFileSync (_path.join options.outputPath, mp), newJs, 'utf-8'
-
-
+  processBundle: processBundle
+  # used by UMD-transformed modules, to make the node (async) require
   getMakeRequire: ()-> require('./makeRequire')
 }

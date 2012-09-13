@@ -60,11 +60,11 @@ module.exports = (js)->
               # check for 'standard' AMD signature
               if call.args.length is 2 and call.args[0][0] is 'array' and call.args[1][0] is 'function'
                 m[call.callName] = true
-                m.deps= eval toCode call.args[0] # array of deps ['dep1', 'dep2']
-                m.args = call.args[1][2] # args of function - 2nd arg of define - (dep1, dep2)
-                m.body = ''
+                m.dependencies = eval toCode call.args[0] # array of deps ['dep1', 'dep2']
+                m.arguments = call.args[1][2] # args of function - 2nd arg of define - (dep1, dep2)
+                m.factoryBody = ''
                 for bodyStatement in call.args[1][3] # all statements of function body
-                  m.body += toCode(bodyStatement) + "\n"
+                  m.factoryBody += toCode(bodyStatement) + "\n"
                 stop = true
 
   walkTree parser.parse(js) # recursive walker - stores in m

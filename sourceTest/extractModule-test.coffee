@@ -34,7 +34,7 @@ describe "extractModule()", ->
       b:"beta"
     });
 
-    define(['underscore', 'depdir1/dep1'], function(_, dep1) {
+    require(['underscore', 'depdir1/dep1'], function(_, dep1) {
       console.log("\n main starting....");
       dep1 = new dep1();
       dep1.myEach([1, 2, 3], function(val) {
@@ -47,7 +47,7 @@ describe "extractModule()", ->
     console.log parseAMD js
 
     expect(parseAMD js).to.deep.equal
-      define: true,
-      deps: [ 'underscore', 'depdir1/dep1' ],
-      args: [ '_', 'dep1' ],
-      body: 'console.log("\\n main starting....");\ndep1 = new dep1;\ndep1.myEach([ 1, 2, 3 ], function(val) {\n    return console.log("each :" + val);\n});\nreturn "main";\n'
+      require: true,
+      dependencies: [ 'underscore', 'depdir1/dep1' ],
+      arguments: [ '_', 'dep1' ],
+      factoryBody: 'console.log("\\n main starting....");\ndep1 = new dep1;\ndep1.myEach([ 1, 2, 3 ], function(val) {\n    return console.log("each :" + val);\n});\nreturn "main";\n'

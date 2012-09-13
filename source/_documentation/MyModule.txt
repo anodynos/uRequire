@@ -28,7 +28,7 @@ Joffee = #name: "myModule" is taken from filename & package
 module:
   target: ["umd", "amd", "noder"]
   define: #default "define", can be "require"
-    rootExport: true | "myModule", default=false
+  rootExport: true | "myModule", default=false
   deps: [ "views/PersonView", "views/PersonDetailView"]
   args: [ 'PersonView', "PersonEditView"]
 
