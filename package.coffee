@@ -23,11 +23,14 @@ myPackage =
   bugs:
     url: ""
 
-  main: "./build/myRequire.js"
+  main: "./build/code/myRequireCmd.js"
 
   directories:
-    doc: "./doc"
+#    doc: "./doc"
     dist: "./dist"
+
+  engines:
+    "node": "*"
 
 #  dependencies:
 #    underscore: ">= 1.3.x" # or "lodash": "0.5.x"

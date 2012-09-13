@@ -1,9 +1,9 @@
 module.exports = (grunt) ->
 
-  sourceDir       = "source"
-  buildDir        = "build"
-  sourceTestDir   = "sourceTest"
-  buildTestDir    = "buildTest"
+  sourceDir       = "source/code"
+  buildDir        = "build/code"
+  sourceTestDir   = "source/test"
+  buildTestDir    = "build/test"
 
   #
   # Grunt 'official' configuration :-)

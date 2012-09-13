@@ -1,7 +1,7 @@
 # Adjust as file-relative deps if its in bundle, as-is otherwise (eg 'underscore')
 module.exports = (modyle, bundleFiles, dependencies)->
   _path = require 'path'
-  pathRelative = require './pathRelative'
+  pathRelative = require './utils/pathRelative'
   l = require './utils/logger'
 
   frDep = []

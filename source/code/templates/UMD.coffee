@@ -1,4 +1,4 @@
-pathRelative = require('../pathRelative')
+pathRelative = require('../utils/pathRelative')
 
 #
 #  A 'simple' template for a UMD module. Based on https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js

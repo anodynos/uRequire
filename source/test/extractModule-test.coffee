@@ -19,7 +19,7 @@ console.log '\nextractModule-test loading'
 # see http://stackoverflow.com/questions/9507606/when-to-use-require-and-when-to-use-define
 
 chai = require("chai")
-parseAMD = require ("../build/extractModule")
+parseAMD = require ("../code/extractModuleInfo")
 
 assert = chai.assert
 expect = chai.expect

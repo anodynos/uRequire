@@ -1,3 +1,5 @@
+https://github.com/jrburke/requirejs/issues/450
+https://github.com/jrburke/amdefine/issues/4
 
 @jrburke, thank you for your response.
 

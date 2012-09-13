@@ -4,6 +4,7 @@
   #     results "../../../source/code/main"
   #
   #  Features @ a glance
+  #  - similar to (but extending?) path.relative
   #  - normalization : It understands `a/b/..` is `a` and normalizes paths while calculating connecting path
   #  - paths can be unix, windows and mixed.
   #

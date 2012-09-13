@@ -1,5 +1,5 @@
 module.exports = (basePath)->
-  relativePath = require './pathRelative'
+  relativePath = require './utils/pathRelative'
   console.log 'returning asyncRequire, for basepath = ' + basePath
 
   (dependencies, callback)->

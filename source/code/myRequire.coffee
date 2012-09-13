@@ -3,7 +3,6 @@
   It then tranforms each file using template to 'outputPath'
 ###
 
-
 processBundle = (options)->
   l = require('./utils/logger')
   if not options.verbose then l.log = ->
@@ -14,29 +13,25 @@ processBundle = (options)->
   _fs = require 'fs'
   _path = require 'path'
   _wrench = require 'wrench'
+  getFiles = require "./utils/getFiles"
   template = require "./templates/UMD"
-  extractModule = require "./extractModule"
+  extractModuleInfo = require "./extractModuleInfo"
   fileRelativeDependencies = require './fileRelativeDependencies'
 
-
-  bundleFiles = [] # read bundle dir & keep only .js files
-  for mp in _wrench.readdirSyncRecursive(options.bundlePath)
-    mFile = _path.join(options.bundlePath, mp)
-    if _fs.statSync(mFile).isFile() and (_path.extname mFile) is '.js'
-      #todo: make sure its an AMD module
-      bundleFiles.push mp.replace /\\/g, '/'
+  bundleFiles =  getFiles options.bundlePath, (fileName)->
+    (_path.extname fileName) is '.js' #todo: make sure its an AMD module
 
   l.log '\nbundleFiles=', bundleFiles
 
   for modyle in bundleFiles
     l.log '\n', 'processing module:', modyle
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
-    moduleInfo = extractModule(oldJs)
+    moduleInfo = extractModuleInfo(oldJs)
 
     moduleInfo.frDependencies = fileRelativeDependencies modyle, bundleFiles, moduleInfo.dependencies
 
     if options.noExports
-      moduleInfo.rootExports = false #Todo:check for existence, allow more than one,
+      moduleInfo.rootExports = false #Todo:check for existence, allow more than one!
 
     templateInfo = _.extend moduleInfo, {
     version: options.version
@@ -59,6 +54,7 @@ processBundle = (options)->
 
 module.exports = {
   processBundle: processBundle
+
   # used by UMD-transformed modules, to make the node (async) require
   getMakeRequire: ()-> require('./makeRequire')
 }

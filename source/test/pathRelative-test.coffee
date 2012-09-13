@@ -1,7 +1,7 @@
 console.log '\npathRelative-test started'
 
 chai = require 'chai'
-pathRelative = require "../build/pathRelative"
+pathRelative = require "../code/utils/pathRelative"
 
 assert = chai.assert
 expect = chai.expect
