@@ -1,31 +1,30 @@
 module.exports = (grunt) ->
 
-  sourceDir       = "source/code"
-  buildDir        = "build/code"
-  sourceTestDir   = "source/test"
-  buildTestDir    = "build/test"
+  sourceDir     = "source/code"
+  buildDir      = "build/code"
+  sourceTestDir = "source/test"
+  buildTestDir  = "build/test"
 
-  #
-  # Grunt 'official' configuration :-)
-  #
   gruntConfig =
     pkg: "<json:package.json>"
 
     meta:
       banner: """
-      /*! <%= pkg.name %> - v<%= pkg.version %>
+      /*!
+      * <%= pkg.name %> - version <%= pkg.version %>
       * Compiled on <%= grunt.template.today(\"yyyy-mm-dd\") %>
       * <%= pkg.repository.url %>
-      * Copyright (c) <%= pkg.author.name %> <%= grunt.template.today(\"yyyy\") %>
-      * Licensed <%= pkg.licenses[0].url %>
+      * Copyright(c) <%= grunt.template.today(\"yyyy\") %> <%= pkg.author.name %> (<%= pkg.author.email %> )
+      * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
       */
       """
+      usrBinEnvNode : '#!/usr/bin/env node'
 
     options:
-      sourceDir:   sourceDir
-      buildDir:    buildDir
-      sourceTestDir:  sourceTestDir
-      buildTestDir: buildTestDir
+      sourceDir:     sourceDir
+      buildDir:      buildDir
+      sourceTestDir: sourceTestDir
+      buildTestDir:  buildTestDir
 
     shell:
       coffee: # this name can be anything
@@ -34,8 +33,8 @@ module.exports = (grunt) ->
       coffeeTest:
         command: "coffee -cb -o ./#{buildTestDir} ./#{sourceTestDir}"
 
-      codo: #codo documentation
-        command: "codo /#{sourceDir}"
+#      codo: #codo documentation #not working yet
+#        command: "codo /#{sourceDir}"
 
       mocha:
         command: "mocha #{buildTestDir} --recursive --bail --reporter spec"
@@ -46,21 +45,44 @@ module.exports = (grunt) ->
         stderr: true
 
     lint:
-      files: ["#{buildDir}/**/*.js"]
+      files: ["<%= options.buildDir %>/**/*.js"]
+
+    concat:
+      bin:
+        src: [
+          '<banner:meta.usrBinEnvNode>'
+          '<banner>'
+          '<%= options.buildDir %>/myRequireCmd.js'
+        ]
+        dest:'<%= options.buildDir %>/myRequireCmd.js'
+
+      main:
+        src: [
+          '<banner>'
+          '<%= options.buildDir %>/myRequire.js'
+        ]
+        dest:'<%= options.buildDir %>/myRequire.js'
 
     copy:
 #      options:   #Check 'working', ask fix if not
 #        flatten:true
       testJs:
         files:
-          "<%= options.buildTestDir %>": [ #dest
-            "<%= options.sourceTestDir %>/**/*.js"    #source
+          "<%= options.buildTestDir %>": [          #dest
+            "<%= options.sourceTestDir %>/**/*.js"  #source
+          ]
+
+      localInstallTests:
+        files:
+          "c:/Program Files/nodejs/node_modules/myRequire/build/code": [ #dest
+            "<%= options.buildDir %>/**/*.js"  #source
           ]
 
     clean:
       files: [
-        "#{buildDir}/**/*.*"
-        "#{buildTestDir}/**/*.*"
+        "c:/Program Files/nodejs/node_modules/myRequire/build/code/**/*.*"
+        "<%= options.buildDir %>/**/*.*"
+        "<%= options.buildTestDir %>/**/*.*"
       ]
 
   grunt.initConfig gruntConfig
@@ -69,10 +91,9 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-shell' #https://npmjs.org/package/grunt-shell
 
   # Default task.
-  grunt.registerTask "default", "clean shell:coffee copy test"
-  grunt.registerTask "build",   "shell:coffee shell:coffeeTest copy"
+  grunt.registerTask "default", "clean build copy test"
+  grunt.registerTask "build",   "shell:coffee concat copy"
   grunt.registerTask "test",    "shell:coffeeTest shell:mocha"
-  grunt.registerTask "all",     "clean shell:coffee shell:coffeeTest shell:mocha copy shell:codo"
 
   #some shortcuts
   grunt.registerTask "co",      "shell:coffee"

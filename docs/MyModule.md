@@ -35,11 +35,14 @@ module:
   import: [
     "../anotherLibrary"
   ]
+
 ###
   ##imports##
   imports are simply paths that myRequire will generate path resolutions against for this bundle.
   Usefull for tests & more. Type -h modules for more info'
 ###
+
+
 
 
 **modules-cache.json**

@@ -28,19 +28,33 @@ processBundle = (options)->
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
     moduleInfo = extractModuleInfo(oldJs)
 
-    moduleInfo.frDependencies = fileRelativeDependencies modyle, bundleFiles, moduleInfo.dependencies
+    if not _.isEmpty moduleInfo
 
-    if options.noExports
-      moduleInfo.rootExports = false #Todo:check for existence, allow more than one!
+      if moduleInfo.dependencies[0] is 'require'
+        if moduleInfo.parameters[0] is 'require'
+          l.warn "'require' found on module #{modyle}, replacing it with myRequire's version."
+          moduleInfo.dependencies.shift()
+          moduleInfo.parameters.shift()
 
-    templateInfo = _.extend moduleInfo, {
-    version: options.version
-    modulePath: _path.dirname modyle # module path within bundle
-    }
 
-    l.log _.pick templateInfo, 'dependencies', 'frDependencies', 'modulePath'
+      moduleInfo.frDependencies = fileRelativeDependencies modyle, bundleFiles, moduleInfo.dependencies
 
-    newJs = template templateInfo
+      if options.noExports
+        moduleInfo.rootExports = false #Todo:check for existence, allow more than one!
+
+      templateInfo = _.extend moduleInfo, {
+        version: options.version
+        modulePath: _path.dirname modyle # module path within bundle
+      }
+
+      l.log _.pick templateInfo, 'dependencies', 'frDependencies', 'modulePath'
+
+      newJs = template templateInfo
+
+    else
+      l.warn "Not AMD module #{modyle}, copying as-is."
+      newJs = oldJs
+
     outputFile = _path.join options.outputPath, modyle
 
     if not (_fs.existsSync _path.dirname(outputFile))
@@ -49,6 +63,7 @@ processBundle = (options)->
 
     _fs.writeFileSync outputFile, newJs, 'utf-8'
 
+  return null # save pointless coffeescript return :-)
 
 
 

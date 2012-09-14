@@ -1,0 +1,9 @@
+/.idea/
+/node_modules/
+/source/
+/grunt*
+/samples
+/build/test/
+/package.coffee
+/.npmignore
+/*.bat

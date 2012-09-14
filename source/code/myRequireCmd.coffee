@@ -1,3 +1,4 @@
+#!/usr/bin/env coffee
 _ = require('underscore')
 cmd = require('commander');
 l = require('./utils/logger')
@@ -12,7 +13,7 @@ cmd
   .usage('[options] <bundlePath>')
   #.option('-i, --imports <items>', 'Comma seperated module bundles to import.', toArray)
   .option('-o, --outputPath <outputPath>', 'Output converted files on this directory')
-  .option('-f, --forceOverwriteSources', 'Overwrite source* files')
+  .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)')
   .option('-n, --noExports', 'Ignore all root exports in module definitions')
   .option('-v, --verbose', 'Fill you screen with useless? info', true)
 
