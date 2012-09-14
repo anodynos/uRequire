@@ -32,7 +32,7 @@ processBundle = (options)->
 
       if moduleInfo.dependencies[0] is 'require'
         if moduleInfo.parameters[0] is 'require'
-          l.warn "'require' found on module #{modyle}, replacing it with myRequire's version."
+          l.warn "'require' found on module #{modyle}, replacing it with uRequire's version."
           moduleInfo.dependencies.shift()
           moduleInfo.parameters.shift()
 

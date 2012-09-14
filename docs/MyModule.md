@@ -6,7 +6,7 @@ Joffee = #name: "myModule" is taken from filename & package
   gloabilize: false
 
   nodeJs:
-    enforceCommonJs: false # MyRequire favors AMD/RequireJS on both node & browser
+    enforceCommonJs: false # uRequire favors AMD/RequireJS on both node & browser
 
   # isDefined as a module that is reused / called etc.
   # Creates an AMD 'define ['a','b','c'], (a,b,c)-> statement
@@ -38,7 +38,7 @@ module:
 
 ###
   ##imports##
-  imports are simply paths that myRequire will generate path resolutions against for this bundle.
+  imports are simply paths that uRequire will generate path resolutions against for this bundle.
   Usefull for tests & more. Type -h modules for more info'
 ###
 

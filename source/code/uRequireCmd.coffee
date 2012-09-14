@@ -28,11 +28,11 @@ cmd.on '--help', ->
   console.log """
     Examples:
 
-      $ myRequire path/to/amd/moduleBundle -o umd/moduleBundle
+      $ uRequire path/to/amd/moduleBundle -o umd/moduleBundle
 
                 or
 
-      $ myRequire path/to/moduleBundle -f
+      $ uRequire path/to/moduleBundle -f
 
 
     * Notes:
@@ -44,7 +44,7 @@ cmd.on '--help', ->
 cmd.parse process.argv
 
 cmdOptions = _.map(cmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
-#copy over to 'options', to decouple myRequire from cmd.
+#copy over to 'options', to decouple uRequire from cmd.
 options = _.defaults options, _.pick(cmd, cmdOptions)
 options.version = cmd.version()
 
@@ -75,5 +75,5 @@ else
         process.exit(1);
 
 l.log "processing modules from bundle '#{options.bundlePath}'"
-myRequire = require('./myRequire')
-myRequire.processBundle options
+uRequire = require('./uRequire')
+uRequire.processBundle options

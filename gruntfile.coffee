@@ -52,16 +52,16 @@ module.exports = (grunt) ->
         src: [
           '<banner:meta.usrBinEnvNode>'
           '<banner>'
-          '<%= options.buildDir %>/myRequireCmd.js'
+          '<%= options.buildDir %>/uRequireCmd.js'
         ]
-        dest:'<%= options.buildDir %>/myRequireCmd.js'
+        dest:'<%= options.buildDir %>/uRequireCmd.js'
 
       main:
         src: [
           '<banner>'
-          '<%= options.buildDir %>/myRequire.js'
+          '<%= options.buildDir %>/uRequire.js'
         ]
-        dest:'<%= options.buildDir %>/myRequire.js'
+        dest:'<%= options.buildDir %>/uRequire.js'
 
     copy:
 #      options:   #Check 'working', ask fix if not
@@ -74,13 +74,13 @@ module.exports = (grunt) ->
 
       localInstallTests:
         files:
-          "c:/Program Files/nodejs/node_modules/myRequire/build/code": [ #dest
+          "c:/Program Files/nodejs/node_modules/uRequire/build/code": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
     clean:
       files: [
-        "c:/Program Files/nodejs/node_modules/myRequire/build/code/**/*.*"
+        "c:/Program Files/nodejs/node_modules/uRequire/build/code/**/*.*"
         "<%= options.buildDir %>/**/*.*"
         "<%= options.buildTestDir %>/**/*.*"
       ]
