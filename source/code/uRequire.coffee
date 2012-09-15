@@ -71,5 +71,7 @@ module.exports = {
   processBundle: processBundle
 
   # used by UMD-transformed modules, to make the node (async) require
-  getMakeRequire: ()-> require('./makeRequire')
+  makeRequire: (basePath)->
+    mk = require('./makeRequire')
+    return mk basePath
 }

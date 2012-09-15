@@ -72,9 +72,15 @@ module.exports = (grunt) ->
             "<%= options.sourceTestDir %>/**/*.js"  #source
           ]
 
-      localInstallTests:
+      globalInstallTests:
         files:
           "c:/Program Files/nodejs/node_modules/uRequire/build/code": [ #dest
+            "<%= options.buildDir %>/**/*.js"  #source
+          ]
+
+      depsInstallTests:
+        files:
+          "y:/WebStormWorkspace/p/uRequireDepsTest/node_modules/uRequire/build/code": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 

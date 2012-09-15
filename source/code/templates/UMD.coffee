@@ -34,14 +34,14 @@ UMDtemplate = (d)-> """
          }['require'#{(", '#{dep}'" for dep in d.dependencies).join('')}], #{
             if d.rootExports # Adds browser/root globals if needed
               "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
-              "   return (root.#{d.rootExports} = factory(require#{
+              "    return (root.#{d.rootExports} = factory(require#{
                 (', ' + par for par in d.parameters).join('')
               }));\n});"
             else
               'factory);'
         }
     }
-}(this, function (require#{ (", #{par}" for par in d.parameters).join ''}) #{d.factoryBody}));
+})(this, function (require#{ (", #{par}" for par in d.parameters).join ''}) #{d.factoryBody});
 """
 
 

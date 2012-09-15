@@ -45,11 +45,11 @@ describe "extractModule()", ->
     });
     """
 
-    console.log parseAMD js
+#    console.log parseAMD js
 
     expect(parseAMD js).to.deep.equal
-      rootExports: 'vourtses'
-      type: 'require'
+      rootExports: 'vourtses',
       dependencies: [ 'underscore', 'depdir1/dep1' ],
+      type: 'require',
       parameters: [ '_', 'dep1' ],
-      factoryBody: 'console.log("\\n main starting....");\ndep1 = new dep1;\ndep1.myEach([ 1, 2, 3 ], function(val) {\n    return console.log("each :" + val);\n});\nreturn "main";\n'
+      factoryBody: '{\n    console.log("\\n main starting....");\n    dep1 = new dep1;\n    dep1.myEach([ 1, 2, 3 ], function(val) {\n        return console.log("each :" + val);\n    });\n    return "main";\n}'

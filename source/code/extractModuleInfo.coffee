@@ -95,17 +95,17 @@ extractModuleInfo = (js)->
 
 module.exports = extractModuleInfo
 
-log "\n## module info ##"
-log extractModuleInfo """
-({module: {rootExports: 'papari'}})
-
-if (typeof define !== 'function') { var define = require('amdefine')(module); };
-
-
-  define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
-    var i = 1;
-    console.log("\n main-requiring starting....");
-  });
-"""
-log "################### \n"
+#log "\n## inline test - module info ##"
+#log extractModuleInfo """
+#({module: {rootExports: 'papari'}})
+#
+#if (typeof define !== 'function') { var define = require('amdefine')(module); };
+#
+#
+#  define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
+#    var i = 1;
+#    console.log("\n main-requiring starting....");
+#  });
+#"""
+#log "################### \n"
 

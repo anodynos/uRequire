@@ -1,17 +1,18 @@
 module.exports = (basePath)->
   relativePath = require './utils/pathRelative'
-  console.log 'returning asyncRequire, for basepath = ' + basePath
+#  console.log 'creating asyncRequire, for basepath = ' + basePath
 
   (dependencies, callback)->
-    console.log 'asyncRequire called, basepath = ' + basePath
+#    console.log 'asyncRequire called'
+#    console.log   'base/filePath =      $' + basePath
+#    console.log 'callback = ' + callback
+
     resolvedDeps = []
-    console.log 'callback = ' + callback
-
     for dep in dependencies
-      depPath = relativePath '$bundle/' + basePath, "$bundle/" + dep, dot4Current:true
-#      resolvedDeps.push require(depPath)
-      resolvedDeps.push depPath
-
+#      depPath = relativePath '$/' + basePath, "$/" + dep, dot4Current:true
+#      console.log 'dep =                $', dep
+#      console.log 'resolved depPath =   ', depPath
+      resolvedDeps.push require(relativePath '$/' + basePath, "$/" + dep, dot4Current:true)
     callback.apply null, resolvedDeps
 
 # TODO: make test specs!
