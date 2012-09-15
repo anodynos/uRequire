@@ -3,7 +3,7 @@
   It then tranforms each file using template to 'outputPath'
 ###
 
-processBundle = (options)->
+uRequire = (options)->
   l = require('./utils/logger')
   if not options.verbose then l.log = ->
 
@@ -67,11 +67,4 @@ processBundle = (options)->
 
 
 
-module.exports = {
-  processBundle: processBundle
-
-  # used by UMD-transformed modules, to make the node (async) require
-  makeRequire: (basePath)->
-    mk = require('./makeRequire')
-    return mk basePath
-}
+module.exports = uRequire

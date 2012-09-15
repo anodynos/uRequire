@@ -78,12 +78,6 @@ module.exports = (grunt) ->
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
-      depsInstallTests:
-        files:
-          "y:/WebStormWorkspace/p/uRequireDepsTest/node_modules/uRequire/build/code": [ #dest
-            "<%= options.buildDir %>/**/*.js"  #source
-          ]
-
     clean:
       files: [
         "c:/Program Files/nodejs/node_modules/uRequire/build/code/**/*.*"

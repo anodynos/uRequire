@@ -21,12 +21,26 @@ UMDtemplate = (d)-> """
 (function (root, factory) {
     "use strict";
     if (typeof exports === 'object') {
-        var syncRequire = require('uRequire').makeRequire('#{d.modulePath}');
-        module.exports = factory(syncRequire#{
+
+        var uRequireSync = function(deps, cb) {
+            var path = require('path'),
+                relDeps = [],
+                relPath, i;
+            for (i = 0; i < deps.length; i++) {
+                relPath = path.relative('$/#{d.modulePath}', "$/" + deps[i]);
+                if (relPath[0] !== '.') {
+                    relPath = './' + relPath;
+                }
+                relDeps.push(require(relPath));
+            }
+            cb.apply(null, relDeps);
+        };
+
+        module.exports = factory(uRequireSync#{
           (", require('#{nDep}')" for nDep in d .frDependencies).join('')
         });
     } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
+
         define(#{
           if d.moduleName
             "'" + d.moduleName +"',"
