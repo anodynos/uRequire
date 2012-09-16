@@ -3,7 +3,7 @@
   It then tranforms each file using template to 'outputPath'
 ###
 
-uRequire = (options)->
+processBundle = (options)->
   l = require('./utils/logger')
   if not options.verbose then l.log = ->
 
@@ -66,5 +66,10 @@ uRequire = (options)->
   return null # save pointless coffeescript return :-)
 
 
+makeNodeRequire = require('./makeNodeRequire')
 
-module.exports = uRequire
+module.exports =
+  processBundle: processBundle
+
+  # used by UMD-transformed modules, to make the node (async) require
+  makeNodeRequire: makeNodeRequire

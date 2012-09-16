@@ -77,4 +77,4 @@ else
 l.log "processing modules from bundle '#{options.bundlePath}'"
 uRequire = require('./uRequire')
 
-uRequire options
+uRequire.processBundle options

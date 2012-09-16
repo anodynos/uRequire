@@ -21,22 +21,8 @@ UMDtemplate = (d)-> """
 (function (root, factory) {
     "use strict";
     if (typeof exports === 'object') {
-
-        var uRequireSync = function(deps, cb) {
-            var path = require('path'),
-                relDeps = [],
-                relPath, i;
-            for (i = 0; i < deps.length; i++) {
-                relPath = path.relative('$/#{d.modulePath}', "$/" + deps[i]);
-                if (relPath[0] !== '.') {
-                    relPath = './' + relPath;
-                }
-                relDeps.push(require(relPath));
-            }
-            cb.apply(null, relDeps);
-        };
-
-        module.exports = factory(uRequireSync#{
+        var nodeRequire = require('uRequire').makeNodeRequire('#{d.modulePath}', __dirname);
+        module.exports = factory(nodeRequire#{
           (", require('#{nDep}')" for nDep in d .frDependencies).join('')
         });
     } else if (typeof define === 'function' && define.amd) {
