@@ -9,39 +9,46 @@ options = {}
 toArray = (val)-> val.split(',')
 
 cmd
-  .version('0.0.1')
-  .usage('[options] <bundlePath>')
-  #.option('-i, --imports <items>', 'Comma seperated module bundles to import.', toArray)
+  .version('0.0.3')
+  .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files on this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)')
   .option('-n, --noExports', 'Ignore all root exports in module definitions')
   .option('-v, --verbose', 'Fill you screen with useless? info', true)
+  #.option('-m, --masterBundles <items>', 'Comma seperated module bundles that are `imported`.', toArray)
+  #.option('-i, --inline', 'Use inline nodeRequire, so no uRequire is not needed @ runtime.')
 
 
 cmd
-  .command('* <bundlePath...>')
-#  .description('UMDify bundle in <bundlePath>')
+  .command('UMD <bundlePath...>')
+  .description("Converts all .js modules in <bundlePath> using an UMD template")
   .action (bundlePath)->
     options.bundlePath = bundlePath
 
 cmd.on '--help', ->
   console.log """
-    Examples:
+  Examples:
+                                                                  \u001b[32m
+    $ uRequire UMD path/to/amd/moduleBundle -o umd/moduleBundle   \u001b[0m
+                    or                                            \u001b[32m
+    $ uRequire UMD path/to/moduleBundle -f                        \u001b[0m
 
-      $ uRequire path/to/amd/moduleBundle -o umd/moduleBundle
+  Module files in your bundle must conform to the standard AMD format:
+      // standard anonymous modules format                  \u001b[33m
+    - define(['dep1', 'dep2'], function(dep1, dep2) {...})  \u001b[0m
+                            or
+      // named modules also work, but are NOT recommended                 \u001b[33m
+    - define('moduleName', ['dep1', 'dep2'], function(dep1, dep2) {...})  \u001b[0m
 
-                or
-
-      $ uRequire path/to/moduleBundle -f
-
-
-    * Notes:
-      --forceOverwriteSources (-f) is useful if your sources
-        are not `real sources` eg. you use coffeescript :-).
-        Note: -f ignores --outputPath
-     """
+  Notes:
+    --forceOverwriteSources (-f) is useful if your sources are not `real sources`
+      eg. you use coffeescript :-).
+      WARNING: -f ignores --outputPath
+"""
 
 cmd.parse process.argv
+
+#options.bundlePath = cmd.bundlePath
 
 cmdOptions = _.map(cmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
 #copy over to 'options', to decouple uRequire from cmd.
@@ -78,3 +85,4 @@ l.log "processing modules from bundle '#{options.bundlePath}'"
 uRequire = require('./uRequire')
 
 uRequire.processBundle options
+#console.log options

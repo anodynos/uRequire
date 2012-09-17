@@ -1,47 +1,96 @@
-https://github.com/jrburke/requirejs/issues/450
-https://github.com/jrburke/amdefine/issues/4
-
-Requirements & aims
-    - Allow the simplest authoring of code in one trully unified structure, that when no other dependencies occur
-will be able to run on both browser and
-    - Allow package namespacing to have a 'module root' as a fererence point,
-    where module dependencies are relative to. This is required to have the exact sementics on all runtimes.
-    Currently node dependencies are dealt with "relative to me" which is a source of misconceptions on modularization it self.
-
-    This will enable the
-      - easiest and more natural definition of dependencies
-      - changing / refactoring of code. Eg moving a dependency A in a different folders
-        should not affect the dependencies referenced in A. Only other affected files should be updated for my new position.
-        Editors and IDES can easily detect this and update it.
-    - Bring the best practices, that appear to be close to requirejs, on both the browser and nodejs.
+#uRequire
+Write *modular code* once (using AMD), execute/test on both  **browser** & **node.js** via an UMD template and on-the-fly relative path resolution.
 
 
-#Web problems
+#Aims
+* **Enable the *simplest possible* authoring of modular js code with a unified dependencies structure for modules.**
+When no browser or node specifics are present, the same code should run & test on both browser and nodejs.
+The common denominator to define modules is [AMD](https://github.com/amdjs) and the test bed is [requireJS](http://requirejs.org); that's because AMD is the proper browser-optimized modular system out there. But that should not prevent you from the ability to run the same code on nodejs. Think of this project as the counterpart or opposite to [browserify] (https://github.com/substack/node-browserify).
+
+
+* **Accomodate both `define()` and `require()` to work the same way in both browser & node.**
+Specifically, the browser AMD-style `require([..], function(..){})` should work on node, just as it does on the browser: asyncrhonously.
+And vise versa, the node-style `require()` should also work on browser (at least seemingly) synchronously.
+
+
+* **Allow modules to have a 'module-bundle root' as a reference point**, where module dependencies are relative to, with the same sementics on both runtimes. This currently works in browser/AMD/requireJS (using baseUrl), but on node dependencies are "relative to requiring file" which is a source of misconceptions on modularization it self.
+
+
+Ultimatelly uRequire wishes to promote:
+* A standardized definition of dependencies for cross-platform modular code using AMD.
+* Proper code reuse, without one-side locking.
+* More natural changing / refactoring of code.
+Eg moving a dependency A in a different folders should not affect the dependencies referenced in A.
+Only other affected files should be updated for my new position. Editors and IDES can easily detect this and update it.
+* Bring browser best practices (that appear to be AMD/requirejs), closer to nodejs.
+
+
+#Installation & Basic Usage
+* uRequire has a command line converter that is called globally:
+
+  `npm install uRequire -g`
+
+You 'll also need a local dependency for your AMD-to-become-UMD project (basically a proxy to node's require).
+
+So assuming you have your AMD modules like this
+<pre>
+/src
+    Application.js
+    views/PersonView.js
+    models/PersonModel.js
+</pre>
+
+and say `views/PersonView.js` is
+```js
+    define(['models/PersonModel'], function(PersonModel) {
+      //do stuff
+      return {the:module}
+    }
+```
+
+and similarly for the others, you 'll execute
+```
+uRequire UMD src -p build
+```
+and uRequire will place the generated files into the `build` directory. The generated files will look like this
+```js
+    (function (root, factory) {
+        if (typeof exports === 'object') {
+            var nodeRequire = require('uRequire').makeNodeRequire('views', __dirname);
+            module.exports = factory(nodeRequire);
+        } else if (typeof define === 'function' && define.amd) {
+
+            define(['require'], factory);
+        }
+    })(this, function (require) {
+        return {the:module};
+    });
+```
+
+
+
+
+
+#The problems with AMD
+
+##Web AMD problems
 - With relative paths, you end up loading your files many many times: once everytime you reference to one under a different pathname. So if you're calling |depdir2/dep2 from module's root | you would use `.depdir2/dep2` but later you might use it from a nested dir, so you would use `../../depdir2/dep2`. You've just loaded you library twice, under a different id.
   That holds true at least before the optimization build which bundles them all in one.
 
 - RequireJS almond DOES not work with non-amd scripts that expose only the global (like underscore), because there is no shim config for exports.
 
+## Node AMD Problems
 
+## - no `define()` on requirejs
 
+One would expect `define()` to somehow work on requirejs nodejs
 
-#Node Problems
-- no define() on requirejs
-
-
-
-## requirejs
-***`define()` doent work like this on nodejs***
-
-```js
+```coffee
 var requirejs = require("requirejs");
 var define = requirejs.define;
 
-
-define ["uGetScore"], (_G)->
+define ["models/PersonModel"], (PersonModel)->
 ```
-
-tested with ver 2.0.6
 
 ##amdefine ->
 ***I can't use require() and/or requirejs***
@@ -93,6 +142,7 @@ tested with ver 2.0.6
 
 https://github.com/jrburke/requirejs/issues/450
 https://github.com/jrburke/amdefine/issues/4
+
 
 @jrburke, thank you for your response.
 

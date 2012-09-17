@@ -7,23 +7,23 @@
 # - async (immediatelly returning), when the call was made the AMD/requirejs way `require(['dep1', 'dep2'], function(dep1, dep2) {})`
 #   in which case the call back is called when all dependencies have been loaded asynchronously.
 module.exports = (modulePath, dirname)->
-  _path = require 'path'
+  pathRelative = require './utils/pathRelative'
 
   resolve = (dep)->
-    dirname + '/' + _path.relative("$/#{modulePath}", "$/" + dep)
+    dirname + '/' + pathRelative("$/#{modulePath}", "$/" + dep)
 
   nodeRequire = (deps, cb) ->
 
-    if Object::toString.call(deps) is "[object String]" # just pass to node's a sync only require
+    if Object::toString.call(deps) is "[object String]" # just pass to node's sync require
       return require resolve deps
-    else # asynchronously load dependencies, and then call the call back
+    else # asynchronously load dependencies, and then callback()
       setTimeout ->
         relDeps = []
         for dep in deps
-          relDeps.push require resolve deps
+          relDeps.push require resolve dep
 
         # todo : should we check cb, before wasting time requiring modules ? Or maybe it was intentional, for caching modules asynchronously
-        if Object::toString.call(cb) is "[object Function]"
+        if (Object::toString.call cb) is "[object Function]"
           cb.apply null, relDeps
       ,0
 

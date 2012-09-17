@@ -57,7 +57,7 @@ extractModuleInfo = (js)->
 
           #top-level 'module' : '...' info
           if val is 'object' and
-            stacktop[1][0]?[0] is 'module' and
+            stacktop[1][0]?[0] is 'uRequire' and
             level is 4 # for safety!
               moduleAst = stacktop[1][0][1]
               moduleInfo = _.extend moduleInfo, eval("(#{toCode(moduleAst)})")
@@ -65,7 +65,7 @@ extractModuleInfo = (js)->
           # extract call to 'define' or 'require'
           if val is 'call'
             call = readAst['call'](stacktop)
-            if call.callName in ['define', 'require']
+            if call.callName in ['define', 'require'] # todo: test 'require'
               # check for 'standard' unnamed AMD signature
               if  call.args.length is 2 and
                   call.args[0][0] is 'array' and # array of dependeencies
@@ -73,7 +73,7 @@ extractModuleInfo = (js)->
                     moduleInfo.dependencies = eval toCode call.args[0] # array of deps ['dep1', 'dep2']
                     amdFactoryFunction = call.args[1]
                     hasFoundAMD = true
-              else # named AMD signature
+              else # check for (not suggested) named AMD signature
                 if  call.args.length is 3 and
                     call.args[0][0] is 'string' and # module name
                     call.args[1][0] is 'array' and # array of dependeencies
