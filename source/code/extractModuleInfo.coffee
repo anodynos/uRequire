@@ -65,15 +65,15 @@ extractModuleInfo = (js)->
           # extract call to 'define' or 'require'
           if val is 'call'
             call = readAst['call'](stacktop)
-            if call.callName in ['define', 'require'] # todo: test 'require'
-              # check for 'standard' unnamed AMD signature
+            if call.callName in ['define'] # 'require' todo: test 'require'
+              # check for 'standard' *anomynous* AMD signature
               if  call.args.length is 2 and
                   call.args[0][0] is 'array' and # array of dependeencies
                   call.args[1][0] is 'function' # factoryFunction
                     moduleInfo.dependencies = eval toCode call.args[0] # array of deps ['dep1', 'dep2']
                     amdFactoryFunction = call.args[1]
                     hasFoundAMD = true
-              else # check for (not suggested) named AMD signature
+              else # check for *named* AMD signature (not recommended: http://requirejs.org/docs/api.html#modulename)
                 if  call.args.length is 3 and
                     call.args[0][0] is 'string' and # module name
                     call.args[1][0] is 'array' and # array of dependeencies
@@ -82,11 +82,17 @@ extractModuleInfo = (js)->
                       moduleInfo.dependencies = eval toCode call.args[1] # array of deps ['dep1', 'dep2']
                       amdFactoryFunction = call.args[2]
                       hasFoundAMD = true
+                else # check for factory-function only AMD signature
+                  if  call.args.length is 1 and
+                      call.args[0][0] is 'function' # factoryFunction
+                        moduleInfo.dependencies = []
+                        amdFactoryFunction = call.args[0]
+                        hasFoundAMD = true
+
               if hasFoundAMD
                 moduleInfo.type = call.callName # 'define' or 'require'
-                moduleInfo.parameters = amdFactoryFunction[2] # args of function (dep1, dep2)
+                moduleInfo.parameters = amdFactoryFunction[2] || [] # args of function (dep1, dep2)
                 moduleInfo.factoryBody = toCode(['block', amdFactoryFunction[3] ])
-
 
 
   walkTree parser.parse(js) # recursive walker - stores in m

@@ -9,14 +9,14 @@ processBundle = (options)->
 
   l.log 'process called with options\n', options
 
-  _ = require 'underscore'
+  _ = require 'lodash'
   _fs = require 'fs'
   _path = require 'path'
   _wrench = require 'wrench'
   getFiles = require "./utils/getFiles"
   template = require "./templates/UMD"
   extractModuleInfo = require "./extractModuleInfo"
-  fileRelativeDependencies = require './fileRelativeDependencies'
+  resolveDependencies = require './resolveDependencies'
 
   bundleFiles =  getFiles options.bundlePath, (fileName)->
     (_path.extname fileName) is '.js' #todo: make sure its an AMD module
@@ -30,14 +30,40 @@ processBundle = (options)->
 
     if not _.isEmpty moduleInfo
 
-      if moduleInfo.dependencies[0] is 'require'
-        if moduleInfo.parameters[0] is 'require'
-          l.warn "'require' found on module #{modyle}, replacing it with uRequire's version."
-          moduleInfo.dependencies.shift()
-          moduleInfo.parameters.shift()
+      resDeps = resolveDependencies modyle, bundleFiles, moduleInfo.dependencies
+      moduleInfo.dependencies = resDeps.bundleRelative
+      moduleInfo.frDependencies = resDeps.fileRelative
+
+      if resDeps.notFoundInBundle.length > 0
+        l.warn """
+          #{modyle} has dependencies not found in bundle:
+            * #{nfib for nfib in resDeps.notFoundInBundle}
+          They are added as-is.
+        """
+
+      if resDeps.external.length > 0
+        l.warn """
+                  #{modyle} has external dependencies:
+                    * #{nfib for nfib in resDeps.notFoundInBundle}
+                  They are added as-is.
+        """
 
 
-      moduleInfo.frDependencies = fileRelativeDependencies modyle, bundleFiles, moduleInfo.dependencies
+      # 'require' as param
+      # require is always 1st fixed (*in template) parameter of factory
+      if moduleInfo.parameters[0] is 'require' #so remove it
+        moduleInfo.parameters.shift() if moduleInfo.parameters[0] is 'require'
+
+      # nodeRequire is always 1st fixed* argument when calling factory (from node!)
+      if moduleInfo.frDependencies[0] is 'require' #so remove it
+        moduleInfo.frDependencies.shift()
+
+      # if there are dependencies, add 'require' as the first one
+      if moduleInfo.dependencies[0] isnt 'require'
+        if moduleInfo.dependencies.length > 0 # only if other deps exist (requireJS bug)
+          moduleInfo.dependencies.unshift 'require'
+
+        #l.log "'require' pseudo-parameter found on module #{modyle}, replacing it with uRequire's version."
 
       if options.noExports
         moduleInfo.rootExports = false #Todo:check for existence, allow more than one!

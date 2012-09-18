@@ -9,4 +9,4 @@ logger = (baseMsg, color, cons)->
 
 module.exports.log = logger("", '\u001b[0m', console.log)
 module.exports.warn = logger("WARNING:", '\u001b[33m', console.log) #yellow
-module.exports.err = logger("ERROR:", '\u001b[31m', console.error) #red
+module.exports.err = logger("ERROR:", '\u001b[31m', console.log) #red

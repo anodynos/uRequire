@@ -29,9 +29,9 @@ UMDtemplate = (d)-> """
 
         define(#{
           if d.moduleName
-            "'" + d.moduleName +"',"
+            "'" + d.moduleName +"', "
           else ""
-         }['require'#{(", '#{dep}'" for dep in d.dependencies).join('')}], #{
+         }[#{("'#{dep}'" for dep in d.dependencies).join(',')}], #{
             if d.rootExports # Adds browser/root globals if needed
               "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
               "    return (root.#{d.rootExports} = factory(require#{

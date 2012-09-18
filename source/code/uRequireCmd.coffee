@@ -1,5 +1,5 @@
 #!/usr/bin/env coffee
-_ = require('underscore')
+_ = require('lodash')
 cmd = require('commander');
 l = require('./utils/logger')
 
@@ -12,11 +12,13 @@ cmd
   .version('0.0.3')
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files on this directory')
-  .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)')
-  .option('-n, --noExports', 'Ignore all root exports in module definitions')
-  .option('-v, --verbose', 'Fill you screen with useless? info', true)
-  #.option('-m, --masterBundles <items>', 'Comma seperated module bundles that are `imported`.', toArray)
-  #.option('-i, --inline', 'Use inline nodeRequire, so no uRequire is not needed @ runtime.')
+  .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
+  .option('-n, --noExports', 'Ignore all root exports in module definitions', false)
+  .option('-v, --verbose', 'Filling your screen with useless? info', false)
+  .option('-d, --dontConvertToBundleRelative', 'NOT IMPLEMENTED. Dont convert ../add to calc/add for AMD deps', false)
+  .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
+  .option('-m, --masterBundles <items>', 'NOT IMPLEMENTED. Comma seperated module bundles that are `imported.`.', toArray)
+  .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so uRequire is not needed @ runtime.', false)
 
 
 cmd

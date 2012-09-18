@@ -31,7 +31,7 @@ myPackage =
 
   main: "./build/code/uRequire.js"
 
-  test: "mocha build/test --recursive --bail --reporter spec"
+  test: "mocha build/spec --recursive --bail --reporter spec"
 
   directories:
     doc: "./doc"
@@ -41,7 +41,7 @@ myPackage =
     "node": "*"
 
   dependencies:
-    underscore: ">= 1.3.x" # or "lodash": "0.5.x"
+    lodash: "0.5.x" # or "underscore"
     commander: "*"
     wrench : "*"
     "uglify-js": "1.3.x"

@@ -1,5 +1,5 @@
 #uRequire
-Write *modular code* once (using AMD), execute/test on both  **browser** & **node.js** via an UMD template and on-the-fly relative path resolution.
+Write *modular code* once and execute/test on both **browser** & **node.js** via a UMD template and on-the-fly relative path resolution.
 
 
 #Aims
@@ -15,6 +15,7 @@ And vise versa, the node-style `require()` should also work on browser (at least
 
 * **Allow modules to have a 'module-bundle root' as a reference point**, where module dependencies are relative to, with the same sementics on both runtimes. This currently works in browser/AMD/requireJS (using baseUrl), but on node dependencies are "relative to requiring file" which is a source of misconceptions on modularization it self.
 
+* Check your dependencies are valid at build time
 
 Ultimatelly uRequire wishes to promote:
 * A standardized definition of dependencies for cross-platform modular code using AMD.
@@ -34,10 +35,13 @@ You 'll also need a local dependency for your AMD-to-become-UMD project (basical
 
 So assuming you have your AMD modules like this
 <pre>
-/src
+
+src/
     Application.js
-    views/PersonView.js
-    models/PersonModel.js
+    views/
+          PersonView.js
+    models/
+          PersonModel.js
 </pre>
 
 and say `views/PersonView.js` is
