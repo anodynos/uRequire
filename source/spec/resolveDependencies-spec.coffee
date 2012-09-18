@@ -56,7 +56,7 @@ describe "resolveDependencies ", ->
       notFoundInBundle:[ '../lame/dir' ]
 
     resDeps = resolveDependencies modyle, bundleFiles, dependencies
-#    console.log resDeps
+#    console.log '\n', resDeps
     expect(resDeps).to.deep.equal expectedDeps
 
 

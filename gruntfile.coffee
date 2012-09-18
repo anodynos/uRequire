@@ -36,16 +36,24 @@ module.exports = (grunt) ->
       coffeeExamples: # this name can be anything
         command: "coffee -cb -o ./build/examples ./source/examples"
 
+
       uRequireExampleDeps:
         command: "uRequire UMD #{buildDir}/../examples/deps -f -v"
+
+      uRequireExampleSpec:
+        command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
 
       runExampleDeps:
         command: "node build/examples/deps/main"
 #      codo: #codo documentation #not working yet
 #        command: "codo /#{sourceDir}"
 
+      # tests
       mocha:
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
+
+      mochaExamples:
+        command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
 
       _options: # subtasks inherit _options but can override them
         failOnError: true
@@ -74,13 +82,13 @@ module.exports = (grunt) ->
     copy:
 #      options:   #Check 'working', ask fix if not
 #        flatten:true
-      htmlAndJs:
+      exampleHtmlAndJs:
         options:
           flatten:false
         files:
-          "build/": [ #dest
-            "source/**/*.html"    #source
-            "source/**/*.js"    #source
+          "build/examples": [ #dest
+            "source/examples/**/*.html"    #source
+            "source/examples/**/*.js"    #source
           ]
 
       globalInstallTests:
@@ -117,12 +125,11 @@ module.exports = (grunt) ->
   grunt.registerTask "default", "clean build copy test"
   grunt.registerTask "build",   "shell:coffee concat copy"
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
-  grunt.registerTask "examples", "shell:coffeeExamples shell:uRequireExampleDeps shell:runExampleDeps"
+  grunt.registerTask "examples", "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec copy:exampleHtmlAndJs shell:mochaExamples shell:runExampleDeps"
   #some shortcuts
   grunt.registerTask "co",      "shell:coffee"
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
-  grunt.registerTask "be",      "buildExamples"
 
   null

@@ -44,10 +44,9 @@ processBundle = (options)->
       if resDeps.external.length > 0
         l.warn """
                   #{modyle} has external dependencies:
-                    * #{nfib for nfib in resDeps.notFoundInBundle}
+                    * #{nfib for nfib in resDeps.external}
                   They are added as-is.
         """
-
 
       # 'require' as param
       # require is always 1st fixed (*in template) parameter of factory

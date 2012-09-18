@@ -29,8 +29,8 @@ module.exports = (modyle, bundleFiles, dependencies)->
     else
       frDep = dep # either global, external, or notFound : add as-is to fileRelative
       if dep.match /\//
-        # check if outside bundle eg ../../../myLib or inside/notFound eg lame/dir
-        if pathRelative "$/#{dep}", "$/#{_path.dirname modyle}" #reverse path ?
+        # check if outside bundle boundaries eg ../../../myLib or eg lame/dir
+        if pathRelative "$/#{modyle}/../../#{dep}", "$" #2 steps back: one for $ & one for module.js
           notFoundInBundle.push dep
         else
           external.push dep

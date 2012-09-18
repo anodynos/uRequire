@@ -14,7 +14,7 @@
   # @return {String} the path that connects from -> to
 module.exports = (from, to, options)->
     options or= {}
-    #console.log "from: #{from}, to: #{to}"
+#    console.log "from: #{from}, to: #{to}"
     # replace '\' with '/' and split 'em (to an array). I lOOOOOOve coffeescript!
     [from, to] =
       for path in [from, to]
