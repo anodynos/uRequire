@@ -39,13 +39,13 @@ processBundle = (options)->
           #{modyle} has dependencies not found in bundle:
             * #{nfib for nfib in resDeps.notFoundInBundle}
           They are added as-is.
-        """
+          """
 
       if resDeps.external.length > 0
         l.warn """
                   #{modyle} has external dependencies:
                     * #{nfib for nfib in resDeps.external}
-                  They are added as-is.
+                   They are added as-is.
         """
 
       # 'require' as param

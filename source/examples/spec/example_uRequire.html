@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>uRequire AMD greet test</title>
+
+    <!-- load requirejs, without 'data-main' using <script> below -->
+    <script src="/libs/requirejs/require.js"></script>
+
+    <script type="text/javascript">
+      require.config ({
+        // set baseUrl to point to the 'bundle', relative to this HTML
+        baseUrl: '../../build/code/SimpleDeps',
+
+        // all libraries are now relative to the bundle/baseUrl
+        paths: {
+          //underscore: "../../../libs/lodash.min",
+          underscore: "../../../libs/underscore-min",
+        },
+        shim: {
+          underscore: { deps: [], exports: "_"},
+        }
+      });
+    </script>
+
+    <!--<script src='/w/p/uRequire/build/code/uRequireAMD.js'>-->
+    <!--</script>-->
+
+    <script>
+      require(['main'], function(main) {
+        console.log(main);
+      });
+    </script>
+  </head>
+
+</html>
