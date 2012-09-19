@@ -7,12 +7,13 @@ processBundle = (options)->
   l = require('./utils/logger')
   if not options.verbose then l.log = ->
 
-  l.log 'process called with options\n', options
+  l.log 'uRequire called with options\n', options
 
   _ = require 'lodash'
   _fs = require 'fs'
   _path = require 'path'
   _wrench = require 'wrench'
+  pathRelative = require './utils/pathRelative'
   getFiles = require "./utils/getFiles"
   template = require "./templates/UMD"
   extractModuleInfo = require "./extractModuleInfo"
@@ -21,18 +22,28 @@ processBundle = (options)->
   bundleFiles =  getFiles options.bundlePath, (fileName)->
     (_path.extname fileName) is '.js' #todo: make sure its an AMD module
 
-  l.log '\nbundleFiles=', bundleFiles
+  l.log 'Bundle files found: \n', bundleFiles
 
   for modyle in bundleFiles
-    l.log '\n', 'processing module:', modyle
+    l.log 'Processing module: ', modyle
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
-    moduleInfo = extractModuleInfo(oldJs)
+    moduleInfo = extractModuleInfo oldJs, {beautifyFactory:true, extractRequires:true}
 
-    if not _.isEmpty moduleInfo
+    if _.isEmpty moduleInfo
+      l.warn "Not AMD module #{modyle}, copying as-is."
+      newJs = oldJs
+    else # we have a module
 
+      # 'require' is always 1st fixed parameter (in template) of params in factoryFunction and define([]). The nodecall also has nodeRequire
+      if moduleInfo.parameters[0] is 'require' #so remove it
+        moduleInfo.parameters.shift()
+      if moduleInfo.dependencies[0] is 'require'
+        moduleInfo.dependencies.shift
+
+      #resolve dependencies
       resDeps = resolveDependencies modyle, bundleFiles, moduleInfo.dependencies
       moduleInfo.dependencies = resDeps.bundleRelative
-      moduleInfo.frDependencies = resDeps.fileRelative
+      moduleInfo.nodeDependencies = resDeps.fileRelative
 
       if resDeps.notFoundInBundle.length > 0
         l.warn """
@@ -48,37 +59,27 @@ processBundle = (options)->
                    They are added as-is.
         """
 
-      # 'require' as param
-      # require is always 1st fixed (*in template) parameter of factory
-      if moduleInfo.parameters[0] is 'require' #so remove it
-        moduleInfo.parameters.shift() if moduleInfo.parameters[0] is 'require'
+#      TODO :
+      if options.webRootMap
+        if options.webRootMap[0] is '.' # a path relative to bundle. Pass it as relative to this module
+          moduleInfo.webRoot = (pathRelative "$/#{_path.dirname modyle}", '$/') + '/' + options.webRootMap
+        else
+          moduleInfo.webRoot = options.webRootMap.replace /\\/g, '/' # absolute OS path
+      else #default is bundle's root
+        moduleInfo.webRoot = (pathRelative "$/#{_path.dirname modyle}", '$/', {dot4Current:true})
 
-      # nodeRequire is always 1st fixed* argument when calling factory (from node!)
-      if moduleInfo.frDependencies[0] is 'require' #so remove it
-        moduleInfo.frDependencies.shift()
-
-      # if there are dependencies, add 'require' as the first one
-      if moduleInfo.dependencies[0] isnt 'require'
-        if moduleInfo.dependencies.length > 0 # only if other deps exist (requireJS bug)
-          moduleInfo.dependencies.unshift 'require'
-
-        #l.log "'require' pseudo-parameter found on module #{modyle}, replacing it with uRequire's version."
 
       if options.noExports
-        moduleInfo.rootExports = false #Todo:check for existence, allow more than one!
+        moduleInfo.rootExports = false #Todo:check for existence, allow more than one?
 
-      templateInfo = _.extend moduleInfo, {
+      templateInfo = _.extend moduleInfo,
         version: options.version
         modulePath: _path.dirname modyle # module path within bundle
-      }
 
-      l.log _.pick templateInfo, 'dependencies', 'frDependencies', 'modulePath'
+      l.log _.pick templateInfo, 'dependencies', 'requireDependencies', 'nodeDependencies', 'webRoot', 'modulePath'
 
       newJs = template templateInfo
 
-    else
-      l.warn "Not AMD module #{modyle}, copying as-is."
-      newJs = oldJs
 
     outputFile = _path.join options.outputPath, modyle
 

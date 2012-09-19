@@ -3,7 +3,7 @@ myPackage =
 
   description: "Automatically UMDify your AMD code, to make it run on both the browser & nodejs"
 
-  version: "0.0.3"
+  version: "0.0.4"
 
   homepage: "https://github.com/anodynos/uRequire"
 
@@ -41,7 +41,7 @@ myPackage =
     "node": "*"
 
   dependencies:
-    lodash: "0.5.x" # or "underscore"
+    lodash: "*" # or "underscore"
     commander: "*"
     wrench : "*"
     "uglify-js": "1.3.x"

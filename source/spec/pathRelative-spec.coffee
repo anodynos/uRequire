@@ -21,6 +21,11 @@ describe "pathRelative(from, to)", ->
     from = to = 'common/a/b'
     expect(pathRelative from, to).to.equal ""
 
+
+  it "should dot4Current on small identical path", ->
+    from = to = '/a'
+    expect(pathRelative from, to, dot4Current:true).to.equal "."
+
   it 'should calc go-back & forth paths', ->
     from  = "/y/work/p/project/sourceTest/code/main"
     to    = "/y/work/p/project/source/code/main//"
@@ -29,7 +34,6 @@ describe "pathRelative(from, to)", ->
 
     [from, to] = [to, from]
     expect(pathRelative from, to ).to.equal "../../../sourceTest/code/main"
-    @
 
   it 'should handle mixed unix & windows style seps & doubles `/`', ->
     from  = "/y///work\\p///project\\sourceTest///code/main\\//"

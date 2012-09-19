@@ -12,9 +12,10 @@
   # @param from {to} the destination path
   # @option dot4Current ????
   # @return {String} the path that connects from -> to
-module.exports = (from, to, options)->
+pathRelative = (from, to, options)->
     options or= {}
-#    console.log "from: #{from}, to: #{to}"
+    #console.log "from: #{from}, to: #{to}"
+
     # replace '\' with '/' and split 'em (to an array). I lOOOOOOve coffeescript!
     [from, to] =
       for path in [from, to]
@@ -34,7 +35,7 @@ module.exports = (from, to, options)->
       commonPath.push lastFrom
 
     finalPath = []
-    if commonPath.length > 0
+    if commonPath.length > 0 or lastFrom is lastTo
       if lastFrom isnt lastTo #exact same path case
         if lastFrom then from.unshift lastFrom
         if lastTo then to.unshift lastTo
@@ -68,12 +69,16 @@ module.exports = (from, to, options)->
     else
       return null # no path found
 
+module.exports = pathRelative
 
-#_path = require("path")
-#from =  "Y:/work/p/a/../b/c/../../../" # I am back in work
-#to =    "Y:/work/p/d"
+
+#_path = require 'path'
+##from =  "Y:/work/p/a/../b/c/../../../" # I am back in work
+##to =    "Y:/work/p/d"
+#from = '/a'
+#to = '/a'
 #
-#console.log '\n result:', calcPath from, to
+#console.log '\n result:', pathRelative from, to, dot4Current:true
 #console.log '\n _path', _path.relative from, to
 #[from, to] = [to, from]
-##console.log '\n result:', calcPath from, to
+#console.log '\n result:', calcPath from, to

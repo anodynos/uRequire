@@ -1,12 +1,19 @@
+_ = require 'lodash'
+l = require('./utils/logger')
 
-log = console.log
-extractModuleInfo = (js)->
-  _ = require 'lodash'
+extractModuleInfo = (js, options)->
+  options = options || {}
+  if options.beautifyFactory is undefined
+    options.beautifyFactory = false
+
+  if options.extractRequires is undefined
+    options.extractRequires = true
+
   parser = require("uglify-js").parser
   proc = require("uglify-js").uglify
 
   toCode = (astCode) ->
-    code = proc.gen_code(astCode, { beautify: true })
+    code = proc.gen_code(astCode, { beautify: options.beautifyFactory })
 
   # helper, keeping main uglify's notation
   readAst=
@@ -41,21 +48,20 @@ extractModuleInfo = (js)->
 
   moduleInfo = {}
   hasFoundAMD = false
-  stack = [];
-  walkTree = (oa, level)-> # level used for debugging & stop crawiling the tree, since we only need top-level info
+  amdFactoryFunction = '' #store it outside, we will extract deps from it `require('dep')` if options.extractRequires
+  stack = []; # keep each AST element we visit
+  extractModuleHeader = (oa, level)-> # level used for debugging & stop crawiling the tree, since we only need top-level info
     level = if not level then 1 else level + 1
     if not hasFoundAMD and level <= 4
       _.each oa, (val, key)->
         if _.isObject(val) or _.isArray(val)
           stack.push val
-          walkTree(val, level)
+          extractModuleHeader(val, level)
           stack.pop()
         else
           stacktop = stack[stack.length-1]
-#          log '*************** \n'
-#          log level, stacktop, '\n'
-
-          #top-level 'module' : '...' info
+          #l.log '*************** \n', level, stacktop, '\n'
+          #top-level 'uRequire' : '...' info
           if val is 'object' and
             stacktop[1][0]?[0] is 'uRequire' and
             level is 4 # for safety!
@@ -92,26 +98,67 @@ extractModuleInfo = (js)->
               if hasFoundAMD
                 moduleInfo.type = call.callName # 'define' or 'require'
                 moduleInfo.parameters = amdFactoryFunction[2] || [] # args of function (dep1, dep2)
-                moduleInfo.factoryBody = toCode(['block', amdFactoryFunction[3] ])
+
+                # factoryBody without the {...}
+                fb = toCode(['block', amdFactoryFunction[3] ])
+                moduleInfo.factoryBody = fb[1..fb.length-2]
 
 
-  walkTree parser.parse(js) # recursive walker - stores in m
+  extractFactoryRequires = (oa, level)-> # level used for debugging & stop crawiling the tree, since we only need top-level info
+    level = if not level then 1 else level + 1
+    _.each oa, (val, key)->
+      if _.isObject(val) or _.isArray(val)
+        stack.push val
+        extractFactoryRequires(val, level)
+        stack.pop()
+      else
+        stacktop = stack[stack.length-1]
+        #l.log '*************** \n', level, stacktop, '\n'
+        # extract call to 'require'
+        if val is 'call'
+          call = readAst['call'](stacktop)
+          if call.callName in ['require'] # 'require' todo: test 'require'
+            # check for 'standard' *anomynous* AMD signature
+            if call.args.length is 1 # require('dep')
+              if call.args[0][0] is 'string' #accept only require('dep'), not require('dep' + someVar)
+                moduleInfo.requireDependencies.push call.args[0][1]
+              else
+                l.err "extractModuleInfo @ extractFactoryRequires : #{toCode(stacktop)} is a require() without a string as param - IGNORED!"
+
+
+  extractModuleHeader parser.parse js  # recursive walker - stores in moduleInfo
+
+  if options.extractRequires and not _.isEmpty(moduleInfo)
+    moduleInfo.requireDependencies = []
+    extractFactoryRequires amdFactoryFunction
+    # keep only unique requireDeps & only those not in original dependencies
+    moduleInfo.requireDependencies = _.difference (_.uniq moduleInfo.requireDependencies), moduleInfo.dependencies
 
   return moduleInfo
 
 module.exports = extractModuleInfo
 
-#log "\n## inline test - module info ##"
-#log extractModuleInfo """
+#console.log "\n## inline test - module info ##"
+#console.log extractModuleInfo """
 #({module: {rootExports: 'papari'}})
 #
 #if (typeof define !== 'function') { var define = require('amdefine')(module); };
 #
+#define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
+#  _ = require('underscore');
+#  var i = 1;
+#  var r = require('someRequire');
+#  if (require === 'require') {
+#   for (i=1; i < 100; i++) {
+#      require('myOtherRequire');
+#   }
+#   require('myOtherRequire');
+#  }
+#  console.log("\n main-requiring starting....");
+#  var crap = require("crap" + i); //not read
 #
-#  define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
-#    var i = 1;
-#    console.log("\n main-requiring starting....");
-#  });
+#  return {require: require('finalRequire')};
+#});
 #"""
-#log "################### \n"
+#console.log "################### \n"
 

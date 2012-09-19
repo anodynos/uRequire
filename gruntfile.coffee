@@ -33,12 +33,17 @@ module.exports = (grunt) ->
       coffeeSpec:
         command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
 
+      coffeeWatch: # this name can be anything
+        command: "coffee -cbw -o ./build ./source"
+
       coffeeExamples: # this name can be anything
         command: "coffee -cb -o ./build/examples ./source/examples"
 
-
       uRequireExampleDeps:
         command: "uRequire UMD #{buildDir}/../examples/deps -f -v"
+
+      uRequireExampleABC:
+        command: "uRequire UMD #{buildDir}/../examples/abc -f -v -w f:/javascript"
 
       uRequireExampleSpec:
         command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
@@ -125,11 +130,14 @@ module.exports = (grunt) ->
   grunt.registerTask "default", "clean build copy test"
   grunt.registerTask "build",   "shell:coffee concat copy"
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
-  grunt.registerTask "examples", "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec copy:exampleHtmlAndJs shell:mochaExamples shell:runExampleDeps"
+  grunt.registerTask "examples", "shell:coffeeExamples shell:uRequireExampleABC shell:uRequireExampleDeps shell:uRequireExampleSpec copy:exampleHtmlAndJs shell:mochaExamples shell:runExampleDeps"
   #some shortcuts
+  grunt.registerTask "watch",   "shell:coffeeWatch"
   grunt.registerTask "co",      "shell:coffee"
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
+  grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
+
 
   null
