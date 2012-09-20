@@ -3,7 +3,7 @@ logger = (baseMsg, color, cons)->
     args = Array.prototype.slice.call arguments
     args.unshift baseMsg
     args.unshift color
-    args.unshift '\n'
+#    args.unshift '\n'
     args.push '\u001b[0m' #reset
     cons.apply null, args
     null

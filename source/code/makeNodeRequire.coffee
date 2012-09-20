@@ -36,5 +36,6 @@ module.exports = (modulePath, dirname, webRoot)->
       ,0
 
 # TODO: make test specs!
+# TODO: mimic requireJS behaviour on the asynchronous require [..],-> : If all deps are loaded before, then its SYNCRONOUS :-(
 #relativeAsyncRequire = makeRelativeAsynchRequire 'views/'
 #relativeAsyncRequire ['views/PersonEditVi

@@ -43,7 +43,7 @@ module.exports = (grunt) ->
         command: "uRequire UMD #{buildDir}/../examples/deps -f -v"
 
       uRequireExampleABC:
-        command: "uRequire UMD #{buildDir}/../examples/abc -f -v -w f:/javascript"
+        command: "uRequire UMD #{buildDir}/../examples/abc -f -w f:/javascript"
 
       uRequireExampleSpec:
         command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
@@ -114,12 +114,18 @@ module.exports = (grunt) ->
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
+      AMDUtilsInstallTests:
+        files:
+          "f:/javascript/libs/amd-utils-test/node_modules/uRequire/build/code": [ #dest
+            "<%= options.buildDir %>/**/*.js"  #source
+          ]
+
     clean:
-      files: [
-        "c:/Program Files/nodejs/node_modules/uRequire/build/code/**/*.*"
-        "<%= options.buildDir %>/**/*.*"
-        "<%= options.buildSpecDir %>/**/*.*"
-      ]
+        files: [
+          "c:/Program Files/nodejs/node_modules/uRequire/build/code/**/*.*"
+          "<%= options.buildDir %>/**/*.*"
+          "<%= options.buildSpecDir %>/**/*.*"
+        ]
 
   grunt.initConfig gruntConfig
 
@@ -138,7 +144,7 @@ module.exports = (grunt) ->
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
   grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
-  grunt.registerTask "deps",     "shell:coffeeExamples shell:uRequireExampleDeps"
+  grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps"
 
 
   null

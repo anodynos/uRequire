@@ -48,8 +48,8 @@ class DependencyReporter
 
   reportTemplate: (texts, dependenciesFound)->"""
    \n#{texts.header}
-     #{ "'#{dependency}' in modules: [
-       #{("\n                               '" +
+     #{ "'#{dependency}' @ [
+       #{("\n         '" +
          mf + "'" for mf in moduleFiles)}\n  ]\n" for dependency, moduleFiles of dependenciesFound
         }#{
      texts.footer}\n

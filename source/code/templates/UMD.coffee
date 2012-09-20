@@ -24,7 +24,7 @@ UMDtemplate = (d)->
       if (typeof exports === 'object') {
           var nodeRequire = require('uRequire').makeNodeRequire('#{d.modulePath}', __dirname, '#{d.webRoot}');
           module.exports = factory(nodeRequire#{
-            (", require('#{nDep}')" for nDep in d.nodeDependencies).join('')
+            (", nodeRequire('#{nDep}')" for nDep in d.nodeDependencies).join('')
           });
       } else if (typeof define === 'function' && define.amd) {
 
@@ -32,7 +32,7 @@ UMDtemplate = (d)->
             if d.moduleName
               "'" + d.moduleName +"', "
             else ""
-           }['require'#{(", '#{dep}'" for dep in d.UMDdependencies).join('')}],#{
+           }['require'#{(", '#{dep}'" for dep in d.AMDdependencies).join('')}],#{
               if d.rootExports # Adds browser/root globals if needed
                 "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
                 "    return (root.#{d.rootExports} = factory(require#{

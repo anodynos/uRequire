@@ -19,13 +19,12 @@ module.exports = (modyle, bundleFiles, dependencies)->
     dep = dep.replace /\\/g, '/'
     if not ("#{dep}.js" in bundleFiles)
       if dep.match /\//
-        # a relative path, maybe pointing to bundle: if so convert to bundleRelative
+        # a relative path, maybe pointing to bundle
         normalized = (_path.normalize "#{_path.dirname modyle}/#{dep}").replace /\\/g, '/'
-#        normalized = normalized.replace /\\/g, '/'
         if normalized + '.js' in bundleFiles
           dep = normalized
 
-    if "#{dep}.js" in bundleFiles
+    if "#{dep}.js" in bundleFiles #or "#{normalized}.js" in bundleFiles
       frDep = pathRelative "$/#{_path.dirname modyle}", "$/#{dep}", dot4Current:true
     else
       frDep = dep # either global, webRoot, external or notFound : add as-is to fileRelative
@@ -34,7 +33,7 @@ module.exports = (modyle, bundleFiles, dependencies)->
       else
         if dep.match /\//
           # check if outside bundle boundaries eg ../../../myLib or eg lame/dir
-          if pathRelative "$/#{modyle}/../../#{dep}", "$" #2 steps back: one for $ & one for module.js
+          if pathRelative "$/#{modyle}/../../#{dep}", "$" #2 .. steps back :$ & module
             notFoundInBundle.push dep
           else
             external.push dep

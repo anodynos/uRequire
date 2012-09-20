@@ -26,10 +26,10 @@ processBundle = (options)->
   bundleFiles =  getFiles options.bundlePath, (fileName)->
     (_path.extname fileName) is '.js' #todo: make sure its an AMD module
 
-  l.verbose 'Bundle files found: \n', bundleFiles
+  l.verbose '\nBundle files found: \n', bundleFiles
 
   for modyle in bundleFiles
-    l.verbose 'Processing module: ', modyle
+    l.verbose '\nProcessing module: ', modyle
 
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
     moduleInfo = extractModuleInfo oldJs, {beautifyFactory:true, extractRequires:true}
@@ -50,22 +50,22 @@ processBundle = (options)->
       for repData in [resDeps, resReqDeps, (_.pick moduleInfo, 'wrongDependencies')]
         reporter.addReportData repData, modyle
 
-      UMDdependencies = resDeps.bundleRelative
-      # add require('..') , if they dont exist
-      for reqDep in _.difference(resReqDeps.bundleRelative, UMDdependencies)
-        UMDdependencies.push reqDep
+      AMDdependencies = _.clone resDeps.fileRelative
+      # add require('..') , only if they dont exist
+      for reqDep in _.difference(resReqDeps.fileRelative, AMDdependencies)
+        AMDdependencies.push reqDep
 
       templateInfo = #
         version: options.version
         modulePath: _path.dirname modyle # module path within bundle
         webRoot: resolveWebRoot modyle, options.webRootMap
-        UMDdependencies: UMDdependencies
+        AMDdependencies: AMDdependencies
         nodeDependencies: resDeps.fileRelative
         parameters: moduleInfo.parameters
         rootExports: if options.noExports then false else moduleInfo.rootExports
         factoryBody: moduleInfo.factoryBody
 
-      l.verbose 'Main template params:\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'
+      l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'
 
       newJs = template templateInfo
 
@@ -78,7 +78,7 @@ processBundle = (options)->
     _fs.writeFileSync outputFile, newJs, 'utf-8'
 
   if not _.isEmpty(reporter.reportData)
-    l.log '########### uRequire, final report ########### :\n', reporter.getReport()
+    l.log '\n########### uRequire, final report ########### :\n', reporter.getReport()
 
   return null # save pointless coffeescript return :-)
 

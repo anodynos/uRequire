@@ -9,18 +9,19 @@ options = {}
 toArray = (val)-> val.split(',')
 
 cmd
-  .version('0.0.4')
+  .version('0.0.5')
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
   .option('-n, --noExports', 'Ignore all root exports in module definitions', false)
   .option('-v, --verbose', 'Filling your screen with useless? info', false)
-  .option('-w, --webRootMap <webRootMap>', "Where to map `/` in node. On RequireJS its web-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
+  .option('-w, --webRootMap <webRootMap>', "Where to map `/` when ruinning in node. On RequireJS its web-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
   .option('-d, --dontConvertToBundleRelative', 'NOT IMPLEMENTED. Dont convert ../add to calc/add for AMD deps', false)
+  .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only.', false)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
   .option('-m, --masterBundles <items>', 'NOT IMPLEMENTED. Comma seperated module bundles that are `imported.`.', toArray)
   .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so uRequire is not needed @ runtime.', false)
-  .option('-w, --webOptimize', 'NOT IMPLEMENTED. Just re-define with no UMD, and pass through r.js optimizer.', false)
+  .option('-w, --webOptimize', 'NOT IMPLEMENTED. Just re-define AMD with no UMD, and pass through r.js optimizer.', false)
 
 
 cmd

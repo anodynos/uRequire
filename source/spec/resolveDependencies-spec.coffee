@@ -8,7 +8,7 @@ expect = chai.expect
 
 describe "resolveDependencies ", ->
 
-  it "resolve & normalize bundle, fileRelative and find external, global, notFound", ->
+  it "resolves bundle&file relative, finds external, global, notFound, webRoot", ->
     #
     # test data
     #
@@ -31,6 +31,7 @@ describe "resolveDependencies ", ->
       '../data/messages/bye'        # should normalize in bundleRelative
       '../lame/dir'                 # should add to 'notFoundInBundle', add as is
       '../../some/external/lib'     # should add to 'external', add as is
+      '/assets/jpuery-max'          #should add to web root
     ]
 
     #
@@ -43,6 +44,7 @@ describe "resolveDependencies ", ->
         'data/messages/bye'   # normalized
         '../lame/dir'
         '../../some/external/lib'
+        '/assets/jpuery-max'
       ]
       fileRelative: [
         'underscore'              # global lib, as is
@@ -50,13 +52,14 @@ describe "resolveDependencies ", ->
         '../data/messages/bye'
         '../lame/dir'
         '../../some/external/lib'
+        '/assets/jpuery-max'
       ]
       global: [ 'underscore' ]
       external:[ '../../some/external/lib' ]
       notFoundInBundle:[ '../lame/dir' ]
+      webRoot: ['/assets/jpuery-max']
 
     resDeps = resolveDependencies modyle, bundleFiles, dependencies
-#    console.log '\n', resDeps
     expect(resDeps).to.deep.equal expectedDeps
 
 
