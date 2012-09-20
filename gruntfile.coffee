@@ -138,6 +138,7 @@ module.exports = (grunt) ->
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
   grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
+  grunt.registerTask "deps",     "shell:coffeeExamples shell:uRequireExampleDeps"
 
 
   null

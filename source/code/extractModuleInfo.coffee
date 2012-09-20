@@ -123,7 +123,7 @@ extractModuleInfo = (js, options)->
               if call.args[0][0] is 'string' #accept only require('dep'), not require('dep' + someVar)
                 moduleInfo.requireDependencies.push call.args[0][1]
               else
-                l.err "extractModuleInfo @ extractFactoryRequires : #{toCode stacktop} is a require() without a string as param - IGNORED!"
+                #l.err "extractModuleInfo @ extractFactoryRequires : #{toCode stacktop} is a require() without a string as param - IGNORED!"
                 if moduleInfo.wrongDependencies is undefined
                   moduleInfo.wrongDependencies = []
                 moduleInfo.wrongDependencies.push toCode stacktop
@@ -141,27 +141,27 @@ extractModuleInfo = (js, options)->
 
 module.exports = extractModuleInfo
 
-console.log "\n## inline test - module info ##"
-console.log extractModuleInfo """
-({module: {rootExports: 'papari'}})
-
-if (typeof define !== 'function') { var define = require('amdefine')(module); };
-
-define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
-  _ = require('underscore');
-  var i = 1;
-  var r = require('someRequire');
-  if (require === 'require') {
-   for (i=1; i < 100; i++) {
-      require('myOtherRequire');
-   }
-   require('myOtherRequire');
-  }
-  console.log("\n main-requiring starting....");
-  var crap = require("crap" + i); //not read
-
-  return {require: require('finalRequire')};
-});
-"""
-console.log "################### \n"
+#console.log "\n## inline test - module info ##"
+#console.log extractModuleInfo """
+#({module: {rootExports: 'papari'}})
+#
+#if (typeof define !== 'function') { var define = require('amdefine')(module); };
+#
+#define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
+#  _ = require('underscore');
+#  var i = 1;
+#  var r = require('someRequire');
+#  if (require === 'require') {
+#   for (i=1; i < 100; i++) {
+#      require('myOtherRequire');
+#   }
+#   require('myOtherRequire');
+#  }
+#  console.log("\n main-requiring starting....");
+#  var crap = require("crap" + i); //not read
+#
+#  return {require: require('finalRequire')};
+#});
+#"""
+#console.log "################### \n"
 

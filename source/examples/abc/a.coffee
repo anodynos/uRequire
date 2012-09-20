@@ -16,6 +16,6 @@ define [], (require)->
     require ['b/c/c'], (c)->
       console.log 'got b/c/c = ', c
 
-  c = require 'b/c/c'
+  c = require '../../../b/c/c'
 
   return a: 'a'

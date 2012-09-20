@@ -15,7 +15,6 @@ pathRelative = require('../utils/pathRelative')
 #  }
 #
 #todo: recognise define [], -> or require [], -> and adjust both node & browser UMD accordingly
-#todo: make node part really async with timeout
 #todo: make unit tests
 UMDtemplate = (d)->
   """
@@ -33,10 +32,7 @@ UMDtemplate = (d)->
             if d.moduleName
               "'" + d.moduleName +"', "
             else ""
-           }['require'#{
-                      (", '#{dep}'" for dep in d.dependencies).join('')
-                      }#{
-                      (", '#{dep}'" for dep in d.requireDependencies).join('')}],#{
+           }['require'#{(", '#{dep}'" for dep in d.UMDdependencies).join('')}],#{
               if d.rootExports # Adds browser/root globals if needed
                 "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
                 "    return (root.#{d.rootExports} = factory(require#{

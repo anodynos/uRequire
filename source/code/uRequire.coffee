@@ -5,9 +5,9 @@
 
 processBundle = (options)->
   l = require('./utils/logger')
-  if not options.verbose then l.log = ->
+  if not options.verbose then l.verbose = ->
 
-  l.log 'uRequire called with options\n', options
+  l.verbose 'uRequire called with options\n', options
 
   _ = require 'lodash'
   _fs = require 'fs'
@@ -18,76 +18,72 @@ processBundle = (options)->
   extractModuleInfo = require "./extractModuleInfo"
   resolveDependencies = require './resolveDependencies'
   resolveWebRoot = require './resolveWebRoot'
+  DependencyReporter = require './DependencyReporter'
+
+  interestingDependencyTypes = ['notFoundInBundle', 'wrongDependencies']
+  reporter = new DependencyReporter(if options.verbose then null else interestingDependencyTypes )
 
   bundleFiles =  getFiles options.bundlePath, (fileName)->
     (_path.extname fileName) is '.js' #todo: make sure its an AMD module
 
-  l.log 'Bundle files found: \n', bundleFiles
+  l.verbose 'Bundle files found: \n', bundleFiles
 
   for modyle in bundleFiles
-    l.log 'Processing module: ', modyle
+    l.verbose 'Processing module: ', modyle
 
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
     moduleInfo = extractModuleInfo oldJs, {beautifyFactory:true, extractRequires:true}
 
     if _.isEmpty moduleInfo
-      l.warn "Not AMD module #{modyle}, copying as-is."
+      l.warn "Not AMD module '#{modyle}', copying as-is."
       newJs = oldJs
     else # we have a module
 
-      # 'require' is always 1st fixed parameter (in template) of params in factoryFunction and define([]). The nodecall also has nodeRequire
-      if moduleInfo.parameters[0] is 'require' #so remove it
-        moduleInfo.parameters.shift()
-      if moduleInfo.dependencies[0] is 'require'
-        moduleInfo.dependencies.shift()
+      # In the UMD template 'require' is *fixed*, so remove it
+      for pd in [moduleInfo.parameters, moduleInfo.dependencies]
+        pd.shift() if pd[0] is 'require'
 
       resDeps = resolveDependencies modyle, bundleFiles, moduleInfo.dependencies
-      moduleInfo.dependencies = resDeps.bundleRelative
-      moduleInfo.nodeDependencies = resDeps.fileRelative
+      resReqDeps = resolveDependencies modyle, bundleFiles, moduleInfo.requireDependencies
 
+      #some reporting
+      for repData in [resDeps, resReqDeps, (_.pick moduleInfo, 'wrongDependencies')]
+        reporter.addReportData repData, modyle
 
-      if resDeps.notFoundInBundle.length > 0
-        l.warn """
-          #{modyle} has bundle-looking dependencies not found in bundle:
-            * #{nfib for nfib in resDeps.notFoundInBundle}
-          They are added as-is.
-        """
-      if resDeps.external.length > 0
-        l.warn """
-          #{modyle} has external dependencies (not checked in #{options.version}):
-            * #{nfib for nfib in resDeps.external}
-           They are added as-is.
-        """
+      UMDdependencies = resDeps.bundleRelative
+      # add require('..') , if they dont exist
+      for reqDep in _.difference(resReqDeps.bundleRelative, UMDdependencies)
+        UMDdependencies.push reqDep
 
-      moduleInfo.webRoot = resolveWebRoot modyle, options.webRootMap
-
-      if options.noExports
-        moduleInfo.rootExports = false #Todo:check for existence, allow more than one?
-
-      templateInfo = _.extend moduleInfo,
+      templateInfo = #
         version: options.version
         modulePath: _path.dirname modyle # module path within bundle
+        webRoot: resolveWebRoot modyle, options.webRootMap
+        UMDdependencies: UMDdependencies
+        nodeDependencies: resDeps.fileRelative
+        parameters: moduleInfo.parameters
+        rootExports: if options.noExports then false else moduleInfo.rootExports
+        factoryBody: moduleInfo.factoryBody
 
-      l.log _.pick templateInfo, 'dependencies', 'requireDependencies', 'nodeDependencies', 'webRoot', 'modulePath'
+      l.verbose 'Main template params:\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'
 
       newJs = template templateInfo
-
 
     outputFile = _path.join options.outputPath, modyle
 
     if not (_fs.existsSync _path.dirname(outputFile))
-      l.log "creating directory #{_path.dirname(outputFile)}"
+      l.verbose "creating directory #{_path.dirname(outputFile)}"
       _wrench.mkdirSyncRecursive(_path.dirname(outputFile))
 
     _fs.writeFileSync outputFile, newJs, 'utf-8'
 
+  if not _.isEmpty(reporter.reportData)
+    l.log '########### uRequire, final report ########### :\n', reporter.getReport()
+
   return null # save pointless coffeescript return :-)
-
-
-makeNodeRequire = require('./makeNodeRequire')
 
 module.exports =
   processBundle: processBundle
 
   # used by UMD-transformed modules, to make the node (async) require
-  makeNodeRequire: makeNodeRequire
+  makeNodeRequire: require('./makeNodeRequire')

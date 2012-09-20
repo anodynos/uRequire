@@ -60,7 +60,7 @@ options = _.defaults options, _.pick(cmd, cmdOptions)
 options.version = cmd.version()
 
 # to log or not to log
-if not options.verbose then l.log = ->
+if not options.verbose then l.verbose = ->
 
 if not options.bundlePath
   l.err """
@@ -70,7 +70,7 @@ if not options.bundlePath
 else
   if options.forceOverwriteSources
     options.outputPath = options.bundlePath
-    l.log "Forced output to '#{options.outputPath}'"
+    l.verbose "Forced output to '#{options.outputPath}'"
   else
     if not options.outputPath
       l.err """

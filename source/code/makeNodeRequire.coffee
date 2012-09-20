@@ -1,5 +1,3 @@
-
-#
 # node's require
 #
 # It is used synchronoysly or synchronoysly, depending on how it was called
