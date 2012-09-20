@@ -13,11 +13,11 @@ processBundle = (options)->
   _fs = require 'fs'
   _path = require 'path'
   _wrench = require 'wrench'
-  pathRelative = require './utils/pathRelative'
   getFiles = require "./utils/getFiles"
   template = require "./templates/UMD"
   extractModuleInfo = require "./extractModuleInfo"
   resolveDependencies = require './resolveDependencies'
+  resolveWebRoot = require './resolveWebRoot'
 
   bundleFiles =  getFiles options.bundlePath, (fileName)->
     (_path.extname fileName) is '.js' #todo: make sure its an AMD module
@@ -26,6 +26,7 @@ processBundle = (options)->
 
   for modyle in bundleFiles
     l.log 'Processing module: ', modyle
+
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
     moduleInfo = extractModuleInfo oldJs, {beautifyFactory:true, extractRequires:true}
 
@@ -38,36 +39,27 @@ processBundle = (options)->
       if moduleInfo.parameters[0] is 'require' #so remove it
         moduleInfo.parameters.shift()
       if moduleInfo.dependencies[0] is 'require'
-        moduleInfo.dependencies.shift
+        moduleInfo.dependencies.shift()
 
-      #resolve dependencies
       resDeps = resolveDependencies modyle, bundleFiles, moduleInfo.dependencies
       moduleInfo.dependencies = resDeps.bundleRelative
       moduleInfo.nodeDependencies = resDeps.fileRelative
 
+
       if resDeps.notFoundInBundle.length > 0
         l.warn """
-          #{modyle} has dependencies not found in bundle:
+          #{modyle} has bundle-looking dependencies not found in bundle:
             * #{nfib for nfib in resDeps.notFoundInBundle}
           They are added as-is.
-          """
-
+        """
       if resDeps.external.length > 0
         l.warn """
-                  #{modyle} has external dependencies:
-                    * #{nfib for nfib in resDeps.external}
-                   They are added as-is.
+          #{modyle} has external dependencies (not checked in #{options.version}):
+            * #{nfib for nfib in resDeps.external}
+           They are added as-is.
         """
 
-#      TODO :
-      if options.webRootMap
-        if options.webRootMap[0] is '.' # a path relative to bundle. Pass it as relative to this module
-          moduleInfo.webRoot = (pathRelative "$/#{_path.dirname modyle}", '$/') + '/' + options.webRootMap
-        else
-          moduleInfo.webRoot = options.webRootMap.replace /\\/g, '/' # absolute OS path
-      else #default is bundle's root
-        moduleInfo.webRoot = (pathRelative "$/#{_path.dirname modyle}", '$/', {dot4Current:true})
-
+      moduleInfo.webRoot = resolveWebRoot modyle, options.webRootMap
 
       if options.noExports
         moduleInfo.rootExports = false #Todo:check for existence, allow more than one?

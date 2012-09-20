@@ -101,7 +101,7 @@ describe "extractModuleInfo", ->
          require('myOtherRequire');
         }
         console.log("\n main-requiring starting....");
-        var crap = require("crap" + i); //not read
+        var crap = require("crap" + i); // wrongDependency
 
         return {require: require('finalRequire')};
       });
@@ -112,5 +112,6 @@ describe "extractModuleInfo", ->
       type: 'define'
       parameters: [ 'require', '_', 'dep1' ]
       dependencies: [ 'require', 'underscore', 'depdir1/dep1' ]
-      factoryBody: '_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("\\n main-requiring starting....");var crap=require("crap"+i);return{require:require("finalRequire")}'
       requireDependencies: ['someRequire', 'myOtherRequire', 'finalRequire']  # extract'em by default
+      wrongDependencies: [ 'require("crap"+i)' ]
+      factoryBody: '_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("\\n main-requiring starting....");var crap=require("crap"+i);return{require:require("finalRequire")}'
