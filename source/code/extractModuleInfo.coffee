@@ -143,7 +143,7 @@ module.exports = extractModuleInfo
 
 #console.log "\n## inline test - module info ##"
 #console.log extractModuleInfo """
-#({module: {rootExports: 'papari'}})
+#({uRequire: {rootExport: 'papari'}})
 #
 #if (typeof define !== 'function') { var define = require('amdefine')(module); };
 #

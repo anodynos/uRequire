@@ -62,7 +62,7 @@ processBundle = (options)->
         AMDdependencies: AMDdependencies
         nodeDependencies: resDeps.fileRelative
         parameters: moduleInfo.parameters
-        rootExports: if options.noExports then false else moduleInfo.rootExports
+        rootExport: if options.noExport then false else moduleInfo.rootExport
         factoryBody: moduleInfo.factoryBody
 
       l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'

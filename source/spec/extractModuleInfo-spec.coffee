@@ -60,13 +60,13 @@ describe "extractModuleInfo", ->
       parameters: ['require']
       factoryBody: 'return{foo:bar}'
 
-  it "should ignore amddefine/require, extract uRequire.rootExports and moduleName as well", ->
+  it "should ignore amdefine/require, extract uRequire.rootExport and moduleName as well", ->
     js = """
       if (typeof define !== 'function') { var define = require('amdefine')(module) };
 
       ({
         uRequire: {
-          rootExports: 'vourtses'
+          rootExport: 'vourtses'
         }
       });
 
@@ -77,7 +77,7 @@ describe "extractModuleInfo", ->
       """
 
     expect(extractModuleInfo js).to.deep.equal
-      rootExports: 'vourtses'
+      rootExport: 'vourtses'
       moduleName: 'myModule'
       dependencies: [ 'underscore', 'depdir1/dep1' ]
       type: 'define'

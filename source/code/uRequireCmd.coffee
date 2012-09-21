@@ -13,7 +13,7 @@ cmd
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
-  .option('-n, --noExports', 'Ignore all root exports in module definitions', false)
+  .option('-n, --noExport', 'Ignore all root exports in module definitions', false)
   .option('-v, --verbose', 'Filling your screen with useless? info', false)
   .option('-w, --webRootMap <webRootMap>', "Where to map `/` when ruinning in node. On RequireJS its web-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
   .option('-d, --dontConvertToBundleRelative', 'NOT IMPLEMENTED. Dont convert ../add to calc/add for AMD deps', false)

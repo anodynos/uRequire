@@ -13,9 +13,12 @@ Specifically, the browser AMD-style `require([..], function(..){})` should work 
 And vise versa, the node-style `require()` should also work on browser (at least seemingly) synchronously.
 
 
-* **Allow modules to have a 'module-bundle root' as a reference point**, where module dependencies are relative to, with the same sementics on both runtimes. This currently works in browser/AMD/requireJS (using baseUrl), but on node dependencies are "relative to requiring file" which is a source of misconceptions on modularization it self.
+* **Allow modules to have a 'module-bundle root' as a reference point**, where module dependencies are relative to, with the same sementics on both runtimes. This currently works in browser/AMD/requireJS (using baseUrl), but on node dependencies are "relative to requiring file" which is a source of misconceptions on modularization it self, in regards to development.
 
 * Check your dependencies are valid at build time
+  -globals, webRoots, notExists in bundle, etc
+
+
 
 Ultimatelly uRequire wishes to promote:
 * A standardized definition of dependencies for cross-platform modular code using AMD.
@@ -63,13 +66,29 @@ and uRequire will place the generated files into the `build` directory. The gene
             var nodeRequire = require('uRequire').makeNodeRequire('views', __dirname);
             module.exports = factory(nodeRequire);
         } else if (typeof define === 'function' && define.amd) {
-
             define(['require'], factory);
         }
     })(this, function (require) {
         return {the:module};
     });
 ```
+
+
+#Notes
+ When running on node, if you're referencing libs outside the package, either via webRootMap or a relative path like ../../somepackage/somelib, make sure you have uRequire installed there.
+
+#FAQ:
+##Can I mix relative and absolute paths, or will I get into problems ?
+The aim of uRequire is to allow you to use either on both environments. Since everything is translated at build time to what actually works so you dont need to care. Actually mixing the two is probably a good practice:
+  * When you require a *local* dependency, eg. something closely related to your curent module, you can use the relative notation. For instance if you are writing `utils/string/camelCase` and you need `utils/string/replaceAllChars`, then its logical to just use `./replaceAllChars` and its self explanatory.
+  * When you require something more *distant*, you should use the absolute path to show exactly what you mean. For instance, `../../../string/replace` reveals little of what you need, where you coming from and whether it is the right path. And if you ever refactor it'll be a nightmare to change 'em all. Its actually more clear to use `utils/string/replace` in this case.
+
+
+Roadmap:
+ v0.1
+    - AMD template rewrite, with ability to change from relative-to-bundle relative and vise versa.
+    - Options to checks existence of external libraries, webRootMap etc.
+
 
 
 
