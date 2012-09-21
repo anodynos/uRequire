@@ -24,7 +24,7 @@ module.exports = (modyle, bundleFiles, dependencies)->
         if normalized + '.js' in bundleFiles
           dep = normalized
 
-    if "#{dep}.js" in bundleFiles #or "#{normalized}.js" in bundleFiles
+    if "#{dep}.js" in bundleFiles
       frDep = pathRelative "$/#{_path.dirname modyle}", "$/#{dep}", dot4Current:true
     else
       frDep = dep # either global, webRoot, external or notFound : add as-is to fileRelative

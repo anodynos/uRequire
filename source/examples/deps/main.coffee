@@ -1,20 +1,20 @@
-define ['calc/add', 'data/numbers', 'calc/multiply', 'calc/more/powerof'], (add, numbers)->
-  console.log "main:started"
+define ['calc/add', 'data/numbers', 'calc/multiply'], (add, numbers)->
+  console.log "main:starting"
 
   added = add(numbers.a, numbers.b);
 
   #testing node-style module loading
-  multiplied = (require 'calc/multiply') numbers.a, numbers.b
+  multiplied = (require './calc/multiply') numbers.a, numbers.b
   console.log "main:multiplied numbers = ", multiplied
 
   #testing node-style module loading & relative paths
   numToPowerOf3 = (require 'calc/more/powerof') numbers.a, 2
   console.log "main:numToPowerOf3 = ", numToPowerOf3
 
-  # making an asynchronous call (conditionally) to dynamically load a module
+  # conditionally load a module (asynchronously)
   message = undefined
   if added > 10
-    require ['actions/greet'], (greet) ->
+    require ['./actions/greet'], (greet) ->
       message = greet(added)
       console.log "main:message retrieved from greet (#{message})"
   else

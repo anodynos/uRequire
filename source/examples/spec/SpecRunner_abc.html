@@ -4,26 +4,24 @@
   <head>
     <meta charset="utf-8">
     <title>uRequire dependencies test: mocha+chai,requirejs</title>
-    <link rel="stylesheet" href="../../../vendorLibs/mocha.css" />
+    <link rel="stylesheet" href="../../../libs/mocha.css" />
     <!--<link rel="stylesheet" href="../../libs/mocha.js" />-->
 
 
     <!-- load requirejs, without 'data-main' using <script> below -->
-    <script src="../../../vendorLibs/require-min.js"></script>
+    <script src="../../../libs/require-min.js"></script>
 
     <script type="text/javascript">
       require.config ({
         // set baseUrl to point to the 'bundle', relative to this HTML
-        baseUrl: '../deps',
+        baseUrl: '../abc',
 
         // all libraries are now relative to the bundle/baseUrl
         paths: {
-          underscore: "../../../vendorLibs/lodash.min",
-          chai:   "../../../vendorLibs/chai",
-          mocha:  "../../../vendorLibs/mocha"
+          chai:   "../../../libs/chai",
+          mocha:  "../../../libs/mocha"
         },
         shim: {
-          underscore: { deps: [], exports: "_"},
           mocha: { deps: [], exports: "mocha"}
         }
       });

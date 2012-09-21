@@ -162,6 +162,11 @@ define ["models/PersonModel"], (PersonModel)->
 
    A naive thought would be  `myAwesomeModule = require('awesomeModule')` but its problematic.
 
+#Web AMD problems
+ ## require('lib') not scanned, if dependency array is not empty/not exists. (Different on node/amdefine : even if [] is present i.e `define [], (require)->, require is undefined!)
+ ## 'dir1/lib1` is different than `./dir1/lib1` (with dir1 on bundle root/baseUrl)
+
+
 
 https://github.com/jrburke/requirejs/issues/450
 https://github.com/jrburke/amdefine/issues/4

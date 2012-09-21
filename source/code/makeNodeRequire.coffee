@@ -16,19 +16,26 @@ module.exports = (modulePath, dirname, webRoot)->
           res = dirname + '/' + webRoot + dep
         else
           res = webRoot + dep # an OS file system dir, as-is
-      else # an absolute (relative to bundle) path like a/b/c
+      else # relative to bundle eg 'a/b/c', OR global eg 'underscore' todo: global is not handled!
         res = dirname + '/' + pathRelative("$/#{modulePath}", "$/" + dep)
-
     return res
 
   nodeRequire = (deps, cb) ->
     if Object::toString.call(deps) is "[object String]" # just pass to node's sync require
-      return require resolve deps
+      try
+        reqMod = require resolve deps
+      catch error
+        reqMod = require deps # global case
+      return reqMod
     else # asynchronously load dependencies, and then callback()
       setTimeout ->
         relDeps = []
         for dep in deps
-          relDeps.push require resolve dep
+          try
+            reqMod = require resolve dep
+          catch error
+            reqMod = require dep # global case
+          relDeps.push reqMod
 
         # todo : should we check cb, before wasting time requiring modules ? Or maybe it was intentional, for caching modules asynchronously
         if (Object::toString.call cb) is "[object Function]"

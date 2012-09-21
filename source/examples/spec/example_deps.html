@@ -11,12 +11,11 @@
     <script type="text/javascript">
       require.config ({
         // set baseUrl to point to the 'bundle', relative to this HTML
-        baseUrl: '../../build/code/SimpleDeps',
+        baseUrl: '../../../build/examples/deps',
 
         // all libraries are now relative to the bundle/baseUrl
         paths: {
-          //underscore: "../../../libs/lodash.min",
-          underscore: "../../../libs/underscore-min",
+          underscore: "../../../libs/lodash.min",
         },
         shim: {
           underscore: { deps: [], exports: "_"},

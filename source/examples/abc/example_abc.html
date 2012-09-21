@@ -5,8 +5,8 @@
     <meta charset="utf-8">
     <title>uRequire ABC example</title>
 
-    <script src="../../../vendorLibs/require-min.js"></script>
-    <!--<script src="../../../vendorLibs/xrayquire.js"></script>-->
+    <script src="../../../libs/require-min.js"></script>
+    <!--<script src="../../../libs/xrayquire.js"></script>-->
 
 
     <script type="text/javascript">
@@ -22,7 +22,7 @@
     </script>
 
     <script>
-      require(['a'], function(a) {
+      require(['a-lib'], function(a) {
         console.log('Started main');
         console.log(a);
       });
