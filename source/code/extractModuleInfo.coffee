@@ -49,7 +49,7 @@ extractModuleInfo = (js, options)->
   moduleInfo = {}
   hasFoundAMD = false
   amdFactoryFunction = '' #store it outside, we will extract deps from it `require('dep')` if options.extractRequires
-  stack = []; # keep each AST element we visit
+  ; # keep each AST element we visit
   extractModuleHeader = (oa, level)-> # level used for debugging & stop crawiling the tree, since we only need top-level info
     level = if not level then 1 else level + 1
     if not hasFoundAMD and level <= 4
@@ -141,27 +141,27 @@ extractModuleInfo = (js, options)->
 
 module.exports = extractModuleInfo
 
-#console.log "\n## inline test - module info ##"
-#console.log extractModuleInfo """
-#({uRequire: {rootExport: 'papari'}})
-#
-#if (typeof define !== 'function') { var define = require('amdefine')(module); };
-#
-#define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
-#  _ = require('underscore');
-#  var i = 1;
-#  var r = require('someRequire');
-#  if (require === 'require') {
-#   for (i=1; i < 100; i++) {
-#      require('myOtherRequire');
-#   }
-#   require('myOtherRequire');
-#  }
-#  console.log("\n main-requiring starting....");
-#  var crap = require("crap" + i); //not read
-#
-#  return {require: require('finalRequire')};
-#});
-#"""
-#console.log "################### \n"
+console.log "\n## inline test - module info ##"
+console.log extractModuleInfo """
+({uRequire: {rootExport: 'papari'}})
+
+if (typeof define !== 'function') { var define = require('amdefine')(module); };
+
+define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
+  _ = require('underscore');
+  var i = 1;
+  var r = require('someRequire');
+  if (require === 'require') {
+   for (i=1; i < 100; i++) {
+      require('myOtherRequire');
+   }
+   require('myOtherRequire');
+  }
+  console.log("\n main-requiring starting....");
+  var crap = require("crap" + i); //not read
+
+  return {require: require('finalRequire')};
+});
+"""
+console.log "################### \n"
 
