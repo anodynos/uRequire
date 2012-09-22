@@ -29,6 +29,14 @@ class DependencyReporter
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
 
+  reportTemplate: (texts, dependenciesFound)-> """
+   \n#{texts.header}
+     #{ "'#{dependency}' @ [
+       #{("\n         '" +
+         mf + "'" for mf in moduleFiles)}\n  ]\n" for dependency, moduleFiles of dependenciesFound
+        }#{
+     texts.footer}\n
+   """
 
   # Augments reportData, that ends up in this form
   #   {
@@ -41,19 +49,10 @@ class DependencyReporter
   # @param {String} modyle The module name
   addReportData: (resolvedDeps, modyle)->
     for depType, resDeps of resolvedDeps when (not _.isEmpty resDeps) and depType in @interestingDepTypes
-        @reportData[depType] = @reportData[depType] || {}
-        for resDep in resDeps
-          @reportData[depType][resDep] = @reportData[depType][resDep] || []
-          @reportData[depType][resDep].push modyle
-
-  reportTemplate: (texts, dependenciesFound)->"""
-   \n#{texts.header}
-     #{ "'#{dependency}' @ [
-       #{("\n         '" +
-         mf + "'" for mf in moduleFiles)}\n  ]\n" for dependency, moduleFiles of dependenciesFound
-        }#{
-     texts.footer}\n
-   """
+      @reportData[depType] or= {}
+      for resDep in resDeps
+        (@reportData[depType][resDep] or= []).push modyle
+    null
 
   getReport: ()->
     report = ""
@@ -62,17 +61,20 @@ class DependencyReporter
          report += @reportTemplate depTypesMsgs, @reportData[depType]
     return report
 
-
 module.exports = DependencyReporter
 
-# inline tests
+##inline tests
 #rep = new DependencyReporter()
 #
-#rep.addReportData { dependencies: [ 'data/messages/hello', 'data/messages/bye' ],
-#parameters: [],
-#requireDependencies: [],
-#wrongDependencies: [ 'require(msgLib)' ],
-#nodeDependencies: [ '../data/messages/hello', '../data/messages/bye' ],
-#webRoot: '..' }, 'some/Module'
+#rep.addReportData {
+#    dependencies: [ 'data/messages/hello', 'data/messages/bye' ],
+#    parameters: [],
+#    requireDependencies: [],
+#    wrongDependencies: [ 'require(msgLib)' ],
+#    nodeDependencies: [ '../data/messages/hello', '../data/messages/bye' ],
+#    webRoot: '..'
+#  }
+#  , 'some/Module'
+#
 #console.log rep.reportData
 #console.log rep.getReport()

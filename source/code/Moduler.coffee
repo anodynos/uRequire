@@ -1,5 +1,6 @@
 _ = require 'lodash'
 l = require './utils/logger'
+seekr = require './utils/seekr'
 
 class JSManipulator
   parser = require("uglify-js").parser
@@ -12,8 +13,8 @@ class JSManipulator
   toCode: (astCode = @ast) ->
     proc.gen_code astCode, beautify: @options.beautify
 
-  # helpers, reading from AST
-  readAst:
+  # helpers, reading from AST, keeping notation loosely close to uglify's process.js
+  readAST:
     'call': (ast)->
       expr = ast[1]
       name = dot = ''
@@ -22,7 +23,6 @@ class JSManipulator
         name = "#{dotExpr[2]}#{dot}#{name}"
         dotExpr = dotExpr[1]
         dot = '.'
-
       name = dotExpr[1] + dot + name
 
       #return
@@ -30,80 +30,19 @@ class JSManipulator
       expr:expr
       args:ast[2]
 
-    function: (ast)->
+    'object': (ast)->
+      top: ast[1][0]?[0]
+      props : ast[1][0][1]
+
+    'function': (ast)->
       name:ast[0]
       args:ast[1]
       body:ast[2]
 
-    defun: (ast)->
+    'defun': (ast)->
       name:ast[0]
       args:ast[1]
       body:ast[2]
-
-  # A 'seeker' method, that recursivelly walks a tree
-  # trying to find 'matches' of the `seeker` and then call the 'retriever'
-  # to gather the found data
-  # (not very generic tied to AST for now!)
-  #
-  # Theoretically, we could parse JavaScript, JSON and anything else, extracting information
-  # via selectors/matchers & retrievers, just like we do with jQuery on the DOM!
-  # Well, this is version 0.0.1 of it!
-  #
-  # A 'seeker' is mainly a 'matcher' & a 'retriever'.
-  # Think of a 'matcher' as a super-duper selector in jQuery, or the where clause in SQL.
-  # Similarly 'retriever' is the select part, but in anabolics!
-  # todo: make it more generic, a pattern perhaps ?
-  # todo: DOCUMENT IT!
-  # example
-  #
-  # matcher:
-  #   call:
-  #     name: (it)->it in ['require', 'define']
-  #     args: (it)->it.length is 2
-  # retriever: (name, expr, args):->
-  #   log 'got a function with name #{name} and 2 args #{args}'
-
-  extractAST: (seekers, ast = @ast, _level = 0, _continue = true, _stack = [])->
-    _level++
-    if _level is 1 #some inits
-      if not _(seekers).isArray() then seekers = [seekers] # just one, make it an array!
-
-    if _continue
-      _(ast).each (astItem)->
-        if _(astItem).isObject() or _(astItem).isArray()
-          _stack.push astItem
-          @extractAST seekers, astItem, _level, _continue, _stack
-          _stack.pop()
-        else # do we have an interesting astItem, eg 'call', 'function' etc
-          stacktop = _stack[_stack.length-1]
-#          log '*************** \n', _level, '\n', stacktop
-          deadSeekers = []
-          for skr in seekers
-            if _level <= (skr.options?.maxLevel ? 999999) and #should be enough ;-)
-            _level >= (skr.options?.minLevel ? 0)
-
-              if skr.matcher[astItem] and  # does matcher regard astItem, eg 'call' ?
-              @readAst[astItem]  # todo: just cause we haven't defined all of em in readAst!
-                astRead = @readAst[astItem](stacktop)
-                isMatch = true # optimistic
-                for filterKey, filter of skr.matcher[astItem] when isMatch
-                  itemToFilter = astRead[filterKey] # eg 'args'
-    #              log 'filter key:', selectorKey, ' filter:', fltr, ' ast:', astRead[selectorKey]
-                  isMatch =
-                    if _(filter).isArray()
-                      itemToFilter in filter
-                    else
-                      if _(filter).isFunction()
-                        filter itemToFilter
-                      else #eg 'string'
-                        filter is itemToFilter
-                if isMatch # all filters where satisfied
-                  if not (skr.retriever.apply @, _.map astRead, (v)->v) # callback with the read astItem found. _stop if cb is false
-                    deadSeekers.push skr # retriever killed you
-
-          seekers = _.difference seekers, deadSeekers
-          _continue = not _(seekers).isEmpty() # return true for lodash's each to go on
-      , @ #bind this for each
 
 class AMDModuleManipulator extends JSManipulator
   constructor: (js, @options = {})->
@@ -114,24 +53,43 @@ class AMDModuleManipulator extends JSManipulator
 #    log options
 
   extractModuleInfoHeaderAndRequires:->
-    seekers = [
-      name: "define AMD module header"
-      options:
-        maxLevel: 4 # just save on recursion. Not-nested define is level 4
 
+    uRequireJsonHeaderSeeker =
+      name: "uRequire json options header"
+      options:
+        maxLevel:4
+        minLevel:4
       matcher:
-        'call':                         # Matcher 'head'. A matcher has filters, all must be satisfied
-          name: ['define', '!!!require']   # a filter: can be string, array, function. NI: object? another matcher/filter?
-          args: (rgs)->                # another filter, function this time
+        'object':
+          top: 'uRequire'
+      filtersReader: @readAST['object']
+      retriever: (top, props)->
+        properties = eval "(#{@toCode props})"
+        @moduleInfo = _.extend @moduleInfo, properties
+        false #kill this seeker!
+
+
+    defineAMDSeeker =
+      name: "define [], -> AMD module header"
+      options:
+        maxLevel: 4 # just save on recursion. Not nested 'define' is @ level 4
+        minLevel: 4
+      matcher:
+        'call':  # Matcher 'head'. If matched, filtersReader returns key:values, that all must be satisfied for retriever to be called.
+          'name': ['define', 'require']   # a filter: can be string, array, function. NI: object? another matcher/filter?
+          'args': (rgs)->                 # another filter, function this time
             switch rgs.length
               when 1
                 rgs[0][0] is 'function'
               when 2 # *standard* anomynous AMD signature
-                rgs[0][0] is 'array' and rgs.args[1][0] is 'function' # factoryFunction
+                rgs[0][0] is 'array' and rgs[1][0] is 'function' # factoryFunction
               when 3 # *named* AMD signature (not recommended: http://requirejs.org/docs/api.html#modulename)
-              # (moduleName, array dependencies, factoryFunction)
+                # (moduleName, array dependencies, factoryFunction)
                 rgs[0][0] is 'string' and rgs[1][0] is 'array' and rgs[2][0] is 'function'
               else false
+          #_filter: (name, expr, args)->
+
+      filtersReader: @readAST['call']
 
       retriever: (name, expr, args)-> # matching a 'call' returns these 3 args
         switch args.length
@@ -148,42 +106,37 @@ class AMDModuleManipulator extends JSManipulator
 
         @moduleInfo.type = name # function name, ie 'define' or 'require'
         @moduleInfo.parameters = amdFactoryFunction[2] || [] # args of function (dep1, dep2)
-        @moduleInfo.factoryBody = @toCode ['block', amdFactoryFunction[3] ]
+        @AST_FactoryBody = ['block', amdFactoryFunction[3] ]
+        @moduleInfo.factoryBody = @toCode @AST_FactoryBody
 
         false #kill it, found what we wanted!
-    ,
 
+    requireCallsSeeker =
+      minLevel:4
       name: "require('..') calls seeker"
       matcher:
         'call':
           name: 'require'
           args: (args)-> args.length is 1
 
+      filtersReader: @readAST['call']
+
       retriever: (name, expr, args)->
         if args[0][0] is 'string'
           (@moduleInfo.requireDependencies or= []).push args[0][1]
-          args[0][1] = 'DIDITRE' + args[0][1] + 'DIDITRE'  ## <<<<<<<<<<<<<<<<<<-----------
+          #args[0][1] = 'DIDITRE' + args[0][1] + 'DIDITRE'  ## mutate ! <<<<<<<<<<<<<<<<<<-----------
         else
           (@moduleInfo.wrongDependencies or= []).push @toCode args[0]
 
         true # dont kill it, we want them all!
-    ,
 
-      name: "uRequire json options header"
-      matcher:
-        'object': ### not working ### ??? <<<<<<<<<<<<<<<<<<-----------
-          name: 'uRequire'
-          args: (args)-> args.length is 1
 
-      retriever: (name, expr, args)->
 
-    ]
-
-    @extractAST seekers
-    # some tidying up
-    # keep unique requireDeps & extra to 'dependencies'
+    seekr [ uRequireJsonHeaderSeeker, defineAMDSeeker], @ast, @
+    seekr [ requireCallsSeeker ], @AST_FactoryBody , @
+    # some tidying up : keep unique requireDeps & extra to 'dependencies'
     @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.dependencies
-    log @toCode @ast
+
 
 log = console.log
 log "\n## inline test - module info ##"
@@ -209,8 +162,16 @@ define('moduleName', ['require', 'underscore', 'depdir2/dep1'], function(require
 });
 """
 
-modMan = new AMDModuleManipulator theJs, beautify:false
-modMan.extractModuleHeaderAndRequires()
-log modMan.moduleInfo
+#theJs = """
+#define('moduleName', ['underscore', 'depdir2/dep1'], function define( _, dep1) {
+#  var i = 1;
+#});
+#"""
 
+modMan = new AMDModuleManipulator theJs, beautify:false
+modMan.extractModuleInfoHeaderAndRequires()
 log "################### \n"
+log modMan.moduleInfo
+log "################### \n"
+
+
