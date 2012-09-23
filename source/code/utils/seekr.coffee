@@ -1,5 +1,5 @@
 _ = require 'lodash'
-#log = console.log
+log = console.log
 
 # A 'seeker' function, that recursivelly walks a tree (like AST)
 # trying to find `matches` of the `seeker`, read ahead and filter candidate nodes,
@@ -79,4 +79,32 @@ seekr = (seekers, data, ctx, _level = 0, _continue = true, _stack = [])->
         _continue = not _(seekers).isEmpty() # return true for lodash's each to go on
     , @ #bind this for each
 
-module.exports = seekr
+seekrsimple = (seekers, data, stackreader, ctx, _level = 0, _continue = true, _stack = [])->
+  _level++
+  if _level is 1 #some inits
+    if not _(seekers).isArray() then seekers = [seekers] # just one, make it an array!
+
+  if _continue
+    _(data).each (dataItem)->
+      if _(dataItem).isObject() or _(dataItem).isArray()
+        _stack.push dataItem
+        seekrsimple seekers, dataItem, stackreader, ctx, _level, _continue, _stack
+        _stack.pop()
+      else # do we have an interesting astItem, eg 'call', 'function' etc
+        stacktop = _stack[_stack.length-1]
+        #log '*************** \n', _level, '\n', stacktop
+
+        deadSeekers = []
+        for skr in seekers
+          if (_level >= skr.level?.min or not skr.level?.min) and (_level <= skr.level?.max or not skr.level?.max) #or not skr.level.min
+            if _(skr['_' + dataItem]).isFunction() # does seeker regard dataItem ( eg astItem 'call') ?
+              if stackreader[dataItem] #do we have a reader ?
+                s = skr['_'+dataItem].call ctx, stackreader[dataItem](stacktop) # callback with the read astItem found.
+                deadSeekers.push skr if s is 'stop'
+
+        seekers = _.difference seekers, deadSeekers
+        _continue = not _(seekers).isEmpty() # return true for lodash's each to go on
+
+
+
+module.exports = seekrsimple
