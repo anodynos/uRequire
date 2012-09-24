@@ -6,8 +6,8 @@ module.exports =
   # with a dynamic keys on the fly.
   # js/coffee dont like this right now :-(
   # @param {String...} key,value pairs
-  objkv: (ob, keyValuePairs...)->
-    for key, idx in keyValuePairs by 2
-      ob[key] = keyValuePairs[idx+1]
-    return ob
+  objkv: (obj, keyValPairs...)->
+    for key, idx in keyValPairs by 2
+      obj[key] = keyValPairs[idx+1]
+    return obj
 

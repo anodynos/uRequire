@@ -6,9 +6,8 @@ pathRelative = require('../utils/pathRelative')
 #   {
 #     modulePath: where the module is, within bundle
 #     type: 'define' or 'require'
-#     dependencies: Array of dependencies, as delcared in the original AMD, (eg 'views/PersonView')
+#     arrayDependencies: Array of deps, as delcared in AMD, filerelative (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
 #     nodeDependencies: Array for file-relative dependencies, as required by node (eg '../PersonView')
-#     requireDependencies: Array of dependencies `require('dep')`, as found in AMD file (that are not in original dependencies)
 #     parameters: Array of parameter names, as declared on the original AMD.
 #     rootExport: the name of the root variable to export on the browser side (or false/absent)
 #     factoryBody: The actual code that returns our module (define) or just runs some code having dependencies resolved (require).
@@ -31,7 +30,7 @@ UMDtemplate = (d)->
             if d.moduleName
               "'" + d.moduleName +"', "
             else ""
-           }['require'#{(", '#{dep}'" for dep in d.AMDdependencies).join('')}],#{
+           }['require'#{(", '#{dep}'" for dep in d.arrayDependencies).join('')}],#{
               if d.rootExport # Adds browser/root globals if needed
                 "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
                 "            return (root.#{d.rootExport} = factory(require#{

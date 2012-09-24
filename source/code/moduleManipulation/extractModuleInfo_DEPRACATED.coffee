@@ -1,5 +1,5 @@
 _ = require 'lodash'
-l = require('./utils/logger')
+l = require('./../logger')
 
 extractModuleInfo = (js, options)->
   options = options || {}

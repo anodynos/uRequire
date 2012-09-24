@@ -1,12 +1,12 @@
-console.log '\nextractModuleInfo-spec loading'
+console.log '\nAMDModuleManipulator-spec loading'
 
 chai = require("chai")
-extractModuleInfo = require ("../code/extractModuleInfo")
+AMDModuleManipulator = require ("../code/moduleManipulation/AMDModuleManipulator")
 
 assert = chai.assert
 expect = chai.expect
 
-describe "extractModuleInfo", ->
+describe "AMDModuleManipulator", ->
 
   it "should return empty {} for a non-module .js", ->
     js = """
@@ -18,7 +18,9 @@ describe "extractModuleInfo", ->
         });
     }
     """
-    expect(extractModuleInfo js, {extractRequires:false}).to.deep.equal {}
+    mi = (new AMDModuleManipulator js).extractModuleInfo()
+
+    expect(mi).to.deep.equal {}
 
   it "should extract basic module info", ->
     js = """
@@ -27,12 +29,13 @@ describe "extractModuleInfo", ->
         return dep1.doit();
       });
     """
-
-    expect(extractModuleInfo js, {extractRequires:false}).to.deep.equal
+    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    expect(mi).to.deep.equal
       dependencies: [ 'underscore', 'depdir1/dep1' ]
       type: 'define'
       parameters: [ '_', 'dep1' ]
-      factoryBody: 'dep1=new dep1;return dep1.doit()'
+      factoryBody: '{dep1=new dep1;return dep1.doit()}'
+
 
   it "should extract dependency-less module", ->
     js = """
@@ -40,12 +43,13 @@ describe "extractModuleInfo", ->
         return {foo:bar};
       });
     """
-
-    expect(extractModuleInfo js, {extractRequires:false}).to.deep.equal
-      dependencies: []
+    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    expect(mi).to.deep.equal
       type: 'define'
+      dependencies:[]
       parameters: []
-      factoryBody: 'return{foo:bar}'
+      factoryBody: '{return{foo:bar}}'
+
 
   it "should extract dependency-less with 'require' as factory param", ->
     js = """
@@ -53,12 +57,12 @@ describe "extractModuleInfo", ->
             return {foo:bar};
           });
         """
-
-    expect(extractModuleInfo js, {extractRequires:false}).to.deep.equal
-      dependencies: []
+    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    expect(mi).to.deep.equal
       type: 'define'
+      dependencies:[]
       parameters: ['require']
-      factoryBody: 'return{foo:bar}'
+      factoryBody: '{return{foo:bar}}'
 
   it "should ignore amdefine/require, extract uRequire.rootExport and moduleName as well", ->
     js = """
@@ -75,20 +79,23 @@ describe "extractModuleInfo", ->
         return dep1.doit();
       });
       """
-
-    expect(extractModuleInfo js).to.deep.equal
+    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    expect(mi).to.deep.equal
       rootExport: 'vourtses'
       moduleName: 'myModule'
       dependencies: [ 'underscore', 'depdir1/dep1' ]
       type: 'define'
       parameters: [ '_', 'dep1' ]
-      factoryBody: 'dep1=new dep1;return dep1.doit()'
-      requireDependencies: [] # extract'em by default, unless {extractRequires:false}
-
+      factoryBody: '{dep1=new dep1;return dep1.doit()}'
 
   it "should extract require('..' ) dependencies along with everything else", ->
     js = """
       if (typeof define !== 'function') { var define = require('amdefine')(module); };
+      ({
+        uRequire: {
+          rootExport: 'vourtses'
+        }
+      });
 
       define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
         _ = require('underscore');
@@ -101,17 +108,29 @@ describe "extractModuleInfo", ->
          require('myOtherRequire');
         }
         console.log("\n main-requiring starting....");
-        var crap = require("crap" + i); // wrongDependency
+        var crap = require("crap" + i); // untrustedRequireDependencies
+
+        require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
+          if (require('underscore')) {
+              require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
+                return asyncDepOk + asyncCrap2;
+              });
+          }
+          return asyncDep1 + asyncDep2;
+        });
 
         return {require: require('finalRequire')};
       });
     """
-
-    expect(extractModuleInfo js).to.deep.equal
+    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    expect(mi).to.deep.equal
+      rootExport: 'vourtses'
       moduleName: 'moduleName'
       type: 'define'
-      parameters: [ 'require', '_', 'dep1' ]
       dependencies: [ 'require', 'underscore', 'depdir1/dep1' ]
-      requireDependencies: ['someRequire', 'myOtherRequire', 'finalRequire']  # extract'em by default
-      wrongDependencies: [ 'require("crap"+i)' ]
-      factoryBody: '_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("\\n main-requiring starting....");var crap=require("crap"+i);return{require:require("finalRequire")}'
+      parameters: [ 'require', '_', 'dep1' ]
+      factoryBody: '{_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("\\n main-requiring starting....");var crap=require("crap"+i);require(["asyncDep1","asyncDep2"],function(asyncDep1,asyncDep2){if(require("underscore")){require(["asyncDepOk","async"+crap2],function(asyncDepOk,asyncCrap2){return asyncDepOk+asyncCrap2})}return asyncDep1+asyncDep2});return{require:require("finalRequire")}}'
+      requireDependencies: [ 'someRequire', 'myOtherRequire', 'finalRequire' ]
+      untrustedRequireDependencies: [ '"crap"+i' ]
+      asyncDependencies: [ 'asyncDep1', 'asyncDep2', 'asyncDepOk' ]
+      untrustedAsyncDependencies: [ '"async"+crap2' ]

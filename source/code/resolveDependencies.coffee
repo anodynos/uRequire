@@ -15,7 +15,7 @@ module.exports = (modyle, bundleFiles, dependencies)->
   external = []         # external-looking deps, like '../../../someLib'
   notFoundInBundle = [] # seemingly belonging to bundle, but not found, like '../myLib'
 
-  for dep in dependencies
+  for dep in dependencies ? []
     dep = dep.replace /\\/g, '/'
     if not ("#{dep}.js" in bundleFiles)
       if dep.match /\//

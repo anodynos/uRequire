@@ -1,14 +1,14 @@
 _ = require 'lodash'
-l = require './utils/logger'
-seekr = require './utils/seekr'
+l = require './../utils/logger'
+seekr = require './seekr'
 
 class JSManipulator
   parser = require("uglify-js").parser
   proc = require("uglify-js").uglify
-  slang = require './utils/slang'
+  slang = require './../utils/slang'
 
   constructor: (js = '', @options = {})->
-    @options.beautify ?= true
+    @options.beautify ?= false
     @ast = parser.parse js
     that: this
 
@@ -23,7 +23,6 @@ class JSManipulator
     }
 
   safeEval: (elem)=>
-    log 'elem:', elem
     @evalByType(elem[0]).call this, elem #todo change call pattern, bind to instance otherwise
 
 
@@ -64,7 +63,7 @@ class AMDModuleManipulator extends JSManipulator
     super
     @options.extractFactory ?= true
     @moduleInfo = {}
-    @ast_factoryFunction = null
+    @AST_FactoryBody = null
 
   gatherItemsInSegments: (astArray, segments)->
     astArray = [astArray] if not _(astArray).isArray()
@@ -73,17 +72,16 @@ class AMDModuleManipulator extends JSManipulator
       if not segments[elType]
         if segments['*'] then elType = '*' else break
 
-      (@moduleInfo[segments[elType]] or= []).push @safeEval elem  #elType)(@toCode elem)
+      (@moduleInfo[segments[elType]] or= []).push @safeEval elem
 
-  extractModuleInfoHeaderAndRequires: ->
+  extractModuleInfo: ->
     uRequireJsonHeaderSeeker =
       level: min: 4, max: 4
       '_object': (o)->
         if o.top is 'uRequire'
           properties = eval "(#{@toCode o.props})" # todo read with safeEval
           @moduleInfo = _.extend @moduleInfo, properties
-          'stop'
-    #kill this seeker!
+          'stop' #kill this seeker!
 
     defineAMDSeeker =
       level: min: 4, max: 4
@@ -112,28 +110,28 @@ class AMDModuleManipulator extends JSManipulator
             @moduleInfo.type = c.name # function name, ie 'define' or 'require'
             @gatherItemsInSegments amdDependencies, {'string':'dependencies', '*':'untrustedDependencies'}
             @moduleInfo.parameters = amdFactoryFunction[2] || [] # args of function (dep1, dep2)
+            @moduleInfo.dependencies or= []
             @AST_FactoryBody = ['block', amdFactoryFunction[3] ]
             @moduleInfo.factoryBody = @toCode @AST_FactoryBody
-            'stop'
-    #kill it, found what we wanted!
+            'stop' #kill it, found what we wanted!
 
     requireCallsSeeker =
       level: min: 4
       '_call': (c)->
         if  c.name is 'require'
-          switch c.args[0][0] #type, eg 'array', 'string'
-            when 'array'
-              @gatherItemsInSegments c.args[0][1], {'string':'asyncDependencies', '*':'untrustedAsyncDependencies'}
-            when 'string'
-              @gatherItemsInSegments c.args, {'string':'requireDependencies', '*':'unresolvedRequireDependencies'}
+          if c.args[0][0] is 'array'
+            @gatherItemsInSegments c.args[0][1], {'string':'asyncDependencies', '*':'untrustedAsyncDependencies'}
+          else # 'string', 'binary' etc
+            @gatherItemsInSegments c.args, {'string':'requireDependencies', '*':'untrustedRequireDependencies'}
 
     seekr [ defineAMDSeeker, uRequireJsonHeaderSeeker], @ast, @readAST, @ #
-    #
     if @AST_FactoryBody
       seekr [ requireCallsSeeker ], @AST_FactoryBody, @readAST, @
       # some tidying up : keep only 1) unique requireDeps & 2) extra to 'dependencies'
-      @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.dependencies
+      if not _(@moduleInfo.requireDependencies).isEmpty()
+        @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.dependencies
 
+    return @moduleInfo
 
 log = console.log
 log "\n## inline test - module info ##"
@@ -156,26 +154,23 @@ define('moduleName', ['require', marika, 'underscore', 'depdir2/dep1'], function
   var crap = require("crap" + i); //not read
 
   require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
+    if require('underscore') {
+      require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
+        return asyncDepOk + asyncCrap2;
+      });
+    }
+
     return asyncDep1 + asyncDep2;
   });
 
-  require(['asyncDepOk', 'async' + crap2], function(asyncDep1, asyncDep2) {
-    return asyncDep1 + asyncDep2;
-  });
+
 
   return {require: require('finalRequire')};
 });
 """
 
-modMan = new AMDModuleManipulator theJs, beautify:false
-modMan.extractModuleInfoHeaderAndRequires()
-log ('#' for i in [1..25]).join('')
-log modMan.moduleInfo
+module.exports = AMDModuleManipulator
 
-
-
-
-
-
-
-
+#modMan = new AMDModuleManipulator theJs, beautify:false
+#modMan.extractModuleInfo()
+#log modMan.moduleInfo

@@ -13,9 +13,12 @@ class DependencyReporter
     @reportData = {}
 
   dependencyTypesMessages=
-    wrongDependencies:
-      header: "\u001b[31m Wrong -possibly- require() dependencies found:"
-      footer: "They are IGNORED. If the evaluated name of the require() is not in a dependency array [..] before the require() call, your app WILL HALT and WILL NOT WORK on the web-side (but should be OK on node).\u001b[0m"
+    untrustedRequireDependencies:
+      header: "\u001b[31m Untrusted require('') dependencies found:"
+      footer: "They are IGNORED. If evaluated name of the require() isnt in dependency array [..] before require() call, your app WILL HALT and WILL NOT WORK on the web-side (but should be OK on node).\u001b[0m"
+    untrustedAsyncDependencies:
+      header: "\u001b[31m Untrusted async require(['']) dependencies found:"
+      footer: "They are IGNORED. If evaluated name of the require([..]) isnt found, you'll get an http error on web, or exception 'module not found' on node.).\u001b[0m"
     notFoundInBundle:
       header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
       footer: "They are added as-is.\u001b[0m"

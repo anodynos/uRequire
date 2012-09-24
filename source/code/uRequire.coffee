@@ -15,12 +15,12 @@ processBundle = (options)->
   _wrench = require 'wrench'
   getFiles = require "./utils/getFiles"
   template = require "./templates/UMD"
-  extractModuleInfo = require "./extractModuleInfo"
+  AMDModuleManipulator = require "./moduleManipulation/AMDModuleManipulator"
   resolveDependencies = require './resolveDependencies'
   resolveWebRoot = require './resolveWebRoot'
   DependencyReporter = require './DependencyReporter'
 
-  interestingDependencyTypes = ['notFoundInBundle', 'wrongDependencies']
+  interestingDependencyTypes = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
   reporter = new DependencyReporter(if options.verbose then null else interestingDependencyTypes )
 
   bundleFiles =  getFiles options.bundlePath, (fileName)->
@@ -32,42 +32,48 @@ processBundle = (options)->
     l.verbose '\nProcessing module: ', modyle
 
     oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
-    moduleInfo = extractModuleInfo oldJs, {beautifyFactory:true, extractRequires:true}
+
+    moduleManipulator = new AMDModuleManipulator oldJs, beautify:true
+    moduleInfo = moduleManipulator.extractModuleInfo()
 
     if _.isEmpty moduleInfo
       l.warn "Not AMD module '#{modyle}', copying as-is."
       newJs = oldJs
     else # we have a module
+      if moduleInfo.untrustedDependencies
+        l.err "Module '#{modyle}', has untrusted deps #{d for d in moduleInfo.untrustedDependencies}: copying as-is."
+        newJs = oldJs
+      else
+        # In the UMD template 'require' is *fixed*, so remove it
+        for pd in [moduleInfo.parameters, moduleInfo.dependencies]
+          pd.shift() if pd[0] is 'require'
 
-      # In the UMD template 'require' is *fixed*, so remove it
-      for pd in [moduleInfo.parameters, moduleInfo.dependencies]
-        pd.shift() if pd[0] is 'require'
+        resDeps = resolveDependencies modyle, bundleFiles, moduleInfo.dependencies
+        resReqDeps = resolveDependencies modyle, bundleFiles, moduleInfo.requireDependencies
+        asyncReqDeps = resolveDependencies modyle, bundleFiles, moduleInfo.asyncDependencies
 
-      resDeps = resolveDependencies modyle, bundleFiles, moduleInfo.dependencies
-      resReqDeps = resolveDependencies modyle, bundleFiles, moduleInfo.requireDependencies
+        #some reporting
+        for repData in [resDeps, resReqDeps, asyncReqDeps, (_.pick moduleInfo, interestingDependencyTypes) ]
+          reporter.addReportData repData, modyle
 
-      #some reporting
-      for repData in [resDeps, resReqDeps, (_.pick moduleInfo, 'wrongDependencies')]
-        reporter.addReportData repData, modyle
+        arrayDependencies = _.clone resDeps.fileRelative
+        # add require('depX') to the [], if doesnt exists
+        for reqDep in _.difference(resReqDeps.fileRelative, arrayDependencies)
+          arrayDependencies.push reqDep
 
-      AMDdependencies = _.clone resDeps.fileRelative
-      # add require('..') , only if they dont exist
-      for reqDep in _.difference(resReqDeps.fileRelative, AMDdependencies)
-        AMDdependencies.push reqDep
+        templateInfo = #
+          version: options.version
+          modulePath: _path.dirname modyle # module path within bundle
+          webRoot: resolveWebRoot modyle, options.webRootMap
+          arrayDependencies: arrayDependencies
+          nodeDependencies: resDeps.fileRelative
+          parameters: moduleInfo.parameters
+          rootExport: if options.noExport then false else moduleInfo.rootExport
+          factoryBody: moduleInfo.factoryBody
 
-      templateInfo = #
-        version: options.version
-        modulePath: _path.dirname modyle # module path within bundle
-        webRoot: resolveWebRoot modyle, options.webRootMap
-        AMDdependencies: AMDdependencies
-        nodeDependencies: resDeps.fileRelative
-        parameters: moduleInfo.parameters
-        rootExport: if options.noExport then false else moduleInfo.rootExport
-        factoryBody: moduleInfo.factoryBody
+        l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'
 
-      l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'
-
-      newJs = template templateInfo
+        newJs = template templateInfo
 
     outputFile = _path.join options.outputPath, modyle
 
