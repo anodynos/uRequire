@@ -40,16 +40,16 @@ module.exports = (grunt) ->
         command: "coffee -cb -o ./build/examples ./source/examples"
 
       uRequireExampleDeps:
-        command: "uRequire UMD #{buildDir}/../examples/deps -f -v"
+        command: "uRequire UMD #{buildDir}/../examples/deps -o #{buildDir}/../examplesUMD/deps  -v"
 
       uRequireExampleABC:
-        command: "uRequire UMD #{buildDir}/../examples/abc -f -w ../../.."
+        command: "uRequire UMD #{buildDir}/../examples/abc -o #{buildDir}/../examplesUMD/abc -a -w ../../.."
 
       uRequireExampleSpec:
-        command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
+        command: "uRequire UMD #{buildDir}/../examples/spec -o #{buildDir}/../examplesUMD/spec  -v"
 
       runExampleDeps:
-        command: "node build/examples/deps/main"
+        command: "node build/examplesUMD/deps/main"
 #      codo: #codo documentation #not working yet
 #        command: "codo /#{sourceDir}"
 
@@ -58,7 +58,7 @@ module.exports = (grunt) ->
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
 
       mochaExamples:
-        command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
+        command: "mocha build/examplesUMD/spec/ --recursive --bail --reporter spec"
 
       _options: # subtasks inherit _options but can override them
         failOnError: true

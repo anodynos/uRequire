@@ -1,4 +1,4 @@
-# checking file-relative dependencies also work
+# checking file-relative dependencies work
 define ['../multiply'], (multiply) ->
   (num, toPower)->
     result = 1

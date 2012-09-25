@@ -46,8 +46,6 @@ describe "AMDModuleManipulator", ->
     mi = (new AMDModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
       type: 'define'
-      dependencies:[]
-      parameters: []
       factoryBody: '{return{foo:bar}}'
 
 
@@ -60,7 +58,6 @@ describe "AMDModuleManipulator", ->
     mi = (new AMDModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
       type: 'define'
-      dependencies:[]
       parameters: ['require']
       factoryBody: '{return{foo:bar}}'
 
@@ -70,7 +67,7 @@ describe "AMDModuleManipulator", ->
 
       ({
         uRequire: {
-          rootExport: 'vourtses'
+          rootExport: 'myLib'
         }
       });
 
@@ -81,7 +78,7 @@ describe "AMDModuleManipulator", ->
       """
     mi = (new AMDModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
-      rootExport: 'vourtses'
+      rootExport: 'myLib'
       moduleName: 'myModule'
       dependencies: [ 'underscore', 'depdir1/dep1' ]
       type: 'define'
@@ -93,11 +90,11 @@ describe "AMDModuleManipulator", ->
       if (typeof define !== 'function') { var define = require('amdefine')(module); };
       ({
         uRequire: {
-          rootExport: 'vourtses'
+          rootExport: 'myLib'
         }
       });
 
-      define('moduleName', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
+      define('myModule', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
         _ = require('underscore');
         var i = 1;
         var r = require('someRequire');
@@ -124,8 +121,8 @@ describe "AMDModuleManipulator", ->
     """
     mi = (new AMDModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
-      rootExport: 'vourtses'
-      moduleName: 'moduleName'
+      rootExport: 'myLib'
+      moduleName: 'myModule'
       type: 'define'
       dependencies: [ 'require', 'underscore', 'depdir1/dep1' ]
       parameters: [ 'require', '_', 'dep1' ]

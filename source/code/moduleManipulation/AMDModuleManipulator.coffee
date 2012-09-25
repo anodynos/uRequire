@@ -62,8 +62,8 @@ class AMDModuleManipulator extends JSManipulator
   constructor: (js, @options = {})->
     super
     @options.extractFactory ?= true
-    @moduleInfo = {}
-    @AST_FactoryBody = null
+    @moduleInfo = {} #store all returned info here
+    @AST_FactoryBody = null # a ref to the factoryBody, used to produce factBody & l8r to mutate requires
 
   gatherItemsInSegments: (astArray, segments)->
     astArray = [astArray] if not _(astArray).isArray()
@@ -92,31 +92,30 @@ class AMDModuleManipulator extends JSManipulator
           c.args[1][0] is 'array' and
           c.args[2][0] is 'function'
             @moduleInfo.moduleName = @safeEval c.args[0]
-            amdDependencies = c.args[1][1]
-            amdFactoryFunction = c.args[2]
+            amdDeps = c.args[1][1]
+            factoryFn = c.args[2]
           else
             if c.args.length is 2 and # *standard* anomynous AMD signature define [],->
             c.args[0][0] is 'array' and
             c.args[1][0] is 'function'
-              amdDependencies = c.args[0][1]
-              amdFactoryFunction = c.args[1]
+              amdDeps = c.args[0][1]
+              factoryFn = c.args[1]
             else
               if c.args.length is 1 and
               c.args[0][0] is 'function' #define ->
-                amdDependencies = []
-                amdFactoryFunction = c.args[0]
+                amdDeps = []
+                factoryFn = c.args[0]
 
-          if amdFactoryFunction # found AMD, otherwise its null
+          if factoryFn # found AMD, otherwise its null
+            @moduleInfo.parameters = factoryFn[2] if not _(factoryFn[2]).isEmpty() # args of function (dep1, dep2)
+            @AST_FactoryBody = ['block', factoryFn[3] ] #needed l8r for replacing body deps
+            if @options.extractFactory #just save toCode for to-be-replaced-factoryBody
+              @moduleInfo.factoryBody = @toCode @AST_FactoryBody
+            @gatherItemsInSegments amdDeps, {'string':'dependencies', '*':'untrustedDependencies'}
             @moduleInfo.type = c.name # function name, ie 'define' or 'require'
-            @gatherItemsInSegments amdDependencies, {'string':'dependencies', '*':'untrustedDependencies'}
-            @moduleInfo.parameters = amdFactoryFunction[2] || [] # args of function (dep1, dep2)
-            @moduleInfo.dependencies or= []
-            @AST_FactoryBody = ['block', amdFactoryFunction[3] ]
-            @moduleInfo.factoryBody = @toCode @AST_FactoryBody
             'stop' #kill it, found what we wanted!
 
     requireCallsSeeker =
-      level: min: 4
       '_call': (c)->
         if  c.name is 'require'
           if c.args[0][0] is 'array'
@@ -133,43 +132,67 @@ class AMDModuleManipulator extends JSManipulator
 
     return @moduleInfo
 
-log = console.log
-log "\n## inline test - module info ##"
-theJs = """
-({uRequire: {rootExport: 'papari'}})
+  replaceItems: (astArray, replacements)->
+    astArray = [astArray] if not _(astArray).isArray()
+    for elem in astArray
+      if elem[0] is 'string' # i.e elType
+        if replacements[elem[1]]
+          elem[1] = replacements[elem[1]]
 
-if (typeof define !== 'function') { var define = require('amdefine')(module); };
+  getModuleInfoWithReplacedFactoryRequires: (requireReplacements)->
+    if @AST_FactoryBody
+      requireCallsReplacerSeeker =
+        '_call': (c)->
+          if  c.name is 'require'
+            if c.args[0][0] is 'array'
+              @replaceItems c.args[0][1], requireReplacements
+            else if c.args[0][0] is 'string' #ignore others, eg 'binary' etc
+              @replaceItems c.args, requireReplacements
 
-define('moduleName', ['require', marika, 'underscore', 'depdir2/dep1'], function(require, _, dep1) {
-  _ = require('lodash');
-  var i = 1;
-  var r = require('someRequire');
-  if (require === 'require') {
-   for (i=1; i < 100; i++) {
-      require('myOtherRequire');
-   }
-   require('myOtherRequire');
-  }
-  console.log("\n main-requiring starting....");
-  var crap = require("crap" + i); //not read
+      seekr [ requireCallsReplacerSeeker ], @AST_FactoryBody, @readAST, @
 
-  require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
-    if require('underscore') {
-      require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
-        return asyncDepOk + asyncCrap2;
-      });
-    }
+      @moduleInfo.factoryBody = @toCode @AST_FactoryBody
 
-    return asyncDep1 + asyncDep2;
-  });
+    return @moduleInfo
 
-
-
-  return {require: require('finalRequire')};
-});
-"""
 
 module.exports = AMDModuleManipulator
+
+#log = console.log
+#log "\n## inline test - module info ##"
+#theJs = """
+#({uRequire: {rootExport: 'papari'}})
+#
+#if (typeof define !== 'function') { var define = require('amdefine')(module); };
+#
+#define('moduleName', ['require', marika, 'underscore', 'depdir2/dep1'], function(require, _, dep1) {
+#  _ = require('lodash');
+#  var i = 1;
+#  var r = require('someRequire');
+#  if (require === 'require') {
+#   for (i=1; i < 100; i++) {
+#      require('myOtherRequire');
+#   }
+#   require('myOtherRequire');
+#  }
+#  console.log("\n main-requiring starting....");
+#  var crap = require("crap" + i); //not read
+#
+#  require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
+#    if require('underscore') {
+#      require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
+#        return asyncDepOk + asyncCrap2;
+#      });
+#    }
+#
+#    return asyncDep1 + asyncDep2;
+#  });
+#
+#
+#
+#  return {require: require('finalRequire')};
+#});
+#"""
 
 #modMan = new AMDModuleManipulator theJs, beautify:false
 #modMan.extractModuleInfo()

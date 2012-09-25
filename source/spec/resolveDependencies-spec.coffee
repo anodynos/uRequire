@@ -34,9 +34,9 @@ describe "resolveDependencies ", ->
       '/assets/jpuery-max'          #should add to web root
     ]
 
-    #
+    # #########################################
     # expected outcome
-    #
+    # ##########################################
     expectedDeps =
       bundleRelative: [
         'underscore'          # global lib

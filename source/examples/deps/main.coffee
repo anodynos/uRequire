@@ -14,7 +14,7 @@ define ['calc/add', 'data/numbers', 'calc/multiply'], (add, numbers)->
   # conditionally load a module (asynchronously)
   message = undefined
   if added > 10
-    require ['./actions/greet'], (greet) ->
+    require ['actions/greet'], (greet) ->
       message = greet(added)
       console.log "main:message retrieved from greet (#{message})"
   else

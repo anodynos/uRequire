@@ -12,4 +12,8 @@ define ['./c/c-lib'], (c)->
   if cc is c
     console.log 'cc === c'
 
+  if false # not actually required,
+    d = require 'b/c/d/d-lib' # but d-lib should be changed to fileRelative & to added to []
+    console.log 'got b/c/d/d-lib =', d
+
   return b: 'b', c: cc
