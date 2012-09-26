@@ -40,25 +40,32 @@ module.exports = (grunt) ->
         command: "coffee -cb -o ./build/examples ./source/examples"
 
       uRequireExampleDeps:
-        command: "uRequire UMD #{buildDir}/../examples/deps -o #{buildDir}/../examplesUMD/deps  -v"
+        command: "uRequire UMD #{buildDir}/../examples/deps -f  -v"
 
       uRequireExampleABC:
-        command: "uRequire UMD #{buildDir}/../examples/abc -o #{buildDir}/../examplesUMD/abc -a -w ../../.."
+        command: "uRequire UMD #{buildDir}/../examples/abc -f -a -w ../../.."
 
       uRequireExampleSpec:
-        command: "uRequire UMD #{buildDir}/../examples/spec -o #{buildDir}/../examplesUMD/spec  -v"
+        command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
 
       runExampleDeps:
-        command: "node build/examplesUMD/deps/main"
+        command: "node build/examples/deps/main"
 #      codo: #codo documentation #not working yet
 #        command: "codo /#{sourceDir}"
+
+      convertModuleExports:
+        command:"r.js.cmd -convert build/examples/moduleExports build/examples/moduleExports"
+
+      uRequireExampleModuleExports:
+        command: "uRequire UMD #{buildDir}/../examples/moduleExports -f -v"
+
 
       # tests
       mocha:
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
 
       mochaExamples:
-        command: "mocha build/examplesUMD/spec/ --recursive --bail --reporter spec"
+        command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
 
       _options: # subtasks inherit _options but can override them
         failOnError: true
@@ -136,15 +143,27 @@ module.exports = (grunt) ->
   grunt.registerTask "default", "clean build copy test"
   grunt.registerTask "build",   "shell:coffee concat copy"
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
-  grunt.registerTask "examples", "shell:coffeeExamples shell:uRequireExampleABC shell:uRequireExampleDeps shell:uRequireExampleSpec copy:exampleHtmlAndJs shell:mochaExamples shell:runExampleDeps"
+  grunt.registerTask "examples", """
+  shell:coffeeExamples
+  shell:uRequireExampleABC
+  shell:uRequireExampleDeps
+  shell:uRequireExampleSpec
+  shell:convertModuleExports
+  shell:uRequireExampleModuleExports
+  copy:exampleHtmlAndJs
+  shell:mochaExamples
+  shell:runExampleDeps
+  """
   #some shortcuts
   grunt.registerTask "watch",   "shell:coffeeWatch"
   grunt.registerTask "co",      "shell:coffee"
+  grunt.registerTask "coe",     "shell:coffeeExamples"
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
   grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
   grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec"
+  grunt.registerTask "mod",     "shell:coffeeExamples shell:uRequireExampleModuleExports"
 
 
   null

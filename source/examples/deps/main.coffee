@@ -1,31 +1,31 @@
 define ['calc/add', 'data/numbers', 'calc/multiply'], (add, numbers)->
   console.log "main:starting"
 
-  added = add(numbers.a, numbers.b);
+  sum = add(numbers.a, numbers.b);
+  console.log "main:sum = ", product
 
-  #testing node-style module loading
-  multiplied = (require './calc/multiply') numbers.a, numbers.b
-  console.log "main:multiplied numbers = ", multiplied
+  #testing node-style file relative paths
+  product = (require './calc/multiply') numbers.a, numbers.b
+  console.log "main:product = ", product
 
-  #testing node-style module loading & relative paths
-  numToPowerOf3 = (require 'calc/more/powerof') numbers.a, 2
+  #testing amd-style bundle relative paths
+  numToPowerOf3 = (require 'calc/more/powerof') numbers.a, 3
   console.log "main:numToPowerOf3 = ", numToPowerOf3
 
   # conditionally load a module (asynchronously)
   message = undefined
-  if added > 10
+  if sum > 10
     require ['actions/greet'], (greet) ->
-      message = greet(added)
-      console.log "main:message retrieved from greet (#{message})"
+      message = greet(sum)
+      console.log "main:message from greet (#{message})"
   else
-    console.log 'main:no greet call, small number: ' + added;
+    console.log 'main:no greet call, small number: ' + sum
 
-  # this is printed before the message above,
-  # right after 'main:started'
-  # because the call to require ['actions/greet'] is asynchronous
+  # printed before 'main:message from greet' above,
+  # due to asynchronous call to require ['actions/greet']
   console.log "main:returning"
 
   #return
-  added: added
-  multiplied:multiplied
-  message: message # intentionally, this is undefined, due to the asynchronous AMD-style of 'require [], ->' above
+  added: sum
+  multiplied:product
+  message: message # intentionally undefined, due to the asynchronous AMD-style of 'require [], ->' above

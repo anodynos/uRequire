@@ -9,7 +9,7 @@ options = {}
 toArray = (val)-> val.split(',')
 
 cmd
-  .version('0.0.5')
+  .version('0.0.7')
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)

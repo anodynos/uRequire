@@ -8,6 +8,7 @@ module.exports = (modulePath, dirname, webRoot)->
   pathRelative = require './utils/pathRelative'
 
   resolve = (dep)->
+    console.log 'resolving dep', dep
     if dep[0] is '.' #relative to requiring file's dir
       res = dirname + '/' + dep
     else
@@ -18,6 +19,7 @@ module.exports = (modulePath, dirname, webRoot)->
           res = webRoot + dep # an OS file system dir, as-is
       else # relative to bundle eg 'a/b/c', OR global eg 'underscore' todo: global is not handled!
         res = dirname + '/' + pathRelative("$/#{modulePath}", "$/" + dep)
+    console.log 'resolving res', res
     return res
 
   nodeRequire = (deps, cb) ->
@@ -29,6 +31,7 @@ module.exports = (modulePath, dirname, webRoot)->
       return reqMod
     else # asynchronously load dependencies, and then callback()
       setTimeout ->
+        console.log '!!!! async requires started !!!'
         relDeps = []
         for dep in deps
           try
@@ -43,6 +46,5 @@ module.exports = (modulePath, dirname, webRoot)->
       ,0
 
 # TODO: make test specs!
-# TODO: mimic requireJS behaviour on the asynchronous require [..],-> : If all deps are loaded before, then its SYNCRONOUS :-(
-#relativeAsyncRequire = makeRelativeAsynchRequire 'views/'
-#relativeAsyncRequire ['views/PersonEditVi
+# TODO: mimic the inconsistent requireJS behaviour on the require [..],-> :
+#       If all deps are loaded before, then the call is SYNCRONOUS :-(

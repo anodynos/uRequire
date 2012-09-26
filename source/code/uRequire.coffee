@@ -39,58 +39,61 @@ processBundle = (options)->
     if _.isEmpty moduleInfo
       l.warn "Not AMD module '#{modyle}', copying as-is."
       newJs = oldJs
-    else # we have a module
-      if moduleInfo.untrustedDependencies
+    else if moduleInfo.moduleType is 'UMD'
+        l.warn "Already UMD module '#{modyle}', copying as-is."
+        newJs = oldJs
+    else if moduleInfo.untrustedArrayDependencies
         l.err "Module '#{modyle}', has untrusted deps #{d for d in moduleInfo.untrustedDependencies}: copying as-is."
         newJs = oldJs
-      else
-        moduleInfo.parameters ?= [] #default
-        moduleInfo.dependencies ?= [] #default
+    else
+      moduleInfo.parameters ?= [] #default
+      moduleInfo.arrayDependencies ?= [] #default
 
-        # In the UMD template 'require' is *fixed*, so remove it
-        for pd in [moduleInfo.parameters, moduleInfo.dependencies]
-          pd.shift() if pd[0] is 'require'
+      # 'require' is *fixed* in UMD template (if needed), so remove it
+      for pd in [moduleInfo.parameters, moduleInfo.arrayDependencies]
+        pd.shift() if pd[0] is 'require'
 
-        requireReplacements = {} # the final replacements for require() calls.
-                                # All original deps and their fileRelative counterpart
-        [ resDeps,
-          resReqDeps,
-          resAsyncReqDeps ] = for deps in [
-               moduleInfo.dependencies,
-               moduleInfo.requireDependencies,
-               moduleInfo.asyncDependencies
-              ]
-                resolvedDeps = resolveDependencies modyle, bundleFiles, deps
-                if not _(deps).isEmpty()
-                  for dep, idx in deps when not (dep is resolvedDeps.fileRelative[idx])
-                    requireReplacements[dep] = resolvedDeps.fileRelative[idx]
-                resolvedDeps
+      requireReplacements = {} # the final replacements for require() calls.
+      # Go throught all original deps & resolve their fileRelative counterpart. Store resolvedDeps as res'DepType'
+      [ resDeps,
+        resReqDeps,
+        resAsyncReqDeps ] = for deps in [
+             moduleInfo.arrayDependencies,
+             moduleInfo.requireDependencies,
+             moduleInfo.asyncDependencies
+            ]
+              resolvedDeps = resolveDependencies modyle, bundleFiles, deps
+              if not _(deps).isEmpty()
+                for dep, idx in deps when not (dep is resolvedDeps.fileRelative[idx])
+                  requireReplacements[dep] = resolvedDeps.fileRelative[idx]
+              resolvedDeps
 
-#        l.log '\n', requireReplacements
-        _(moduleInfo).extend moduleManipulator.getModuleInfoWithReplacedFactoryRequires(requireReplacements)
+      moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
-        arrayDeps = _.clone resDeps.fileRelative
-        arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
+      arrayDeps = _.clone resDeps.fileRelative
+      # load all require('dep') fileRelative deps on AMD, otherwise it stucks on require('dep')
+      arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
 
-        templateInfo = #
-          version: options.version
-          modulePath: _path.dirname modyle # module path within bundle
-          webRoot: resolveWebRoot modyle, options.webRootMap
-          arrayDependencies: arrayDeps
-          nodeDependencies: if options.allNodeRequires then arrayDeps else resDeps.fileRelative
-          parameters: moduleInfo.parameters || []
-          factoryBody: moduleInfo.factoryBody[1..moduleInfo.factoryBody.length-2] #drop '{' & '}'
+      templateInfo = #
+        version: options.version
+        moduleType: moduleInfo.moduleType
+        modulePath: _path.dirname modyle # module path within bundle
+        webRoot: resolveWebRoot modyle, options.webRootMap
+        arrayDependencies: arrayDeps
+        nodeDependencies: if options.allNodeRequires then arrayDeps else resDeps.fileRelative
+        parameters: moduleInfo.parameters || []
+        factoryBody: moduleInfo.factoryBody
 
-        if (not options.noExport) and moduleInfo.rootExport
-          templateInfo.rootExport = moduleInfo.rootExport
+      if (not options.noExport) and moduleInfo.rootExport
+        templateInfo.rootExport = moduleInfo.rootExport
 
-        #some reporting
-        for repData in [ resDeps, resReqDeps, resAsyncReqDeps, (_.pick moduleInfo, interestingDepTypes) ]
-          reporter.addReportData repData, modyle
+      #some reporting
+      for repData in [ resDeps, resReqDeps, resAsyncReqDeps, (_.pick moduleInfo, interestingDepTypes) ]
+        reporter.addReportData repData, modyle
 
-#        l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'type', 'factoryBody'
+      l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'factoryBody'
 
-        newJs = template templateInfo
+      newJs = template templateInfo
 
     outputFile = _path.join options.outputPath, modyle
 

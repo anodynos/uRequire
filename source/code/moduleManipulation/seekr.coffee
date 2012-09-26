@@ -21,7 +21,6 @@ seekr = (seekers, data, stackreader, ctx, _level = 0, _continue = true, _stack =
   _level++
   if _level is 1 #some inits
     if not _(seekers).isArray() then seekers = [seekers] # just one, make it an array!
-
   if _continue
     _(data).each (dataItem)->
       if _(dataItem).isObject() or _(dataItem).isArray()

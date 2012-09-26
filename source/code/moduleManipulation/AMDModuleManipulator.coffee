@@ -2,17 +2,19 @@ _ = require 'lodash'
 l = require './../utils/logger'
 seekr = require './seekr'
 
+#todo: commonJS : tolerate 'return' statements when parsing - enclose in fake function
+
 class JSManipulator
   parser = require("uglify-js").parser
   proc = require("uglify-js").uglify
   slang = require './../utils/slang'
 
-  constructor: (js = '', @options = {})->
+  constructor: (@js = '', @options = {})->
     @options.beautify ?= false
-    @ast = parser.parse js
+    @AST = parser.parse @js
     that: this
 
-  toCode: (astCode = @ast) ->
+  toCode: (astCode = @AST) ->
     proc.gen_code astCode, beautify: @options.beautify
 
   evalByType: slang.certain {
@@ -49,23 +51,23 @@ class JSManipulator
       props: ast[1][0][1]
 
     'function': (ast)->
-      name: ast[0]
-      args: ast[1]
-      body: ast[2]
+      name: ast[1]
+      args: ast[2]
+      body: ast[3]
 
     'defun': (ast)->
-      name: ast[0]
-      args: ast[1]
-      body: ast[2]
+      name: ast[1]
+      args: ast[2]
+      body: ast[3]
 
 class AMDModuleManipulator extends JSManipulator
   constructor: (js, @options = {})->
     super
-    @options.extractFactory ?= true
+    @options.extractFactory ?= false
     @moduleInfo = {} #store all returned info here
     @AST_FactoryBody = null # a ref to the factoryBody, used to produce factBody & l8r to mutate requires
 
-  gatherItemsInSegments: (astArray, segments)->
+  _gatherItemsInSegments: (astArray, segments)->
     astArray = [astArray] if not _(astArray).isArray()
     for elem in astArray
       elType = elem[0] #eg 'string'
@@ -107,53 +109,76 @@ class AMDModuleManipulator extends JSManipulator
                 factoryFn = c.args[0]
 
           if factoryFn # found AMD, otherwise its null
-            @moduleInfo.parameters = factoryFn[2] if not _(factoryFn[2]).isEmpty() # args of function (dep1, dep2)
-            @AST_FactoryBody = ['block', factoryFn[3] ] #needed l8r for replacing body deps
+            fn = @readAST['function'] factoryFn
+
+            @moduleInfo.parameters = fn.args if not _(fn.args).isEmpty() # args of function (dep1, dep2)
+            @AST_FactoryBody = ['block', fn.body ] #needed l8r for replacing body require deps
+
+#            @moduleInfo.parameters = factoryFn[2] if not _(factoryFn[2]).isEmpty() # args of function (dep1, dep2)
+#            @AST_FactoryBody = ['block', factoryFn[3] ] #needed l8r for replacing body require deps
             if @options.extractFactory #just save toCode for to-be-replaced-factoryBody
               @moduleInfo.factoryBody = @toCode @AST_FactoryBody
-            @gatherItemsInSegments amdDeps, {'string':'dependencies', '*':'untrustedDependencies'}
-            @moduleInfo.type = c.name # function name, ie 'define' or 'require'
+              @moduleInfo.factoryBody = @moduleInfo.factoryBody[1..@moduleInfo.factoryBody.length-2] #drop '{', '}'
+            @_gatherItemsInSegments amdDeps, {'string':'arrayDependencies', '*':'untrustedArrayDependencies'}
+            @moduleInfo.moduleType = 'AMD'
+            @moduleInfo.amdCall = c.name # amd call name, ie 'define' or 'require'
             'stop' #kill it, found what we wanted!
+    seekr [ uRequireJsonHeaderSeeker, defineAMDSeeker], @AST, @readAST, @ #
 
-    requireCallsSeeker =
-      '_call': (c)->
-        if  c.name is 'require'
-          if c.args[0][0] is 'array'
-            @gatherItemsInSegments c.args[0][1], {'string':'asyncDependencies', '*':'untrustedAsyncDependencies'}
-          else # 'string', 'binary' etc
-            @gatherItemsInSegments c.args, {'string':'requireDependencies', '*':'untrustedRequireDependencies'}
+    if @moduleInfo.moduleType isnt 'AMD'
+      UMDSeeker =
+        level: min: 4, max: 5
+        '_function': (f)->
+          if _(f.args).isEqual ['root', 'factory']
+            @moduleInfo.moduleType = 'UMD'
+            @AST_FactoryBody = null
+            'stop'
+      seekr [ UMDSeeker ], @AST, @readAST, @
 
-    seekr [ defineAMDSeeker, uRequireJsonHeaderSeeker], @ast, @readAST, @ #
+      if @moduleInfo.moduleType isnt 'UMD'
+        @moduleInfo.moduleType = 'CommonJS'
+        @AST_FactoryBody = @AST
+        if @options.extractFactory
+          @moduleInfo.factoryBody = @js
+
+    # find all require '' and require ['..'],-> calls. String params are ok, all others are untrusted
     if @AST_FactoryBody
+      requireCallsSeeker =
+        '_call': (c)->
+          if  c.name is 'require'
+            if c.args[0][0] is 'array'
+              @_gatherItemsInSegments c.args[0][1], {'string':'asyncDependencies', '*':'untrustedAsyncDependencies'}
+            else # 'string', 'binary' etc
+              @_gatherItemsInSegments c.args, {'string':'requireDependencies', '*':'untrustedRequireDependencies'}
+
       seekr [ requireCallsSeeker ], @AST_FactoryBody, @readAST, @
       # some tidying up : keep only 1) unique requireDeps & 2) extra to 'dependencies'
       if not _(@moduleInfo.requireDependencies).isEmpty()
-        @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.dependencies
+        @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.arrayDependencies
 
     return @moduleInfo
 
-  replaceItems: (astArray, replacements)->
+  _replaceASTStringElements: (astArray, replacements)->
     astArray = [astArray] if not _(astArray).isArray()
     for elem in astArray
       if elem[0] is 'string' # i.e elType
         if replacements[elem[1]]
           elem[1] = replacements[elem[1]]
 
-  getModuleInfoWithReplacedFactoryRequires: (requireReplacements)->
+  #replace bundleRelative to fileRelative require('..') and
+  getFactoryWithReplacedRequires: (requireReplacements)->
     if @AST_FactoryBody
       requireCallsReplacerSeeker =
         '_call': (c)->
           if  c.name is 'require'
             if c.args[0][0] is 'array'
-              @replaceItems c.args[0][1], requireReplacements
+              @_replaceASTStringElements c.args[0][1], requireReplacements
             else if c.args[0][0] is 'string' #ignore others, eg 'binary' etc
-              @replaceItems c.args, requireReplacements
-
+              @_replaceASTStringElements c.args, requireReplacements
       seekr [ requireCallsReplacerSeeker ], @AST_FactoryBody, @readAST, @
 
-      @moduleInfo.factoryBody = @toCode @AST_FactoryBody
+      return @toCode @AST_FactoryBody
 
-    return @moduleInfo
 
 
 module.exports = AMDModuleManipulator
@@ -161,7 +186,7 @@ module.exports = AMDModuleManipulator
 #log = console.log
 #log "\n## inline test - module info ##"
 #theJs = """
-#({uRequire: {rootExport: 'papari'}})
+#//({uRequire: {rootExport: 'papari'}})
 #
 #if (typeof define !== 'function') { var define = require('amdefine')(module); };
 #
@@ -179,7 +204,7 @@ module.exports = AMDModuleManipulator
 #  var crap = require("crap" + i); //not read
 #
 #  require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
-#    if require('underscore') {
+#    if (require('underscore')) {
 #      require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
 #        return asyncDepOk + asyncCrap2;
 #      });
@@ -189,11 +214,15 @@ module.exports = AMDModuleManipulator
 #  });
 #
 #
-#
 #  return {require: require('finalRequire')};
 #});
 #"""
-
+#
+#theJs = """
+#  b = require('b/b-lib');
+#  module.exports = {b:'b'}
+#"""
+#
 #modMan = new AMDModuleManipulator theJs, beautify:false
 #modMan.extractModuleInfo()
 #log modMan.moduleInfo

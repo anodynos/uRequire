@@ -1,19 +1,15 @@
 uRequire:
-  rootExport:'rootB'
+  rootExport:'rootB' #rootB should be a window.rootB variable on the web side
 
 define ['./c/c-lib'], (c)->
   console.log 'started b'
 
-  if (Math.random() * 100) > 50
-    require ['b/c/d/d-lib'], (d)->
-      console.log 'got b/c/d/d-lib = ', d
+  if true
+    require ['b/c/d/d-lib'], (d)->         # d-lib should be just changed to fileRelative,
+      console.log 'got b/c/d/d-lib = ', d  # but since its async it's NOT need in []
 
-  cc = require 'b/c/c-lib' #same a listed above, absolute version
+  cc = require 'b/c/c-lib' #same c-lib as above, bundle-Relative
   if cc is c
     console.log 'cc === c'
-
-  if false # not actually required,
-    d = require 'b/c/d/d-lib' # but d-lib should be changed to fileRelative & to added to []
-    console.log 'got b/c/d/d-lib =', d
 
   return b: 'b', c: cc
