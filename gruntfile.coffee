@@ -53,12 +53,8 @@ module.exports = (grunt) ->
 #      codo: #codo documentation #not working yet
 #        command: "codo /#{sourceDir}"
 
-      convertModuleExports:
-        command:"r.js.cmd -convert build/examples/moduleExports build/examples/moduleExports"
-
       uRequireExampleModuleExports:
         command: "uRequire UMD #{buildDir}/../examples/moduleExports -f -v"
-
 
       # tests
       mocha:
@@ -147,9 +143,8 @@ module.exports = (grunt) ->
   shell:coffeeExamples
   shell:uRequireExampleABC
   shell:uRequireExampleDeps
-  shell:uRequireExampleSpec
-  shell:convertModuleExports
   shell:uRequireExampleModuleExports
+  shell:uRequireExampleSpec
   copy:exampleHtmlAndJs
   shell:mochaExamples
   shell:runExampleDeps
@@ -164,6 +159,5 @@ module.exports = (grunt) ->
   grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
   grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec"
   grunt.registerTask "mod",     "shell:coffeeExamples shell:uRequireExampleModuleExports"
-
 
   null
