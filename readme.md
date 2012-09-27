@@ -1,24 +1,29 @@
 #uRequire
-Write *modular code* once and execute/test on both **browser** & **node.js** via a UMD template and on-the-fly relative path resolution.
+Write *modular code* once and seamlesly execute/test on both **browser** & **node.js** via a UMD template, without quirks.
+
+On node it employs both build and on-the-fly path resolution, mapping absolute-to-relative, webRoot, and RequireJs's baseUrl & paths.
 
 
 #Aims
-* **Enable the *simplest possible* authoring of modular js code with a unified dependencies structure for modules.**
+* **Enable the *simplest possible*, relaxed authoring of modular js code with a unified dependencies structure for modules.**
+
 When no browser or node specifics are present, the same code should run & test on both browser and nodejs.
-The common denominator to define modules is [AMD](https://github.com/amdjs) and the test bed is [requireJS](http://requirejs.org); that's because AMD is the proper browser-optimized modular system out there. But that should not prevent you from the ability to run the same code on nodejs. Think of this project as the counterpart or opposite to [browserify] (https://github.com/substack/node-browserify).
+
+The common denominator to define modules is [AMD](https://github.com/amdjs) and the test bed is [requireJS](http://requirejs.org);
+That's because AMD is the proper browser-optimized modular system out there. But that should not prevent you from the ability to run the same code on nodejs. Think of this project as the counterpart or opposite to [browserify] (https://github.com/substack/node-browserify).
 
 
 * **Accomodate both `define()` and `require()` to work the same way in both browser & node.**
 Specifically, the browser AMD-style `require([..], function(..){})` should work on node, just as it does on the browser: asyncrhonously.
-And vise versa, the node-style `require()` should also work on browser (at least seemingly) synchronously.
+And vise versa, the node-style `var a = require('a')` should also work on browser (at least seemingly) synchronously.
 
 
-* **Allow modules to have a 'module-bundle root' as a reference point**, where module dependencies are relative to, with the same sementics on both runtimes. This currently works in browser/AMD/requireJS (using baseUrl), but on node dependencies are "relative to requiring file" which is a source of misconceptions on modularization it self, in regards to development.
+* **Allow modules to have a 'module-bundle root' as a reference point**, where module dependencies are relative to, with the same sementics on both runtimes.
+This currently works in browser/AMD/requireJS (using baseUrl), but on node dependencies are "relative to requiring file" which is a source of misconceptions on
+modularization it self, in regards to development.
 
 * Check your dependencies are valid at build time
   -globals, webRoots, notExists in bundle, etc
-
-
 
 Ultimatelly uRequire wishes to promote:
 * A standardized definition of dependencies for cross-platform modular code using AMD.
@@ -34,7 +39,8 @@ Only other affected files should be updated for my new position. Editors and IDE
 
   `npm install uRequire -g`
 
-You 'll also need a local dependency for your AMD-to-become-UMD project (basically a proxy to node's require).
+You 'll also need a local dependency for your modules-to-become-UMD project.
+It uses a makeNodeRequire function that is a proxy to node's require, allowing resolution of paths mappings & the asynchronous version of require.
 
 So assuming you have your AMD modules like this
 <pre>
@@ -51,13 +57,13 @@ and say `views/PersonView.js` is
 ```js
     define(['models/PersonModel'], function(PersonModel) {
       //do stuff
-      return {the:module}
+      return {the:'module'}
     }
 ```
 
 and similarly for the others, you 'll execute
 ```
-uRequire UMD src -p build
+uRequire UMD src -o build
 ```
 and uRequire will place the generated files into the `build` directory. The generated files will look like this
 ```js
@@ -75,7 +81,9 @@ and uRequire will place the generated files into the `build` directory. The gene
 
 
 #Notes
- When running on node, if you're referencing libs outside the package, either via webRootMap or a relative path like ../../somepackage/somelib, make sure you have uRequire installed there.
+ When running on node, if you're referencing libs outside the package,
+ either via webRootMap, a relative path like ../../somepackage/somelib or some requireJs config settings, make sure you have uRequire installed there as well.
+ Every UMD file is aware of its bundle location. This information in various ways, such as resolving paths, looking for requirejs config, resolving webRoot etc
 
 #FAQ:
 ##Can I mix relative and absolute paths, or will I get into problems ?
@@ -219,7 +227,7 @@ In overall, How can I write once, without having any other concern, and have it 
 So, after realizing the void here, I am in the middle of writing a simple converter, where you write AMD modules and it translates them to UMD that run eveywhere, taking care of the details.. I will update when v0.0.1 is done :-)
 
 
-
+  # something usefull - see http://stackoverflow.com/questions/9507606/when-to-use-require-and-when-to-use-define
 
 #amd-utils tutorial
 1) Run `uRequire UMD src -o UMD/src`

@@ -8,7 +8,7 @@ expect = chai.expect
 
 describe "AMDModuleManipulator", ->
 
-  it "should identify any non-AMD/UMD module as CommonJs", ->
+  it "should identify any non-AMD/UMD module as a node one", ->
     js = """
       function dosomething(someVar) {
         abc(['underscore', 'depdir1/dep1'], function(_, dep1) {
@@ -20,7 +20,7 @@ describe "AMDModuleManipulator", ->
     """
     mi = (new AMDModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
-      moduleType: 'CommonJS'
+      moduleType: 'node'
       requireDependencies: [ 'something' ]
 
   it "should identify a UMD module", ->

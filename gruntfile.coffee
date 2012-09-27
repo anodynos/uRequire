@@ -18,6 +18,7 @@ module.exports = (grunt) ->
       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
       */
       """
+
       usrBinEnvNode : '#!/usr/bin/env node'
 
     options:
@@ -27,36 +28,33 @@ module.exports = (grunt) ->
       buildSpecDir:  buildSpecDir
 
     shell:
-      coffee: # this name can be anything
+      coffee:
         command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
 
       coffeeSpec:
         command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
 
-      coffeeWatch: # this name can be anything
+      coffeeWatch:
         command: "coffee -cbw -o ./build ./source"
 
-      coffeeExamples: # this name can be anything
+      coffeeExamples:
         command: "coffee -cb -o ./build/examples ./source/examples"
 
       uRequireExampleDeps:
-        command: "uRequire UMD #{buildDir}/../examples/deps -f  -v"
+        command: "uRequire UMD build/examples/deps -f -v"
 
       uRequireExampleABC:
-        command: "uRequire UMD #{buildDir}/../examples/abc -f -a -r ../../.."
+        command: "uRequire UMD build/examples/abc -f -a -r ../../.."
 
       uRequireExampleSpec:
-        command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
+        command: "uRequire UMD build/examples/spec -f -v"
 
       runExampleDeps:
         command: "node build/examples/deps/main"
-#      codo: #codo documentation #not working yet
-#        command: "codo /#{sourceDir}"
 
-      uRequireExampleModuleExports:
-        command: "uRequire UMD #{buildDir}/../examples/moduleExports -f -v"
+      runExampleAbc:
+        command: "node build/examples/abc/a-lib"
 
-      # tests
       mocha:
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
 
@@ -67,9 +65,6 @@ module.exports = (grunt) ->
         failOnError: true
         stdout: true
         stderr: true
-
-    lint:
-      files: ["<%= options.buildDir %>/**/*.js"]
 
     concat:
       bin:
@@ -88,8 +83,6 @@ module.exports = (grunt) ->
         dest:'<%= options.buildDir %>/uRequire.js'
 
     copy:
-#      options:   #Check 'working', ask fix if not
-#        flatten:true
       exampleHtmlAndJs:
         options:
           flatten:false
@@ -105,21 +98,9 @@ module.exports = (grunt) ->
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
-      localInstallTests:
+      localInstallTests: #needed by the examples, makeNodeRequire()
         files:
           "node_modules/uRequire/build/code": [ #dest
-            "<%= options.buildDir %>/**/*.js"  #source
-          ]
-
-      depsTestInstallTests:
-        files:
-          "Y:/WebStormWorkspace/p/uRequireDepsTest/node_modules/uRequire/build/code": [ #dest
-            "<%= options.buildDir %>/**/*.js"  #source
-          ]
-
-      AMDUtilsInstallTests:
-        files:
-          "f:/javascript/libs/amd-utils-test/node_modules/uRequire/build/code": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
@@ -140,13 +121,14 @@ module.exports = (grunt) ->
   grunt.registerTask "build",   "shell:coffee concat copy"
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
   grunt.registerTask "examples", """
-  shell:coffeeExamples
-  shell:uRequireExampleABC
-  shell:uRequireExampleDeps
-  shell:uRequireExampleSpec
-  copy:exampleHtmlAndJs
-  shell:mochaExamples
-  shell:runExampleDeps
+    shell:coffeeExamples
+    shell:uRequireExampleABC
+    shell:uRequireExampleDeps
+    shell:uRequireExampleSpec
+    copy:exampleHtmlAndJs
+    shell:mochaExamples
+    shell:runExampleDeps
+    shell:runExampleAbc
   """
   #some shortcuts
   grunt.registerTask "watch",   "shell:coffeeWatch"
@@ -155,7 +137,7 @@ module.exports = (grunt) ->
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
-  grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
+  grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC shell:uRequireExampleSpec"
   grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec"
 
   null

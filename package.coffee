@@ -3,7 +3,7 @@ myPackage =
 
   description: "Automatically UMDify your AMD code, to make it run on both the browser & nodejs"
 
-  version: "0.0.7"
+  version: "0.0.8"
 
   homepage: "https://github.com/anodynos/uRequire"
 

@@ -18,10 +18,10 @@ processBundle = (options)->
   AMDModuleManipulator = require "./moduleManipulation/AMDModuleManipulator"
   resolveDependencies = require './resolveDependencies'
   resolveWebRoot = require './resolveWebRoot'
-  DependencyReporter = require './DependencyReporter'
+  DependenciesReporter = require './DependenciesReporter'
 
   interestingDepTypes = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
-  reporter = new DependencyReporter(if options.verbose then null else interestingDepTypes )
+  reporter = new DependenciesReporter(if options.verbose then null else interestingDepTypes )
 
   bundleFiles =  getFiles options.bundlePath, (fileName)->
     (_path.extname fileName) is '.js'
@@ -37,7 +37,7 @@ processBundle = (options)->
     moduleInfo = moduleManipulator.extractModuleInfo()
 
     if _.isEmpty moduleInfo
-      l.warn "Not AMD module '#{modyle}', copying as-is."
+      l.warn "Not AMD/node module '#{modyle}', copying as-is."
       newJs = oldJs
     else if moduleInfo.moduleType is 'UMD'
         l.warn "Already UMD module '#{modyle}', copying as-is."
@@ -55,7 +55,7 @@ processBundle = (options)->
       else
         moduleInfo.parameters = moduleInfo.parameters[0..moduleInfo.arrayDependencies.length-1]
 
-      # 'require' is *fixed* in UMD template (if needed), so remove it
+      # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require'
       for pd in [moduleInfo.parameters, moduleInfo.arrayDependencies]
         pd.shift() if pd[0] is 'require'
 
@@ -77,9 +77,9 @@ processBundle = (options)->
       moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
       arrayDeps = _.clone resDeps.fileRelative
-      # load all require('dep') fileRelative deps on AMD if there is even one
-      # because scan is not enabled and it stucks on require('dep')
-      # see https://github.com/jrburke/requirejs/issues/467
+      # load ALL require('dep') fileRelative deps on AMD if there is even one (or we want to disable scan)
+      # RequireJs by design disables runtime scan if even one dep exists in [].
+      # Execution stucks on require('dep') that is not loaded. see https://github.com/jrburke/requirejs/issues/467
       if (not _(arrayDeps).isEmpty()) or options.scanPrevent
         arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
 

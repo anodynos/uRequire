@@ -7,7 +7,7 @@ log = console.log
 # but could refactoreed to support more generic data gathering transformations for reporting
 #
 # TODO: refactor it to more generic. Make specs
-class DependencyReporter
+class DependenciesReporter
 
   constructor: (@interestingDepTypes = _.keys(dependencyTypesMessages))->
     @reportData = {}
@@ -64,10 +64,10 @@ class DependencyReporter
          report += @reportTemplate depTypesMsgs, @reportData[depType]
     return report
 
-module.exports = DependencyReporter
+module.exports = DependenciesReporter
 
 ##inline tests
-#rep = new DependencyReporter()
+#rep = new DependenciesReporter()
 #
 #rep.addReportData {
 #    dependencies: [ 'data/messages/hello', 'data/messages/bye' ],

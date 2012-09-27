@@ -18,7 +18,7 @@ _ = require 'lodash'
 #todo: make unit tests
 
 UMDtemplate = (d)->
-  isCommonJS = (d.moduleType is 'CommonJS')
+  isNode = (d.moduleType is 'node')
   isEmptyArrayDeps = _(d.arrayDependencies).isEmpty()
 
   """
@@ -27,14 +27,14 @@ UMDtemplate = (d)->
       if (typeof exports === 'object') {
           var nodeRequire = require('uRequire').makeNodeRequire('#{d.modulePath}', __dirname, '#{d.webRoot}');
           module.exports = factory(nodeRequire#{
-            if isCommonJS then ', exports, module' else ''}#{
+            if isNode then ', exports, module' else ''}#{
             (", nodeRequire('#{nDep}')" for nDep in d.nodeDependencies).join('')});
       } else if (typeof define === 'function' && define.amd) {
           define(#{
             if d.moduleName
               "'" + d.moduleName +"', "
             else ""
-           }#{if isCommonJS
+           }#{if isNode
                 "['require', 'module', 'exports'"
               else
                 if isEmptyArrayDeps
@@ -42,7 +42,7 @@ UMDtemplate = (d)->
                 else
                   "['require'"
               }#{(", '#{dep}'" for dep in d.arrayDependencies).join('')}#{
-              if isEmptyArrayDeps and not isCommonJS then "" else "], "}#{
+              if isEmptyArrayDeps and not isNode then "" else "], "}#{
               if d.rootExport # Adds browser/root globals if needed
                 "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
                 "            return (root.#{d.rootExport} = factory(require#{
@@ -52,10 +52,10 @@ UMDtemplate = (d)->
                 'factory);'
           }
       }
-  })(this, function (require#{if isCommonJS then ', exports, module' else ''}#{
+  })(this, function (require#{if isNode then ', exports, module' else ''}#{
     (", #{par}" for par in d.parameters).join ''}) {
   #{d.factoryBody}
-  #{if isCommonJS then 'return module.exports;' else ''}
+  #{if isNode then 'return module.exports;' else ''}
   });
   """
 

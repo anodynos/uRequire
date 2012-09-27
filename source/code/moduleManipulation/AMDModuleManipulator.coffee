@@ -2,7 +2,7 @@ _ = require 'lodash'
 l = require './../utils/logger'
 seekr = require './seekr'
 
-#todo: commonJS : tolerate 'return' statements when parsing - enclose in fake function
+#todo: node : tolerate 'return' statements when parsing - enclose in fake function
 
 class JSManipulator
   parser = require("uglify-js").parser
@@ -136,7 +136,7 @@ class AMDModuleManipulator extends JSManipulator
       seekr [ UMDSeeker ], @AST, @readAST, @
 
       if @moduleInfo.moduleType isnt 'UMD'
-        @moduleInfo.moduleType = 'CommonJS'
+        @moduleInfo.moduleType = 'node'
         @AST_FactoryBody = @AST
         if @options.extractFactory
           @moduleInfo.factoryBody = @js
