@@ -1,31 +1,13 @@
 <!DOCTYPE html>
-
 <html>
   <head>
     <meta charset="utf-8">
     <title>uRequire ABC example</title>
-
     <script src="../../../libs/require-min.js"></script>
-    <!--<script src="../../../libs/xrayquire.js"></script>-->
-
-
-    <script type="text/javascript">
-//      require.config ({
-//        // set baseUrl to point to the 'bundle', relative to this HTML
-//        baseUrl: '/libs/amd-utils-test/UMD'
-//
-//        // all libraries are now relative to the bundle/baseUrl
-////        paths: {
-////           'amd-utils': "/libs/amd-utils-test/src"
-////        }
-//      });
-    </script>
-
     <script>
       require(['a-lib'], function(a) {
-        console.log(a);
+        console.log('Got module a-lib=', a);
       });
     </script>
   </head>
-
 </html>

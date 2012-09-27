@@ -1,2 +1,3 @@
 console.log 'started c - originally a commonJS module!'
-module.exports = {c:'c'}
+d = require './d/d-lib'
+module.exports = {c:'c', d:d}

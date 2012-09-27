@@ -15,13 +15,16 @@ cmd
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
   .option('-n, --noExport', 'Ignore all web rootExports in module definitions', false)
   .option('-v, --verbose', 'Filling your screen with useless? info', false)
-  .option('-w, --webRootMap <webRootMap>', "Where to map `/` when ruinning in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
-  .option('-a, --allNodeRequires', 'Pre-require all deps on node, just like in AMD deps array', false)
+  .option('-r, --webRootMap <webRootMap>', "Where to map `/` when ruinning in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
+  .option('-s, --scanPrevent', "All require('') deps appear on [], preventing RequireJS scan @ runtime.", false)
+  .option('-a, --allNodeRequires', 'Pre-require all deps on node, just like in AMD deps []', false)
+  .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', toArray)
+  .option('-l, --listOfModules', 'NOT IMPLEMENTED. Process only modules/files in comma sep list - supports wildcards?', toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only.', false)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
   .option('-m, --masterBundles <items>', 'NOT IMPLEMENTED. Comma seperated module bundles that are `imported.`.', toArray)
   .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so uRequire is not needed @ runtime.', false)
-  .option('-w, --webOptimize', 'NOT IMPLEMENTED. Just re-define AMD with no UMD, and pass through r.js optimizer.', false)
+  .option('-W, --webOptimize', 'NOT IMPLEMENTED. Just re-define AMD with no UMD (and pass through r.js optimizer?)', false)
 
 
 cmd

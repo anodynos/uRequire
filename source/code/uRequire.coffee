@@ -71,8 +71,11 @@ processBundle = (options)->
       moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
       arrayDeps = _.clone resDeps.fileRelative
-      # load all require('dep') fileRelative deps on AMD, otherwise it stucks on require('dep')
-      arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
+      # load all require('dep') fileRelative deps on AMD if there is even one
+      # because scan is not enabled and it stucks on require('dep')
+      # see https://github.com/jrburke/requirejs/issues/467
+      if (not _(arrayDeps).isEmpty()) or options.scanPrevent
+        arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
 
       templateInfo = #
         version: options.version

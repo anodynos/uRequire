@@ -43,7 +43,7 @@ module.exports = (grunt) ->
         command: "uRequire UMD #{buildDir}/../examples/deps -f  -v"
 
       uRequireExampleABC:
-        command: "uRequire UMD #{buildDir}/../examples/abc -f -a -w ../../.."
+        command: "uRequire UMD #{buildDir}/../examples/abc -f -a -r ../../.."
 
       uRequireExampleSpec:
         command: "uRequire UMD #{buildDir}/../examples/spec -f -v"
@@ -143,7 +143,6 @@ module.exports = (grunt) ->
   shell:coffeeExamples
   shell:uRequireExampleABC
   shell:uRequireExampleDeps
-  shell:uRequireExampleModuleExports
   shell:uRequireExampleSpec
   copy:exampleHtmlAndJs
   shell:mochaExamples
@@ -158,6 +157,5 @@ module.exports = (grunt) ->
   grunt.registerTask "cbt",     "clean build test"
   grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC"
   grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec"
-  grunt.registerTask "mod",     "shell:coffeeExamples shell:uRequireExampleModuleExports"
 
   null
