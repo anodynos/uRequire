@@ -10,10 +10,6 @@
 
     <script type="text/javascript">
       require.config ({
-        // set baseUrl to point to the 'bundle', relative to this HTML
-//        baseUrl: '/libs/amd-utils-test/UMD'
-
-        // all libraries are now relative to the bundle/baseUrl
         paths: {
            'amd-utils': "/libs/amd-utils-test/UMD"
         }
@@ -21,9 +17,8 @@
     </script>
 
     <script>
-      require(['amd-utils/string'], function(amdUtilsString) {
-        console.log('callback is called');
-        console.log(amdUtilsString.camelCase ('my-string-to-be-cameled'));
+      require(['amd-utils/string/camelCase'], function(camelCase) {
+        console.log(camelCase('my-string-to-be-cameled'));
       });
     </script>
   </head>

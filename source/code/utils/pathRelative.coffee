@@ -6,7 +6,7 @@
   #  Features @ a glance
   #  - similar to (but extending?) path.relative
   #  - normalization : It understands `a/b/..` is `a` and normalizes paths while calculating connecting path
-  #  - paths can be unix, windows and mixed.
+  #  - paths input can be unix, windows and mixed., but are always returned as unix :-)
   #
   # @param from {String} the starting path
   # @param from {to} the destination path

@@ -24,7 +24,7 @@ processBundle = (options)->
   reporter = new DependencyReporter(if options.verbose then null else interestingDepTypes )
 
   bundleFiles =  getFiles options.bundlePath, (fileName)->
-    (_path.extname fileName) is '.js' #todo: make sure its an AMD module
+    (_path.extname fileName) is '.js'
 
   l.verbose '\nBundle files found: \n', bundleFiles
 
@@ -48,6 +48,12 @@ processBundle = (options)->
     else
       moduleInfo.parameters ?= [] #default
       moduleInfo.arrayDependencies ?= [] #default
+
+      #remove reduntant parameters, requireJS doesn't like them if require is 1st param
+      if _(moduleInfo.arrayDependencies).isEmpty()
+        moduleInfo.parameters = []
+      else
+        moduleInfo.parameters = moduleInfo.parameters[0..moduleInfo.arrayDependencies.length-1]
 
       # 'require' is *fixed* in UMD template (if needed), so remove it
       for pd in [moduleInfo.parameters, moduleInfo.arrayDependencies]
@@ -80,11 +86,11 @@ processBundle = (options)->
       templateInfo = #
         version: options.version
         moduleType: moduleInfo.moduleType
-        modulePath: _path.dirname modyle # module path within bundle
+        modulePath: modyle # full module path within bundle
         webRoot: resolveWebRoot modyle, options.webRootMap
         arrayDependencies: arrayDeps
         nodeDependencies: if options.allNodeRequires then arrayDeps else resDeps.fileRelative
-        parameters: moduleInfo.parameters || []
+        parameters: moduleInfo.parameters
         factoryBody: moduleInfo.factoryBody
 
       if (not options.noExport) and moduleInfo.rootExport

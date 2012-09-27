@@ -15,7 +15,7 @@ cmd
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
   .option('-n, --noExport', 'Ignore all web rootExports in module definitions', false)
   .option('-v, --verbose', 'Filling your screen with useless? info', false)
-  .option('-r, --webRootMap <webRootMap>', "Where to map `/` when ruinning in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
+  .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
   .option('-s, --scanPrevent', "All require('') deps appear on [], preventing RequireJS scan @ runtime.", false)
   .option('-a, --allNodeRequires', 'Pre-require all deps on node, just like in AMD deps []', false)
   .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', toArray)

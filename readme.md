@@ -166,7 +166,9 @@ define ["models/PersonModel"], (PersonModel)->
  ## require('lib') not scanned, if dependency array is not empty (or not exists).
  # (Different on node/amdefine : even if [] is present i.e `define [], (require)->, require is undefined!)
  ## 'dir1/lib1` is different than `./dir1/lib1` (with dir1 on bundle root/baseUrl)
-# see https://github.com/jrburke/requirejs/issues/467
+ ## see https://github.com/jrburke/requirejs/issues/467
+
+ amd-utils 'some' case : doesn't like reduntant/unused parameters, when require is 1st param
 
 
 
@@ -217,3 +219,27 @@ In overall, How can I write once, without having any other concern, and have it 
 So, after realizing the void here, I am in the middle of writing a simple converter, where you write AMD modules and it translates them to UMD that run eveywhere, taking care of the details.. I will update when v0.0.1 is done :-)
 
 
+
+
+#amd-utils tutorial
+1) Run `uRequire UMD src -o UMD/src`
+2) Copy tests/lib and test/spec runner into UMD/tests
+2) Run `uRequire UMD tests/spec -o UMD/tests/spec`
+  It will complain about missing bundle-looking libraries
+  Indeed, if you run it with `jasmine-node tests\spec --matchall` it will fail to find
+  `src\array\append` etc because it has no idea where src\ is.
+
+  So add requireJSConfig.json, copying from the require js config used in SpecRunner.html
+  (dont forget to convert to JSON - ie enclose keys/values with double quotes)
+  {
+    "paths" : {
+        "src" : "../../src"
+    }
+  }
+
+  Now if you run it again, almost all tests will run ok, with only two excpetions :
+    a) Those requring some DOM related objects like `window` and `document`, which is expected.
+    b) A spec for `forEach` titled 'should support arrays with missing items' because uglifyJs that
+      is used by uRequire is changing array `[ 5, , 7 ]` to `[ 5, undefined, 7 ]` and there is nothing I can currently do about it!
+
+  Apart from that, your library now runs and tests in UMD

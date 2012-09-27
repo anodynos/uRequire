@@ -177,7 +177,11 @@ class AMDModuleManipulator extends JSManipulator
               @_replaceASTStringElements c.args, requireReplacements
       seekr [ requireCallsReplacerSeeker ], @AST_FactoryBody, @readAST, @
 
-      return @toCode @AST_FactoryBody
+      fb = @toCode @AST_FactoryBody
+      if @moduleInfo.moduleType is 'AMD'
+        fb = fb[1..fb.length-2] #drop '{', '}'
+
+      return @moduleInfo.factoryBody = fb
 
 
 
