@@ -1,5 +1,5 @@
 #uRequire
-Write simple *modular code* once, run everywhere using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web (AMD/requireJS) & nodejs/commonjs module systems.
+Write simple *modular code* once, run everywhere using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web [(AMD/requireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
 
 The drive behind uRequire is 'if you have sensibly defined it, it should certainly find it'.
 
@@ -17,17 +17,16 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
  * Bring browser-side best practices (that appear to be AMD/requirejs), closer to nodejs. And vise versa.
 
 # Features
- * Uses a familiar [UMD template](https://github.com/umdjs/umd/blob/master/amdWebGlobal.js) with global being [optional](https://github.com/umdjs/umd/blob/master/amdWeb.js).
+ * Uses a 'familiar' [UMD template](https://github.com/umdjs/umd/blob/master/amdWebGlobal.js) with global being [optional](https://github.com/umdjs/umd/blob/master/amdWeb.js).
 
  * **Accomodates both `define()` and `require()` to work the same way in both browser & node.**
- Specifically, the browser AMD-style `require([..], function(..){})` works on node, just as it does on the browser: asyncrhonously. And vise versa, the node-style `var a = require('a')` also works on browser (at least seemingly) synchronously.
+ Specifically, the browser AMD-style `require([..], function(..){})` works on node, just as it does on the browser: asynchronously. And vise versa, the node-style `var a = require('a')` also works on browser (at least seemingly) synchronously.
 
  * **Allows modules to have a 'bundle-root' as a reference point**, where module dependencies are required with an absolute path (eg `models\PersonModel`, aka bundleRelative), with the same semantics on both runtimes. This works in browser with plain AMD/requireJS using `baseUrl`. But on node, dependencies are relative to requiring file (aka fileRelative) which I feel is a source of misconceptions on modularization it self, in regards to development. There are cases that both are usefull though, see the FAQ.
 
- * Checks your dependencies are valid at build time. It identifies dependencies within bundle boundaries and whether those exist. It also identifies and works with globals, webRootMap, externals, requireJS baseUrl/paths etc (and soom will make sure those exist before deploying).
+ * Checks your dependencies are valid at build time. It identifies dependencies within bundle boundaries and whether those exist. It also identifies and works with globals, webRootMap, externals, requireJS baseUrl/paths etc (and soon will check those exist before deploying).
 
- * Requires no additional dependency when running on web. Requires only a small ~3k runtime dependency when running on node (makeNodeRequire.js). As long as 'uRequire' package is installed via npm, your uRequire generated modules can be used as-is by any native node module via the bare require('') call, although they were written in AMD and perhaps use asynchronous require calls. Similarly your UMD modules can `require('module')` any node-native module installed via npm or residing on your file system.
-
+ * Requires no additional dependency when running on web. Requires only a small ~3k runtime dependency when running on node (makeNodeRequire.js). As long as 'urequire' package is installed via npm, your uRequire generated modules can be used as-is by any native node module via the bare require('') call, although they were written in AMD and perhaps use asynchronous require calls. Similarly your UMD modules can `require('module')` any node-native module installed via npm or residing on your file system.
 
 #Module authoring
 With uRequire, your modules can be either written in AMD:
@@ -83,15 +82,14 @@ For instance you can use both the syntax of sync & asych require, mix absolute/b
 * You can use the requirejs config `baseUrl` and `paths` on node (only those)- just place a file named `requirejs.config.json` in your bundle root directory, with content like {"paths": {"myLib" : "../../myLib"}}. Very usefull for 'importing' bundles, eg running specs against 'myLib' bundle using mocha, jasmine-node etc.
 * More will follow :-)
 
-Should you choose to adhere to the 100% standard syntax of AMD or nodejs, so that your pre-build *source* code is also valid/executable too, that's fine. uRequire will at least be as good as a) converting them to the 'other' runnable version and b) perform sanity and dependency checks on your source before deploying.
-
+Should you choose to adhere to the 100% [standard syntax of AMD](https://github.com/amdjs) or [nodejs](http://nodejs.org/api/modules.html), so that your pre-build *source* code is also valid/executable too, that's fine. uRequire will at least be as good as a) converting them to the 'other' runnable version and b) perform sanity and dependency checks on your source before deploying.
 
 #Installation & Usage
 uRequire has a command line converter that needs to be called globally:
 
-  `npm install uRequire -g`
+  `npm install urequire -g`
 
-You 'll also need a local dependency of `uRequire` for your modules-to-become-UMD, when those are running on node, so install locally also `npm install uRequire`. This actually gives your UMD modules a proxy to node's native require, allowing proper paths resolution & the asynchronous version of require.
+You 'll also need a local dependency of `uRequire` for your modules-to-become-UMD, when those are running on node, so install locally also `npm install urequire`. This actually gives your UMD modules a proxy to node's native require, allowing proper paths resolution & the asynchronous version of require.
 
 Assuming you have your AMD/node modules in a structure like this
 <pre>
@@ -131,14 +129,14 @@ module.exports = {the:'PersonModelModule'}
 To convert your modules to uRequire UMD you 'll execute:
 
 ```
-uRequire UMD src -o build
+urequire UMD src -o build
 ```
 
 This will place the translated UMD files into the `build` directory.
 The generated files will look similar to this:
 
 ```js
-    // Generated by uRequire v0.0.8
+    // Generated by uRequire v0.0.9
     (function (root, factory) {
         if (typeof exports === 'object') {
             var nodeRequire = require('uRequire').makeNodeRequire('views/PersonView.js', __dirname, '..');
@@ -156,13 +154,21 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
 
 ## CMD options
   -h, --help                     output usage information
+
   -V, --version                  output the version number
+
   -o, --outputPath <outputPath>  Output converted files onto this directory
+
   -f, --forceOverwriteSources    Overwrite *source* files (-o not needed & ignored)
+
   -v, --verbose                  Print module processing information
+
   -n, --noExport                 Ignore all web `rootExport`s in module definitions
+
   -r, --webRootMap <webRootMap>  Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.
+
   -s, --scanPrevent              All require('') deps appear on [], even if they wouldn't need to, preventing RequireJS scan @ runtime.
+
   -a, --allNodeRequires          Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up on node.
 
 ##Notes:
@@ -177,7 +183,7 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
 
 There are various problems with modules in the current era.
 
-Yes, RequireJS [can be be used on node](requirejs.org/docs/node.html). Installed as a local package via npm its a large 600kb dependency, but that is not the problem.
+Yes, RequireJS [can be be used on node](http://requirejs.org/docs/node.html). Installed as a local package via npm its a large 600kb dependency, but that is not the problem.
 
 * RequireJS on node is strict on dependencies declarations on node, just like on web execution: if you ommit declaring a dependency on the dependency array `define(['dep']...)`, it [will fail when you require('dep')](https://github.com/jrburke/requirejs/issues/467) on the body (on node it actually returns 'undefined'). Also, if you forget to list 'require' as your first dependency, you'll unleash hell: it'll work in some cases and some paths, not in others. This is all expected, due to the 'strictness' of the AMD standard. Hence, even this is not really the problem, just a caveat.
 
@@ -258,7 +264,7 @@ Similar? Better? not really. And at the same time, YES, absolutelly!
 U can think of this project as a distant counterpart to [browserify] (https://github.com/substack/node-browserify), though it takes a completelly different approach and has completelly different results:
 
  - uRequire is better/different, because it works both sides: web-to-node and node-to-web.
- Also on web side, its using AMD, which seems to be the standard way to define web modules [AMD](https://github.com/amdjs). The claim is that AMD is the proper browser-optimized module system. But that should not prevent you, from running that same code on nodejs, as it is.
+ Also on web side, its using AMD, which seems to be the standard way to define web modules [AMD](https://github.com/amdjs). The [claim is](http://requirejs.org/docs/whyamd.html) that AMD is the proper browser-optimized module system. But that should not prevent you, from running that same code on nodejs, as it is.
 
  - But NO, its not 'better' than browserify. It doesn't attempt to bring any of node's packages and functionality to the web (like browserify does). Only your modules are the issue here: your code that SHOULD run on both sides, WILL run. U must use non-dom, non-node stuff of course, if you want your code to work both ways.
 
@@ -279,11 +285,15 @@ See all build options and shortcuts in gruntfile.coffee. If you dont use grunt, 
 ###amd-utils tutorial
 Check a more real world one, UMDfying the amd-utils by [millermedeiros](https://github.com/millermedeiros)
 
-0) Grab a copy of [amd-utils](http://millermedeiros.github.com/amd-utils/):
-1) Install uRequire in it `npm install uRequire` (and globally if u haven't already)
-2) Run `uRequire UMD src -o UMD/src`, which converts the main library files to uRequire UMD.
+0) Grab a copy of [amd-utils](http://millermedeiros.github.com/amd-utils/)
+
+1) Install uRequire in it `npm install urequire` (and globally if u haven't already)
+
+2) Run `urequire UMD src -o UMD/src`, which converts the main library files to uRequire UMD.
+
 3) Copy tests/lib and test/SpecRunner.html into UMD/tests
-4) Run `uRequire UMD tests/spec -o UMD/tests/spec`, which converts the spec files to uRequire UMD.
+
+4) Run `urequire UMD tests/spec -o UMD/tests/spec`, which converts the spec files to uRequire UMD.
 
 At this point **uRequire will complain that* 'Bundle-looking dependencies not found in bundle' - this is expected: indeed, if you run it with `jasmine-node UMD\tests\spec --matchall` it will fail to find `src\array\append` etc because it has no idea where `src\` is.
 
@@ -295,9 +305,10 @@ So just add a `requirejs.config.json` on the specs bundle root (tests/spec), cop
 (dont forget to convert to real JSON - ie enclose keys/values with double quotes)
 
 Now if you run jasmine again, almost all tests will run ok, with only two exceptions:
+
   a) Few specs requring some DOM related objects like `window` and `document`, which is well expected.
-  b) A spec for `forEach` titled 'should support arrays with missing items' because uglifyJs that
-    is used by uRequire to parse & regenerate the code is changing the mis_ing-items array `[ 5, ,7 ]` to `[ 5, undefined, 7 ]` and there is nothing I can do about it! Perhaps uglify2 or another parser would solve this...
+
+  b) A spec for `forEach` titled 'should support arrays with missing items' because uglifyJs that is used by uRequire to parse & regenerate the code is changing the mis_ing-items array `[ 5, ,7 ]` to `[ 5, undefined, 7 ]` and there is nothing I can do about it! Perhaps uglify2 or another parser would solve this...
 
 Apart from those, the UMDfied amd-utils library now runs and tests on both browser and nodejs.
 
@@ -317,7 +328,7 @@ No, not yet. I will look into it though.
  I 've tried some configurations, but only a fraction of what's out there of course!
  They should all work, somehow, sometime.
  If they dont, they will.
- See the History / Raodmap below to get a better idea of future directions.
+ See the History / Roadmap below to get a better idea of future directions.
  I am eager to know and realize more usage patterns to incorporate.
  So, go play, try it out and make sure you let me know what issues & successes you're having!
 
@@ -350,7 +361,7 @@ No, from Universal. Require.
 * Grunt plugin ? (still works fine as it is with shell:command)
 
 ###v0.6 - v0.8
-* Configuration file uRequire.json that will contain all the information regarding your bundle: your dedault uRequire settings (eg your nodejs webRoot mapping, -scanPrevent),and the most important of all : a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/u.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs paths on node!) etc. More info to follow, watch this space.
+* Configuration file uRequire.json that will contain all the information regarding your bundle: your default uRequire settings (eg your nodejs webRoot mapping, -scanPrevent), and the most important of all: a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/lodash.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs `paths`.) etc. More info to follow, watch this space.
 
 * Mimic the behaviour of RequireJS's `require(['dep'], function(){})` where if dependencies are already loaded and cached, the factory function is called synchronously (immediatelly).
 
