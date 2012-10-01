@@ -13,18 +13,17 @@ cmd
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
-  .option('-n, --noExport', 'Ignore all web rootExports in module definitions', false)
-  .option('-v, --verbose', 'Filling your screen with useless? info', false)
+  .option('-v, --verbose', 'Print module processing information', false)
+  .option('-n, --noExport', 'Ignore all web `rootExport`s in module definitions', false)
   .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
-  .option('-s, --scanPrevent', "All require('') deps appear on [], preventing RequireJS scan @ runtime.", false)
-  .option('-a, --allNodeRequires', 'Pre-require all deps on node, just like in AMD deps []', false)
+  .option('-s, --scanPrevent', "All require('') deps appear on [], even if they wouldn't need to, preventing RequireJS scan @ runtime.", false)
+  .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up', false)
   .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', toArray)
   .option('-l, --listOfModules', 'NOT IMPLEMENTED. Process only modules/files in comma sep list - supports wildcards?', toArray)
-  .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only.', false)
+  .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', false)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
-  .option('-m, --masterBundles <items>', 'NOT IMPLEMENTED. Comma seperated module bundles that are `imported.`.', toArray)
   .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so uRequire is not needed @ runtime.', false)
-  .option('-W, --webOptimize', 'NOT IMPLEMENTED. Just re-define AMD with no UMD (and pass through r.js optimizer?)', false)
+  .option('-W, --webOptimize', 'NOT IMPLEMENTED. Use an AMD instead of UMD, ready to pass through r.js optimizer', false)
 
 
 cmd
@@ -41,12 +40,20 @@ cmd.on '--help', ->
                     or                                            \u001b[32m
     $ uRequire UMD path/to/moduleBundle -f                        \u001b[0m
 
-  Module files in your bundle must conform to the standard AMD format:
+  Module files in your bundle can conform to the standard AMD format:
       // standard anonymous modules format                  \u001b[33m
     - define(['dep1', 'dep2'], function(dep1, dep2) {...})  \u001b[0m
                             or
       // named modules also work, but are NOT recommended                 \u001b[33m
     - define('moduleName', ['dep1', 'dep2'], function(dep1, dep2) {...})  \u001b[0m
+
+    A 'relaxed' format can be used, see the docs.
+
+  Alternativelly modules can use the nodejs module format:
+    - var dep1 = require('dep1');
+      var dep2 = require('dep2');
+      ...
+      module.exports = {my: 'module'}
 
   Notes:
     --forceOverwriteSources (-f) is useful if your sources are not `real sources`

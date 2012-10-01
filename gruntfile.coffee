@@ -34,11 +34,14 @@ module.exports = (grunt) ->
       coffeeSpec:
         command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
 
-      coffeeWatch:
-        command: "coffee -cbw -o ./build ./source"
-
       coffeeExamples:
         command: "coffee -cb -o ./build/examples ./source/examples"
+
+      coffeeAll:
+        command: "coffee -cb -o ./build ./source"
+
+      coffeeWatch:
+        command: "coffee -cbw -o ./build ./source"
 
       uRequireExampleDeps:
         command: "uRequire UMD build/examples/deps -f -v"
@@ -54,6 +57,9 @@ module.exports = (grunt) ->
 
       runExampleAbc:
         command: "node build/examples/abc/a-lib"
+
+      runExampleRequirejs:
+        command: "node build/examples/rjs/runA"
 
       mocha:
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
@@ -131,13 +137,14 @@ module.exports = (grunt) ->
     shell:runExampleAbc
   """
   #some shortcuts
-  grunt.registerTask "watch",   "shell:coffeeWatch"
-  grunt.registerTask "co",      "shell:coffee"
+  grunt.registerTask "w",       "shell:coffeeWatch"
+  grunt.registerTask "co",      "shell:coffeeAll"
   grunt.registerTask "coe",     "shell:coffeeExamples"
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
   grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC shell:uRequireExampleSpec"
   grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec"
+  grunt.registerTask "r",       "shell:coffeeExamples shell:runExampleRequirejs"
 
   null

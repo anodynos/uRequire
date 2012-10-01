@@ -2,7 +2,7 @@ define ['calc/add', 'data/numbers', 'calc/multiply'], (add, numbers)->
   console.log "main:starting"
 
   sum = add(numbers.a, numbers.b);
-  console.log "main:sum = ", product
+  console.log "main:sum = ", sum
 
   #testing node-style file relative paths
   product = (require './calc/multiply') numbers.a, numbers.b

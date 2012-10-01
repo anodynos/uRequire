@@ -1,5 +1,6 @@
 /.idea/
 /node_modules/
+/libs/
 /source/
 /grunt*
 /samples

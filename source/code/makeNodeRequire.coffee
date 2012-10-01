@@ -15,14 +15,14 @@ module.exports = (modulePath, dirname, webRoot)->
   bundleRoot = dirname + '/' + (pathRelative "$/#{_path.dirname modulePath}", "$/") + '/'
 
   try
-    rjsc = require('fs').readFileSync bundleRoot + 'requireJSConfig.json', 'utf-8'
+    rjsc = require('fs').readFileSync bundleRoot + 'requirejs.config.json', 'utf-8'
   catch error
     #do nothing
   if rjsc
     try
       requireJSConfig = JSON.parse rjsc
     catch error
-      console.error "uRequire: error parsing requireJSConfig.json from #{bundleRoot + 'requireJSConfig.json'}"
+      console.error "uRequire: error parsing requirejs.config.json from #{bundleRoot + 'requirejs.config.json'}"
 
   if requireJSConfig?.baseUrl
     baseUrl = requireJSConfig.baseUrl

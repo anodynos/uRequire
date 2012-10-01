@@ -1,0 +1,1 @@
+module.exports = 'a native node module, residing at ' + __dirname

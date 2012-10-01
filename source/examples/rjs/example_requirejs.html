@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>requirejs node problems example</title>
+    <script src="../../../libs/require-min.js"></script>
+    <script>
+      require(['a-lib'], function(a) {
+        console.log('Got module a-lib=', a);
+      });
+    </script>
+  </head>
+</html>

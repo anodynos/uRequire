@@ -10,7 +10,6 @@ myPackage =
   author:
     name: "Agelos Pikoulas"
     email: "agelos.pikoulas@gmail.com"
-    url: ""
 
   licenses: [
     type: "MIT"
@@ -41,9 +40,9 @@ myPackage =
     "node": "*"
 
   dependencies:
-    lodash: "*" # or "underscore"
-    commander: "*"
-    wrench : "*"
+    "lodash": "*"
+    "commander": "*"
+    "wrench" : "*"
     "uglify-js": "1.3.x"
 
   devDependencies:
