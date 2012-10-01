@@ -1,11 +1,11 @@
 myPackage =
-  name: "uRequire"
+  name: "urequire"
 
   description: "Automatically UMDify your AMD code, to make it run on both the browser & nodejs"
 
   version: "0.0.8"
 
-  homepage: "https://github.com/anodynos/uRequire"
+  homepage: "https://github.com/anodynos/urequire"
 
   author:
     name: "Agelos Pikoulas"
@@ -20,15 +20,15 @@ myPackage =
 
   repository:
     type: "git"
-    url: "git://github.com/anodynos/uRequire"
+    url: "git://github.com/anodynos/urequire"
 
   bugs:
     url: ""
 
   bin:
-    uRequire: "./build/code/uRequireCmd.js"
+    urequire: "./build/code/urequireCmd.js"
 
-  main: "./build/code/uRequire.js"
+  main: "./build/code/urequire.js"
 
   test: "mocha build/spec --recursive --bail --reporter spec"
 
