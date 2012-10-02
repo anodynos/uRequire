@@ -17,7 +17,7 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
  * Bring browser-side best practices (that appear to be AMD/requirejs), closer to nodejs. And vise versa.
 
 # Features
- * Uses a 'familiar' [UMD template](https://github.com/umdjs/umd/blob/master/amdWebGlobal.js) with global being [optional](https://github.com/umdjs/umd/blob/master/amdWeb.js).
+ * Uses a 'familiar' standardized [UMD template](https://github.com/umdjs/umd/blob/master/returnExports.js) with a global export being [optional](https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js) using a declarative [`rootExport`](https://github.com/anodynos/uRequire#things-you-can-do-with-the-relaxed-urequire-notation).
 
  * **Accomodates both `define()` and `require()` to work the same way in both browser & node.**
  Specifically, the browser AMD-style `require([..], function(..){})` works on node, just as it does on the browser: asynchronously. And vise versa, the node-style `var a = require('a')` also works on browser (at least seemingly) synchronously.
@@ -374,3 +374,46 @@ No, from Universal. Require.
 * Allow *some* functions of both AMD and Require to be used on the other side, eg nodejs's `require.resolve()`
 * Build to an almond-like format where everything in bundled.
 * Convert from strict-AMD to relaxed-AMD :-)
+
+#Acknoweledgments.
+**Buidling on the shoulders of giants is always better.** uRequire would not have been possible without :
+* [RequireJS](https://github.com/jrburke/requirejs), the best Web-side module system to date, by [JR Burke](https://gist.github.com/jrburke)
+
+* [UMDjs templates](https://github.com/umdjs/umd), that defines the boilerplate that bridges the gap, by [JR Burke](https://gist.github.com/jrburke) and others - see [list]
+(https://github.com/umdjs/umd#umd-universal-module-definition)
+
+* [UglifyJS](https://github.com/mishoo/UglifyJS), that easily parses/re-generates JavaScript, by [Mihai Bazon](https://github.com/mishoo/)
+
+* [CoffeeScript](http://coffeescript.org/), that makes javascript authoring a true joy, by [Jeremy Ashkenas](https://github.com/jashkenas) et [all](http://github.com/jashkenas/coffee-script/contributors)
+
+* [Grunt](https://github.com/gruntjs), the best declerative javascript build system, by [Ben Alman](https://github.com/cowboy)
+
+* [Commander](https://github.com/visionmedia/commander.js) for parsing cmd arguments, by [TJ Holowaychuk] (https://github.com/visionmedia)
+
+and all others - see package.json dependencies.
+
+#License
+The MIT License
+
+Copyright (c) 2012 Agelos Pikoulas (agelos.pikoulas@gmail.com)
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
