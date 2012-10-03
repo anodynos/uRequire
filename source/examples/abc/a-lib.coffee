@@ -6,6 +6,6 @@ define ['b/b-lib'], (b)->
                               # as fileRelative './b/c/d/d-lib' right after a 'require'
 
   if typeof exports is 'object'
-    console.log require '../nodeNative-toBeRequired'
+    console.log require '../nodeNative-requiredByABC'
 
   return a: 'a', b: b
