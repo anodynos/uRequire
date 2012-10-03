@@ -295,7 +295,7 @@ Check a more real world one, UMDfying the amd-utils by [millermedeiros](https://
 
 4) Run `urequire UMD tests/spec -o UMD/tests/spec`, which converts the spec files to uRequire UMD.
 
-At this point **uRequire will complain that* 'Bundle-looking dependencies not found in bundle' - this is expected: indeed, if you run it with `jasmine-node UMD\tests\spec --matchall` it will fail to find `src\array\append` etc because it has no idea where `src\` is.
+At this point *uRequire will complain that* 'Bundle-looking dependencies not found in bundle' - this is expected: indeed, if you run it with `jasmine-node UMD\tests\spec --matchall` it will fail to find `src\array\append` etc because it has no idea where `src\` is.
 
 So just add a `requirejs.config.json` on the specs bundle root (tests/spec), copying from the requirejs config used in SpecRunner.html:
 
@@ -376,19 +376,20 @@ No, from Universal. Require.
 * Convert from strict-AMD to relaxed-AMD :-)
 
 #Acknoweledgments.
-**Buidling on the shoulders of giants is always better.** uRequire would not have been possible without :
-* [RequireJS](https://github.com/jrburke/requirejs), the best Web-side module system to date, by [JR Burke](https://gist.github.com/jrburke)
+**Buidling on the shoulders of giants is always better.** 
+uRequire would not have been possible without :
 
-* [UMDjs templates](https://github.com/umdjs/umd), that defines the boilerplate that bridges the gap, by [JR Burke](https://gist.github.com/jrburke) and others - see [list]
-(https://github.com/umdjs/umd#umd-universal-module-definition)
+* [RequireJS](https://github.com/jrburke/requirejs), the most popular web-side module system to date, by [JR Burke](https://gist.github.com/jrburke)
 
-* [UglifyJS](https://github.com/mishoo/UglifyJS), that easily parses/re-generates JavaScript, by [Mihai Bazon](https://github.com/mishoo/)
+* [UMDjs](https://github.com/umdjs/umd), provide boilerplates that bridge gaps, by [JR Burke](https://gist.github.com/jrburke) and [others](https://github.com/umdjs/umd#umd-universal-module-definition)
 
-* [CoffeeScript](http://coffeescript.org/), that makes javascript authoring a true joy, by [Jeremy Ashkenas](https://github.com/jashkenas) et [all](http://github.com/jashkenas/coffee-script/contributors)
+* [UglifyJS](https://github.com/mishoo/UglifyJS), easily parses/re-generates JavaScript, by [Mihai Bazon](https://github.com/mishoo/)
 
-* [Grunt](https://github.com/gruntjs), the best declerative javascript build system, by [Ben Alman](https://github.com/cowboy)
+* [CoffeeScript](http://coffeescript.org/), makes javascript authoring a true joy, by [Jeremy Ashkenas](https://github.com/jashkenas) et [all](http://github.com/jashkenas/coffee-script/contributors)
 
-* [Commander](https://github.com/visionmedia/commander.js) for parsing cmd arguments, by [TJ Holowaychuk] (https://github.com/visionmedia)
+* [Grunt](https://github.com/gruntjs), the best declarative javascript build system, by [Ben Alman](https://github.com/cowboy)
+
+* [Commander](https://github.com/visionmedia/commander.js), easily parses cmd arguments, by [TJ Holowaychuk](https://github.com/visionmedia)
 
 and all others - see package.json dependencies.
 
