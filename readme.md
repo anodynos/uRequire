@@ -11,12 +11,18 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
 
 #Ultimate Aims
  * Remove the mud from UMD, which is currently the only true option for cross-platform modular js development.  No longer you need to add UMD around your non-modular code to AMDdify the *deployment*. You should be able to use modules to structure your code during *development*.
+
  * Provide the *simplest possible*, relaxed authoring of modular js code with a unified dependencies structure for modules. When no browser/DOM or node specifics are present, the same source code should run & test on both browser and nodejs.
+
  * Promote and/or become a standardized 'relaxed' definition of dependencies for cross-platform modular code using the 'good parts' from AMD and nodejs.
+
  * Empower code reuse, without one-side locking. Provide for a more natural structring and refactoring of code.
+
  * Bring browser-side best practices (that appear to be AMD/requirejs), closer to nodejs. And vise versa.
 
 # Features
+ * Fixes some of the most common pains, problems and omittions from your AMD modules.
+
  * Uses a 'familiar' standardized [UMD template](https://github.com/umdjs/umd/blob/master/returnExports.js) with a global export being [optional](https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js) using a declarative [`rootExport`](https://github.com/anodynos/uRequire#things-you-can-do-with-the-relaxed-urequire-notation).
 
  * **Accomodates both `define()` and `require()` to work the same way in both browser & node.**
@@ -176,7 +182,7 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
 * Your module `define(..)` must be a top level in your .js (not nested inside some other code).
 * Everything outside `define` is simply ignored.
 * Only one module per file is expected - i.e only the first `define` per file is parsed.
-* There are some limitations due to the parser/code generator used ([uglifyjs](https://github.com/mishoo/UglifyJS)) : a) Comments are ignored and b) some [unsafe transformations] (https://github.com/mishoo/UglifyJS#unsafe-transformations)
+* There are some limitations due to the parser/code generator used ([uglifyjs](https://github.com/mishoo/UglifyJS)) : a) Comments are ignored and b) some [unsafe transformations](https://github.com/mishoo/UglifyJS#unsafe-transformations)
 
 #FAQ:
 ## What exactly is the problem with AMD running on web / node as it is ? Why not use RequireJS / amdefine on node ?
@@ -204,11 +210,11 @@ uRequire/UMD modules overcome this problem: they can require any native node mod
 * Similarly, your AMD defined modules can't be used by node-native modules as they are with requireJS. Your AMD modules start with `define`, which is unknown to the node runtime.
 So your node-native requiring modules need to be changed and instead load your native AMD-modules through requirejs, which means you need to alter them. This doesn't work if they happen to be third party code, or testers or other kind of loaders. And I think its a heavy burdain by it self, even if its your own code. You should be focusing on you business logic, not how to load modules.
 
-* Path resolution is also problematic, relative & absolute paths are causes of problems and it breaks on testers like mocha or when you want to use multiple 'bundles' in one requiring module. Check [this] (https://github.com/jrburke/amdefine/issues/4) and [this](https://github.com/jrburke/requirejs/issues/450) issues.
+* Path resolution is also problematic, relative & absolute paths are causes of problems and it breaks on testers like mocha or when you want to use multiple 'bundles' in one requiring module. Check [this](https://github.com/jrburke/amdefine/issues/4) and [this](https://github.com/jrburke/requirejs/issues/450) issues.
 
 * Copying from requirejs [docs](http://requirejs.org/docs/node.html#2) *Even though RequireJS is an asynchronous loader in the browser, the RequireJS Node adapter loads modules synchronously in the Node environment to match the default loading behavior in Node*. I think this can lead to problems, where asynch based code that is developed and tested on node runs ok, but fails miserably when it runs on web. Module systems should execute the same way on all sides, to the maximum possible extend.
 
-* Using [amdefine](https://github.com/jrburke/amdefine/) also leaves a lot to be desired: a single line makes 'define' available on node, but where does 'require' come from ? It comes from node. Hence no bundleRelative paths and no asynch version of require. And if you use the synch/node `module = require('moduleName')`, and works on the node side, you 'll need to remember to include 'require' and 'moduleName' on the dependencies array also. Finally mixing node-requirejs and amdefine is not an option either - they aren't meant to be used together - see some [early failed attempts] (https://github.com/jrburke/requirejs/issues/450)
+* Using [amdefine](https://github.com/jrburke/amdefine/) also leaves a lot to be desired: a single line makes 'define' available on node, but where does 'require' come from ? It comes from node. Hence no bundleRelative paths and no asynch version of require. And if you use the synch/node `module = require('moduleName')`, and works on the node side, you 'll need to remember to include 'require' and 'moduleName' on the dependencies array also. Finally mixing node-requirejs and amdefine is not an option either - they aren't meant to be used together - see some [early failed attempts](https://github.com/jrburke/requirejs/issues/450)
 
 ##What does uRequire 'relaxed' notation solve ?
 
@@ -257,11 +263,11 @@ Not really.
 
 * If you use nodeJs with and have used the asynch `require([], function(){})`, and you want to go back to strict node format, you "ll have some more work to do converting to `var a = require('a')` and changing its asynch nature, but it should'nt be so hard (the other way around is much harder).
 
-## Hey, I 've heard browserify 'makes node-style require() work in the browser with a server-side build step'. Is it similar to this? Is it better ?
+## Hey, I 've heard browserify *makes node-style require() work in the browser with a server-side build step*. Is it similar to this? Is it better ?
 
 Similar? Better? not really. And at the same time, YES, absolutelly!
 
-U can think of this project as a distant counterpart to [browserify] (https://github.com/substack/node-browserify), though it takes a completelly different approach and has completelly different results:
+U can think of this project as a distant counterpart to [browserify](https://github.com/substack/node-browserify), though it takes a completelly different approach and has completelly different results:
 
  - uRequire is better/different, because it works both sides: web-to-node and node-to-web.
  Also on web side, its using AMD, which seems to be the standard way to define web modules [AMD](https://github.com/amdjs). The [claim is](http://requirejs.org/docs/whyamd.html) that AMD is the proper browser-optimized module system. But that should not prevent you, from running that same code on nodejs, as it is.
@@ -392,6 +398,8 @@ uRequire would not have been possible without :
 * [Commander](https://github.com/visionmedia/commander.js), easily parses cmd arguments, by [TJ Holowaychuk](https://github.com/visionmedia)
 
 and all others - see package.json dependencies.
+
+PS: Excuse my typo errors, I need to get a solid dictionary for WebStorm (which otherwise rocks!)
 
 #License
 The MIT License
