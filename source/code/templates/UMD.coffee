@@ -34,15 +34,15 @@ UMDtemplate = (d)->
             if d.moduleName
               "'" + d.moduleName +"', "
             else ""
-           }#{if isNode
-                "['require', 'module', 'exports'"
+           }#{if isEmptyArrayDeps
+                "" #keep [] empty, enabling requirejs scan
               else
-                if isEmptyArrayDeps
-                  ""
+                if isNode
+                  "['require', 'module', 'exports'"
                 else
                   "['require'"
               }#{(", '#{dep}'" for dep in d.arrayDependencies).join('')}#{
-              if isEmptyArrayDeps and not isNode then "" else "], "}#{
+              if isEmptyArrayDeps then "" else "], "}#{
               if d.rootExport # Adds browser/root globals if needed
                 "function (require#{(', ' + par for par in d.parameters).join('')}) { \n" +
                 "            return (root.#{d.rootExport} = factory(require#{
