@@ -19,7 +19,7 @@ module.exports = (grunt) ->
       */
       """
 
-      usrBinEnvNode : '#!/usr/bin/env node'
+      usrBinEnvNode : '#!/usr/bin/env node \n\r'
 
     options:
       sourceDir:     sourceDir
