@@ -28,7 +28,7 @@ describe "AMDModuleManipulator", ->
       (function (root, factory) {
           "use strict";
           if (typeof exports === 'object') {
-              var nodeRequire = require('uRequire').makeNodeRequire('.', __dirname, '.');
+              var nodeRequire = require('urequire').makeNodeRequire('.', __dirname, '.');
               module.exports = factory(nodeRequire);
           } else if (typeof define === 'function' && define.amd) {
               define(factory);
@@ -83,12 +83,12 @@ describe "AMDModuleManipulator", ->
       parameters: ['require']
       factoryBody: 'return{foo:bar}'
 
-  it "should ignore amdefine & extract uRequire.rootExport and moduleName as well", ->
+  it "should ignore amdefine & extract urequire.rootExport and moduleName as well", ->
     js = """
       if (typeof define !== 'function') { var define = require('amdefine')(module) };
 
       ({
-        uRequire: {
+        urequire: {
           rootExport: 'myLib'
         }
       });
@@ -111,7 +111,7 @@ describe "AMDModuleManipulator", ->
   js = """
         if (typeof define !== 'function') { var define = require('amdefine')(module); };
         ({
-          uRequire: {
+          urequire: {
             rootExport: 'myLib'
           }
         });

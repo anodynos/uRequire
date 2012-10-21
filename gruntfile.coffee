@@ -19,7 +19,7 @@ module.exports = (grunt) ->
       */
       """
 
-      usrBinEnvNode : '#!/usr/bin/env node \n\r'
+      usrBinEnvNode : '#!/usr/bin/env node\n'
 
     options:
       sourceDir:     sourceDir
@@ -43,14 +43,14 @@ module.exports = (grunt) ->
       coffeeWatch:
         command: "coffee -cbw -o ./build ./source"
 
-      uRequireExampleDeps:
-        command: "uRequire UMD build/examples/deps -f -v"
+      urequireExampleDeps:
+        command: "urequire UMD build/examples/deps -f -v"
 
-      uRequireExampleABC:
-        command: "uRequire UMD build/examples/abc -f -a -r ../../.."
+      urequireExampleABC:
+        command: "urequire UMD build/examples/abc -f -a -r ../../.."
 
-      uRequireExampleSpec:
-        command: "uRequire UMD build/examples/spec -f -v"
+      urequireExampleSpec:
+        command: "urequire UMD build/examples/spec -f -v"
 
       runExampleDeps:
         command: "node build/examples/deps/main"
@@ -77,16 +77,16 @@ module.exports = (grunt) ->
         src: [
           '<banner:meta.usrBinEnvNode>'
           '<banner>'
-          '<%= options.buildDir %>/uRequireCmd.js'
+          '<%= options.buildDir %>/urequireCmd.js'
         ]
-        dest:'<%= options.buildDir %>/uRequireCmd.js'
+        dest:'<%= options.buildDir %>/urequireCmd.js'
 
       main:
         src: [
           '<banner>'
-          '<%= options.buildDir %>/uRequire.js'
+          '<%= options.buildDir %>/urequire.js'
         ]
-        dest:'<%= options.buildDir %>/uRequire.js'
+        dest:'<%= options.buildDir %>/urequire.js'
 
     copy:
       exampleHtmlAndJs:
@@ -100,19 +100,19 @@ module.exports = (grunt) ->
 
       globalInstallTests:
         files:
-          "c:/Program Files/nodejs/node_modules/uRequire/build/code": [ #dest
+          "c:/Program Files/nodejs/node_modules/urequire/build/code": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
       localInstallTests: #needed by the examples, makeNodeRequire()
         files:
-          "node_modules/uRequire/build/code": [ #dest
+          "node_modules/urequire/build/code": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
     clean:
         files: [
-          "c:/Program Files/nodejs/node_modules/uRequire/build/code/**/*.*"
+          "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
           "<%= options.buildDir %>/**/*.*"
           "<%= options.buildSpecDir %>/**/*.*"
         ]
@@ -128,9 +128,9 @@ module.exports = (grunt) ->
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
   grunt.registerTask "examples", """
     shell:coffeeExamples
-    shell:uRequireExampleABC
-    shell:uRequireExampleDeps
-    shell:uRequireExampleSpec
+    shell:urequireExampleABC
+    shell:urequireExampleDeps
+    shell:urequireExampleSpec
     copy:exampleHtmlAndJs
     shell:mochaExamples
     shell:runExampleDeps
@@ -143,8 +143,8 @@ module.exports = (grunt) ->
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
-  grunt.registerTask "abc",     "shell:coffeeExamples shell:uRequireExampleABC shell:uRequireExampleSpec"
-  grunt.registerTask "deps",    "shell:coffeeExamples shell:uRequireExampleDeps shell:uRequireExampleSpec"
+  grunt.registerTask "abc",     "shell:coffeeExamples shell:urequireExampleABC shell:urequireExampleSpec"
+  grunt.registerTask "deps",    "shell:coffeeExamples shell:urequireExampleDeps shell:urequireExampleSpec"
   grunt.registerTask "r",       "shell:coffeeExamples shell:runExampleRequirejs"
 
   null

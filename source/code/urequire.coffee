@@ -7,7 +7,7 @@ processBundle = (options)->
   l = require('./utils/logger')
   if not options.verbose then l.verbose = ->
 
-  l.verbose 'uRequire called with options\n', options
+  l.verbose 'urequire called with options\n', options
 
   _ = require 'lodash'
   _fs = require 'fs'
@@ -113,7 +113,7 @@ processBundle = (options)->
     _fs.writeFileSync outputFile, newJs, 'utf-8'
 
   if not _.isEmpty(reporter.reportData)
-    l.log '\n########### uRequire, final report ########### :\n', reporter.getReport()
+    l.log '\n########### urequire, final report ########### :\n', reporter.getReport()
 
   return null # save pointless coffeescript return :-)
 

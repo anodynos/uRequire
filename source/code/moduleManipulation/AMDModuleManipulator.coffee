@@ -77,10 +77,10 @@ class AMDModuleManipulator extends JSManipulator
       (@moduleInfo[segments[elType]] or= []).push @safeEval elem
 
   extractModuleInfo: ->
-    uRequireJsonHeaderSeeker =
+    urequireJsonHeaderSeeker =
       level: min: 4, max: 4
       '_object': (o)->
-        if o.top is 'uRequire'
+        if o.top is 'urequire'
           properties = eval "(#{@toCode o.props})" # todo read with safeEval
           @moduleInfo = _.extend @moduleInfo, properties
           'stop' #kill this seeker!
@@ -123,7 +123,7 @@ class AMDModuleManipulator extends JSManipulator
             @moduleInfo.moduleType = 'AMD'
             @moduleInfo.amdCall = c.name # amd call name, ie 'define' or 'require'
             'stop' #kill it, found what we wanted!
-    seekr [ uRequireJsonHeaderSeeker, defineAMDSeeker], @AST, @readAST, @ #
+    seekr [ urequireJsonHeaderSeeker, defineAMDSeeker], @AST, @readAST, @ #
 
     if @moduleInfo.moduleType isnt 'AMD'
       UMDSeeker =
@@ -190,7 +190,7 @@ module.exports = AMDModuleManipulator
 #log = console.log
 #log "\n## inline test - module info ##"
 #theJs = """
-#//({uRequire: {rootExport: 'papari'}})
+#//({urequire: {rootExport: 'papari'}})
 #
 #if (typeof define !== 'function') { var define = require('amdefine')(module); };
 #
