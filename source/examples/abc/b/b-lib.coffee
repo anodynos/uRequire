@@ -1,4 +1,4 @@
-uRequire:
+urequire:
   rootExport:'rootB' #rootB should become window.rootB global variable on the web side
 
 define ['./c/c-lib'], (c)->

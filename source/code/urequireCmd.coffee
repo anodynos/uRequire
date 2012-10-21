@@ -9,7 +9,7 @@ options = {}
 toArray = (val)-> val.split(',')
 
 cmd
-  .version('0.1.0') #todo:read from package.json
+  .version('0.1.1') #todo:read from package.json
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
@@ -22,7 +22,7 @@ cmd
   .option('-l, --listOfModules', 'NOT IMPLEMENTED. Process only modules/files in comma sep list - supports wildcards?', toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', false)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
-  .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so uRequire is not needed @ runtime.', false)
+  .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so urequire is not needed @ runtime.', false)
   .option('-W, --webOptimize', 'NOT IMPLEMENTED. Use an AMD instead of UMD, ready to pass through r.js optimizer', false)
 
 
@@ -36,9 +36,9 @@ cmd.on '--help', ->
   console.log """
   Examples:
                                                                   \u001b[32m
-    $ uRequire UMD path/to/amd/moduleBundle -o umd/moduleBundle   \u001b[0m
+    $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle   \u001b[0m
                     or                                            \u001b[32m
-    $ uRequire UMD path/to/moduleBundle -f                        \u001b[0m
+    $ urequire UMD path/to/moduleBundle -f                        \u001b[0m
 
   Module files in your bundle can conform to the standard AMD format:
       // standard anonymous modules format                  \u001b[33m
@@ -66,7 +66,7 @@ cmd.parse process.argv
 #options.bundlePath = cmd.bundlePath
 
 cmdOptions = _.map(cmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
-#copy over to 'options', to decouple uRequire from cmd.
+#copy over to 'options', to decouple urequire from cmd.
 options = _.defaults options, _.pick(cmd, cmdOptions)
 options.version = cmd.version()
 
@@ -96,5 +96,5 @@ else
           """
         process.exit(1);
 
-uRequire = require('./uRequire')
-uRequire.processBundle options
+urequire = require('./urequire')
+urequire.processBundle options

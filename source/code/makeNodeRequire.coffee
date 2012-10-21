@@ -22,7 +22,7 @@ module.exports = (modulePath, dirname, webRoot)->
     try
       requireJSConfig = JSON.parse rjsc
     catch error
-      console.error "uRequire: error parsing requirejs.config.json from #{bundleRoot + 'requirejs.config.json'}"
+      console.error "urequire: error parsing requirejs.config.json from #{bundleRoot + 'requirejs.config.json'}"
 
   if requireJSConfig?.baseUrl
     baseUrl = requireJSConfig.baseUrl
@@ -66,7 +66,7 @@ module.exports = (modulePath, dirname, webRoot)->
 
     if resMod is null
       console.error """
-        uRequire: failed to load dependency: '#{dep}' in module '#{modulePath}'
+        urequire: failed to load dependency: '#{dep}' in module '#{modulePath}'
         Tried : #{'\n' + res for res in resolved }
         Quiting with process.exit(1)
         """
