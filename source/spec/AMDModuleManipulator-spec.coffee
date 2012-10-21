@@ -108,41 +108,42 @@ describe "AMDModuleManipulator", ->
       parameters: [ '_', 'dep1' ]
       factoryBody: 'dep1=new dep1;return dep1.doit()'
 
-  js = """
-        if (typeof define !== 'function') { var define = require('amdefine')(module); };
-        ({
-          urequire: {
-            rootExport: 'myLib'
-          }
-        });
-
-        define('myModule', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
-          _ = require('underscore');
-          var i = 1;
-          var r = require('someRequire');
-          if (require === 'require') {
-           for (i=1; i < 100; i++) {
-              require('myOtherRequire');
-           }
-           require('myOtherRequire');
-          }
-          console.log("\n main-requiring starting....");
-          var crap = require("crap" + i); // untrustedRequireDependencies
-
-          require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
-            if (require('underscore')) {
-                require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
-                  return asyncDepOk + asyncCrap2;
-                });
-            }
-            return asyncDep1 + asyncDep2;
-          });
-
-          return {require: require('finalRequire')};
-        });
-      """
 
   it "should extract require('..' ) dependencies along with everything else", ->
+    js = """
+      if (typeof define !== 'function') { var define = require('amdefine')(module); };
+      ({
+        urequire: {
+          rootExport: 'myLib'
+        }
+      });
+
+      define('myModule', ['require', 'underscore', 'depdir1/dep1'], function(require, _, dep1) {
+        _ = require('underscore');
+        var i = 1;
+        var r = require('someRequire');
+        if (require === 'require') {
+         for (i=1; i < 100; i++) {
+            require('myOtherRequire');
+         }
+         require('myOtherRequire');
+        }
+        console.log("main-requiring starting....");
+        var crap = require("crap" + i); // untrustedRequireDependencies
+
+        require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
+          if (require('underscore')) {
+              require(['asyncDepOk', 'async' + crap2], function(asyncDepOk, asyncCrap2) {
+                return asyncDepOk + asyncCrap2;
+              });
+          }
+          return asyncDep1 + asyncDep2;
+        });
+
+        return {require: require('finalRequire')};
+      });
+    """
+
     mi = (new AMDModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
       rootExport: 'myLib'
@@ -151,7 +152,7 @@ describe "AMDModuleManipulator", ->
       amdCall: 'define'
       arrayDependencies: [ 'require', 'underscore', 'depdir1/dep1' ]
       parameters: [ 'require', '_', 'dep1' ]
-      factoryBody: '_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("\\n main-requiring starting....");var crap=require("crap"+i);require(["asyncDep1","asyncDep2"],function(asyncDep1,asyncDep2){if(require("underscore")){require(["asyncDepOk","async"+crap2],function(asyncDepOk,asyncCrap2){return asyncDepOk+asyncCrap2})}return asyncDep1+asyncDep2});return{require:require("finalRequire")}'
+      factoryBody: '_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("main-requiring starting....");var crap=require("crap"+i);require(["asyncDep1","asyncDep2"],function(asyncDep1,asyncDep2){if(require("underscore")){require(["asyncDepOk","async"+crap2],function(asyncDepOk,asyncCrap2){return asyncDepOk+asyncCrap2})}return asyncDep1+asyncDep2});return{require:require("finalRequire")}'
       requireDependencies: [ 'someRequire', 'myOtherRequire', 'finalRequire' ]
       untrustedRequireDependencies: [ '"crap"+i' ]
       asyncDependencies: [ 'asyncDep1', 'asyncDep2', 'asyncDepOk' ]

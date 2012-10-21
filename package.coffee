@@ -43,7 +43,7 @@ myPackage =
     "lodash": "*"
     "commander": "*"
     "wrench" : "*"
-    "uglify-js": "1.3.x"
+    "uglify-js": "1.3.3"
 
   devDependencies:
     "coffee-script": ">=1.3.3"
