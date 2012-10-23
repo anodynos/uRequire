@@ -5,6 +5,20 @@ module.exports = (grunt) ->
   sourceSpecDir = "source/spec"
   buildSpecDir  = "build/spec"
 
+  globalBuildCode = switch process.platform
+    when "win32" then "c:/Program Files/nodejs/node_modules/urequire/build/code/"
+    when 'linux' then "/usr/local/lib/node_modules/urequire/build/code/"
+    else ""
+
+  globalClean = switch process.platform
+    when "win32" then  "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
+    when 'linux' then "/usr/local/lib/node_modules/urequire/build/code/**/*.*"
+    else ""
+
+  chmod_urequireCmd = switch process.platform
+    when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
+    else "rem" #do nothing
+
   gruntConfig =
     pkg: "<json:package.json>"
 
@@ -19,13 +33,15 @@ module.exports = (grunt) ->
       */
       """
 
-      usrBinEnvNode : '#!/usr/bin/env node\n'
+      usrBinEnvNode : '#!/usr/bin/env node \n'
 
     options:
       sourceDir:     sourceDir
       buildDir:      buildDir
       sourceSpecDir: sourceSpecDir
       buildSpecDir:  buildSpecDir
+      globalBuildCode: globalBuildCode
+      globalClean: globalClean
 
     shell:
       coffee:
@@ -67,6 +83,13 @@ module.exports = (grunt) ->
       mochaExamples:
         command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
 
+      # change urequireCmd.js to executable - linux only (?mac?)
+      chmod:
+        command: chmod_urequireCmd
+
+      globalInstall:
+        command: "npm install -g"
+
       _options: # subtasks inherit _options but can override them
         failOnError: true
         stdout: true
@@ -93,26 +116,26 @@ module.exports = (grunt) ->
         options:
           flatten:false
         files:
-          "build/examples": [ #dest
+          "build/examples/": [ #dest
             "source/examples/**/*.html"    #source
             "source/examples/**/*.js"    #source
           ]
 
       globalInstallTests:
         files:
-          "c:/Program Files/nodejs/node_modules/urequire/build/code": [ #dest
+          "<%= options.globalBuildCode %>": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
       localInstallTests: #needed by the examples, makeNodeRequire()
         files:
-          "node_modules/urequire/build/code": [ #dest
+          "node_modules/urequire/build/code/": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
     clean:
         files: [
-          "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
+          "<%= options.globalClean %>"
           "<%= options.buildDir %>/**/*.*"
           "<%= options.buildSpecDir %>/**/*.*"
         ]
@@ -124,7 +147,7 @@ module.exports = (grunt) ->
 
   # Default task.
   grunt.registerTask "default", "clean build copy test"
-  grunt.registerTask "build",   "shell:coffee concat copy"
+  grunt.registerTask "build",   "shell:coffee concat copy shell:chmod" #alternativelly "shell:globalInstall" instead of "copy shell:chmod" (slower but more 'correct')
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
   grunt.registerTask "examples", """
     shell:coffeeExamples

@@ -3,7 +3,7 @@ myPackage =
 
   description: "Write modular code once, convert to UMD and run/test on browser/requirejs & nodejs"
 
-  version: "0.1.1"
+  version: "0.1.2"
 
   homepage: "https://github.com/anodynos/urequire"
 
@@ -49,7 +49,6 @@ myPackage =
     "coffee-script": ">=1.3.3"
     "mocha": "*"
     "chai": "*"
-    "grunt": "*"
     "grunt-shell": "*"  # mocha
     "grunt-contrib": "*" # using clean, copy
 

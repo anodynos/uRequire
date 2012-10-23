@@ -9,3 +9,4 @@
 /package.coffee
 /.npmignore
 /*.bat
+/*.sh
