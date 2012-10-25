@@ -15,10 +15,6 @@ module.exports = (grunt) ->
     when 'linux' then "/usr/local/lib/node_modules/urequire/build/code/**/*.*"
     else ""
 
-  chmod_urequireCmd = switch process.platform
-    when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
-    else "rem" #do nothing
-
   gruntConfig =
     pkg: "<json:package.json>"
 
@@ -33,7 +29,7 @@ module.exports = (grunt) ->
       */
       """
 
-      usrBinEnvNode : '#!/usr/bin/env node \n'
+      usrBinEnvNode: "#!/usr/bin/env node"
 
     options:
       sourceDir:     sourceDir
@@ -85,7 +81,14 @@ module.exports = (grunt) ->
 
       # change urequireCmd.js to executable - linux only (?mac?)
       chmod:
-        command: chmod_urequireCmd
+        command:  switch process.platform
+          when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
+          else "rem" #do nothing
+
+      dos2unix: # download from http://sourceforge.net/projects/dos2unix/files/latest/download
+        command: switch process.platform
+          when "win32" then "dos2unix build/code/urequireCmd.js"
+          else "echo" #do nothing
 
       globalInstall:
         command: "npm install -g"
@@ -147,7 +150,7 @@ module.exports = (grunt) ->
 
   # Default task.
   grunt.registerTask "default", "clean build copy test"
-  grunt.registerTask "build",   "shell:coffee concat copy shell:chmod" #alternativelly "shell:globalInstall" instead of "copy shell:chmod" (slower but more 'correct')
+  grunt.registerTask "build",   "shell:coffee concat shell:dos2unix copy shell:chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
   grunt.registerTask "examples", """
     shell:coffeeExamples

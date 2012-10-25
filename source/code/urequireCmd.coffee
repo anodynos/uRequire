@@ -1,4 +1,3 @@
-#!/usr/bin/env coffee
 _ = require('lodash')
 cmd = require('commander');
 l = require('./utils/logger')
