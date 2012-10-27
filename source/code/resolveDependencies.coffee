@@ -15,16 +15,27 @@ module.exports = (modyle, bundleFiles, dependencies)->
   external = []         # external-looking deps, like '../../../someLib'
   notFoundInBundle = [] # seemingly belonging to bundle, but not found, like '../myLib'
 
+  # checks for existence, irrespective of .js
+  inBundleFiles = (file)->
+    return ("#{file}.js" in bundleFiles) or (file in bundleFiles)
+
+  # strips .js extension, if exists
+  stripDotJs = (file)->
+    if (_path.extname file) is '.js'
+      file[0..file.length-4]
+    else
+      file
+
   for dep in dependencies ? []
     dep = dep.replace /\\/g, '/'
-    if not ("#{dep}.js" in bundleFiles)
-      if dep.match /\//
-        # a relative path, maybe pointing to bundle
+    if not (inBundleFiles dep)
+      if dep.match /\//   # a relative path, maybe pointing to bundle
         normalized = (_path.normalize "#{_path.dirname modyle}/#{dep}").replace /\\/g, '/'
-        if normalized + '.js' in bundleFiles
-          dep = normalized
+        if inBundleFiles normalized
+          dep = stripDotJs normalized
 
-    if "#{dep}.js" in bundleFiles
+    if inBundleFiles dep
+      dep = stripDotJs dep
       frDep = pathRelative "$/#{_path.dirname modyle}", "$/#{dep}", dot4Current:true
     else
       frDep = dep # either global, webRoot, external or notFound : add as-is to fileRelative

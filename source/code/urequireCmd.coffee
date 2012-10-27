@@ -8,7 +8,7 @@ options = {}
 toArray = (val)-> val.split(',')
 
 cmd
-  .version('0.1.2') #todo:read from package.json
+  .version('0.1.3') #todo:read from package.json
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
