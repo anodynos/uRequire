@@ -27,11 +27,11 @@ describe "resolveDependencies ", ->
 
     dependencies = [
       'underscore'                  # should add to 'global'
-      'data/messages/hello'
+      'data/messages/hello.js'      # should remove .js, since dep it's in the bundleFiles
       '../data/messages/bye'        # should normalize in bundleRelative
-      '../lame/dir'                 # should add to 'notFoundInBundle', add as is
-      '../../some/external/lib'     # should add to 'external', add as is
-      '/assets/jpuery-max'          #should add to web root
+      '../lame/dir.js'                 # should add to 'notFoundInBundle', add as is
+      '../../some/external/lib.js'     # should add to 'external', add as is
+      '/assets/jpuery-max'          # should add to web root
     ]
 
     # #########################################
@@ -40,26 +40,27 @@ describe "resolveDependencies ", ->
     expectedDeps =
       bundleRelative: [
         'underscore'          # global lib
-        'data/messages/hello' # as is
+        'data/messages/hello' # .js is removed
         'data/messages/bye'   # normalized
-        '../lame/dir'
-        '../../some/external/lib'
+        '../lame/dir.js'      # exactly as is
+        '../../some/external/lib.js' #exactly as is
         '/assets/jpuery-max'
       ]
       fileRelative: [
         'underscore'              # global lib, as is
-        '../data/messages/hello'
+        '../data/messages/hello'  # fileRelative, with .js is removed
         '../data/messages/bye'
-        '../lame/dir'
-        '../../some/external/lib'
+        '../lame/dir.js'
+        '../../some/external/lib.js' #exactly as is
         '/assets/jpuery-max'
       ]
       global: [ 'underscore' ]
-      external:[ '../../some/external/lib' ]
-      notFoundInBundle:[ '../lame/dir' ]
+      external:[ '../../some/external/lib.js' ]
+      notFoundInBundle:[ '../lame/dir.js' ] #exactly as is
       webRoot: ['/assets/jpuery-max']
 
     resDeps = resolveDependencies modyle, bundleFiles, dependencies
+    # console.log '\n', resDeps, '\n'
     expect(resDeps).to.deep.equal expectedDeps
 
 
