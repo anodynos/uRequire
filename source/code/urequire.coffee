@@ -23,8 +23,7 @@ processBundle = (options)->
   interestingDepTypes = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
   reporter = new DependenciesReporter(if options.verbose then null else interestingDepTypes )
 
-  bundleFiles =  getFiles options.bundlePath, (fileName)->
-    (_path.extname fileName) is '.js'
+  bundleFiles =  getFiles options.bundlePath, (fileName)-> (_path.extname fileName) is '.js'
 
   l.verbose '\nBundle files found: \n', bundleFiles
 
@@ -49,7 +48,8 @@ processBundle = (options)->
       moduleInfo.parameters ?= [] #default
       moduleInfo.arrayDependencies ?= [] #default
 
-      #remove reduntant parameters, requireJS doesn't like them if require is 1st param
+      #remove reduntant parameters (those in excess of the arrayDeps),
+      # requireJS doesn't like them if require is 1st param
       if _(moduleInfo.arrayDependencies).isEmpty()
         moduleInfo.parameters = []
       else
@@ -59,9 +59,9 @@ processBundle = (options)->
       for pd in [moduleInfo.parameters, moduleInfo.arrayDependencies]
         pd.shift() if pd[0] is 'require'
 
-      requireReplacements = {} # the final replacements for require() calls.
-      # Go throught all original deps & resolve their fileRelative counterpart. Store resolvedDeps as res'DepType'
-      [ resDeps,
+      requireReplacements = {} # final replacements for require() calls.
+      # Go throught all original deps & resolve their fileRelative counterpart.
+      [ resDeps,      # Store resolvedDeps as res'DepType'
         resReqDeps,
         resAsyncReqDeps ] = for deps in [
              moduleInfo.arrayDependencies,
@@ -77,9 +77,9 @@ processBundle = (options)->
       moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
       arrayDeps = _.clone resDeps.fileRelative
-      # load ALL require('dep') fileRelative deps on AMD if there is even one (or we want to disable scan)
-      # RequireJs by design disables runtime scan if even one dep exists in [].
-      # Execution stucks on require('dep') that is not loaded. see https://github.com/jrburke/requirejs/issues/467
+      # load ALL require('dep') fileRelative deps on AMD if there is one-or-more OR we want to scanPrevent)
+      # RequireJs disables runtime scan if even one dep exists in [].
+      # Execution stucks on require('dep') if its not loaded (present in arrayDeps). see https://github.com/jrburke/requirejs/issues/467
       if (not _(arrayDeps).isEmpty()) or options.scanPrevent
         arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
 
