@@ -6,8 +6,8 @@ module.exports = (modyle, bundleFiles, dependencies)->
   #l = require './utils/logger'
 
   # final dependencies, containing all deps found
-  bundleRelative  = []  # existing & normalized bundle-relative dependencies (UMD)
-  fileRelative = []     # existing file-Relative dependencies (node)
+  bundleRelative  = []  # existing & normalized bundle-relative dependencies
+  fileRelative = []     # existing file-Relative dependencies
 
   # extra dependency resolution information
   global = []           # global-looking deps, like 'underscore'

@@ -61,17 +61,18 @@ processBundle = (options)->
 
       requireReplacements = {} # final replacements for require() calls.
       # Go throught all original deps & resolve their fileRelative counterpart.
+      # resolvedDeps stored as a <code>Dependency<code> object
       [ resDeps,      # Store resolvedDeps as res'DepType'
         resReqDeps,
-        resAsyncReqDeps ] = for deps in [
+        resAsyncReqDeps ] = for strDepsArray in [
              moduleInfo.arrayDependencies,
              moduleInfo.requireDependencies,
              moduleInfo.asyncDependencies
             ]
-              resolvedDeps = resolveDependencies modyle, bundleFiles, deps
-              if not _(deps).isEmpty()
-                for dep, idx in deps when not (dep is resolvedDeps.fileRelative[idx])
-                  requireReplacements[dep] = resolvedDeps.fileRelative[idx]
+              resolvedDeps = resolveDependencies modyle, bundleFiles, strDepsArray
+              if not _(strDepsArray).isEmpty()
+                for strDep, idx in strDepsArray when not (strDep is resolvedDeps.fileRelative[idx].toString())
+                  requireReplacements[strDep] = resolvedDeps.fileRelative[idx].toString()
               resolvedDeps
 
       moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
@@ -79,9 +80,12 @@ processBundle = (options)->
       arrayDeps = _.clone resDeps.fileRelative
       # load ALL require('dep') fileRelative deps on AMD if there is one-or-more OR we want to scanPrevent)
       # RequireJs disables runtime scan if even one dep exists in [].
-      # Execution stucks on require('dep') if its not loaded (present in arrayDeps). see https://github.com/jrburke/requirejs/issues/467
+      # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDeps). see https://github.com/jrburke/requirejs/issues/467
       if (not _(arrayDeps).isEmpty()) or options.scanPrevent
-        arrayDeps.push reqDep for reqDep in _.difference(resReqDeps.fileRelative, arrayDeps)
+        for reqDep in resReqDeps.fileRelative
+          if not ( _(arrayDeps).any (ad)-> _.isEqual ad, reqDep ) and
+             not (reqDep.pluginName is 'node')
+              arrayDeps.push reqDep
 
       templateInfo = #
         version: options.version
