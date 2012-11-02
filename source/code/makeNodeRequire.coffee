@@ -54,8 +54,8 @@ module.exports = (modulePath, dirname, webRoot)->
           if dep.match /\// # relative to bundle eg 'a/b/c',
             resolved.push bundleRoot + dep
           else # a single pathpart, like 'underscore' or 'myLib'
-            resolved.push bundleRoot + dep # bundleRelative
-            resolved.push dep              # or global eg 'underscore'
+            resolved.push dep              # global eg 'underscore' (most likely)
+            resolved.push bundleRoot + dep # or bundleRelative (unlikely)
 
     #load module with native require
     resMod = null
