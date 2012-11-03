@@ -56,13 +56,13 @@ module.exports = (grunt) ->
         command: "coffee -cbw -o ./build ./source"
 
       urequireExampleDeps:
-        command: "urequire UMD build/examples/deps -f -v"
+        command: "urequire UMD build/examples/deps -f"
 
       urequireExampleABC:
-        command: "urequire UMD build/examples/abc -f -a -r ../../.."
+        command: "urequire UMD build/examples/abc -f -v -r ../../.."
 
       urequireExampleSpec:
-        command: "urequire UMD build/examples/spec -f -v"
+        command: "urequire UMD build/examples/spec -f"
 
       runExampleDeps:
         command: "node build/examples/deps/main"
@@ -152,6 +152,9 @@ module.exports = (grunt) ->
   grunt.registerTask "default", "clean build copy test"
   grunt.registerTask "build",   "shell:coffee concat shell:dos2unix copy shell:chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
+
+  #some shortcuts
+
   grunt.registerTask "examples", """
     shell:coffeeExamples
     shell:urequireExampleABC
@@ -162,7 +165,11 @@ module.exports = (grunt) ->
     shell:runExampleDeps
     shell:runExampleAbc
   """
-  #some shortcuts
+  grunt.registerTask "abc", """
+    shell:coffeeExamples
+    shell:urequireExampleABC
+    shell:runExampleAbc
+  """
   grunt.registerTask "w",       "shell:coffeeWatch"
   grunt.registerTask "co",      "shell:coffeeAll"
   grunt.registerTask "coe",     "shell:coffeeExamples"

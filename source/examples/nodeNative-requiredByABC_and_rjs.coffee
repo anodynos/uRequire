@@ -1,1 +1,1 @@
-module.exports = 'a native node module, residing at ' + __dirname
+module.exports = 'I am a native node module, residing at ' + __dirname

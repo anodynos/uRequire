@@ -1,10 +1,10 @@
 console.log '\nAMDModuleManipulator-spec loading'
 
-chai = require("chai")
-AMDModuleManipulator = require ("../code/moduleManipulation/AMDModuleManipulator")
-
+chai = require "chai"
 assert = chai.assert
 expect = chai.expect
+
+AMDModuleManipulator = require "../code/moduleManipulation/AMDModuleManipulator"
 
 describe "AMDModuleManipulator", ->
 
