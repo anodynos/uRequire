@@ -80,7 +80,7 @@ processBundle = (options)->
               for strDep in strDepsArray
                 dep = new Dependency strDep, modyle, bundleFiles
                 deps.push dep
-                requireReplacements[strDep] = if dep.pluginName is 'node' then dep.fileRelative() else dep.toString();
+                requireReplacements[strDep] = dep.name();
 
                 #report deps : those might interest our reporting facility
                 if dep.isGlobal()
@@ -148,4 +148,4 @@ module.exports =
   processBundle: processBundle
 
   # used by UMD-transformed modules, to make the node (async) require
-  makeNodeRequire: require('./makeNodeRequire')
+  NodeRequirer: require('./NodeRequirer')

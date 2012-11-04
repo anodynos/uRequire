@@ -17,7 +17,7 @@ describe "Dependency", ->
     expect(dep.bundleRelative()).to.equal 'somedir/dep.js'
     expect(dep.fileRelative()).to.equal 'somedir/dep.js'
     expect(dep.toString()).to.equal 'node!somedir/dep.js'
-
+    expect(dep.name plugin:no, ext:no ).to.equal 'somedir/dep'
 
   it "uses modyle & bundleFiles to convert from fileRelative", ->
     dep = new Dependency 'node!../../../rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
@@ -25,6 +25,8 @@ describe "Dependency", ->
     expect(dep.extname).to.equal undefined
     expect(dep.bundleRelative()).to.equal 'rootdir/dep'
     expect(dep.fileRelative()).to.equal '../../../rootdir/dep'
+    expect(dep.toString()).to.equal 'node!../../../rootdir/dep'
+    expect(dep.name plugin:no, relativeType:'bundle' ).to.equal 'rootdir/dep'
 
 describe "Dependency - resolving many", ->
 
@@ -70,12 +72,13 @@ describe "Dependency - resolving many", ->
     )
     webRoot = ( d.toString() for d in deps when d.isWebRoot() )
 
+    console.log {bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}
     expect({bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}).to.deep.equal
       bundleRelative: [
         'underscore'          # global lib
         'data/messages/hello.js' # .js is removed
         'data/messages/bye'   # normalized
-        '../lame/dir.js'      # exactly as is
+        'lame/dir.js'      # normalized
         '../../some/external/lib.js' #exactly as is
         '/assets/jpuery-max'
       ]

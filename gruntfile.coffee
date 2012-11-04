@@ -139,6 +139,7 @@ module.exports = (grunt) ->
     clean:
         files: [
           "<%= options.globalClean %>"
+          "node_modules/urequire/build/code/"
           "<%= options.buildDir %>/**/*.*"
           "<%= options.buildSpecDir %>/**/*.*"
         ]
@@ -165,19 +166,15 @@ module.exports = (grunt) ->
     shell:runExampleDeps
     shell:runExampleAbc
   """
-  grunt.registerTask "abc", """
-    shell:coffeeExamples
-    shell:urequireExampleABC
-    shell:runExampleAbc
-  """
+
   grunt.registerTask "w",       "shell:coffeeWatch"
   grunt.registerTask "co",      "shell:coffeeAll"
   grunt.registerTask "coe",     "shell:coffeeExamples"
   grunt.registerTask "b",       "build"
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
-  grunt.registerTask "abc",     "shell:coffeeExamples shell:urequireExampleABC shell:urequireExampleSpec"
-  grunt.registerTask "deps",    "shell:coffeeExamples shell:urequireExampleDeps shell:urequireExampleSpec"
+  grunt.registerTask "abc",     "shell:coffeeExamples shell:urequireExampleABC shell:urequireExampleSpec shell:runExampleAbc"
+  grunt.registerTask "deps",    "shell:coffeeExamples shell:urequireExampleDeps shell:urequireExampleSpec shell:runExampleDeps"
   grunt.registerTask "r",       "shell:coffeeExamples shell:runExampleRequirejs"
 
   null

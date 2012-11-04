@@ -17,16 +17,16 @@ class Dependency
     # file extension
     if _path.extname @resourceName #store (& trim extension ?)
       @extname = _path.extname @resourceName
-      #@resourceName = @resourceName[0..(@resourceName.length - @extname.length)-1] #strip extension ?
 
   bundleRelative: ()->
-    if @isFileRelative()
+    if @isFileRelative() and @isBundleBoundary()
+      (_path.normalize "#{_path.dirname @modyle}/#{@resourceName}").replace /\\/g, '/'
       # normalize and check if in bundleFiles
-      normalized = (_path.normalize "#{_path.dirname @modyle}/#{@resourceName}").replace /\\/g, '/'
-      if (normalized + (@extname || '.js')) in @bundleFiles #should not call isFound here, cause it depends on us.
-        normalized
-      else
-        @resourceName
+#        normalized =
+#      if (normalized + (@extname || '.js')) in @bundleFiles #should not call isFound here, cause it depends on us.
+        #normalized
+#      else
+#        @resourceName
     else
       @resourceName
 
@@ -36,17 +36,37 @@ class Dependency
     else
       @resourceName
 
+  isBundleBoundary: ()->
+    if @isWebRoot() or (not @modyle)
+      false
+    else
+      !!pathRelative "$/#{@modyle}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
+
+  toString:-> name()
+
+  name: (options = {})->
+    options.ext ?= true # default true
+    options.plugin ?= true # default true
+    options.relativeType ?= 'file' # default 'file
+
+    n = """
+      #{  if options?.plugin and @pluginName then @pluginName + '!' else ''
+      }#{ if options?.relativeType is 'bundle' then @bundleRelative() else @fileRelative() #file = default
+      }
+    """
+
+    if options.ext or not @extname
+      n
+    else
+      n[0..(n.length - @extname.length)-1] #strip extension ?
+
+  toString:-> @name { plugin: yes, relativeType: 'file', ext:yes}
+
   isFileRelative: ()-> @resourceName[0] is '.'
 
   isRelative: ()-> @resourceName.indexOf('/') >= 0 and not @isWebRoot()
 
   isWebRoot: ()-> @resourceName[0] is '/'
-
-  isBundleBoundary: ()->
-    if @isWebRoot() or (not @modyle)
-      false
-    else
-      !!pathRelative "$/#{@modyle}/../../#{@fileRelative()}", "$" #2 .. steps back :$ & module
 
   isGlobal: ()->  not @isWebRoot() and
                   not @isRelative() and
@@ -54,11 +74,4 @@ class Dependency
 
   isFound: ()-> (@bundleRelative() + (if @extname then '' else '.js')) in @bundleFiles
 
-  toString:-> """
-        #{  if @pluginName then @pluginName + '!' else ''
-        }#{ @fileRelative()
-        }
-    """
-
 module.exports = Dependency
-
