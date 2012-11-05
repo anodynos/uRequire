@@ -1,5 +1,5 @@
 define ['calc/add', 'data/numbers', 'calc/multiply'], (add, numbers)->
-  console.log "main:starting"
+  console.log "\nmain:starting"
 
   sum = add(numbers.a, numbers.b);
   console.log "main:sum = ", sum
@@ -17,7 +17,7 @@ define ['calc/add', 'data/numbers', 'calc/multiply'], (add, numbers)->
   if sum > 10
     require ['actions/greet'], (greet) ->
       message = greet(sum)
-      console.log "main:message from greet (#{message})"
+      console.log "main: asynch message from greet '#{message}'"
   else
     console.log 'main:no greet call, small number: ' + sum
 

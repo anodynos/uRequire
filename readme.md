@@ -206,7 +206,7 @@ This works ok for *your* AMD defined modules. But if you need to use a node-nati
 
 One may ask, *why would I need to load native nodejs modules from AMD/UMD modules that are supposed to be runnable on the web side mainly/also ?*. One simple answer is *cause you wanna share code between client & server, but also be able to inject code on either side at will*. Perhaps this issue is a single stopper for using AMD on node.
 
-urequire/UMD modules overcome this problem: they can require any native node module as it is, without any special treatment, adapter or conversion. Third party code can get 'required' and work as it is. See `examples/nodeNative-toBeRequired` and `examples\abc\a-lib`.
+uRequire modules overcome this problem: they can require any native node module as it is, without any special treatment, adapter or conversion. Third party code can get 'required' and work as it is. You only need to use the fake-plugin notation of `require('node!./path/to/nativeNodeJsModule')`, to signal that this module should not appear on AMD dependency array & then make sure at runtime that it gets loaded only when you are at nodejs (`isNode` & `isWeb` variables are provided for this purppose). See `examples/nodeNative-requiredByABC_and_rjs` and `examples\abc\a-lib`.
 
 * Similarly, your AMD defined modules can't be used by node-native modules as they are with requireJS. Your AMD modules start with `define`, which is unknown to the node runtime.
 So your node-native requiring modules need to be changed and instead load your native AMD-modules through requirejs, which means you need to alter them. This doesn't work if they happen to be third party code, or testers or other kind of loaders. And I think its a heavy burdain by it self, even if its your own code. You should be focusing on you business logic, not how to load modules.
@@ -315,7 +315,7 @@ Now if you run jasmine again, almost all tests will run ok, with only two except
 
   a) Few specs requring some DOM related objects like `window` and `document`, which is well expected.
 
-  b) A spec for `forEach` titled 'should support arrays with missing items' because uglifyJs that is used by urequire to parse & regenerate the code is changing the mis_ing-items array `[ 5, ,7 ]` to `[ 5, undefined, 7 ]` and there is nothing I can do about it! Perhaps uglify2 or another parser would solve this...
+  b) Two specs in `spec\array\spec-forEach.js` titled 'should support arrays with missing items' fails because uglifyJs that is used by urequire to parse & regenerate the code is changing the mis_ing-items array `[ 5, ,7 ]` to `[ 5, undefined, 7 ]` and there is nothing I can do about it! Perhaps uglify2 or another parser would solve this...
 
 Apart from those, the UMDfied amd-utils library now runs and tests on both browser and nodejs.
 
@@ -352,11 +352,15 @@ require ['volunteers', 'skills/solidjs/CoffeeScript', 'awesomeness'], (volunteer
 No, from Universal. Require.
 
 # History / Roadmap:
-##v0.1 - Alpha/preview release - CURRENT
+##v0.1.4 - Alpha/preview release - CURRENT
 * A preview of what urequire aims to become. Quite usefull as it is, but still a non-stable/Alpha.
 
 ###v0.2
 * Refactoring, code documentetation, more spec tests, plan for incorporating future functionality.
+
+* Use requireJS built in or 3rd-party plugins (eg. for `text!myTextFile.txt`)
+
+* Mimics the behaviour of RequireJS's `require(['dep1', 'dep2'], function(){})` where if dependencies 'dep1' & 'dep2' are already loaded (i.e cached), the factory function is called synchronously (immediatelly).
 
 ###v0.3 - 0.5
 * AMD template rewrite, so you can r.js optimize you relaxed notation modules. Also it will come with the ability to change from fileRelative to bundleRelative and vise versa. This will allow you for instance to automatically translate modules you already have written using the restrictive fileRelative paths '../../../models/PersonModel', to the more natural bundleRelative 'models/PersonModel'. From then on, you 'll use the build as your new source. You'll then simply urequire 'em into UMD/AMD when you run/deploy. Caveat : uglify 1.x must be swaped with a better .js parser / one that at least supports comments.
@@ -370,16 +374,13 @@ No, from Universal. Require.
 ###v0.6 - v0.8
 * Configuration file urequire.json that will contain all the information regarding your bundle: your default urequire settings (eg your nodejs webRoot mapping, -scanPrevent), and the most important of all: a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/lodash.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs `paths`.) etc. More info to follow, watch this space.
 
-* Mimic the behaviour of RequireJS's `require(['dep'], function(){})` where if dependencies are already loaded and cached, the factory function is called synchronously (immediatelly).
-
 * Investigate loading modules asynchronously from HTTP on node, just like RequireJS/browser (with caching).
-
-###v0.9 - v1.0
-* Use requireJS plugins / or plugin simulation (eg. for !text)
 
 ###Other issues / unversioned
 * Allow *some* functions of both AMD and Require to be used on the other side, eg nodejs's `require.resolve()`
+
 * Build to an almond-like format where everything in bundled.
+
 * Convert from strict-AMD to relaxed-AMD :-)
 
 #Acknoweledgments.
