@@ -323,7 +323,9 @@ Apart from those, the UMDfied amd-utils library now runs and tests on both brows
 Of course. It will run some sanity checks on your module bundles. More examples & functionality, watch this space!
 
 ##Do RequireJS plugins work with urequire ?
-No, not yet. I will look into it though.
+Its in the works, as a priority. It has preliminary support, so far in v0.1.5 you use:
+* **node!** - mark module as native node, hence it should not be loaded throught dependency array in web
+* **text!** & **json!** - load a text file or parse a .json - see examples/abc for more
 
 #FAQuestions with one answser.
 ##Can I safely mix urequire UMD modules with other 'native' modules, at each runtime (i.e on node and the browser) ?
@@ -352,13 +354,16 @@ require ['volunteers', 'skills/solidjs/CoffeeScript', 'awesomeness'], (volunteer
 No, from Universal. Require.
 
 # History / Roadmap:
-##v0.1.4 - Alpha/preview release - CURRENT
+##v0.1.0 - Alpha/preview release
 * A preview of what urequire aims to become. Quite usefull as it is, but still a non-stable/Alpha.
+
+##v0.1.5 - Alpha/preview release - *CURRENT*
+* Working towards refactoring & loaderPlugins - node!, text! & json! are worked out (preliminary)
 
 ###v0.2
 * Refactoring, code documentetation, more spec tests, plan for incorporating future functionality.
 
-* Use requireJS built in or 3rd-party plugins (eg. for `text!myTextFile.txt`)
+* Use requireJS built in or 3rd-party plugins (eg. for `text!myTextFile.txt), either through mimicking (easier) or loading the 3rd party plugin it self (challenging & error prone)
 
 * Mimics the behaviour of RequireJS's `require(['dep1', 'dep2'], function(){})` where if dependencies 'dep1' & 'dep2' are already loaded (i.e cached), the factory function is called synchronously (immediatelly).
 

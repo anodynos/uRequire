@@ -23,14 +23,15 @@ processBundle = (options)->
   interestingDepTypes = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
   reporter = new DependenciesReporter(if options.verbose then null else interestingDepTypes )
 
-  bundleFiles =  getFiles options.bundlePath, (fileName)-> (_path.extname fileName) is '.js'
+  bundleFiles =  getFiles options.bundlePath, (fileName)-> true # get all files
+  jsFiles =  getFiles options.bundlePath, (fileName)-> (_path.extname fileName) is '.js'
 
   l.verbose '\nBundle files found: \n', bundleFiles
 
-  for modyle in bundleFiles
+  for modyle in jsFiles
     l.verbose '\nProcessing module: ', modyle
 
-    oldJs = _fs.readFileSync(options.bundlePath + '/' + modyle, 'utf-8')
+    oldJs = _fs.readFileSync "#{options.bundlePath}/#{modyle}", 'utf-8'
 
     moduleManipulator = new AMDModuleManipulator oldJs, beautify:true
     moduleInfo = moduleManipulator.extractModuleInfo()
@@ -120,7 +121,7 @@ processBundle = (options)->
         modulePath: modyle # full module path within bundle
         webRoot: resolveWebRoot modyle, options.webRootMap
         arrayDependencies: arrayDependencies
-        nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.fileRelative() for d in arrayDeps)
+        nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.name() for d in arrayDeps)
         parameters: moduleInfo.parameters
         factoryBody: moduleInfo.factoryBody
 

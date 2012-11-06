@@ -122,6 +122,8 @@ module.exports = (grunt) ->
           "build/examples/": [ #dest
             "source/examples/**/*.html"    #source
             "source/examples/**/*.js"    #source
+            "source/examples/**/*.txt"    #source
+            "source/examples/**/*.json"    #source
           ]
 
       globalInstallTests:

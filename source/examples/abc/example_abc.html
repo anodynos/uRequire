@@ -5,6 +5,13 @@
     <title>urequire ABC example</title>
     <script src="../../../libs/require-min.js"></script>
     <script>
+      require.config({
+          paths:{
+              text: "../../../libs/requirejs_plugins/text",
+              json: "../../../libs/requirejs_plugins/json",
+              unknown: "../../../libs/requirejs_plugins/unknown"
+          }
+      })
       require(['a-lib'], function(a) {
         console.log('Got module a-lib=', a);
       });
