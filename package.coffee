@@ -3,7 +3,7 @@ myPackage =
 
   description: "Write modular code once, convert to UMD and run/test on browser/requirejs & nodejs"
 
-  version: "0.1.5"
+  version: "0.1.6"
 
   homepage: "https://github.com/anodynos/urequire"
 
@@ -43,7 +43,8 @@ myPackage =
     "lodash": "*"
     "commander": "*"
     "wrench" : "*"
-    "uglify-js": "1.3.3"
+    "uglify-js": "1.3.4"
+    "requirejs": ">=2.1.1"
 
   devDependencies:
     "coffee-script": ">=1.3.3"

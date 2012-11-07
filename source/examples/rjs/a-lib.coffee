@@ -69,9 +69,6 @@ define [
 
       ###
       node-native modules are NOT working, even though we're in nodejs :-(
-
-      RequireJS fails with
-
       ###
       try
         console.log require '../nodeNative-requiredByABC_and_rjs'

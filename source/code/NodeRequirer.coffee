@@ -13,15 +13,10 @@ _fs = require 'fs'
 _path = require 'path'
 pathRelative = require './utils/pathRelative'
 Dependency = require './Dependency'
-nodeLoaderPlugins = require './nodeLoaderPlugins'
 
 class NodeRequirer
   constructor: (@modyle, @dirname, @webRoot)->
     @bundleRoot = dirname + '/' + (pathRelative "$/#{_path.dirname @modyle}", "$/") + '/'
-
-    try
-      @nodeUserLoaderPlugins = require "#{@bundleRoot}/nodeUserLoaderPlugins"
-    catch error
 
     try
       rjsc = require('fs').readFileSync @bundleRoot + 'requirejs.config.json', 'utf-8'
@@ -32,7 +27,7 @@ class NodeRequirer
       try
         @requireJSConfig = JSON.parse rjsc
       catch error
-        console.error "urequire: error parsing requirejs.config.json from #{bundleRoot + 'requirejs.config.json'}"
+        console.error "urequire: error parsing requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
 
       if @requireJSConfig?.baseUrl
         baseUrl = @requireJSConfig.baseUrl
@@ -88,23 +83,22 @@ class NodeRequirer
       candPaths = @resolvePaths(dep)
       for cand in candPaths when loadedModule is null
         try
-          loadedModule = @cachedModules[cacheName] =
-            if dep.pluginName in [undefined, 'node']
-              require cand
-            else
-              plugin = null
-              for nlp in [@nodeUserLoaderPlugins, nodeLoaderPlugins] when plugin is null
-                if _(nlp[dep.pluginName]).isFunction()
-                  plugin = nlp[dep.pluginName]
+          if dep.pluginName in [undefined, 'node'] # load a simple node or UMD module
+            loadedModule = require cand
+          else                                    # load a plugin module, through requirejs 4 node
+            requirejs = require 'requirejs'
+            requireJsConf =
+              nodeRequire: require
 
-              if plugin
-                plugin cand
-              else
-                console.error """
-                  urequire: unknown pluginName '#{dep.pluginName}' for dep #{dep}
-                  Quiting with process.exit(1)
-                """
-                process.exit(1)
+            # todo: resolve path just like in modules - take advantage of webRoot etc.
+            if @requireJSConfig?.paths
+              requireJsConf.paths = {}
+              for k, v of @requireJSConfig?.paths
+                requireJsConf.paths[k] = @bundleRoot + '/' + v
+
+            requirejs.config requireJsConf
+
+          loadedModule = @cachedModules[cacheName] = requirejs "#{dep.pluginName}!#{cand}"
         catch error
           errs.push error
 
@@ -113,7 +107,12 @@ class NodeRequirer
             urequire: failed to load dependency: '#{dep}' in module '#{@modyle}'
             Tried : #{"\n#{cand}\n#{errs[i]}\n" for cand, i in candPaths }
             Quiting with process.exit(1)
+
+            Detailed errors:
           """
+        for err in errs
+          console.error err
+
         process.exit(1)
       else
         return loadedModule
