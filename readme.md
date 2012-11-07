@@ -214,7 +214,9 @@ So your node-native requiring modules need to be changed and instead load your n
 * Path resolution is also problematic, relative & absolute paths are causes of problems and it breaks on testers like mocha or when you want to use multiple 'bundles' in one requiring module. Check [this](https://github.com/jrburke/amdefine/issues/4) and [this](https://github.com/jrburke/requirejs/issues/450) issues.
 
 * Copying from requirejs [docs](http://requirejs.org/docs/node.html#2) *Even though RequireJS is an asynchronous loader in the browser, the RequireJS Node adapter loads modules synchronously in the Node environment to match the default loading behavior in Node*. I think this can lead to problems, where asynch based code that is developed and tested on node runs ok, but fails miserably when it runs on web. Module systems should execute the same way on all sides, to the maximum possible extend.
+
 [Edit: This behaviour was fixed in RequireJS 2.1 'Enforcing async require' ](https://github.com/jrburke/requirejs/wiki/Upgrading-to-RequireJS-2.1)
+uRequire will endevour to match RequireJS's functionality, following newest versions.
 
 * Using [amdefine](https://github.com/jrburke/amdefine/) also leaves a lot to be desired: a single line makes 'define' available on node, but where does 'require' come from ? It comes from node. Hence no bundleRelative paths and no asynch version of require. And if you use the synch/node `module = require('moduleName')`, and works on the node side, you 'll need to remember to include 'require' and 'moduleName' on the dependencies array also. Finally mixing node-requirejs and amdefine is not an option either - they aren't meant to be used together - see some [early failed attempts](https://github.com/jrburke/requirejs/issues/450)
 
@@ -321,12 +323,19 @@ Now if you run jasmine again, almost all tests will run ok, with only two except
 Apart from those, the UMDfied amd-utils library now runs and tests on both browser and nodejs.
 
 ##Hey, I dont want to convert my modules. Is it still usefull ?
-Of course. It will run some sanity checks on your module bundles. More examples & functionality, watch this space!
+Of course. It will run some sanity checks on your module bundles.
+More examples & functionality, watch this space!
 
-##Do RequireJS plugins work with urequire ?
-Its in the works, as a priority. It has preliminary support, so far in v0.1.5 you use:
-* **node!** - mark module as native node, hence it should not be loaded throught dependency array in web
-* **text!** & **json!** - load a text file or parse a .json - see examples/abc for more
+##Do RequireJS [loader plugins](http://requirejs.org/docs/api.html#plugins) work with urequire ?
+Yes! It's currently being done and its considered a priority.
+
+As of v0.1.6 you can use *native* requirejs modules (that make sense in node?) just like any other module.
+uRequire uses RequireJS for node to actually load the plugin and let it do the actual loading work.
+
+You can just put them on your `bundleRoot` and use them right away:
+eg. to use `"text!myText.txt"` you 'll need to copy [`text.js`](https://github.com/requirejs/text/blob/master/text.js) on your bundleRoot, or put it in a folder relative to bundleRoot and note it on `requirejs.config.json` - see `examples/abc`.
+
+So far I 've only tried a few plugins (text, json), but most should work...
 
 #FAQuestions with one answser.
 ##Can I safely mix urequire UMD modules with other 'native' modules, at each runtime (i.e on node and the browser) ?
@@ -346,7 +355,7 @@ Its in the works, as a priority. It has preliminary support, so far in v0.1.5 yo
 ```coffeescript
 require ['volunteers', 'skills/solidjs/CoffeeScript', 'awesomeness'], (volunteers, jscs, awe)->
     modules = (require 'knowledgeOf/RequireJS/NodeJs/module/systems').preferable()
-    (uTeam or= []).push v.welcome() for v in volunteers when (v jscs, modules) is awe;
+    (uTeam.members or= []).push v.welcome() for v in volunteers when (v jscs, modules) is awe;
 
   urequire:'v1.0'
 ```
