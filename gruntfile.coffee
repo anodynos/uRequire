@@ -156,7 +156,20 @@ module.exports = (grunt) ->
   grunt.registerTask "build",   "shell:coffee concat shell:dos2unix copy shell:chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
 
-  #some shortcuts
+  # generic shortcuts
+  grunt.registerTask "w",       "shell:coffeeWatch"
+  grunt.registerTask "co",      "shell:coffeeAll"
+  grunt.registerTask "b",       "build"
+  grunt.registerTask "bt",      "build test"
+  grunt.registerTask "cbt",     "clean build test"
+
+  grunt.registerTask "e", "examples"
+  grunt.registerTask "cbte",    "clean build test examples"
+  grunt.registerTask "be",      "build examples"
+  grunt.registerTask "coe",     "shell:coffeeExamples"
+
+
+  # examples shortcuts
 
   grunt.registerTask "examples", """
     shell:coffeeExamples
@@ -169,16 +182,22 @@ module.exports = (grunt) ->
     shell:runExampleAbc
   """
 
-  grunt.registerTask "w",       "shell:coffeeWatch"
-  grunt.registerTask "co",      "shell:coffeeAll"
-  grunt.registerTask "coe",     "shell:coffeeExamples"
-  grunt.registerTask "b",       "build"
-  grunt.registerTask "bt",      "build test"
-  grunt.registerTask "cbt",     "clean build test"
-  grunt.registerTask "be",      "build examples"
-  grunt.registerTask "cbte",    "clean build test examples"
-  grunt.registerTask "abc",     "shell:coffeeExamples shell:urequireExampleABC shell:urequireExampleSpec shell:runExampleAbc"
-  grunt.registerTask "deps",    "shell:coffeeExamples shell:urequireExampleDeps shell:urequireExampleSpec shell:runExampleDeps"
-  grunt.registerTask "r",       "shell:coffeeExamples shell:runExampleRequirejs"
+  grunt.registerTask "ba",      "build abc"
+  grunt.registerTask "abc",     """
+    shell:coffeeExamples
+    shell:urequireExampleABC
+    copy:exampleHtmlAndJs
+    shell:runExampleAbc
+  """
+
+  grunt.registerTask "bd",      "build deps"
+  grunt.registerTask "deps",    """
+    shell:coffeeExamples
+    shell:urequireExampleDeps
+    copy:exampleHtmlAndJs
+    shell:runExampleDeps
+  """
+
+  grunt.registerTask "rjs",       "shell:coffeeExamples shell:runExampleRequirejs"
 
   null

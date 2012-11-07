@@ -3,7 +3,7 @@ myPackage =
 
   description: "Write modular code once, convert to UMD and run/test on browser/requirejs & nodejs"
 
-  version: "0.1.6"
+  version: "0.1.7"
 
   homepage: "https://github.com/anodynos/urequire"
 
