@@ -18,6 +18,7 @@ nodeLoaderPlugins = require './nodeLoaderPlugins'
 class NodeRequirer
   constructor: (@modyle, @dirname, @webRoot)->
     @bundleRoot = dirname + '/' + (pathRelative "$/#{_path.dirname @modyle}", "$/") + '/'
+
     try
       @nodeUserLoaderPlugins = require "#{@bundleRoot}/nodeUserLoaderPlugins"
     catch error
@@ -42,23 +43,19 @@ class NodeRequirer
 
     
   cachedModules: {} # class / static : shared among all instances
-
-  resolveAndRequire: (dep)=>
+  
+  resolvePaths: (dep)->
     depName = dep.name plugin:no, ext:yes
-    cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
-
-    if @cachedModules[cacheName]
-      return @cachedModules[cacheName]
-
-    candidateDepPaths = []
+    
+    candPaths = []
     if dep.isFileRelative() #relative to requiring file's dir
-      candidateDepPaths.push @dirname + '/' + depName
+      candPaths.push @dirname + '/' + depName
     else
       if dep.isWebRoot() # web-root path
         if @webRoot[0] is '.' #web root is relative to bundle root
-          candidateDepPaths.push @dirname + '/' + @webRoot + depName   # webRoot is hardwired as path-from-moduleDir
+          candPaths.push @dirname + '/' + @webRoot + depName   # webRoot is hardwired as path-from-moduleDir
         else
-          candidateDepPaths.push @webRoot + depName  # an OS file system dir, as-is
+          candPaths.push @webRoot + depName  # an OS file system dir, as-is
       else # requireJS baseUrl/Paths
         pathStart = depName.split('/')[0]
         if @requireJSConfig?.paths?[pathStart] #eg src/
@@ -67,72 +64,89 @@ class NodeRequirer
             paths = [ paths ] #else _(paths).isArray()
 
           for path in paths # add them all
-            candidateDepPaths.push @bundleRoot + (depName.replace pathStart, path)
+            candPaths.push @bundleRoot + (depName.replace pathStart, path)
         else
           if dep.isRelative()  # relative to bundle eg 'a/b/c',
-            candidateDepPaths.push @bundleRoot + depName
+            candPaths.push @bundleRoot + depName
           else # a single pathpart, like 'underscore' or 'myLib'
-            candidateDepPaths.push depName     # global eg 'underscore' (most likely)
-            candidateDepPaths.push @bundleRoot + depName  # or bundleRelative (unlikely)
+            candPaths.push depName     # global eg 'underscore' (most likely)
+            candPaths.push @bundleRoot + depName  # or bundleRelative (unlikely)
 
-    #load module with either native require or some plugin!
-    loadedModule = null
-    errs = []
-    for cand in candidateDepPaths when loadedModule is null
-      try
-        loadedModule = @cachedModules[cacheName] =
-          if dep.pluginName in [undefined, 'node']
-            require cand
-          else
-            plugin = null
-            for nlp in [@nodeUserLoaderPlugins, nodeLoaderPlugins] when plugin is null
-              if _(nlp[dep.pluginName]).isFunction()
-                plugin = nlp[dep.pluginName]
-
-            if plugin
-              plugin cand
+    return candPaths
+    
+  ###
+  @param dep The Dependency to be resolved
+  @returns loaded module
+  ###
+  loadModule: (dep)=>
+    cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
+    if @cachedModules[cacheName]
+      @cachedModules[cacheName]
+    else #load module with either native require or some plugin!
+      errs = []
+      loadedModule = null
+      candPaths = @resolvePaths(dep)
+      for cand in candPaths when loadedModule is null
+        try
+          loadedModule = @cachedModules[cacheName] =
+            if dep.pluginName in [undefined, 'node']
+              require cand
             else
-              "urequire: unknown pluginName '#{dep.pluginName}' for dep #{dep}"
-      catch error
-        errs.push error
+              plugin = null
+              for nlp in [@nodeUserLoaderPlugins, nodeLoaderPlugins] when plugin is null
+                if _(nlp[dep.pluginName]).isFunction()
+                  plugin = nlp[dep.pluginName]
 
-    if loadedModule is null
-      console.error """
-          urequire: failed to load dependency: '#{dep}' in module '#{@modyle}'
-          Tried : #{"\n#{cand}\n#{errs[i]}\n" for cand, i in candidateDepPaths }
-          Quiting with process.exit 1
-        """
-      process.exit(1)
+              if plugin
+                plugin cand
+              else
+                console.error """
+                  urequire: unknown pluginName '#{dep.pluginName}' for dep #{dep}
+                  Quiting with process.exit(1)
+                """
+                process.exit(1)
+        catch error
+          errs.push error
 
-    return loadedModule
-
-  require: (strDeps, cb) =>
-#    console.log "##### require(#{strDeps}) \n @dependencies=", _.keys @cachedModules
-    if Object::toString.call(strDeps) is "[object String]"
-      return @resolveAndRequire new Dependency strDeps, @modyle
-    else # we have an array<string>:
-      loadDepsAndCall = => # load dependencies and then callback()
-        loadedDeps = []
-        for dep in deps
-          loadedDeps.push @resolveAndRequire(dep)
-
-        # todo: should we check cb, before wasting time requiring modules ? Or maybe it was intentional, for caching modules asynchronously
-        if (Object::toString.call cb) is "[object Function]"
-          cb.apply null, loadedDeps
-
-
-      deps = [] # array<Dependency>
-      isAllCached = true
-      for strDep in strDeps
-        deps.push dep = new Dependency strDep, @modyle
-        cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
-        if @cachedModules[cacheName] is undefined
-          isAllCached = false # note if any dep not already loaded/cached
-
-      if isAllCached #load *synchronously* (matching RequireJS's behaviour, when all modules are already loaded/cached!)
-        loadDepsAndCall()
+      if loadedModule is null
+        console.error """
+            urequire: failed to load dependency: '#{dep}' in module '#{@modyle}'
+            Tried : #{"\n#{cand}\n#{errs[i]}\n" for cand, i in candPaths }
+            Quiting with process.exit(1)
+          """
+        process.exit(1)
       else
-        process.nextTick -> #load asynchronously
-          loadDepsAndCall()
+        return loadedModule
+
+  require: (
+      strDeps # type: [ 'String', '[]<String>' ]
+      callback  # type: '()->'
+    )=>
+        if Object::toString.call(strDeps) is "[object String]" # String - synch call
+          return @loadModule new Dependency strDeps, @modyle
+        else # we have an []<String>:
+          deps = [] # []<Dependency>
+
+          isAllCached = true
+          for strDep in strDeps
+            deps.push dep = new Dependency strDep, @modyle
+            cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
+            if @cachedModules[cacheName] is undefined
+              isAllCached = false # note if any dep not already loaded/cached
+
+          loadDepsAndCall = => # load dependencies and then callback()
+            loadedDeps = []
+            for dep in deps
+              loadedDeps.push @loadModule(dep)
+
+            # todo: should we check cb, before wasting time requiring modules ? Or maybe it was intentional, for caching modules asynchronously
+            if (Object::toString.call callback) is "[object Function]"
+              callback.apply null, loadedDeps
+
+          if isAllCached #load *synchronously* (matching RequireJS's behaviour, when all modules are already loaded/cached!)
+            loadDepsAndCall()
+          else
+            process.nextTick -> #load asynchronously
+              loadDepsAndCall()
 
 module.exports = NodeRequirer
