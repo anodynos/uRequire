@@ -1,19 +1,19 @@
 define [
     'b/b-lib'
     'text!../data/abc.txt'
-    'json!../data/abc.json'
-    # 'unknown!abc.txt'
+#    'json!../data/abc.json'
+    '../AMD-native'
   ], (
     b
     abcText
-    abcJson
-    # unknown
+#    abcJson
+    amdNative
   )->
 
     console.log '\nstarted a'
     console.log '\nabcText = ', abcText
-    console.log '\nabcJson = ', abcJson
-#    console.log '\nunknown = ', unknown
+#    console.log '\nabcJson = ', abcJson
+    console.log '\namdNative = ', amdNative
 
 
     if true                    # not actually required at runtime,

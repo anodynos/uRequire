@@ -1,6 +1,9 @@
 ###
   processes each .js file in 'bundlePath', extracting AMD/module information
   It then tranforms each file using template to 'outputPath'
+
+  TODO: refactor it
+  TODO: test it
 ###
 
 processBundle = (options)->
