@@ -1,9 +1,13 @@
+_fs = require 'fs'
+
 module.exports = (grunt) ->
 
   sourceDir     = "source/code"
   buildDir      = "build/code"
   sourceSpecDir = "source/spec"
   buildSpecDir  = "build/spec"
+
+  pkg = JSON.parse _fs.readFileSync './package.json', 'utf-8'
 
   globalBuildCode = switch process.platform
     when "win32" then "c:/Program Files/nodejs/node_modules/urequire/build/code/"
@@ -59,7 +63,7 @@ module.exports = (grunt) ->
         command: "urequire UMD build/examples/deps -f"
 
       urequireExampleABC:
-        command: "urequire UMD build/examples/abc -f -v -r ../../.."
+        command: "urequire UMD build/examples/abc -f -r ../../.."
 
       urequireExampleSpec:
         command: "urequire UMD build/examples/spec -f"
@@ -92,6 +96,9 @@ module.exports = (grunt) ->
 
       globalInstall:
         command: "npm install -g"
+
+      doc:
+        command: "codo source/code --title 'uRequire #{pkg.version} API documentation' --cautious"
 
       _options: # subtasks inherit _options but can override them
         failOnError: true
@@ -155,6 +162,7 @@ module.exports = (grunt) ->
   grunt.registerTask "default", "clean build copy test"
   grunt.registerTask "build",   "shell:coffee concat shell:dos2unix copy shell:chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
+  grunt.registerTask "doc",    "shell:doc"
 
   # generic shortcuts
   grunt.registerTask "w",       "shell:coffeeWatch"

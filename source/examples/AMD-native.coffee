@@ -18,12 +18,12 @@ define [
 #    abcText2
 #    abcText3
   )->
-    """
-    I am an AMD 'native' module!
-    But I can be called from within a urequire UMD module!
+      """
+      I am an AMD 'native' module!
+      But I can be called from within a urequire UMD module!
 
-    Some text I loaded:\n
-    #{abcHtml1[0..20]}
+      Some text I loaded:\n
+      #{abcHtml1[0..20]}
     """
 #    abcHtml1 #{if abcHtml1 is abcHtml2 then '===' else '!==' } abcHtml2
 

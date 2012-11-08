@@ -122,7 +122,7 @@ processBundle = (options)->
         version: options.version
         moduleType: moduleInfo.moduleType
         modulePath: modyle # full module path within bundle
-        webRoot: resolveWebRoot modyle, options.webRootMap
+        webRootMap: options.webRootMap # resolveWebRoot modyle, options.webRootMap
         arrayDependencies: arrayDependencies
         nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.name() for d in arrayDeps)
         parameters: moduleInfo.parameters
