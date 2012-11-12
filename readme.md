@@ -1,4 +1,4 @@
-#urequire v0.1.7
+#urequire v0.1.8
 
 Write simple *modular code* once, run everywhere using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web [(AMD/requireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
 
@@ -10,7 +10,7 @@ Your source can be written either in the 'strict' AMD format `define([], functio
 
 You don't need to surround you code with any UMD-like boilerplate or worry about path translation, cause urequire does it for you.
 
-#Ultimate Aims
+##Ultimate Aims
  * Remove the *mud* from **UMD**, which is currently the *only true option* for cross-platform modular js development. No longer you need to add UMD around your non-modular code to AMDdify the *deployment*. You should be able to use modules to structure your code during *development*.
 
  * Provide the *simplest possible*, relaxed authoring of modular js code with a unified dependencies structure for modules. When no browser/DOM or node specifics are present, the same source code should run & test on both browser and nodejs.
@@ -21,10 +21,10 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
 
  * Bring browser-side best practices (that appear to be AMD/requirejs), closer to nodejs. And vise versa.
 
-# In the long future
+### In the long future
  * Will convert to and from any JavaScript module system (that makes sense :-)
 
-# Features
+## Features
  * Fixes some of the most common pains, problems and omittions from your AMD modules.
 
  * Uses a 'familiar' standardized [UMD template](https://github.com/umdjs/umd/blob/master/returnExports.js) with a global export being [optional](https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js) using a declarative [`rootExport`](https://github.com/anodynos/urequire#things-you-can-do-with-the-relaxed-urequire-notation).
@@ -44,7 +44,7 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
 
  * Requires no additional dependency when running on web. Requires only a small ~15k runtime when running on node. As long as 'urequire' package is installed via npm, your urequire generated modules can be used as-is by any native node module via the bare require('') call, although they were written in AMD and perhaps use asynchronous require calls. Similarly your UMD modules can `require('module')` any node-native module installed via npm or residing on your file system (the 'node!module' pseudo plugin nca be used to signal node-only inclusion).
 
-#Module authoring
+##Module authoring
 With urequire, your modules can be either written in AMD:
 
 ```js
@@ -88,7 +88,8 @@ The idiosyncrasies and limitations of module formats are waived, so you can focu
 
 For instance you can use both the syntax of sync & asych require, mix absolute/bundleRelative with fileRelative paths, forget about requiring `require` or `module`/`exports` and just be sure that your code will execute on both runtimes in a consistent way.
 
-##Things you can do with the relaxed urequire notation:
+###Things you can do with the relaxed urequire notation
+
 * Use bundleRelative ('depdir/dep') or fileRelative ('../../dep') paths interchangably.
 
 * Use the simple `require('depdir/dep')` anywhere you like, without any worries. They are added to your AMD dependencies array if needed at build time, so they do work on both node and web.
@@ -113,7 +114,7 @@ For instance you can use both the syntax of sync & asych require, mix absolute/b
 
 Should you choose to adhere to the 100% [standard syntax of AMD](https://github.com/amdjs) or [nodejs](http://nodejs.org/api/modules.html), so that your pre-build *source* code is also valid/executable too, that's fine. urequire will at least be as good as a) converting them to the 'other' runnable version and b) perform sanity and dependency checks on your source before deploying.
 
-#Installation & Usage
+##Installation & Usage
 urequire has a command line converter that needs to be called globally:
 
   `npm install urequire -g`
@@ -181,7 +182,7 @@ The generated files will look similar to this:
 
 Your bundle files are ready to be deployed to Web/RequireJS and to node (by having 'urequire' locally installed via npm).
 
-## CMD options
+### CMD options
   -h, --help                     output usage information
 
   -V, --version                  output the version number
@@ -200,15 +201,15 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
 
   -a, --allNodeRequires          Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up on node.
 
-##Notes:
+### Notes
 * Your requires must use a string, eg `require('myModule')`. Requires that evaluate at runtime, eg `require(myVar + 'module')` can't be possibly be evaluated at parse time, and thus are *unsafe*.
 * Your module `define(..)` must be a top level in your .js (not nested inside some other code).
 * Everything outside `define` is simply ignored.
 * Only one module per file is expected - i.e only the first `define` per file is parsed.
 * There are some limitations due to the parser/code generator used ([uglifyjs](https://github.com/mishoo/UglifyJS)) : a) Comments are ignored and b) some [unsafe transformations](https://github.com/mishoo/UglifyJS#unsafe-transformations)
 
-#FAQ:
-## What exactly is the problem with AMD running on web / node as it is ? Why not use RequireJS / amdefine on node ?
+##FAQ
+### What exactly is the problem with AMD running on web / node as it is ? Why not use RequireJS / amdefine on node ?
 
 There are various problems with modules in the current era.
 
@@ -242,7 +243,7 @@ uRequire will endevour to match RequireJS's functionality, following newest vers
 
 * Using [amdefine](https://github.com/jrburke/amdefine/) also leaves a lot to be desired: a single line makes 'define' available on node, but where does 'require' come from ? It comes from node. Hence no bundleRelative paths and no asynch version of require. And if you use the synch/node `module = require('moduleName')`, and works on the node side, you 'll need to remember to include 'require' and 'moduleName' on the dependencies array also. Finally mixing node-requirejs and amdefine is not an option either - they aren't meant to be used together - see some [early failed attempts](https://github.com/jrburke/requirejs/issues/450)
 
-##What does urequire 'relaxed' notation solve ?
+###What does urequire 'relaxed' notation solve ?
 
 Consider this AMD example:
 
@@ -270,7 +271,7 @@ For this same reason, the 2nd require would also fail, since this asyncrhonous f
 
 With UMD produced by urequire, you would overcome these issues instantly: your module is ready to run on both node and web as it is.
 
-##Can I mix fileRelative and bundleRelative/absolute paths, or will I get into problems ?
+###Can I mix fileRelative and bundleRelative/absolute paths, or will I get into problems ?
 One core aim of urequire is to allow you to use either on both environments. At build time everything is translated to what actually works (fileRelative), so you dont need to worry. And at runtime, if you come to evaluate to an absolute path, that will still work by default on web and by (transparent) translation on node.
 
 Actually mixing the two path formats, is IMHO probably a good practice:
@@ -279,7 +280,8 @@ Actually mixing the two path formats, is IMHO probably a good practice:
 
   * When you require something more *distant*, you should use the absolute path to show exactly what you mean. For instance, `../../../string/replace` reveals little of where is what you need, where you coming from and whether it is the right path. And if you ever refactor it'll be a nightmare to change 'em all. Its actually more clear to use `utils/string/replace` in this case.
 
-## Hey, I like it so far, but I think its another format on its own. After all, it violates standards, it's a frankestein, its a tool that if you adopt, u have a dependency on it!
+###Hey, I like it so far, but I think its another format on its own. After all, it violates standards, it's a frankestein, its a tool that if you adopt,
+u have a dependency on it!
 
 Not really.
 
@@ -289,7 +291,7 @@ Not really.
 
 * If you use nodeJs with and have used the asynch `require([], function(){})`, and you want to go back to strict node format, you "ll have some more work to do converting to `var a = require('a')` and changing its asynch nature, but it should'nt be so hard (the other way around is much harder).
 
-## Hey, I 've heard browserify *makes node-style require() work in the browser with a server-side build step*. Is it similar to this? Is it better ?
+###Hey, I 've heard browserify *makes node-style require() work in the browser with a server-side build step*. Is it similar to this? Is it better ?
 
 Similar? Better? not really. And at the same time, YES, absolutelly!
 
@@ -300,10 +302,10 @@ U can think of this project as a distant counterpart to [browserify](https://git
 
  - But NO, its not 'better' than browserify. It doesn't attempt to bring any of node's packages and functionality to the web (like browserify does). Only your modules are the issue here: your code that SHOULD run on both sides, WILL run. U must use non-dom, non-node stuff of course, if you want your code to work both ways.
 
- ### But hey, can I combine them ?
+ #### But hey, can I combine them ?
  See below, the FAQuestions with one answser.
 
-##Have you got any examples ?
+###Have you got any examples ?
 * Look at some dummy examples, in either `source/` (coffeescript) or `build/` javascript.
 
 You can compile all coffeescript 'source/' to javascript in 'build/' with `grunt shell:coffeeAll` if you prefer to ({lookAt:'javascript'});
@@ -314,7 +316,7 @@ You can compile, urequire, test and run examples with `grunt shell:examples`
 
 See all build options and shortcuts in gruntfile.coffee. If you dont use grunt, you should! Its the best js build tool out there!
 
-###amd-utils tutorial
+####amd-utils tutorial
 Check a more real world one, UMDfying the amd-utils by [millermedeiros](https://github.com/millermedeiros)
 
 0) Grab a copy of [amd-utils](http://millermedeiros.github.com/amd-utils/)
@@ -344,11 +346,11 @@ Now if you run jasmine again, almost all tests will run ok, with only two except
 
 Apart from those, the UMDfied amd-utils library now runs and tests on both browser and nodejs.
 
-##Hey, I dont want to convert my modules. Is it still usefull ?
+###Hey, I dont want to convert my modules. Is it still usefull ?
 Of course. It will run some sanity checks on your module bundles.
 More examples & functionality, watch this space!
 
-##Do RequireJS [loader plugins](http://requirejs.org/docs/api.html#plugins) work with urequire ?
+###Do RequireJS [loader plugins](http://requirejs.org/docs/api.html#plugins) work with urequire ?
 Yes! It's currently being done and its considered a priority.
 
 As of v0.1.6 you can use *native* requirejs modules (that make sense in node?) just like any other module.
@@ -359,12 +361,12 @@ eg. to use `"text!myText.txt"` you 'll need to copy [`text.js`](https://github.c
 
 So far I 've only tried a few plugins (text, json), but most should work...
 
-#FAQuestions with one answser.
-##Can I safely mix urequire UMD modules with other 'native' modules, at each runtime (i.e on node and the browser) ?
-##Can I substitute a module at runtime with a different version, at each runtime ? i.e. can I have a different 'data/storage', at each runtime ?
-##Can I combine it with Browserify and make more awsome stuff ?
-##Will it do `this` or work with `that` in the future ?
-##Does it rock ?
+###FAQuestions with one answser.
+####Can I safely mix urequire UMD modules with other 'native' modules, at each runtime (i.e on node and the browser) ?
+####Can I substitute a module at runtime with a different version, at each runtime ? i.e. can I have a different 'data/storage', at each runtime ?
+####Can I combine it with Browserify and make more awsome stuff ?
+####Will it do `this` or work with `that` in the future ?
+####Does it rock ?
  Well, of course. In theory. <= v.0.1 is only a proof of concept.
  I 've tried some configurations, but only a fraction of what's out there of course!
  They should all work, somehow, sometime.
@@ -373,7 +375,7 @@ So far I 've only tried a few plugins (text, json), but most should work...
  I am eager to know and realize more usage patterns to incorporate.
  So, go play, try it out and make sure you let me know what issues & successes you're having!
 
-###BTW, urequire requires U:
+#####BTW, urequire requires U:
 ```coffeescript
 require ['volunteers', 'skills/solidjs/CoffeeScript', 'awesomeness'], (volunteers, jscs, awe)->
     modules = (require 'knowledgeOf/RequireJS/NodeJs/module/systems').preferable()
@@ -382,22 +384,25 @@ require ['volunteers', 'skills/solidjs/CoffeeScript', 'awesomeness'], (volunteer
   urequire:'v1.0'
 ```
 
-### Does `u` in urequire steam from UMD ?
+## Does `u` in uRequire stems from UMD ?
 No, from Universal. Require.
 
-# History / Roadmap:
-##v0.1.0 - Alpha/preview release
+## History / Roadmap:
+###v0.1.0 - Alpha/preview release
 * A preview of what urequire aims to become. Quite usefull as it is, but still a non-stable/Alpha.
 
-##v0.1.5 - Alpha/preview release
+###v0.1.5 - Alpha/preview release
 * Working towards refactoring & loaderPlugins - node!, text! & json! are worked out (preliminary)
 
-##v0.1.7 - *CURRENT*
+###v0.1.7
 * support for native RequireJS plugins & native RequireJS modules on node, through RequireJS.
 * Refactoring continues, documentation starting (NodeRequirer)
 
+###v0.1.8 - *CURRENT*
+* Refactoring & documentation continues (on `NodeRequirer`)
+
 ###v0.2
-* Refactoring, code documentetation, more spec tests, plan for incorporating future functionality.
+* Refactoring, code documentation, more spec tests, plan for incorporating future functionality.
 
 * Use requireJS built in or 3rd-party plugins (eg. for `text!myTextFile.txt), either through mimicking (easier) or loading the 3rd party plugin it self (challenging & error prone)
 
@@ -424,25 +429,27 @@ No, from Universal. Require.
 
 * Convert from strict-AMD to relaxed-AMD :-)
 
-#Acknoweledgments.
+##Acknoweledgments.
 **Buidling on the shoulders of giants is always better.** 
-urequire would not have been possible without :
+uRequire would not have been possible without :
 
-* [RequireJS](https://github.com/jrburke/requirejs), the most popular web-side module system to date, by [JR Burke](https://gist.github.com/jrburke)
+  * [RequireJS](https://github.com/jrburke/requirejs), the most popular web-side module system to date, by [JR Burke](https://gist.github.com/jrburke)
 
-* [UMDjs](https://github.com/umdjs/umd), provide boilerplates that bridge gaps, by [JR Burke](https://gist.github.com/jrburke) and [others](https://github.com/umdjs/umd#umd-universal-module-definition)
+  * [UMDjs](https://github.com/umdjs/umd), provide boilerplates that bridge gaps, by [JR Burke](https://gist.github.com/jrburke) and [others](https://github.com/umdjs/umd#umd-universal-module-definition)
 
-* [UglifyJS](https://github.com/mishoo/UglifyJS), easily parses/re-generates JavaScript, by [Mihai Bazon](https://github.com/mishoo/)
+  * [UglifyJS](https://github.com/mishoo/UglifyJS), easily parses/re-generates JavaScript, by [Mihai Bazon](https://github.com/mishoo/)
 
-* [CoffeeScript](http://coffeescript.org/), makes javascript authoring a true joy, by [Jeremy Ashkenas](https://github.com/jashkenas) et [all](http://github.com/jashkenas/coffee-script/contributors)
+  * [CoffeeScript](http://coffeescript.org/), makes javascript authoring a true joy, by [Jeremy Ashkenas](https://github.com/jashkenas) et [all](http://github.com/jashkenas/coffee-script/contributors)
 
-* [Grunt](https://github.com/gruntjs), the best declarative javascript build system, by [Ben Alman](https://github.com/cowboy)
+  * [Grunt](https://github.com/gruntjs), the best declarative javascript build system, by [Ben Alman](https://github.com/cowboy)
 
-* [Commander](https://github.com/visionmedia/commander.js), easily parses cmd arguments, by [TJ Holowaychuk](https://github.com/visionmedia)
+  * [Commander](https://github.com/visionmedia/commander.js), easily parses cmd arguments, by [TJ Holowaychuk](https://github.com/visionmedia)
+
+  * [Codo](https://github.com/netzpirat/codo), for documenting Coffeescript code, by [Michael Kessler](https://github.com/netzpirat)
 
 and all others - see package.json dependencies.
 
-PS: Excuse my typo errors, I need to get a solid dictionary for WebStorm (which otherwise rocks!)
+*PS: Excuse my typo errors, I need to get a solid dictionary for WebStorm (which otherwise rocks!)*
 
 #License
 The MIT License

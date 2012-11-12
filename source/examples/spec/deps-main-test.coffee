@@ -1,8 +1,12 @@
 define [
         "chai",
-        "../deps/main",
-        "../abc/a-lib",
-    ], (chai, main, alib)->
+        "../deps/main"
+        "../abc/a-lib"
+    ], (
+        chai
+        main
+        alib
+    )->
       assert = chai.assert
       expect = chai.expect
 
@@ -12,6 +16,7 @@ define [
             added:42
             multiplied:440
             message: undefined
+
 
       describe "a-lib", ->
         result =

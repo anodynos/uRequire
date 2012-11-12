@@ -3,7 +3,7 @@ myPackage =
 
   description: "Write modular code once, convert to UMD and run/test on browser/requirejs & nodejs"
 
-  version: "0.1.7"
+  version: "0.1.8"
 
   homepage: "https://github.com/anodynos/urequire"
 
@@ -43,14 +43,15 @@ myPackage =
     "lodash": "*"
     "commander": "*"
     "wrench" : "*"
-    "uglify-js": "1.3.4"
+    "uglify-js": ">=1.3.3"
     "requirejs": ">=2.1.1"
 
   devDependencies:
-    "coffee-script": ">=1.3.3"
+    #"coffee-script": ">=1.3.3" # needed only as global
+    #"codo": ">=1.5.1" # needed only as global
     "mocha": "*"
     "chai": "*"
-    "grunt-shell": "*"  # mocha
-    "grunt-contrib": "*" # using clean, copy
+    "grunt-shell": "*"  # used in many tasks, including urequire-ing examples, compiling coffee etc
+    "grunt-contrib": "*" # using clean & copy
 
 require('fs').writeFileSync('./package.json', JSON.stringify(myPackage), 'utf-8')
