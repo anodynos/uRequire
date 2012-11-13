@@ -2,7 +2,7 @@ _ = require 'lodash'
 l = require './../utils/logger'
 seekr = require './seekr'
 
-#todo: node : tolerate 'return' statements when parsing - enclose in fake function
+# todo: doc it!
 
 class JSManipulator
   parser = require("uglify-js").parser
@@ -60,7 +60,7 @@ class JSManipulator
       args: ast[2]
       body: ast[3]
 
-class AMDModuleManipulator extends JSManipulator
+class ModuleManipulator extends JSManipulator
   constructor: (js, @options = {})->
     super
     @options.extractFactory ?= false
@@ -118,7 +118,7 @@ class AMDModuleManipulator extends JSManipulator
 #            @AST_FactoryBody = ['block', factoryFn[3] ] #needed l8r for replacing body require deps
             if @options.extractFactory #just save toCode for to-be-replaced-factoryBody
               @moduleInfo.factoryBody = @toCode @AST_FactoryBody
-              @moduleInfo.factoryBody = @moduleInfo.factoryBody[1..@moduleInfo.factoryBody.length-2] #drop '{', '}'
+              @moduleInfo.factoryBody = @moduleInfo.factoryBody[1..@moduleInfo.factoryBody.length-2].trim() #drop '{' '}' & trim
             @_gatherItemsInSegments amdDeps, {'string':'arrayDependencies', '*':'untrustedArrayDependencies'}
             @moduleInfo.moduleType = 'AMD'
             @moduleInfo.amdCall = c.name # amd call name, ie 'define' or 'require'
@@ -139,7 +139,7 @@ class AMDModuleManipulator extends JSManipulator
         @moduleInfo.moduleType = 'node'
         @AST_FactoryBody = @AST
         if @options.extractFactory
-          @moduleInfo.factoryBody = @js
+          @moduleInfo.factoryBody = @js #javascript, as is
 
     # find all require '' and require ['..'],-> calls. String params are ok, all others are untrusted
     if @AST_FactoryBody
@@ -177,15 +177,15 @@ class AMDModuleManipulator extends JSManipulator
               @_replaceASTStringElements c.args, requireReplacements
       seekr [ requireCallsReplacerSeeker ], @AST_FactoryBody, @readAST, @
 
-      fb = @toCode @AST_FactoryBody
+      fb = (@toCode @AST_FactoryBody).trim()
       if @moduleInfo.moduleType is 'AMD'
-        fb = fb[1..fb.length-2] #drop '{', '}'
+        fb = fb[1..fb.length-2].trim() #drop '{' '}' & trim
 
       return @moduleInfo.factoryBody = fb
 
 
 
-module.exports = AMDModuleManipulator
+module.exports = ModuleManipulator
 
 #log = console.log
 #log "\n## inline test - module info ##"
@@ -227,6 +227,6 @@ module.exports = AMDModuleManipulator
 #  module.exports = {b:'b'}
 #"""
 #
-#modMan = new AMDModuleManipulator theJs, beautify:false
+#modMan = new ModuleManipulator theJs, beautify:false
 #modMan.extractModuleInfo()
 #log modMan.moduleInfo

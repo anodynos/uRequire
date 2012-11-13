@@ -9,7 +9,7 @@ toArray = (val)-> val.split(',')
 
 cmd
 #  .version(( JSON.parse require('fs').readFileSync '../../../package.json', 'utf-8' ).version) # @todo: fix this
-  .version('0.1.8')
+  .version('0.1.9')
   .usage('UMD <bundlePath> [options]')
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)

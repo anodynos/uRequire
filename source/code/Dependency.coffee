@@ -1,5 +1,5 @@
 _path = require 'path'
-pathRelative = require './utils/pathRelative'
+pathRelative = require './paths/pathRelative'
 
 class Dependency
   constructor: (@dep, @modyle='', @bundleFiles=[])->

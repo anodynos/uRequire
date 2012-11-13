@@ -1,7 +1,7 @@
 _ = require 'lodash'
 _fs = require 'fs'
 _path = require 'path'
-pathRelative = require './utils/pathRelative'
+pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
 
 ###

@@ -16,9 +16,8 @@ processBundle = (options)->
   _path = require 'path'
   _wrench = require 'wrench'
   getFiles = require "./utils/getFiles"
-  template = require "./templates/UMD"
-  AMDModuleManipulator = require "./moduleManipulation/AMDModuleManipulator"
-  resolveWebRoot = require './resolveWebRoot'
+  ModuleGeneratorTemplates = require './templates/ModuleGeneratorTemplates'
+  ModuleManipulator = require "./moduleManipulation/ModuleManipulator"
   DependenciesReporter = require './DependenciesReporter'
   Dependency = require "./Dependency"
 
@@ -36,7 +35,7 @@ processBundle = (options)->
 
     oldJs = _fs.readFileSync "#{options.bundlePath}/#{modyle}", 'utf-8'
 
-    moduleManipulator = new AMDModuleManipulator oldJs, beautify:true
+    moduleManipulator = new ModuleManipulator oldJs, beautify:true
     moduleInfo = moduleManipulator.extractModuleInfo()
 
     if _.isEmpty moduleInfo
@@ -122,7 +121,7 @@ processBundle = (options)->
         version: options.version
         moduleType: moduleInfo.moduleType
         modulePath: modyle # full module path within bundle
-        webRootMap: options.webRootMap # resolveWebRoot modyle, options.webRootMap
+        webRootMap: options.webRootMap
         arrayDependencies: arrayDependencies
         nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.name() for d in arrayDeps)
         parameters: moduleInfo.parameters
@@ -133,7 +132,7 @@ processBundle = (options)->
 
       l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'factoryBody'
 
-      newJs = template templateInfo
+      newJs = (new ModuleGeneratorTemplates templateInfo).UMD()
 
     outputFile = _path.join options.outputPath, modyle
 

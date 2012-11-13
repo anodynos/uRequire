@@ -4,7 +4,7 @@ chai = require 'chai'
 assert = chai.assert
 expect = chai.expect
 
-pathRelative = require "../code/utils/pathRelative"
+pathRelative = require "../code/paths/pathRelative"
 
 describe "pathRelative(from, to)", ->
 

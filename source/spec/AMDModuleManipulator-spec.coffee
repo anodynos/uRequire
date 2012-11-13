@@ -1,12 +1,12 @@
-console.log '\nAMDModuleManipulator-spec loading'
+console.log '\nModuleManipulator-spec loading'
 
 chai = require "chai"
 assert = chai.assert
 expect = chai.expect
 
-AMDModuleManipulator = require "../code/moduleManipulation/AMDModuleManipulator"
+ModuleManipulator = require "../code/moduleManipulation/ModuleManipulator"
 
-describe "AMDModuleManipulator", ->
+describe "ModuleManipulator", ->
 
   it "should identify any non-AMD/UMD module as a node one", ->
     js = """
@@ -18,7 +18,7 @@ describe "AMDModuleManipulator", ->
         });
     }
     """
-    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    mi = (new ModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
       moduleType: 'node'
       requireDependencies: [ 'something' ]
@@ -37,7 +37,7 @@ describe "AMDModuleManipulator", ->
         doSomething();
       });
     """
-    mi = (new AMDModuleManipulator js).extractModuleInfo()
+    mi = (new ModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
       moduleType: 'UMD'
 
@@ -48,7 +48,7 @@ describe "AMDModuleManipulator", ->
         return dep1.doit();
       });
     """
-    mi = (new AMDModuleManipulator js, extractFactory:true).extractModuleInfo()
+    mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
       arrayDependencies: [ 'underscore', 'depdir1/dep1' ]
       moduleType: 'AMD'
@@ -63,7 +63,7 @@ describe "AMDModuleManipulator", ->
         return {foo:bar};
       });
     """
-    mi = (new AMDModuleManipulator js, extractFactory:true).extractModuleInfo()
+    mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
       moduleType: 'AMD'
       amdCall: 'define'
@@ -76,7 +76,7 @@ describe "AMDModuleManipulator", ->
             return {foo:bar};
           });
         """
-    mi = (new AMDModuleManipulator js, extractFactory:true).extractModuleInfo()
+    mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
       moduleType: 'AMD'
       amdCall: 'define'
@@ -98,7 +98,7 @@ describe "AMDModuleManipulator", ->
         return dep1.doit();
       });
       """
-    mi = (new AMDModuleManipulator js, extractFactory:true).extractModuleInfo()
+    mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
       rootExport: 'myLib'
       moduleName: 'myModule'
@@ -144,7 +144,7 @@ describe "AMDModuleManipulator", ->
       });
     """
 
-    mi = (new AMDModuleManipulator js, extractFactory:true).extractModuleInfo()
+    mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
       rootExport: 'myLib'
       moduleName: 'myModule'
