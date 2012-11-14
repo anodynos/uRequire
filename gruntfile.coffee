@@ -83,8 +83,7 @@ module.exports = (grunt) ->
       mochaExamples:
         command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
 
-      # change urequireCmd.js to executable - linux only (?mac?)
-      chmod:
+      chmod: # change urequireCmd.js to executable - linux only (?mac?)
         command:  switch process.platform
           when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
           else "rem" #do nothing
@@ -126,11 +125,11 @@ module.exports = (grunt) ->
         options:
           flatten:false
         files:
-          "build/examples/": [ #dest
-            "source/examples/**/*.html"    #source
-            "source/examples/**/*.js"    #source
-            "source/examples/**/*.txt"    #source
-            "source/examples/**/*.json"    #source
+          "build/": [ #dest
+            "source/**/*.html"    #source
+            "source/**/*.js"    #source
+            "source/**/*.txt"    #source
+            "source/**/*.json"    #source
           ]
 
       globalInstallTests:
@@ -162,7 +161,7 @@ module.exports = (grunt) ->
   grunt.registerTask "default", "clean build copy test"
   grunt.registerTask "build",   "shell:coffee concat shell:dos2unix copy shell:chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
   grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
-  grunt.registerTask "doc",    "shell:doc"
+  grunt.registerTask "doc",     "shell:doc"
 
   # generic shortcuts
   grunt.registerTask "w",       "shell:coffeeWatch"
@@ -171,7 +170,7 @@ module.exports = (grunt) ->
   grunt.registerTask "bt",      "build test"
   grunt.registerTask "cbt",     "clean build test"
 
-  grunt.registerTask "e", "examples"
+  grunt.registerTask "e",       "examples"
   grunt.registerTask "cbte",    "clean build test examples"
   grunt.registerTask "be",      "build examples"
   grunt.registerTask "coe",     "shell:coffeeExamples"
@@ -206,6 +205,6 @@ module.exports = (grunt) ->
     shell:runExampleDeps
   """
 
-  grunt.registerTask "rjs",       "shell:coffeeExamples shell:runExampleRequirejs"
+  grunt.registerTask "rjs",     "shell:coffeeExamples shell:runExampleRequirejs"
 
   null

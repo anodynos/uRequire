@@ -61,10 +61,7 @@ describe "Dependency - resolving many", ->
     fileRelative = ( d.toString() for d in deps )
     bundleRelative = ( d.bundleRelative() for d in deps)
     global = ( d.toString() for d in deps when d.isGlobal())
-    external = (
-      d.toString() for d in deps when \
-        not (d.isBundleBoundary() or d.isWebRoot())
-    )
+    external = ( d.toString() for d in deps when not (d.isBundleBoundary() or d.isWebRoot()) )
     notFoundInBundle = (
       d.toString() for d in deps when \
         d.isBundleBoundary() and
@@ -72,19 +69,20 @@ describe "Dependency - resolving many", ->
     )
     webRoot = ( d.toString() for d in deps when d.isWebRoot() )
 
-    console.log {bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}
+    # console.log {bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}
+
     expect({bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}).to.deep.equal
       bundleRelative: [
-        'underscore'          # global lib
-        'data/messages/hello.js' # .js is removed
-        'data/messages/bye'   # normalized
-        'lame/dir.js'      # normalized
-        '../../some/external/lib.js' #exactly as is
+        'underscore'                 # global lib
+        'data/messages/hello.js'     # .js is removed
+        'data/messages/bye'          # normalized
+        'lame/dir.js'                # normalized
+        '../../some/external/lib.js' # exactly as is
         '/assets/jpuery-max'
       ]
       fileRelative: [
-        'underscore'              # global lib, as is
-        '../data/messages/hello.js'  # fileRelative, with .js is removed
+        'underscore'                 # global lib, as is
+        '../data/messages/hello.js'  # converted fileRelative (@todo: with .js removed or not ?)
         '../data/messages/bye'
         '../lame/dir.js'
         '../../some/external/lib.js' #exactly as is

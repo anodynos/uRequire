@@ -17,8 +17,8 @@ _ = require 'lodash'
 #     webRootMap: path of where to map '/' when running on node, relative to bundleRoot (starting with '.'), absolute OS path otherwise.
 #  }
 #
-#todo: recognise define [], -> or require [], -> and adjust both node & browser UMD accordingly
-#todo: make unit tests
+# @todo: recognise define [], -> or require [], -> and adjust both node & browser UMD accordingly
+# @todo: make unit tests
 
 class ModuleGeneratorTemplates
   constructor: (@o)->
@@ -56,21 +56,21 @@ class ModuleGeneratorTemplates
   UMD: ->"""
     #{@header}
     (function (root, factory) {
-        if (typeof exports === 'object') {
-            var nr = new (require('urequire').NodeRequirer) ('#{@o.modulePath}', __dirname, '#{@o.webRootMap}');
-            module.exports = factory(nr.require#{
-              if (@o.moduleType is 'node') then ', exports, module' else ''}#{
-              (", nr.require('#{nDep}')" for nDep in @o.nodeDependencies).join('')});
-        } else if (typeof define === 'function' && define.amd) {
-            define(#{@moduleNamePrint}#{@arrayDependenciesPrint}#{
-                if @o.rootExport # Adds browser/root globals if needed
-                  "function (#{@parametersPrint}) { \n" +
-                  "          return (root.#{@o.rootExport} = factory(#{@parametersPrint}));\n" +
-                  "        });"
-                else
-                  'factory);'
-            }
-        }
+      if (typeof exports === 'object') {
+        var nr = new (require('urequire').NodeRequirer) ('#{@o.modulePath}', __dirname, '#{@o.webRootMap}');
+        module.exports = factory(nr.require#{
+          if (@o.moduleType is 'node') then ', exports, module' else ''}#{
+          (", nr.require('#{nDep}')" for nDep in @o.nodeDependencies).join('')});
+      } else if (typeof define === 'function' && define.amd) {
+          define(#{@moduleNamePrint}#{@arrayDependenciesPrint}#{
+            if @o.rootExport # Adds browser/root globals if needed
+              "function (#{@parametersPrint}) { \n" +
+              "          return (root.#{@o.rootExport} = factory(#{@parametersPrint}));\n" +
+              "        });"
+            else
+              'factory);'
+          }
+      }
     }) (this, function (#{@parametersPrint}) #{@factoryBodyBracedPrint});
   """
 

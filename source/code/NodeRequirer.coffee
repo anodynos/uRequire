@@ -1,6 +1,6 @@
 _ = require 'lodash'
 _fs = require 'fs'
-_path = require 'path'
+upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
 
@@ -19,7 +19,6 @@ An instance of `NodeRequirer` is created for each UMD module, when running on no
 
 @todo: make testeable with specs!
 ###
-
 class NodeRequirer
   Function::property = (props) -> Object.defineProperty @::, name, descr for name, descr of props
   Function::staticProperty = (props) => Object.defineProperty @::, name, descr for name, descr of props
@@ -27,31 +26,41 @@ class NodeRequirer
   ###
   Create a NodeRequirer instance, passing paths resolution information.
 
-  @param {String} modyle `module` name, relative to bundle, eg 'models/Person', as hardcoded in generated uRequire UMD.
+  @param {String} modyle `module` name of current UMD module (that calls 'require'). Relative to bundle, eg 'models/Person', as hardcoded in generated uRequire UMD.
   @param {String} dirname `__dirname` passed at runtime from the UMD module, poiniting to its self (i.e filename of the .js file).
   @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to bundleRoot).
   ###
   constructor: (@modyle, @dirname, @webRootMap)->
-    @bundleRoot = _path.normalize(
-        dirname + '/' + (pathRelative "$/#{_path.dirname @modyle}", "$/") + '/'
-      ).replace /\\/g, '/'
+    @bundleRoot = upath.normalize (
+      @dirname + '/' + (pathRelative "$/#{upath.dirname @modyle}", "$/") + '/'
+    )
 
     if @getRequireJSConfig().baseUrl
-      baseUrl = @getRequireJSConfig.baseUrl
-      if baseUrl[0] is '/' #web root as reference
-        @bundleRoot = @dirname + '/' + @webRoot + baseUrl + '/'
-      else #bundleRoot as reference
-        @bundleRoot = @bundleRoot + baseUrl + '/'
+      oldBundleRoot = @bundleRoot
+      baseUrl = @getRequireJSConfig().baseUrl
+#      if baseUrl[0] is '/' #web root as reference
+#        @bundleRoot = upath.normalize @webRoot + '/' + baseUrl + '/'
+#      else #bundleRoot as reference
+#        @bundleRoot = upath.normalize @bundleRoot + '/' + baseUrl + '/'
+
+      @bundleRoot = upath.normalize (
+        if baseUrl[0] is '/'  #web root as reference
+          @webRoot
+        else                  #bundleRoot as reference
+          @bundleRoot
+        ) + '/' + baseUrl + '/'
+
+      if oldBundleRoot isnt @bundleRoot # store requireJSConfig for this new @bundleRoot
+        NodeRequirer::requireJSConfigs[@bundleRoot] = NodeRequirer::requireJSConfigs[oldBundleRoot]
 
   @property
     webRoot:
-      get: ->
-        (_path.normalize "#{
-          if @webRootMap[0] is '.' # hardwired as path from bundleRoot
-            @bundleRoot + '/' + @webRootMap
-          else
-            @webRootMap # an OS file system dir, as-is        
-          }").replace /\\/g, '/'
+      get: -> upath.normalize "#{
+        if @webRootMap[0] is '.' # hardwired as path from bundleRoot
+          @bundleRoot + '/' + @webRootMap
+        else
+          @webRootMap # an OS file system dir, as-is
+        }"
 
   ###
   @property {Function}
@@ -112,10 +121,10 @@ class NodeRequirer
     NodeRequirer::requirejsLoaded ?= {}  # static / store in class
 
     if not NodeRequirer::requirejsLoaded[@bundleRoot]
-      requirejs = require 'requirejs'
+      requirejs = @nodeRequire 'requirejs'
 
       requireJsConf =
-        nodeRequire: require
+        nodeRequire: @nodeRequire
         baseUrl: @bundleRoot
 
       # resolve each path, as we do in modules - take advantage of webRoot etc.
@@ -257,37 +266,37 @@ class NodeRequirer
   require: (
       strDeps # type: [ 'String', '[]<String>' ]
       callback  # type: '()->'
-    )=>
-        if _(strDeps).isString() # String - synchronous call
-          return @loadModule new Dependency strDeps, @modyle
-        else
-          if _(strDeps).isArray() # we have an []<String>:
-            deps = [] # []<Dependency>
+  )=>
+    if _(strDeps).isString() # String - synchronous call
+      return @loadModule new Dependency strDeps, @modyle
+    else
+      if _(strDeps).isArray() # we have an []<String>:
+        deps = [] # []<Dependency>
 
-            #isAllCached = true # not needed anymore
-            for strDep in strDeps
-              deps.push dep = new Dependency strDep, @modyle
-              # checking if all cached not needed anymore in 2.1.x
-              #cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
-              #if @cachedModules[cacheName] is undefined
-              #  isAllCached = false # note if any dep not already loaded/cached
+        #isAllCached = true # not needed anymore
+        for strDep in strDeps
+          deps.push dep = new Dependency strDep, @modyle
+          # checking if all cached not needed anymore in 2.1.x
+          #cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
+          #if @cachedModules[cacheName] is undefined
+          #  isAllCached = false # note if any dep not already loaded/cached
 
-            loadDepsAndCall = => # load dependencies and then callback()
-              loadedDeps = []
-              for dep in deps
-                loadedDeps.push @loadModule(dep)
+        loadDepsAndCall = => # load dependencies and then callback()
+          loadedDeps = []
+          for dep in deps
+            loadedDeps.push @loadModule(dep)
 
-              # todo: should we check cb, before wasting time requiring modules ?
-              #       Or maybe it was intentional, for caching modules asynchronously.
-              if _(callback).isFunction()
-                callback.apply null, loadedDeps
+          # todo: should we check cb, before wasting time requiring modules ?
+          #       Or maybe it was intentional, for caching modules asynchronously.
+          if _(callback).isFunction()
+            callback.apply null, loadedDeps
 
 #            if isAllCached #load *synchronously* (matching RequireJS's behaviour, when all modules are already loaded/cached!)
 #              loadDepsAndCall()
 #            else
-            process.nextTick -> #load asynchronously
-              loadDepsAndCall()
+        process.nextTick -> #load asynchronously
+          loadDepsAndCall()
 
-        undefined
+    undefined
 
 module.exports = NodeRequirer
