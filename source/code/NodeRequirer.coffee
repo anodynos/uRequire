@@ -163,11 +163,13 @@ class NodeRequirer
     depName = dep.name plugin:no, ext:yes
 
     resPaths = []
+    addit = (path)-> resPaths.push upath.normalize path
+
     if dep.isFileRelative() #relative to requiring file's dir
-      resPaths.push relativeTo + '/' + depName
+      addit relativeTo + '/' + depName
     else
       if dep.isWebRoot() # web-root path
-        resPaths.push @webRoot + depName
+        addit @webRoot + depName
       else # requireJS baseUrl/Paths
         pathStart = depName.split('/')[0]
         if @getRequireJSConfig().paths?[pathStart] #eg src/
@@ -176,13 +178,13 @@ class NodeRequirer
             paths = [ paths ] #else _(paths).isString()
 
           for path in paths # add them all
-            resPaths.push @bundleRoot + (depName.replace pathStart, path)
+            addit @bundleRoot + (depName.replace pathStart, path)
         else
           if dep.isRelative()  # relative to bundle eg 'a/b/c',
-            resPaths.push @bundleRoot + depName
+            addit @bundleRoot + depName
           else # a single pathpart, like 'underscore' or 'myLib'
-            resPaths.push depName     # global eg 'underscore' (most likely)
-            resPaths.push @bundleRoot + depName  # or bundleRelative (unlikely)
+            addit depName     # global eg 'underscore' (most likely)
+            addit @bundleRoot + depName  # or bundleRelative (unlikely)
 
     return resPaths
 

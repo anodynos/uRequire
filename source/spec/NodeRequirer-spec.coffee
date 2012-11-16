@@ -8,66 +8,79 @@ _ = require 'lodash'
 _fs = require('fs')
 upath = require '../code/paths/upath'
 
-NodeRequirer = require "../code/NodeRequirer"
+NR = require "../code/NodeRequirer"
+Dependency = require "../code/Dependency"
 
-# @todo: test resolvePaths
-# @todo: getRequirejs & requirejs.config paths - (inject a mock requirejs, via injected mock nodeRequire)
 # @todo: test asynch `require([], callback)`
+# @todo: getRequirejs & requirejs.config paths - (inject a mock requirejs, via injected mock nodeRequire)
 
+# a make up module name
+modyle = 'path/fromBundleRoot/toModuleName.js'
 
-describe "NodeRequirer", ->
+# assume bundleRoot is this spec's __dirname
+# so __dirname + modyle, is the fake calling modulefile
+dirname = upath.dirname "#{__dirname}/#{modyle}"
 
-  # a make up module name
-  modyle = 'path/fromBundleRoot/to/moduleName.js'
+# a fake webRootMap
+webRootMap = '../fakeWebRoot/mapping/'
 
-  # assume bundleRoot is this spec's __dirname
-  # so __dirname + modyle, is the fake calling modulefile
-  dirname = upath.dirname "#{__dirname}/#{modyle}"
+# load & parse requirejs.config.json, *existing along spec dir!*
+rjsconf = JSON.parse _fs.readFileSync "#{__dirname}/requirejs.config.json", 'utf-8'
 
-  # a fake webRootMap
-  webRootMap = '../fakeWebRoot/mapping/'
+nr = new NR modyle, dirname, webRootMap
 
-  # load & parse requirejs.config.json, *existing along spec dir!*
-  rjsconf = JSON.parse _fs.readFileSync __dirname + '/' + 'requirejs.config.json', 'utf-8'
-
-  #instantiate a single NodeRequirer
-  nodeRequirer = new NodeRequirer modyle, dirname, webRootMap
+describe "NodeRequirer basics:", ->
 
   it "identifies bundleRoot", ->
-    expect(nodeRequirer.bundleRoot).to.equal __dirname + '/'
+    expect(nr.bundleRoot).to.equal "#{__dirname}/"
 
   it "identifies webRoot", ->
-    expect(nodeRequirer.webRoot).to.equal upath.normalize "#{__dirname}/#{webRootMap}"
+    expect(nr.webRoot).to.equal upath.normalize "#{__dirname}/#{webRootMap}"
 
   it "loads 'requirejs.config.json' from bundleRoot", ->
-    expect(nodeRequirer.getRequireJSConfig()).to.deep.equal rjsconf
+    expect(nr.getRequireJSConfig()).to.deep.equal rjsconf
 
-  it "statically stores parsed 'requirejs.config.json' for this bundleRoot", ->
-    expect(NodeRequirer::requireJSConfigs[nodeRequirer.bundleRoot]).to.deep.equal rjsconf
-
-  it "statically stores parsed 'requirejs.config.json' for this bundleRoot", ->
-    expect(NodeRequirer::requireJSConfigs[nodeRequirer.bundleRoot]).to.deep.equal rjsconf
-
-  it "calls node's mock-require with correct module path", ->
+  it "nodejs require-mock called with correct module path", ->
     modulePath = ''
-    nodeRequirer.nodeRequire = (m)-> modulePath = m # works via closure cause its called in synch
+    nr.nodeRequire = (m)-> modulePath = m # works via closure cause its called in synch
+    nr.require 'path/fromBundleRoot/to/anotherModule'
 
-    nodeRequirer.require 'path/fromBundleRoot/to/anotherModule'
     expect(modulePath).to.equal upath.normalize "#{__dirname}/path/fromBundleRoot/to/anotherModule"
 
+  describe "resolves Dependency paths:", ->
+    it "global-looking Dependency", ->
+      expect(resolvedDeps = nr.resolvePaths new Dependency 'underscore', modyle).to.deep
+        .equal ['underscore', "#{__dirname}/underscore"]
+
+    it "bundleRelative Dependency", ->
+      depStr = 'some/pathTo/depName'
+      expect(nr.resolvePaths new Dependency depStr, modyle).to.deep
+        .equal ["#{__dirname}/#{depStr}"]
+
+    it "fileRelative Dependency", ->
+      expect(nr.resolvePaths new Dependency './rel/pathTo/depName', modyle).to.deep
+        .equal ["#{__dirname}/#{upath.dirname modyle}/rel/pathTo/depName"]
+
+    it "requirejs config {paths:..} Dependency", ->
+      expect(nr.resolvePaths new Dependency 'src/depName', modyle).to.deep
+        .equal [upath.normalize "#{__dirname}/../../src/depName"]
+
+describe "NodeRequirer uses requirejs config :", ->
+
+  it "statically stores parsed 'requirejs.config.json' for this bundleRoot", ->
+    expect(NR::requireJSConfigs[nr.bundleRoot]).to.deep.equal rjsconf
 
   it "identifies bundleRoot, via baseUrl (relative to webRoot)", ->
     baseUrl_webMap_relative = "/some/webRoot/path" # inject a webRoot-relative baseUrl on requirejs.config
-    NodeRequirer::requireJSConfigs[__dirname + '/'].baseUrl = baseUrl_webMap_relative
-    nr = new NodeRequirer modyle, dirname, webRootMap # and instantiate a new NR
+    NR::requireJSConfigs[__dirname + '/'].baseUrl = baseUrl_webMap_relative
+    nr = new NR modyle, dirname, webRootMap # and instantiate a new NR
 
     expect(nr.bundleRoot).to.equal upath.normalize "#{__dirname}/#{webRootMap}/#{baseUrl_webMap_relative}/"
 
   it "identifies bundleRoot, via baseUrl (relative to bundleRoot)", ->
     baseUrl_webMap_bundleRootRelative = "../some/other/path" # inject a webRoot-relative baseUrl on requirejs.config
-    NodeRequirer::requireJSConfigs[__dirname + '/'].baseUrl = baseUrl_webMap_bundleRootRelative
-    nr = new NodeRequirer modyle, dirname, webRootMap # and instantiate a new NR
+    NR::requireJSConfigs[__dirname + '/'].baseUrl = baseUrl_webMap_bundleRootRelative
+    nr = new NR modyle, dirname, webRootMap # and instantiate a new NR
 
     expect(nr.bundleRoot).to.equal upath.normalize "#{__dirname}/#{baseUrl_webMap_bundleRootRelative}/"
-
 
