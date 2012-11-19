@@ -32,7 +32,7 @@ module.exports = (grunt) ->
       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
       */
       """
-
+      version: "var version = '<%= pkg.version %>';"
       usrBinEnvNode: "#!/usr/bin/env node"
 
     options:
@@ -109,6 +109,7 @@ module.exports = (grunt) ->
         src: [
           '<banner:meta.usrBinEnvNode>'
           '<banner>'
+          '<banner:meta.version>'
           '<%= options.buildDir %>/urequireCmd.js'
         ]
         dest:'<%= options.buildDir %>/urequireCmd.js'

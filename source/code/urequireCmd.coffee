@@ -1,16 +1,18 @@
-_ = require('lodash')
-cmd = require('commander');
-l = require('./utils/logger')
+_ = require 'lodash'
+urequireCmd = require 'commander'
+l = require './utils/logger'
 
 options = {}
 
 # helpers
 toArray = (val)-> val.split(',')
 
-cmd
-#  .version(( JSON.parse require('fs').readFileSync '../../../package.json', 'utf-8' ).version) # @todo: fix this
-  .version('0.2.0')
-  .usage('UMD <bundlePath> [options]')
+console.log
+
+urequireCmd
+#  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
+#  .usage('<templateName> <bundlePath> [options]')
+  .version(version) # var version written by grunt's banner
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
   .option('-v, --verbose', 'Print module processing information', false)
@@ -23,16 +25,35 @@ cmd
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', false)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
   .option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so urequire is not needed @ runtime.', false)
-  .option('-W, --webOptimize', 'NOT IMPLEMENTED. Use an AMD instead of UMD, ready to pass through r.js optimizer', false)
 
 
-cmd
-  .command('UMD <bundlePath...>')
+urequireCmd
+  .command('UMD <bundlePath>')
   .description("Converts all .js modules in <bundlePath> using an UMD template")
   .action (bundlePath)->
     options.bundlePath = bundlePath
+    options.template = 'UMD'
 
-cmd.on '--help', ->
+urequireCmd
+  .command('AMD <bundlePath>')
+  .description("Converts with an AMD template, pass through r.js optimizer - see 'urequire AMD -h'")
+  .option('-W, --webOptimize',
+    """
+    AMD Web optimizer, through RequireJS r.js
+
+    -- NOT IMPLEMENTED. --
+
+    Pass through r.js optimizer, using build.js & requirejs.config.json
+    """, false)
+  .action (bundlePath)->
+    options.bundlePath = bundlePath
+    options.template = 'AMD'
+    # read webOptimize param
+    for cmd in urequireCmd.commands
+      if cmd._name is 'AMD' and cmd.webOptimize
+        options.webOptimize = cmd.webOptimize
+
+urequireCmd.on '--help', ->
   console.log """
   Examples:
                                                                   \u001b[32m
@@ -61,17 +82,18 @@ cmd.on '--help', ->
       WARNING: -f ignores --outputPath
 """
 
-cmd.parse process.argv
+urequireCmd.parse process.argv
 
-#options.bundlePath = cmd.bundlePath
-
-cmdOptions = _.map(cmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
+cmdOptions = _.map(urequireCmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
 #copy over to 'options', to decouple urequire from cmd.
-options = _.defaults options, _.pick(cmd, cmdOptions)
-options.version = cmd.version()
+options = _.defaults options, _.pick(urequireCmd, cmdOptions)
+options.version = urequireCmd.version()
 
 # to log or not to log
 if not options.verbose then l.verbose = ->
+
+#console.log "\n", urequireCmd
+#console.log "\n", options
 
 if not options.bundlePath
   l.err """
@@ -96,6 +118,5 @@ else
           """
         process.exit(1);
 
-urequire = require('./urequire')
-console.log options
+urequire = require './urequire'
 urequire.processBundle options

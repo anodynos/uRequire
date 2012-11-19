@@ -5,7 +5,7 @@ module.exports =
   # a helper to create an object literal
   # with a dynamic keys on the fly.
   # js/coffee dont like this right now :-(
-  # @param {String...} key,value pairs
+  # @param {String...} keyValPairs key,value pairs
   objkv: (obj, keyValPairs...)->
     for key, idx in keyValPairs by 2
       obj[key] = keyValPairs[idx+1]

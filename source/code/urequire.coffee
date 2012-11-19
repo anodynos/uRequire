@@ -3,7 +3,7 @@ class Urequire
 
   @property
     processBundle:
-      get:-> require "./processBundle"
+      get:-> require "./process/processBundle"
 
   # used by UMD-transformed modules, to make the node (async) require
   @property

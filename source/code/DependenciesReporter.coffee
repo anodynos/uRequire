@@ -1,6 +1,8 @@
 ## reporting, in this format
 _ = require 'lodash'
 log = console.log
+slang = require './utils/slang'
+
 
 #
 # Embarrasing piece of code, full of misnomers and very custom to this project,
@@ -40,6 +42,24 @@ class DependenciesReporter
         }#{
      texts.footer}\n
    """
+
+  reportDep: (dep, modyle)->
+    depType =
+      if dep.isGlobal()
+        'global'
+      else # external-looking deps, like '../../../someLib'
+        if not (dep.isBundleBoundary() or dep.isWebRoot())
+          'external'
+        else  # seem to belong to bundle, but not found, like '../myLib'
+          if dep.isBundleBoundary() and not (dep.isFound() or dep.isGlobal())
+            'notFoundInBundle'
+          else  # webRoot deps, like '/assets/myLib'
+            if dep.isWebRoot()
+              'webRoot'
+            else
+              ''
+    if depType
+      @addReportData (slang.objkv {}, depType, [dep.resourceName]), modyle
 
   # Augments reportData, that ends up in this form
   #   {
