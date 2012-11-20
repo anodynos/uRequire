@@ -32,7 +32,7 @@ nr = new NR modyle, dirname, webRootMap
 describe "NodeRequirer basics:", ->
 
   it "identifies bundleRoot", ->
-    expect(nr.bundleRoot).to.equal "#{__dirname}/"
+    expect(nr.bundleRoot).to.equal upath.normalize "#{__dirname}/"
 
   it "identifies webRoot", ->
     expect(nr.webRoot).to.equal upath.normalize "#{__dirname}/#{webRootMap}"
@@ -50,16 +50,16 @@ describe "NodeRequirer basics:", ->
   describe "resolves Dependency paths:", ->
     it "global-looking Dependency", ->
       expect(resolvedDeps = nr.resolvePaths new Dependency 'underscore', modyle).to.deep
-        .equal ['underscore', "#{__dirname}/underscore"]
+        .equal ['underscore', upath.normalize "#{__dirname}/underscore"]
 
     it "bundleRelative Dependency", ->
       depStr = 'some/pathTo/depName'
       expect(nr.resolvePaths new Dependency depStr, modyle).to.deep
-        .equal ["#{__dirname}/#{depStr}"]
+        .equal [upath.normalize "#{__dirname}/#{depStr}"]
 
     it "fileRelative Dependency", ->
       expect(nr.resolvePaths new Dependency './rel/pathTo/depName', modyle).to.deep
-        .equal ["#{__dirname}/#{upath.dirname modyle}/rel/pathTo/depName"]
+        .equal [upath.normalize "#{__dirname}/#{upath.dirname modyle}/rel/pathTo/depName"]
 
     it "requirejs config {paths:..} Dependency", ->
       expect(nr.resolvePaths new Dependency 'src/depName', modyle).to.deep
@@ -72,14 +72,14 @@ describe "NodeRequirer uses requirejs config :", ->
 
   it "identifies bundleRoot, via baseUrl (relative to webRoot)", ->
     baseUrl_webMap_relative = "/some/webRoot/path" # inject a webRoot-relative baseUrl on requirejs.config
-    NR::requireJSConfigs[__dirname + '/'].baseUrl = baseUrl_webMap_relative
+    NR::requireJSConfigs[upath.normalize __dirname + '/'].baseUrl = baseUrl_webMap_relative
     nr = new NR modyle, dirname, webRootMap # and instantiate a new NR
 
     expect(nr.bundleRoot).to.equal upath.normalize "#{__dirname}/#{webRootMap}/#{baseUrl_webMap_relative}/"
 
   it "identifies bundleRoot, via baseUrl (relative to bundleRoot)", ->
     baseUrl_webMap_bundleRootRelative = "../some/other/path" # inject a webRoot-relative baseUrl on requirejs.config
-    NR::requireJSConfigs[__dirname + '/'].baseUrl = baseUrl_webMap_bundleRootRelative
+    NR::requireJSConfigs[upath.normalize __dirname + '/'].baseUrl = baseUrl_webMap_bundleRootRelative
     nr = new NR modyle, dirname, webRootMap # and instantiate a new NR
 
     expect(nr.bundleRoot).to.equal upath.normalize "#{__dirname}/#{baseUrl_webMap_bundleRootRelative}/"

@@ -215,10 +215,13 @@ class NodeRequirer
             loadedModule = @nodeRequire modulePath
           catch err
             attempts.push {
-              urequireError: "Error loading node or UMD module through node's require."
+              urequireError: "Error loading node or UMD module through nodejs require."
               modulePath: modulePath, requireUsed: 'nodeRequire', error: err}
             try
-              loadedModule = @getRequirejs() modulePath + '.js'
+              suffix = '.js'
+              if modulePath.indexOf(suffix, modulePath.length - suffix.length) is -1
+                modulePath += '.js'
+              loadedModule = @getRequirejs() modulePath
             catch err
               attempts.push {
                 urequireError: "Error loading module through RequireJS; it previously failed with node's require."

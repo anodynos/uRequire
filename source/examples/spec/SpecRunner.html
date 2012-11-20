@@ -14,12 +14,12 @@
     <script type="text/javascript">
       require.config ({
         // set baseUrl to point to the 'bundle', relative to this HTML
-        baseUrl: '../abc',
+        baseUrl: '../deps',
 
         // all libraries are now relative to the bundle/baseUrl
         paths: {
-          chai:   "../../../libs/chai",
-          mocha:  "../../../libs/mocha",
+          chai:  "../../../libs/chai",
+          mocha: "../../../libs/mocha",
           text:  "../../../libs/requirejs_plugins/text",
           json:  "../../../libs/requirejs_plugins/json"
         },
@@ -37,7 +37,8 @@
 
           require([
               // load all your unit-tests here, always relative to the bundle/baseUrl
-              "../spec/deps-main-test"
+              "../spec/deps/deps-main-test"
+//              "../spec/abc/abc-test"
           ],
               // once unit-tests are loaded
               function(){ mocha.run().globals(['_']);}

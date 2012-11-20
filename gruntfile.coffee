@@ -65,8 +65,11 @@ module.exports = (grunt) ->
       urequireExampleABC:
         command: "urequire UMD build/examples/abc -f -r ../../.."
 
-      urequireExampleSpec:
-        command: "urequire UMD build/examples/spec -f"
+      urequireExampleSpecABC:
+        command: "urequire UMD build/examples/spec/abc -f"
+
+      urequireExampleSpecDeps:
+        command: "urequire UMD build/examples/spec/deps -f"
 
       runExampleDeps:
         command: "node build/examples/deps/main"
@@ -151,6 +154,7 @@ module.exports = (grunt) ->
           "node_modules/urequire/build/code/"
           "<%= options.buildDir %>/**/*.*"
           "<%= options.buildSpecDir %>/**/*.*"
+          "./build/examples/**/*.*"
         ]
 
   grunt.initConfig gruntConfig
@@ -183,7 +187,8 @@ module.exports = (grunt) ->
     shell:coffeeExamples
     shell:urequireExampleABC
     shell:urequireExampleDeps
-    shell:urequireExampleSpec
+    shell:urequireExampleSpecABC
+    shell:urequireExampleSpecDeps
     copy:exampleHtmlAndJs
     shell:mochaExamples
     shell:runExampleDeps
