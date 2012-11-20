@@ -136,7 +136,7 @@ class ModuleManipulator extends JSManipulator
       seekr [ UMDSeeker ], @AST, @readAST, @
 
       if @moduleInfo.moduleType isnt 'UMD'
-        @moduleInfo.moduleType = 'node'
+        @moduleInfo.moduleType = 'nodejs'
         @AST_FactoryBody = @AST
         if @options.extractFactory
           @moduleInfo.factoryBody = @js #javascript, as is

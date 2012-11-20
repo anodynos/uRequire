@@ -1,7 +1,6 @@
-#uRequire v0.2.0
+#uRequire v0.2.2
 
-**Write simple *modular code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web [(AMD/requireJS)]
-(http://requirejs.org/) & nodejs/commonjs module systems.
+**Write simple *modular code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web [(AMD/requireJS)](http://requirejs.org/) & nodejs/commonjs module systems. You can also convert **from AMD to nodejs** and vise-versa.
 
 The drive behind urequire is **if you have sensibly defined it, it should certainly find it**.
 
@@ -110,7 +109,10 @@ For instance you can use both the syntax of sync & asych require, mix absolute/b
 
 * (0.1.6) - You can use native RequireJS plugins (like text! and json!) - (alpha support - see FAQ)
 
-* NEW (0.1.7) - You can require a native AMD module, one that has not been converted to UMD. VERY unstable, still has issues with  relative paths and not tested enough.
+* (0.1.7) - You can require a native AMD module, one that has not been converted to UMD. VERY unstable, still has issues with  relative paths and not tested enough.
+
+* NEW (0.2.2) - You can convert through an *AMD only* or *nodejs only* format through respective (buildin) templates:
+  Just give `urequire AMD ....`  or `urequire nodejs ....` instead.
 
 * More will follow :-)
 
@@ -202,6 +204,26 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
   -s, --scanPrevent              All require('') deps appear on [], even if they wouldn't need to, preventing RequireJS scan @ runtime.
 
   -a, --allNodeRequires          Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up on node.
+
+### Convert to pure AMD or pure node:
+You can issue a `urequire AMD ...` or `urequire nodejs` instead of the standard/recommended UMD (Universal Module Definition) format.
+
+Do note:
+
+  * *AMD*-only is safe & 100% equivalent for web execution with its UMD counterpart.
+
+  * *nodejs*-only is not recommended. It converts modules with a *pure* **nodejs** template, without uRequire's special [`require`](https://github.com/anodynos/uRequire/blob/master/source/code/NodeRequirer.coffee), thus loosing a lot of functionality:
+
+      * translation of paths like 'models/PersonModel' to '../../models/PersonModel', depending on where it was called from.
+      * the asynchronous version of require(['dep'], function(dep){...})
+      * running of loader plugins, like 'text!...' or (your own) 'json!...'
+      * mapping of '/', ie webRoot etc or using the requirejs.config's {baseUrl:"...."} or {paths:"lib":"../../lib"}
+
+    You still get build-time translated bundleRelative paths, to their node fileRelative equivalent.
+
+    Converted modules dont have a dependency on uRequire to run, but the whole thing is too restrictive.
+    For a similar even simpler conversion, see ['nodefy'](https://github.com/millermedeiros/nodefy).
+
 
 ### Notes
 * Your requires must use a string, eg `require('myModule')`. Requires that evaluate at runtime, eg `require(myVar + 'module')` can't be possibly be evaluated at parse time, and thus are *unsafe*.
@@ -361,7 +383,7 @@ uRequire uses RequireJS for node to actually load the plugin and let it do the a
 You can just put them on your `bundleRoot` and use them right away:
 eg. to use `"text!myText.txt"` you 'll need to copy [`text.js`](https://github.com/requirejs/text/blob/master/text.js) on your bundleRoot, or put it in a folder relative to bundleRoot and note it on `requirejs.config.json` - see `examples/abc`.
 
-So far I 've only tried a few plugins (text, json), but most should work...
+So far I 've only tried a few plugins (text, [json](https://github.com/millermedeiros/requirejs-plugins/blob/master/src/json.js)), but most should work...
 
 ###FAQuestions with one answer.
 ####Can I safely mix uRequire UMD modules with other 'native' modules, at each runtime (i.e on node and the browser) ?
@@ -400,18 +422,22 @@ No, from Universal. Require.
 * support for native RequireJS plugins & native RequireJS modules on node, through RequireJS.
 * Refactoring continues, documentation starting (NodeRequirer)
 
-###v0.1.8 - *CURRENT*
+###v0.1.8
 * Refactoring & documentation continues (on `NodeRequirer`)
 
-###v0.2
+###v0.2.x *CURRENT*
 * Refactoring, code documentation, more spec tests, plan for incorporating future functionality.
 
 * Use requireJS built in or 3rd-party plugins (eg. for `text!myTextFile.txt), either through mimicking (easier) or loading the 3rd party plugin it self (challenging & error prone)
 
 * Mimics the behaviour of RequireJS's `require(['dep1', 'dep2'], function(){})` where if dependencies 'dep1' & 'dep2' are already loaded (i.e cached), the factory function is called synchronously (immediatelly).
 
+  **UPDATE: this feature is removed, to match RequireJS >= 2.1.1 behaviour that fixed this.**
+
+* AMD only & nodejs only module tranlation - [see here](https://github.com/anodynos/urequire#convert-to-pure-amd-or-pure-node).
+
 ###v0.3 - 0.5
-* AMD template rewrite, so you can r.js optimize you relaxed notation modules. Also it will come with the ability to change from fileRelative to bundleRelative and vise versa. This will allow you for instance to automatically translate modules you already have written using the restrictive fileRelative paths '../../../models/PersonModel', to the more natural bundleRelative 'models/PersonModel'. From then on, you 'll use the build as your new source. You'll then simply uRequire 'em into UMD/AMD when you run/deploy. Caveat : uglify 1.x must be swaped with a better .js parser / one that at least supports comments.
+* AMD template along with *r.js* optimization of your relaxed notation modules. Also it will come with the ability to change from fileRelative to bundleRelative and vise versa. This will allow you for instance to automatically translate modules you already have written using the restrictive fileRelative paths '../../../models/PersonModel', to the more natural bundleRelative 'models/PersonModel'. From then on, you 'll use the build as your new source. You'll then simply uRequire 'em into UMD/AMD when you run/deploy. Caveat : uglify 1.x must be swaped with a better .js parser / one that at least supports comments.
 
 * Sanity checks of existence of external libraries, webRootMap, baseUrl, paths etc.
 

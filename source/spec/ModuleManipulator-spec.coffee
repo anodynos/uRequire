@@ -20,7 +20,7 @@ describe "ModuleManipulator", ->
     """
     mi = (new ModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
-      moduleType: 'node'
+      moduleType: 'nodejs'
       requireDependencies: [ 'something' ]
 
   it "should identify a UMD module", ->

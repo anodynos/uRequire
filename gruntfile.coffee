@@ -62,6 +62,12 @@ module.exports = (grunt) ->
       urequireExampleDeps:
         command: "urequire UMD build/examples/deps -f"
 
+      urequireExampleDepsNodejs:
+        command: "urequire nodejs build/examples/deps -o build/examples/depsNodejs"
+
+      nodefyDeps:
+        command: "nodefy -o build/examples/depsNodefy build/examples/deps/**/*.js"
+
       urequireExampleABC:
         command: "urequire UMD build/examples/abc -f -r ../../.."
 

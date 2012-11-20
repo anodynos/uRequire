@@ -20,6 +20,7 @@ urequireCmd
   .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
   .option('-s, --scanPrevent', "All require('') deps appear on [], even if they wouldn't need to, preventing RequireJS scan @ runtime.", false)
   .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up', false)
+  .option('-u, --uglify', 'NOT IMPLEMENTED. Pass through uglify before saving.', false)
   .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', toArray)
   .option('-l, --listOfModules', 'NOT IMPLEMENTED. Process only modules/files in comma sep list - supports wildcards?', toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', false)
@@ -48,10 +49,18 @@ urequireCmd
   .action (bundlePath)->
     options.bundlePath = bundlePath
     options.template = 'AMD'
+
     # read webOptimize param
     for cmd in urequireCmd.commands
       if cmd._name is 'AMD' and cmd.webOptimize
         options.webOptimize = cmd.webOptimize
+
+urequireCmd
+  .command('nodejs <bundlePath>')
+  .description("")
+  .action (bundlePath)->
+    options.bundlePath = bundlePath
+    options.template = 'nodejs'
 
 urequireCmd.on '--help', ->
   console.log """

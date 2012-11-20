@@ -7,7 +7,7 @@ _ = require 'lodash'
 #   {
 #     modulePath: where the module is, within bundle
 #     moduleName: the moduleName, if it exists.
-#     moduleType: type of the original module : 'node' or 'AMD'
+#     moduleType: type of the original module : 'nodejs' or 'AMD'
 #     type: 'define' or 'require': NOT USED
 #     arrayDependencies: Array of deps, as delcared in AMD, filerelative (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
 #     nodeDependencies: Array for file-relative dependencies, as required by node (eg '../PersonView')
@@ -26,16 +26,18 @@ class ModuleGeneratorTemplates
 
     @moduleNamePrint = if o.moduleName then "'#{o.moduleName}', " else ""
 
+    ### @property parameters of the factory method, eg 'require, _, personModel' ###
     @parametersPrint = """
-      require#{if (o.moduleType is 'node') then ', exports, module' else ''}#{
+      require#{if (o.moduleType is 'nodejs') then ', exports, module' else ''}#{
       (", #{par}" for par in o.parameters).join ''}
     """
 
+    ### @property arrayDependencies of define [], eg "['require', 'lodash', 'PersonModel']" ###
     @arrayDependenciesPrint = """
       #{if _(o.arrayDependencies).isEmpty()
           "" #keep empty [] not existent, enabling requirejs scan
         else
-          if o.moduleType is 'node'
+          if o.moduleType is 'nodejs'
             "['require', 'module', 'exports'"
           else
             "['require'"}#{(", '#{dep}'" for dep in o.arrayDependencies).join('')} #{
@@ -43,23 +45,41 @@ class ModuleGeneratorTemplates
       }
     """
 
-    @factoryBodyBracedPrint = """{
-      var isWeb = (typeof define === 'function' && define.amd);
-      var isNode = !isWeb;
-      // uRequire: start body of original #{o.moduleType} module
-      #{o.factoryBody}
-      // uRequire: end body of original #{o.moduleType} module #{
-      if (o.moduleType is 'node') then '\nreturn module.exports;' else ''}
-    }
+    @bodyStart = "// uRequire: start body of original #{o.moduleType} module"
+    @bodyEnd = "// uRequire: end body of original #{o.moduleType} module"
+
+
+    @factoryBodyInjects = """
+      var isWeb = (typeof define === 'function' && define.amd),
+          isNode = !isWeb;
     """
 
+    ### @property factoryBody with braces.
+        Includes original (with replaced require paths) + injections like isWeb, isNode etc.
+    ###
+    @factoryBodyUMDPrint = """
+      #{@factoryBodyInjects}
+
+      #{@bodyStart}
+      #{@o.factoryBody}
+      #{@bodyEnd}
+
+      #{ if (@o.moduleType is 'nodejs') then '\nreturn module.exports;' else '' }
+    """
+
+
+
+
+  ### UMD template - runs AS-IS on both Web/AMD and nodejs (having 'npm install urequire').
+      * Uses `NodeRequirer` to perform `require`s.
+  ###
   UMD: ->"""
     #{@header}
     (function (root, factory) {
       if (typeof exports === 'object') {
         var nr = new (require('urequire').NodeRequirer) ('#{@o.modulePath}', __dirname, '#{@o.webRootMap}');
         module.exports = factory(nr.require#{
-          if (@o.moduleType is 'node') then ', exports, module' else ''}#{
+          if (@o.moduleType is 'nodejs') then ', exports, module' else ''}#{
           (", nr.require('#{nDep}')" for nDep in @o.nodeDependencies).join('')});
       } else if (typeof define === 'function' && define.amd) {
           define(#{@moduleNamePrint}#{@arrayDependenciesPrint}#{
@@ -71,29 +91,47 @@ class ModuleGeneratorTemplates
               'factory);'
           }
       }
-    }) (this, function (#{@parametersPrint}) #{@factoryBodyBracedPrint});
+    }) (this, function (#{@parametersPrint}) {\n #{@factoryBodyUMDPrint} \n});
   """
 
+  ### AMD template
+      Simple `define(['dep'], function(dep){...body...}})`
+      Runs only on WEB/AMD/RequireJs (and hopefully soon in node through uRequire'd *driven* RequireJS).
+  ###
   AMD: ->
-    @header + '\n' +
-    if not @o.rootExport # 'standard' AMD format
-      """
-      define(#{@moduleNamePrint}#{@arrayDependenciesPrint}
-        function (#{@parametersPrint}) #{
-          @factoryBodyBracedPrint}
-      );
-      """
-    else # ammend to export window = @o.rootExport
-      """
+    @header + '\n' + """
       define(#{@moduleNamePrint}#{@arrayDependenciesPrint}
         function (#{@parametersPrint}) {
-          return (window.#{@o.rootExport} = (
-            function (#{@parametersPrint}) #{
-              @factoryBodyBracedPrint
-            } (#{@parametersPrint}))
-          );
-        }
-      );
-      """
+    """ + ( if not @o.rootExport # 'standard' AMD format
+              @factoryBodyUMDPrint
+            else # ammend to export window = @o.rootExport
+              """
+                  return (window.#{@o.rootExport} = (
+                    function (#{@parametersPrint}) {
+                      #{@factoryBodyUMDPrint}
+                    }(#{@parametersPrint}))
+                  );
+              """
+        ) +
+      "});" # thank you jashkenas! see his coffeescript presentation, ending with }); what a joy!
+
+
+  nodejs: -> """
+      #{@header}#{
+        if @o.parameters.length > 0 then "\nvar" else ''} #{
+        ("#{if paramIdx is 0 then '' else '    '}#{param} = require('#{@o.nodeDependencies[paramIdx]}')#{
+          if paramIdx < @o.parameters.length-1 then ',\n' else ';'}" for param, paramIdx in @o.parameters).join('')
+      }
+
+      #{@factoryBodyInjects}
+
+      #{@bodyStart}
+      #{ if @o.moduleType is 'AMD'
+          "module.exports = (function() {\n #{@o.factoryBody} })()"
+        else
+          @o.factoryBody
+      }
+      #{@bodyEnd}
+    """
 
 module.exports = ModuleGeneratorTemplates

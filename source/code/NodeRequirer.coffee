@@ -210,7 +210,10 @@ class NodeRequirer
       modulePaths = @resolvePaths dep
       loadedModule = null
       for modulePath in modulePaths when not loadedModule
-        if dep.pluginName in [undefined, 'node'] # load a simple node or UMD module
+
+        # load a simple node or UMD module.
+        if dep.pluginName in [undefined, 'node'] # plugin 'node' signal a require effective only
+                                                 # on node execution, hence ommited from arrayDeps!
           try
             loadedModule = @nodeRequire modulePath
           catch err
