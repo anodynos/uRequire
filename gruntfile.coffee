@@ -32,7 +32,8 @@ module.exports = (grunt) ->
       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
       */
       """
-      version: "var version = '<%= pkg.version %>';"
+      varVersion: "var version = '<%= pkg.version %>';"
+      mdVersion: "# uRequire v<%= pkg.version %>"
       usrBinEnvNode: "#!/usr/bin/env node"
 
     options:
@@ -92,6 +93,12 @@ module.exports = (grunt) ->
       mochaExamples:
         command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
 
+      mochaExamplesABC:
+        command: "mocha build/examples/spec/abc --recursive --bail --reporter spec"
+
+      mochaExamplesDeps:
+        command: "mocha build/examples/spec/deps --recursive --bail --reporter spec"
+
       chmod: # change urequireCmd.js to executable - linux only (?mac?)
         command:  switch process.platform
           when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
@@ -118,7 +125,7 @@ module.exports = (grunt) ->
         src: [
           '<banner:meta.usrBinEnvNode>'
           '<banner>'
-          '<banner:meta.version>'
+          '<banner:meta.varVersion>'
           '<%= options.buildDir %>/urequireCmd.js'
         ]
         dest:'<%= options.buildDir %>/urequireCmd.js'
@@ -129,6 +136,13 @@ module.exports = (grunt) ->
           '<%= options.buildDir %>/urequire.js'
         ]
         dest:'<%= options.buildDir %>/urequire.js'
+
+#      md:
+#        src: [
+#          '<banner:meta.mdVersion>'
+#          './readme.md' #how do we strip 1st line ?
+#        ]
+#        dest: './readme.md'
 
     copy:
       exampleHtmlAndJs:
@@ -205,16 +219,20 @@ module.exports = (grunt) ->
   grunt.registerTask "abc",     """
     shell:coffeeExamples
     shell:urequireExampleABC
+    shell:urequireExampleSpecABC
     copy:exampleHtmlAndJs
     shell:runExampleAbc
+    shell:mochaExamplesABC
   """
 
   grunt.registerTask "bd",      "build deps"
   grunt.registerTask "deps",    """
     shell:coffeeExamples
     shell:urequireExampleDeps
+    shell:urequireExampleSpecDeps
     copy:exampleHtmlAndJs
     shell:runExampleDeps
+    shell:mochaExamplesDeps
   """
 
   grunt.registerTask "rjs",     "shell:coffeeExamples shell:runExampleRequirejs"

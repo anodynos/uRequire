@@ -3,6 +3,21 @@ _fs = require 'fs'
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
+#slang = require './utils/slang'
+
+
+# @todo: move debug level functionality on logger.coffee :-)
+l = require './utils/logger'
+debugLevel = 0
+ldebug = l.debug
+l.debug = (level, msg)->
+  if _.isString level
+    msg = level
+    level = 99999
+  if level <= debugLevel
+    ldebug "#{level}: NodeRequirer: " + msg
+
+
 
 ###
 The `nodejs`'s require facility.
@@ -24,24 +39,38 @@ class NodeRequirer
   Function::staticProperty = (props) => Object.defineProperty @::, name, descr for name, descr of props
 
   ###
+  functionSniffer wants constructor being dummy that calls the real one;-)
+  ###
+  constructor: ->
+    @_constructor.apply @, arguments
+
+  ###
   Create a NodeRequirer instance, passing paths resolution information.
 
   @param {String} modyle `module` name of current UMD module (that calls 'require'). Relative to bundle, eg 'models/Person', as hardcoded in generated uRequire UMD.
   @param {String} dirname `__dirname` passed at runtime from the UMD module, poiniting to its self (i.e filename of the .js file).
   @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to bundleRoot).
   ###
-  constructor: (@modyle, @dirname, @webRootMap)->
+  _constructor: (@modyle, @dirname, @webRootMap)->
+
     @bundleRoot = upath.normalize (
       @dirname + '/' + (pathRelative "$/#{upath.dirname @modyle}", "$/") + '/'
     )
 
+    l.debug 6, """
+      new NodeRequirer(
+        @modyle='#{@modyle}'
+        @dirname='#{@dirname}'
+        @webRootMap='#{@webRootMap}')
+
+        - calculated @bundleRoot (from @modyle & @dirname) = #{@bundleRoot}
+    """
+
     if @getRequireJSConfig().baseUrl
       oldBundleRoot = @bundleRoot
       baseUrl = @getRequireJSConfig().baseUrl
-#      if baseUrl[0] is '/' #web root as reference
-#        @bundleRoot = upath.normalize @webRoot + '/' + baseUrl + '/'
-#      else #bundleRoot as reference
-#        @bundleRoot = upath.normalize @bundleRoot + '/' + baseUrl + '/'
+
+      l.debug 7, "  - `baseUrl` (from requireJsConfig ) = #{baseUrl}"
 
       @bundleRoot = upath.normalize (
         if baseUrl[0] is '/'  #web root as reference
@@ -50,8 +79,13 @@ class NodeRequirer
           @bundleRoot
         ) + '/' + baseUrl + '/'
 
-      if oldBundleRoot isnt @bundleRoot # store requireJSConfig for this new @bundleRoot
-        NodeRequirer::requireJSConfigs[@bundleRoot] = NodeRequirer::requireJSConfigs[oldBundleRoot]
+      l.debug 5, "    - final `@bundleRoot` (from requireJsConfig.baseUrl & @bundleRoot) = #{@bundleRoot}"
+#      if oldBundleRoot isnt @bundleRoot # store requireJSConfig for this new @bundleRoot
+#        l.debug """
+#          ### stroring rjs config ###
+#          NodeRequirer::requireJSConfigs[#{@bundleRoot}] = NodeRequirer::requireJSConfigs[#{oldBundleRoot}]
+#        """
+#        NodeRequirer::requireJSConfigs[@bundleRoot] = NodeRequirer::requireJSConfigs[oldBundleRoot]
 
   @property
     webRoot:
@@ -75,6 +109,27 @@ class NodeRequirer
       set: (@_nodeRequire)=>
 
 
+  @property
+    debugInfo:
+      get:->
+        di = {
+          bundleRoot: @bundleRoot
+          webRoot: @webRoot
+        }
+
+        rjsLoaded = di["requirejsLoaded[@bundleRoot]"] = {}
+        for bundleRootsRjs, rjs of NodeRequirer::requirejsLoaded
+          rjsConfig = rjsLoaded[bundleRootsRjs] = {}
+          rjsConfig["requirejs._.config.baseUrl"] = rjs.s?.contexts?._?.config.baseUrl
+          rjsConfig["requirejs._.config.paths"] = rjs.s?.contexts?._?.config.paths
+
+        rjsConfigs = di["requireJSConfigs[@bundleRoot]"] = {}
+        for bundleRootsRjsConfig, config of NodeRequirer::requireJSConfigs
+          rjsConfigs[bundleRootsRjsConfig] = config
+
+        JSON.stringify di, null, ' ' # force reading of nested objects ?
+
+
   ###
   @property {Set<module>}
   Stores all modules loaded so far. Its `static` i.e a class variable, shared among all instances.
@@ -92,14 +147,14 @@ class NodeRequirer
       try
         rjsc = require('fs').readFileSync @bundleRoot + 'requirejs.config.json', 'utf-8'
       catch error
-        # console.error "urequire: error loading requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
+        # l.err "urequire: error loading requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
         #do nothing, we just dont have a requirejs.config.json
 
       if rjsc
         try
           NodeRequirer::requireJSConfigs[@bundleRoot] = JSON.parse rjsc
         catch error
-          console.error "urequire: error parsing requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
+          l.err "urequire: error parsing requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
 
       NodeRequirer::requireJSConfigs[@bundleRoot] ?= {} # if still undefined, after so much effort
 
@@ -202,58 +257,80 @@ class NodeRequirer
   @return {module} loaded module or quits if it fails
   ###
   loadModule: (dep)=>
-    cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
-    if @cachedModules[cacheName]
-      @cachedModules[cacheName]
-    else #load module either via nodeRequire OR requireJS if it needs a plugin or if it fails!
-      attempts = []
-      modulePaths = @resolvePaths dep
-      loadedModule = null
-      for modulePath in modulePaths when not loadedModule
+    #load module either via nodeRequire OR requireJS if it needs a plugin or if it fails!
+    attempts = []
+    isCached = false
+    modulePaths = @resolvePaths dep
+    loadedModule = null
 
+    for modulePath in modulePaths when not loadedModule
+      _modulePath = modulePath # hack cause of coffee-forLoop advancing modulePaths, even if 'when' is falsed
+      # check if already loaded
+      if (loadedModule = @cachedModules[_modulePath]) # assignment, NOT equality check!
+        isCached = true
+      else
         # load a simple node or UMD module.
-        if dep.pluginName in [undefined, 'node'] # plugin 'node' signal a require effective only
-                                                 # on node execution, hence ommited from arrayDeps!
-          try
-            loadedModule = @nodeRequire modulePath
-          catch err
-            attempts.push {
-              urequireError: "Error loading node or UMD module through nodejs require."
-              modulePath: modulePath, requireUsed: 'nodeRequire', error: err}
-            try
-              suffix = '.js'
-              if modulePath.indexOf(suffix, modulePath.length - suffix.length) is -1
-                modulePath += '.js'
-              loadedModule = @getRequirejs() modulePath
-            catch err
-              attempts.push {
-                urequireError: "Error loading module through RequireJS; it previously failed with node's require."
-                modulePath: modulePath, requireUsed: 'RequireJS', error: err}
+        if dep.pluginName in [undefined, 'node'] # plugin 'node' is dummy: just signals a require effective only
+                                                 # on node execution, hence ommited from arrayDeps.
 
-        else # load a plugin!module, through RequireJS for node
+          l.debug 25, "@nodeRequire '#{_modulePath}'"
           try
-            loadedModule = @getRequirejs() "#{dep.pluginName}!#{modulePath}"
+            loadedModule = @nodeRequire _modulePath
           catch err
-            attempts.push {
-              urequireError: "Error loading plugin module through RequireJS.", plugin: dep.pluginName
+            l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=#{err}"
+            attempts.push
+              urequireError: "Error loading node or UMD module through nodejs require."
+              modulePath: _modulePath, requireUsed: 'nodeRequire', error: err
+
+            suffix = '.js' # make sure we have it @todo:unhack @todo: can it be if global ?
+            if _modulePath.indexOf(suffix, _modulePath.length - suffix.length) is -1
+              _modulePath += '.js'
+
+            if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
+              l.debug 25, "FAILURE caused: @getRequirejs() '#{_modulePath}'"
+              try
+                loadedModule = @getRequirejs() _modulePath
+              catch err
+                l.debug 35, "FAILED: @getRequirejs() '#{_modulePath}' \n err=#{err}"
+                attempts.push
+                  urequireError: "Error loading module through RequireJS; it previously failed with node's require."
+                  modulePath: _modulePath, requireUsed: 'RequireJS', error: err
+        else
+          _modulePath = "#{dep.pluginName}!#{_modulePath}"
+          l.debug 25, "PLUGIN caused: @getRequirejs() '#{_modulePath}'"
+          try
+            loadedModule = @getRequirejs() _modulePath # pluginName!modulePath
+          catch err
+            attempts.push
+              urequireError: "Error loading *plugin* module through RequireJS.", plugin: dep.pluginName
               pluginPaths: @requireJSConfig?.paths[dep.pluginName]
               pluginResolvedPaths: @requirejs?.s?.contexts?._?.config?.paths[dep.pluginName]
-              modulePath: "#{dep.pluginName}!#{modulePath}", requireUsed: 'RequireJS', error: err}
+              modulePath: _modulePath, requireUsed: 'RequireJS', error: err
 
+    if not loadedModule
+      l.err """
+          urequire: failed to load dependency: '#{dep}' in module '#{@modyle}'
+          Quiting with process.exit(1)
 
-      if not loadedModule
-        console.error """
-            urequire: failed to load dependency: '#{dep}' in module '#{@modyle}'
-            Quiting with process.exit(1)
+          Detailed attempts:
+        """
+      l.debug 100, 'loadedModule = ', loadedModule
+      l.log att for att in attempts
+      l.debug 1, "Debug info:\n", @debugInfo
 
-            Detailed attempts:
-          """
-        console.log 'loadedModule = ', loadedModule
-        console.log att for att in attempts
+      process.exit(1)
+    else
+      l.debug 10, """
+        #{if isCached then "CACHE-" else ''}loaded module: '#{dep.name()}'
+                from : '#{_modulePath}' :-)
+      """
+      if not isCached
+        l.debug 15, """
+          debugInfo = \u001b[33m#{@debugInfo}"
+        """
 
-        process.exit(1)
-      else
-        return @cachedModules[cacheName] = loadedModule
+      return @cachedModules[_modulePath] = loadedModule # caching as 'plugin!filename' (if its plugin loaded)
+
 
   ###
   The actual `require` method, called as synchronous or asynchronous.

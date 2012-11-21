@@ -1,6 +1,6 @@
 define [
         "chai",
-        "abc/a-lib" # baseUrl must be set to "../.." or wherever abc is
+        "a-lib" # baseUrl must be set to "../.." or wherever abc is
     ], (
         chai
         alib

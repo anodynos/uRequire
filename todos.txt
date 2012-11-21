@@ -1,0 +1,13 @@
+
+Features
+* r.js optimize & bundle
+* watch - copy coffeescript's
+* use Esprima instead of uglify
+* function sniff it!
+* urequire config
+  - ignore bundle files
+  - include requirejs.config or requirejs 'link'!
+
+General:
+  * more tests
+  * more docs

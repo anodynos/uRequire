@@ -1,4 +1,4 @@
-#uRequire v0.2.2
+# uRequire v0.2.3
 
 **Write simple *modular code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web [(AMD/requireJS)](http://requirejs.org/) & nodejs/commonjs module systems. You can also convert **from AMD to nodejs** and vise-versa.
 
@@ -12,6 +12,8 @@ Your source can be written either in the 'strict' AMD format `define([], functio
 You don't need to surround you code with any UMD-like boilerplate or worry about path translation, cause urequire does it for you.
 
 ##Ultimate Aims
+ * A Universal Module Converter: for now its from/to AMD, nodejs & UMD. More interestingly, it is taking care of (m)any format intricaties - keep reading.
+
  * Remove the *mud* from **UMD**, which is currently the *only true option* for cross-platform modular js development. No longer you need to add UMD around your non-modular code to AMDdify the *deployment*. You should be able to use modules to structure your code during *development*.
 
  * Provide the *simplest possible*, relaxed authoring of modular js code with a unified dependencies structure for modules. When no browser/DOM or node specifics are present, the same source code should run & test on both browser and nodejs.
@@ -22,8 +24,9 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
 
  * Bring browser-side best practices (that appear to be AMD/requirejs), closer to nodejs. And vise versa.
 
-### In the long future
- * Will convert to and from any JavaScript module system (that makes sense :-)
+### In the near future:
+ * Convert and/or provide runtime to and from *ANY* JavaScript module system (that makes sense :-).
+   The list includes AMD-strict, AMD-relaxed, nodejs, UMD, strictCommonJS, Harmony etc.
 
 ## Features
  * Fixes some of the most common pains, problems and omittions from your AMD modules.
@@ -35,7 +38,7 @@ You don't need to surround you code with any UMD-like boilerplate or worry about
 
  * **Allows modules to have a 'bundle-root' as a reference point**, where module dependencies are required with an absolute path (eg `models\PersonModel`, aka bundleRelative), with the same semantics on both runtimes. This works in browser with plain AMD/requireJS using `baseUrl`. But on node, dependencies are relative to requiring file (aka fileRelative) which I feel is a source of misconceptions on modularization it self, in regards to development. There are cases that both are usefull though, see the FAQ.
 
- * Run **native node modules** on node(!), from within your AMD modules^. Its MAD, but RequireJS AMD modules wont let you do that (@version 2.1.1).  ^(just make sure the natives aren't executing on browser :-) or better, they are replaced with some other client lib!
+ * Run **native node modules** on node(!), from within your ex-AMD UMDfied modules^. Its MAD, but RequireJS AMD modules wont let you do that (@version 2.1.1).  ^(just make sure the natives aren't executing on browser :-) or better, they are replaced with some other client lib!
 
  * Run *native RequireJS loader plugins*, through RequireJS it self.
 
@@ -95,7 +98,8 @@ For instance you can use both the syntax of sync & asych require, mix absolute/b
 
 * Use the simple `require('depdir/dep')` anywhere you like, without any worries. They are added to your AMD dependencies array if needed at build time, so they do work on both node and web.
 
-* Use the asynchronous *array* version of `require(['depdir/dep'], function(dep){...})`, anywhere you like, web or node. Note that this asynchronous require is the only way to conditionally load 'myHugeButOptionalModule' on the web side. On node it always runs asynchronously just like it does in RequireJS/AMD. *(Note thought that RequireJS is not consistent in its asynchronous call of require(['dep1', 'dep2'], fn): if all your dependencies ['dep1', 'dep2'] have already been loaded/cached before, the call to fn is actually synchronous. urequire aims to match this exact behaviour in subsequent versions)*.
+* Use the asynchronous *array* version of `require(['depdir/dep'], function(dep){...})`, anywhere you like, web or node. Note that this asynchronous require is the only way to conditionally load 'myHugeButOptionalModule' on the web side. On node it always runs asynchronously just like it does in RequireJS/AMD.
+*(Versions of RequireJS older that 2.1.1 were not consistent the asynchronous call of require(['dep1', 'dep2'], fn): if all your dependencies ['dep1', 'dep2'] have already been loaded/cached before, the call to fn is actually synchronous. uRequire can match this exact behaviour, with default follwoing the latest uRequire's trend.
 
 * You dont need to require 'require' on AMD, or use a param 'module', 'exports' when you use the nodejs notation. Its done for you.
 
@@ -103,7 +107,7 @@ For instance you can use both the syntax of sync & asych require, mix absolute/b
 
 * You can map webRoot `/` to a directory of your nodejs environment (--webRootMap option). The directory can be relative to bundle (paths starting with a `.`) or an absolute file system path (eg `f:/jslibs`)
 
-* You can use the requirejs config `baseUrl` and `paths` on node (only those)- just place a file named `requirejs.config.json` in your bundle root directory, with content like {"paths": {"myLib" : "../../myLib"}}. Very usefull for 'importing' bundles, eg running specs against 'myLib' bundle using mocha, jasmine-node etc.
+* You can use the requirejs config `baseUrl` and `paths` on node (only those for now) - just place a file named `requirejs.config.json` in your bundle root directory, with content like {"paths": {"myLib" : "../../myLib"}}. Very usefull for 'importing' bundles, eg running specs against 'myLib' bundle using mocha, jasmine-node etc.
 
 * (0.1.3) - You can use the `.js` extension, as it is allowed by nodejs. Because of the [different semantics in RequireJS](http://requirejs.org/docs/api.html#jsfiles), its fixed(i.e stripped) for you if needed (i.e it exists on your bundle dir).
 
@@ -111,7 +115,7 @@ For instance you can use both the syntax of sync & asych require, mix absolute/b
 
 * (0.1.7) - You can require a native AMD module, one that has not been converted to UMD. VERY unstable, still has issues with  relative paths and not tested enough.
 
-* NEW (0.2.2) - You can convert through an *AMD only* or *nodejs only* format through respective (buildin) templates:
+* NEW (0.2.2) - You can [convert through an *AMD only* or *nodejs only*] (https://github.com/anodynos/urequire#convert-to-pure-amd-or-pure-node) format through respective (buildin) templates:
   Just give `urequire AMD ....`  or `urequire nodejs ....` instead.
 
 * More will follow :-)
@@ -378,7 +382,7 @@ More examples & functionality, watch this space!
 Yes! It's currently being done and its considered a priority.
 
 As of v0.1.6 you can use *native* requirejs modules (that make sense in node?) just like any other module.
-uRequire uses RequireJS for node to actually load the plugin and let it do the actual loading work.
+uRequire uses *RequireJS for node* to actually load the plugin and let it do the actual loading work.
 
 You can just put them on your `bundleRoot` and use them right away:
 eg. to use `"text!myText.txt"` you 'll need to copy [`text.js`](https://github.com/requirejs/text/blob/master/text.js) on your bundleRoot, or put it in a folder relative to bundleRoot and note it on `requirejs.config.json` - see `examples/abc`.
@@ -428,10 +432,12 @@ No, from Universal. Require.
 ###v0.2.x *CURRENT*
 * Refactoring, code documentation, more spec tests, plan for incorporating future functionality.
 
-* Use requireJS built in or 3rd-party plugins (eg. for `text!myTextFile.txt), either through mimicking (easier) or loading the 3rd party plugin it self (challenging & error prone)
+* Use RequireJS (native) plugins in both Web & nodejs requires - For example:
+  `var myText = require('text!myTextFile.txt')`
+  or
+  `define(['json!myjson.json'], function(theJson){...})`
 
 * Mimics the behaviour of RequireJS's `require(['dep1', 'dep2'], function(){})` where if dependencies 'dep1' & 'dep2' are already loaded (i.e cached), the factory function is called synchronously (immediatelly).
-
   **UPDATE: this feature is removed, to match RequireJS >= 2.1.1 behaviour that fixed this.**
 
 * AMD only & nodejs only module tranlation - [see here](https://github.com/anodynos/urequire#convert-to-pure-amd-or-pure-node).

@@ -85,7 +85,7 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
       version: options.version
       moduleType: moduleInfo.moduleType
       modulePath: modyle # full module path within bundle
-      webRootMap: options.webRootMap
+      webRootMap: options.webRootMap || '.'
       arrayDependencies: arrayDependencies
       nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.name() for d in arrayDeps)
       parameters: moduleInfo.parameters

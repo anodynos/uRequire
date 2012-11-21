@@ -54,7 +54,7 @@ class ModuleGeneratorTemplates
           isNode = !isWeb;
     """
 
-    ### @property factoryBody with braces.
+    ### @property factoryBodyUMDPrint
         Includes original (with replaced require paths) + injections like isWeb, isNode etc.
     ###
     @factoryBodyUMDPrint = """
@@ -118,7 +118,7 @@ class ModuleGeneratorTemplates
 
   nodejs: -> """
       #{@header}#{
-        if @o.parameters.length > 0 then "\nvar" else ''} #{
+        if @o.parameters.length > 0 then "\nvar " else ''}#{
         ("#{if paramIdx is 0 then '' else '    '}#{param} = require('#{@o.nodeDependencies[paramIdx]}')#{
           if paramIdx < @o.parameters.length-1 then ',\n' else ';'}" for param, paramIdx in @o.parameters).join('')
       }
