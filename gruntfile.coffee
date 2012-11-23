@@ -51,53 +51,11 @@ module.exports = (grunt) ->
       coffeeSpec:
         command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
 
-      coffeeExamples:
-        command: "coffee -cb -o ./build/examples ./source/examples"
-
-      coffeeAll:
-        command: "coffee -cb -o ./build ./source"
-
       coffeeWatch:
         command: "coffee -cbw -o ./build ./source"
 
-      urequireExampleDeps:
-        command: "urequire UMD build/examples/deps -f"
-
-      urequireExampleDepsNodejs:
-        command: "urequire nodejs build/examples/deps -o build/examples/depsNodejs"
-
-      nodefyDeps:
-        command: "nodefy -o build/examples/depsNodefy build/examples/deps/**/*.js"
-
-      urequireExampleABC:
-        command: "urequire UMD build/examples/abc -f -r ../../.."
-
-      urequireExampleSpecABC:
-        command: "urequire UMD build/examples/spec/abc -f"
-
-      urequireExampleSpecDeps:
-        command: "urequire UMD build/examples/spec/deps -f"
-
-      runExampleDeps:
-        command: "node build/examples/deps/main"
-
-      runExampleAbc:
-        command: "node build/examples/abc/a-lib"
-
-      runExampleRequirejs:
-        command: "node build/examples/rjs/runA"
-
       mocha:
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
-
-      mochaExamples:
-        command: "mocha build/examples/spec/ --recursive --bail --reporter spec"
-
-      mochaExamplesABC:
-        command: "mocha build/examples/spec/abc --recursive --bail --reporter spec"
-
-      mochaExamplesDeps:
-        command: "mocha build/examples/spec/deps --recursive --bail --reporter spec"
 
       chmod: # change urequireCmd.js to executable - linux only (?mac?)
         command:  switch process.platform
@@ -133,6 +91,7 @@ module.exports = (grunt) ->
       main:
         src: [
           '<banner>'
+          '<banner:meta.varVersion>'
           '<%= options.buildDir %>/urequire.js'
         ]
         dest:'<%= options.buildDir %>/urequire.js'
@@ -145,16 +104,10 @@ module.exports = (grunt) ->
 #        dest: './readme.md'
 
     copy:
-      exampleHtmlAndJs:
-        options:
-          flatten:false
-        files:
-          "build/": [ #dest
-            "source/**/*.html"    #source
-            "source/**/*.js"    #source
-            "source/**/*.txt"    #source
-            "source/**/*.json"    #source
-          ]
+      specResources:
+        options: flatten: false
+        files:                       #copy all ["source/**/*.html", "...txt" ]
+          "<%= options.buildSpecDir %>/": ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
 
       globalInstallTests:
         files:
@@ -162,79 +115,42 @@ module.exports = (grunt) ->
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
-      localInstallTests: #needed by the examples, makeNodeRequire()
+      uRequireExamples_node_modules: #needed by the examples, makeNodeRequire()
         files:
-          "node_modules/urequire/build/code/": [ #dest
+          "../uRequireExamples/node_modules/urequire/build/code/": [ #dest
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
     clean:
         files: [
           "<%= options.globalClean %>"
-          "node_modules/urequire/build/code/"
           "<%= options.buildDir %>/**/*.*"
           "<%= options.buildSpecDir %>/**/*.*"
-          "./build/examples/**/*.*"
+          "../uRequireExamples/node_modules/urequire/build/code/"
         ]
 
-  grunt.initConfig gruntConfig
+  ### shortcuts generation ###
 
-  grunt.loadNpmTasks 'grunt-contrib'
-  grunt.loadNpmTasks 'grunt-shell' #https://npmjs.org/package/grunt-shell
-
-  # Default task.
-  grunt.registerTask "default", "clean build copy test"
-  grunt.registerTask "build",   "shell:coffee concat shell:dos2unix copy shell:chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
-  grunt.registerTask "test",    "shell:coffeeSpec shell:mocha"
-  grunt.registerTask "doc",     "shell:doc"
+  # shortcut to all "shell:cmd"
+  grunt.registerTask cmd, "shell:#{cmd}" for cmd of gruntConfig.shell
 
   # generic shortcuts
-  grunt.registerTask "w",       "shell:coffeeWatch"
-  grunt.registerTask "co",      "shell:coffeeAll"
-  grunt.registerTask "b",       "build"
-  grunt.registerTask "bt",      "build test"
-  grunt.registerTask "cbt",     "clean build test"
+  grunt.registerTask shortCut, tasks for shortCut, tasks of {
+     # basic commands
+     "default": "clean build test"
+     "build":   "cf concat dos2unix copy chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
+     "test":    "coffeeSpec mocha"
+      # generic shortcuts
+     "cf":      "shell:coffee" # there's a 'coffee' task already!
+     "cfw":     "coffeeWatch"
+     "c":       "clean"
+     "co":      "copy" #" todo: all ?
+     "b":       "build"
+     "t":       "test"
+  }
 
-  grunt.registerTask "e",       "examples"
-  grunt.registerTask "cbte",    "clean build test examples"
-  grunt.registerTask "be",      "build examples"
-  grunt.registerTask "coe",     "shell:coffeeExamples"
-
-
-  # examples shortcuts
-
-  grunt.registerTask "examples", """
-    shell:coffeeExamples
-    shell:urequireExampleABC
-    shell:urequireExampleDeps
-    shell:urequireExampleSpecABC
-    shell:urequireExampleSpecDeps
-    copy:exampleHtmlAndJs
-    shell:mochaExamples
-    shell:runExampleDeps
-    shell:runExampleAbc
-  """
-
-  grunt.registerTask "ba",      "build abc"
-  grunt.registerTask "abc",     """
-    shell:coffeeExamples
-    shell:urequireExampleABC
-    shell:urequireExampleSpecABC
-    copy:exampleHtmlAndJs
-    shell:runExampleAbc
-    shell:mochaExamplesABC
-  """
-
-  grunt.registerTask "bd",      "build deps"
-  grunt.registerTask "deps",    """
-    shell:coffeeExamples
-    shell:urequireExampleDeps
-    shell:urequireExampleSpecDeps
-    copy:exampleHtmlAndJs
-    shell:runExampleDeps
-    shell:mochaExamplesDeps
-  """
-
-  grunt.registerTask "rjs",     "shell:coffeeExamples shell:runExampleRequirejs"
+  grunt.initConfig gruntConfig
+  grunt.loadNpmTasks 'grunt-contrib'
+  grunt.loadNpmTasks 'grunt-shell' #https://npmjs.org/package/grunt-shell
 
   null

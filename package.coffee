@@ -16,7 +16,7 @@ myPackage =
     url: "http://www.opensource.org/licenses/mit-license.php"
   ]
 
-  keywords: ["AMD", "UMD", "UMDjs", "requirejs", "require", "define", "modules", "modular", "converter", "umdify", "dependency", "dependencies", "bundle"]
+  keywords: ["AMD", "UMD", "UMDjs", "requirejs", "require", "define", "modules", "modular", "converter", "umdify", "nodefy", "browserify", "dependency", "dependencies", "bundle"]
 
   repository:
     type: "git"
@@ -44,7 +44,7 @@ myPackage =
     "commander": "*"
     "wrench" : "*"
     "uglify-js": ">=1.3.3"
-    "requirejs": ">=2.1.1"
+    "requirejs": ">=2.0.6"
 
   devDependencies:
     #"coffee-script": ">=1.3.3" # needed only as global

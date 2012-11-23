@@ -17,8 +17,6 @@ l.debug = (level, msg)->
   if level <= debugLevel
     ldebug "#{level}: NodeRequirer: " + msg
 
-
-
 ###
 The `nodejs`'s require facility.
 
@@ -32,7 +30,6 @@ An instance of `NodeRequirer` is created for each UMD module, when running on no
 
 @author Agelos Pikoulas
 
-@todo: make testeable with specs!
 ###
 class NodeRequirer
   Function::property = (props) -> Object.defineProperty @::, name, descr for name, descr of props
@@ -313,10 +310,11 @@ class NodeRequirer
           Quiting with process.exit(1)
 
           Detailed attempts:
+          #{JSON.stringify att, null, ' ' for att in attempts}
+
+          Debug info:
+          #{@debugInfo}
         """
-      l.debug 100, 'loadedModule = ', loadedModule
-      l.log att for att in attempts
-      l.debug 1, "Debug info:\n", @debugInfo
 
       process.exit(1)
     else

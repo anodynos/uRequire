@@ -1,1 +1,0 @@
-#urequire: Write simple *modular code* once, run everywhere using [UMD](https://github.com/umdjs/umd) based module translation that (currently) targets web [(AMD/requireJS)](http://requirejs.org/) & nodejs/commonjs module systems.

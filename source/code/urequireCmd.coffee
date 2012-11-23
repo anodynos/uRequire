@@ -12,7 +12,7 @@ console.log
 urequireCmd
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <bundlePath> [options]')
-  .version(version) # var version written by grunt's banner
+  .version(version) # 'var version = xxx' written by grunt's banner
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
   .option('-v, --verbose', 'Print module processing information', false)
