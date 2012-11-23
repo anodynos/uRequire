@@ -32,7 +32,7 @@ module.exports = (grunt) ->
       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
       */
       """
-      varVersion: "var version = '<%= pkg.version %>';"
+      varVersion: "var version = '<%= pkg.version %>'; //injected by grunt:concat"
       mdVersion: "# uRequire v<%= pkg.version %>"
       usrBinEnvNode: "#!/usr/bin/env node"
 
@@ -88,13 +88,19 @@ module.exports = (grunt) ->
         ]
         dest:'<%= options.buildDir %>/urequireCmd.js'
 
-      main:
+      convertModule: # conversion version
         src: [
-          '<banner>'
           '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/urequire.js'
+          '<%= options.buildDir %>/process/convertModule.js'
         ]
-        dest:'<%= options.buildDir %>/urequire.js'
+        dest:'<%= options.buildDir %>/process/convertModule.js'
+
+      NodeRequirer: # runtime version
+        src: [
+          '<banner:meta.varVersion>'
+          '<%= options.buildDir %>/NodeRequirer.js'
+        ]
+        dest:'<%= options.buildDir %>/NodeRequirer.js'
 
 #      md:
 #        src: [

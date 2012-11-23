@@ -82,7 +82,7 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
             arrayDependencies.push reqDep.toString()
 
     templateInfo = #
-      version: options.version
+      version: version # 'var version = xxx' added by grunt concat @ .js top. (alt use options.version)
       moduleType: moduleInfo.moduleType
       modulePath: modyle # full module path within bundle
       webRootMap: options.webRootMap || '.'

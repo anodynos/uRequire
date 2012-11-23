@@ -15,7 +15,7 @@ l.debug = (level, msg)->
     msg = level
     level = 99999
   if level <= debugLevel
-    ldebug "#{level}: NodeRequirer: " + msg
+    ldebug "#{level}: *NodeRequirer #{version}*: " + msg
 
 ###
 The `nodejs`'s require facility.
@@ -306,10 +306,8 @@ class NodeRequirer
 
     if not loadedModule
       l.err """
-          urequire: failed to load dependency: '#{dep}' in module '#{@modyle}'
-          Quiting with process.exit(1)
-
-          Detailed attempts:
+          *uRequire #{version}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
+          Quiting with process.exit(1) - Detailed attempts follow:
           #{JSON.stringify att, null, ' ' for att in attempts}
 
           Debug info:

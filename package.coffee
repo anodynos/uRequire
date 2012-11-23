@@ -1,9 +1,9 @@
 myPackage =
   name: "urequire"
 
-  description: "Write modular code once, convert to UMD and run/test on browser/requirejs & nodejs"
+  description: "Module converter: write modular code once, convert to UMD and run/test on AMD (browser/requirejs) & nodejs."
 
-  version: "0.2.3"
+  version: "0.2.4"
 
   homepage: "https://github.com/anodynos/urequire"
 
@@ -16,7 +16,7 @@ myPackage =
     url: "http://www.opensource.org/licenses/mit-license.php"
   ]
 
-  keywords: ["AMD", "UMD", "UMDjs", "requirejs", "require", "define", "modules", "modular", "converter", "umdify", "nodefy", "browserify", "dependency", "dependencies", "bundle"]
+  keywords: ["AMD", "UMD", "UMDjs", "requirejs", "require", "define", "module", "modules", "modular", "format", "convert", "converter", "umdify", "nodefy", "browserify", "dependency", "dependencies", "bundle"]
 
   repository:
     type: "git"
@@ -54,4 +54,5 @@ myPackage =
     "grunt-shell": "*"  # used in many tasks, including urequire-ing examples, compiling coffee etc
     "grunt-contrib": "*" # using clean & copy
 
-require('fs').writeFileSync('./package.json', JSON.stringify(myPackage), 'utf-8')
+require('fs').writeFileSync './package.json', JSON.stringify(myPackage), 'utf-8'
+module.exports = myPackage
