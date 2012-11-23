@@ -334,17 +334,10 @@ U can think of this project as a distant counterpart to [browserify](https://git
  See below, the FAQuestions with one answser.
 
 ###Have you got any examples ?
-* Look at some dummy examples, in either `source/` (coffeescript) or `build/` javascript.
-
-You can compile all coffeescript 'source/' to javascript in 'build/' with `grunt shell:coffeeAll` if you prefer to ({lookAt:'javascript'});
-
-They are dummy, very dummy, just to illustrate the various options: `abc/` is simple, `deps/` is a bit more involved. They have some dummy specs and HTML usage examples.
-
-You can compile, uRequire, test and run examples with `grunt shell:examples`
-
-See all build options and shortcuts in gruntfile.coffee. If you don't use grunt, you should! Its the best js build tool out there!
+All examples are in [uRequireExamples](https://github.com/anodynos/uRequireExamples), the testbed for uRequire & modularity problems/solutions.
 
 ####amd-utils tutorial
+
 Check a more real world one, UMDfying the amd-utils by [millermedeiros](https://github.com/millermedeiros)
 
 0) Grab a copy of [amd-utils](http://millermedeiros.github.com/amd-utils/)
@@ -357,7 +350,8 @@ Check a more real world one, UMDfying the amd-utils by [millermedeiros](https://
 
 4) Run `urequire UMD tests/spec -o UMD/tests/spec`, which converts the spec files to uRequire UMD.
 
-At this point *uRequire will complain that* 'Bundle-looking dependencies not found in bundle' - this is expected: indeed, if you run it with `jasmine-node UMD\tests\spec --matchall` it will fail to find `src\array\append` etc because it has no idea where `src\` is.
+At this point *uRequire will complain that* 'Bundle-looking dependencies not found in bundle' - this is expected: indeed,
+if you run it with `jasmine-node UMD/tests/spec --matchall` it will fail to find `src\array\append` etc because it has no idea where `src\` is.
 
 So just add a `requirejs.config.json` on the specs bundle root (tests/spec), copying from the requirejs config used in SpecRunner.html:
 

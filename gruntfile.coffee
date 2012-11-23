@@ -1,6 +1,6 @@
 _fs = require 'fs'
 
-module.exports = (grunt) ->
+gruntFunction = (grunt) ->
 
   sourceDir     = "source/code"
   buildDir      = "build/code"
@@ -149,8 +149,8 @@ module.exports = (grunt) ->
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
      "cfw":     "coffeeWatch"
-     "c":       "clean"
-     "co":      "copy" #" todo: all ?
+     "cl":       "clean"
+     "cp":      "copy" #" todo: all ?
      "b":       "build"
      "t":       "test"
   }
@@ -160,3 +160,10 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-shell' #https://npmjs.org/package/grunt-shell
 
   null
+
+#debug : call with a dummy 'grunt', that spits params on console.log
+#gruntFunction
+#  initConfig: (cfg)-> console.log 'grunt: initConfig\n', JSON.stringify cfg, null, ' '
+#  loadNpmTasks: (tsk)-> console.log 'grunt: registerTask: ', tsk
+#  registerTask: (shortCut, task)-> console.log 'grunt: registerTask:', shortCut, task
+module.exports = gruntFunction
