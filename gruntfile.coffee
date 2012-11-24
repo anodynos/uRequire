@@ -113,7 +113,8 @@ gruntFunction = (grunt) ->
       specResources:
         options: flatten: false
         files:                       #copy all ["source/**/*.html", "...txt" ]
-          "<%= options.buildSpecDir %>/": ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
+          "<%= options.buildSpecDir %>/":
+            ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
 
       globalInstallTests:
         files:
@@ -128,10 +129,13 @@ gruntFunction = (grunt) ->
           ]
 
     clean:
-        files: [
-          "<%= options.globalClean %>"
+        build: [
           "<%= options.buildDir %>/**/*.*"
           "<%= options.buildSpecDir %>/**/*.*"
+        ]
+
+        deploy: [
+          "<%= options.globalClean %>"
           "../uRequireExamples/node_modules/urequire/build/code/"
         ]
 
@@ -143,15 +147,18 @@ gruntFunction = (grunt) ->
   # generic shortcuts
   grunt.registerTask shortCut, tasks for shortCut, tasks of {
      # basic commands
-     "default": "clean build test"
-     "build":   "cf concat dos2unix copy chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
+     "default": "clean build deploy test"
+     "build":   "clean:build cf copy:specResources concat"
+     "deploy":  "clean:deploy copy dos2unix  chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
      "test":    "coffeeSpec mocha"
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
      "cfw":     "coffeeWatch"
-     "cl":       "clean"
+     "cl":      "clean"
      "cp":      "copy" #" todo: all ?
+
      "b":       "build"
+     "d":       "deploy"
      "t":       "test"
   }
 

@@ -40,16 +40,16 @@ myPackage =
     "node": "*"
 
   dependencies:
-    "lodash": "*"
-    "commander": "*"
-    "wrench" : "*"
-    "uglify-js": ">=1.3.3"
-    "requirejs": ">=2.0.6"
+    "lodash": "0.10.x"
+    "commander": "1.1.x"
+    "wrench" : "1.4.x"
+    "uglify-js": "1.3.x"
+    "requirejs": ">=2.0.6" # needed by NodeRequirer - saves you from having it in your deps
 
   devDependencies:
     #"coffee-script": ">=1.3.3" # needed only as global
     #"codo": ">=1.5.1" # needed only as global
-    "mocha": "*"
+    # "mocha": "*" # needed only as global
     "chai": "*"
     "grunt-shell": "*"  # used in many tasks, including urequire-ing examples, compiling coffee etc
     "grunt-contrib": "*" # using clean & copy
