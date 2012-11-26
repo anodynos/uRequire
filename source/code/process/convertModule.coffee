@@ -30,6 +30,12 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
     moduleInfo.parameters ?= [] #default
     moduleInfo.arrayDependencies ?= [] #default
 
+    if options.noExport
+      delete moduleInfo.rootExports
+    else
+      if _.isString moduleInfo.rootExports
+        moduleInfo.rootExports = [ moduleInfo.rootExports ]
+
     # pass moduleInfo to optional reporting
     if reporter
       for repData in [ (_.pick moduleInfo, reporter.interestingDepTypes) ]
@@ -70,14 +76,15 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
     # replace 'require()' calls using requireReplacements
     moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
-    # load ALL require('dep') fileRelative deps on AMD if there is one-or-more OR we want to scanPrevent)
+    # load ALL require('dep') fileRelative deps on AMD to prevent scan @ runtime.
+    # If there's no deps AND we have --scanAllow, ommit from adding them (unless we have a rootExports)
     # RequireJs disables runtime scan if even one dep exists in [].
     # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDeps).
     # see https://github.com/jrburke/requirejs/issues/467
     arrayDependencies = (d.toString() for d in arrayDeps)
-    if (not _.isEmpty arrayDependencies) or options.scanPrevent
+    if not (_.isEmpty(arrayDependencies) and options.scanAllow and not moduleInfo.rootExports)
       for reqDep in requireDeps
-        if reqDep.pluginName isnt 'node' and
+        if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin name, for nodejs-only-executing modules
           not (reqDep.toString() in arrayDependencies)
             arrayDependencies.push reqDep.toString()
 
@@ -90,9 +97,8 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
       nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.name() for d in arrayDeps)
       parameters: moduleInfo.parameters
       factoryBody: moduleInfo.factoryBody
-
-    if (not options.noExport) and moduleInfo.rootExport
-      templateInfo.rootExport = moduleInfo.rootExport
+      rootExports: moduleInfo.rootExports
+      noConflict: moduleInfo.noConflict
 
     l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'factoryBody'
 

@@ -190,7 +190,7 @@ module.exports = ModuleManipulator
 #log = console.log
 #log "\n## inline test - module info ##"
 #theJs = """
-#//({urequire: {rootExport: 'papari'}})
+#//({urequire: {rootExports: 'papari'}})
 #
 #if (typeof define !== 'function') { var define = require('amdefine')(module); };
 #

@@ -128,6 +128,12 @@ gruntFunction = (grunt) ->
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
+      uBerscore_node_modules: #needed by the examples, makeNodeRequire()
+        files:
+          "../uBerscore/node_modules/urequire/build/code/": [ #dest
+            "<%= options.buildDir %>/**/*.js"  #source
+          ]
+
     clean:
         build: [
           "<%= options.buildDir %>/**/*.*"
@@ -149,7 +155,7 @@ gruntFunction = (grunt) ->
      # basic commands
      "default": "clean build deploy test"
      "build":   "clean:build cf copy:specResources concat"
-     "deploy":  "clean:deploy copy dos2unix  chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
+     "deploy":  "clean:deploy copy dos2unix chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
      "test":    "coffeeSpec mocha"
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
@@ -160,6 +166,14 @@ gruntFunction = (grunt) ->
      "b":       "build"
      "d":       "deploy"
      "t":       "test"
+  }
+
+  # IDE shortcuts
+  grunt.registerTask shortCut, tasks for shortCut, tasks of {
+    "alt-c": "cp"
+    "alt-b": "b"
+    "alt-d": "d"
+    "alt-t": "t"
   }
 
   grunt.initConfig gruntConfig

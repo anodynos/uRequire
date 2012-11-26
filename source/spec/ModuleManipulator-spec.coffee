@@ -83,13 +83,13 @@ describe "ModuleManipulator", ->
       parameters: ['require']
       factoryBody: 'return{foo:bar}'
 
-  it "should ignore amdefine & extract urequire.rootExport and moduleName as well", ->
+  it "should ignore amdefine & extract urequire.rootExports and moduleName as well", ->
     js = """
       if (typeof define !== 'function') { var define = require('amdefine')(module) };
 
       ({
         urequire: {
-          rootExport: 'myLib'
+          rootExports: 'myLib'
         }
       });
 
@@ -100,7 +100,7 @@ describe "ModuleManipulator", ->
       """
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
-      rootExport: 'myLib'
+      rootExports: 'myLib'
       moduleName: 'myModule'
       arrayDependencies: [ 'underscore', 'depdir1/dep1' ]
       moduleType: 'AMD'
@@ -114,7 +114,7 @@ describe "ModuleManipulator", ->
       if (typeof define !== 'function') { var define = require('amdefine')(module); };
       ({
         urequire: {
-          rootExport: 'myLib'
+          rootExports: 'myLib'
         }
       });
 
@@ -146,7 +146,7 @@ describe "ModuleManipulator", ->
 
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
-      rootExport: 'myLib'
+      rootExports: 'myLib'
       moduleName: 'myModule'
       moduleType: 'AMD'
       amdCall: 'define'
