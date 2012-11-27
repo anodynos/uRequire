@@ -11,7 +11,18 @@ class JSManipulator
 
   constructor: (@js = '', @options = {})->
     @options.beautify ?= false
-    @AST = parser.parse @js
+    try
+      @AST = parser.parse @js
+    catch err
+      err.urequireError = """
+            uRequire : error parsing javascript source.
+            Make sure uRequire is using Uglify 1.x, (and NOT 2.x).
+            Otherwise, check you Javascript source!
+            Error=\n
+      """
+      l.err err.urequireError, err
+      throw err
+
     that: this
 
   toCode: (astCode = @AST) ->

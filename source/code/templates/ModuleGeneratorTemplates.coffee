@@ -78,8 +78,7 @@ class ModuleGeneratorTemplates
     #{
       if @o.noConflict
         ("#{if i is 0 then 'var ' else '    '}old_#{exp} = #{rootName}.#{exp}" for exp, i in @o.rootExports).join(',\n') + ';'
-      else
-        ''
+      else ''
     }
     #{("#{rootName}.#{exp} = m" for exp in @o.rootExports).join(';\n') };
     """ + (
@@ -91,8 +90,7 @@ class ModuleGeneratorTemplates
                   return m;
                 };
               """
-            else
-              ''
+            else ''
           ) + "\nreturn m;"
 
 
@@ -106,7 +104,12 @@ class ModuleGeneratorTemplates
         var nr = new (require('urequire').NodeRequirer) ('#{@o.modulePath}', __dirname, '#{@o.webRootMap}');
         module.exports = factory(nr.require#{
           if (@o.moduleType is 'nodejs') then ', exports, module' else ''}#{
-          (", nr.require('#{nDep}')" for nDep in @o.nodeDependencies).join('')});
+          (", nr.require('#{nDep}')" for nDep in @o.nodeDependencies).join('')});#{
+            if false # todo: NOT WORKING!
+              if @o.rootExports and @o.nodejs # Adds browser/root globals for *nodejs* as well
+                @rootExportsNoConflict "module.exports"
+            else ''
+            }
       } else if (typeof define === 'function' && define.amd) {
           define(#{@moduleNamePrint}#{@arrayDependenciesPrint}#{
               if @o.rootExports # Adds browser/root globals
@@ -118,10 +121,9 @@ class ModuleGeneratorTemplates
               }
           );
       }
-    }) (this, function (#{@parametersPrint}) {\n #{@factoryBodyUMDPrint} \n});
-  """
-
-
+    })(this, function (#{@parametersPrint}) {\n #{@factoryBodyUMDPrint} \n});
+  """ # todo: root / global is NOT WORKING for nodejs like 'this' :-)
+      #       maybe we need (global || window || this)
 
   ### AMD template
       Simple `define(['dep'], function(dep){...body...}})`

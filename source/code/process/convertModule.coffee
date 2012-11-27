@@ -33,7 +33,8 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
     if options.noExport
       delete moduleInfo.rootExports
     else
-      if _.isString moduleInfo.rootExports
+      moduleInfo.rootExports = moduleInfo.rootExport if moduleInfo.rootExport #backwards compatible:-)
+      if not _.isArray moduleInfo.rootExports
         moduleInfo.rootExports = [ moduleInfo.rootExports ]
 
     # pass moduleInfo to optional reporting
@@ -97,8 +98,10 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
       nodeDependencies: if options.allNodeRequires then arrayDependencies else (d.name() for d in arrayDeps)
       parameters: moduleInfo.parameters
       factoryBody: moduleInfo.factoryBody
-      rootExports: moduleInfo.rootExports
+
+      rootExports: moduleInfo.rootExports # todo: generalize
       noConflict: moduleInfo.noConflict
+      nodejs: moduleInfo.nodejs #todo: not working
 
     l.verbose 'Template params (main):\n', _.omit templateInfo, 'version', 'modulePath', 'factoryBody'
 

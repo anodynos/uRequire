@@ -45,13 +45,21 @@ processBundle = (options)->
   interestingDepTypes = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
   reporter = new DependenciesReporter(if options.verbose then null else interestingDepTypes )
 
-  bundleFiles =  getFiles options.bundlePath, (fileName)-> true # get all files
-  jsFiles =  getFiles options.bundlePath, (fileName)-> (upath.extname fileName) is '.js'
+  try
+    bundleFiles =  getFiles options.bundlePath, (fileName)-> true # get all files
+    jsFiles =  getFiles options.bundlePath, (fileName)-> (upath.extname fileName) is '.js'
+  catch err
+    l.err "*uRequire #{version}*: Something went wrong reading from #{options.bundlePath}. Error=\n", err
+    process.exit(1) # always
 
-  l.verbose '\nBundle files found: \n', bundleFiles
-
-  for modyle in jsFiles
-    processModule modyle, bundleFiles, options, reporter
+  l.verbose '\nBundle files found: \n', bundleFiles,
+            '\nJs files found: \n', jsFiles
+  try
+    for modyle in jsFiles
+      processModule modyle, bundleFiles, options, reporter
+  catch err
+    l.err "*uRequire #{version}*: Something went wrong when processing #{modyle}. Error=\n", err
+    process.exit(1) if not options.Continue
 
   if not _.isEmpty(reporter.reportData)
     l.log '\n########### urequire, final report ########### :\n', reporter.getReport()
