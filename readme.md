@@ -16,7 +16,7 @@ uRequire does all this for you.
 ## Ultimate Aims
  * A Universal Module Converter: for now its from AMD & nodejs, mainly targeting UMD (but also pure AMD/nodejs).
 
- * Take care of (m)any format intricacies and fix (m)any common pains, problems and omissions from module definition formats. Boilerplate no more!
+ * Cater for (m)any format intricacies and fix (m)any common pains, problems and omissions from module definition formats. Boilerplate no more!
 
  * Remove the *mud* from **UMD**, which is currently the *only true option* for cross-platform modular javascript development, but its ugly. You no longer need to add UMD around your *non-modular code* to AMDdify the *deployment*. You are empowered to use modules to **better structure your code during *development* **.
 
@@ -38,7 +38,7 @@ uRequire does all this for you.
 
 * Based on a 'familiar' standardized [*UMD template*](https://github.com/umdjs/umd/blob/master/returnExports.js) with optional global exports based on [returnExportsGlobal.js](https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js). Also it converts to [native nodejs or AMD](https://github.com/anodynos/urequire#convert-to-pure-amd-or-pure-node) - the latter usefull for r.js optimization & bundling.
 
- * **Accomodates both `define()` and `require()` to work the same way in both browser & node.**
+* **Accomodates both `define()` and `require()` to work the same way in both browser & node.**
 
     * Specifically, the browser AMD-style `require([..], function(..){})` works on nodejs, just as it does on the browser: [asynchronously](https://github.com/anodynos/urequire#asynchronous-require).
 
@@ -57,7 +57,7 @@ uRequire does all this for you.
 
  * Use loader plugins everywhere, web or nodejs.
 
- * Requires no additional dependency on Web AMD/RequireJs. On nodejs you 'll need 'npm install urequire' to execute UMD modules, which gives you extra [deployment functionality](https://github.com/anodynos/urequire#deployment-options).
+ * Requires no additional dependency on Web AMD/RequireJs. On nodejs you 'll need `npm install urequire` to execute UMD modules, which gives you extra [deployment functionality](https://github.com/anodynos/urequire#deployment-options).
 
 ##Module authoring
 With urequire, your modules can be either written in AMD:
@@ -95,7 +95,7 @@ define(['dep1', 'dep2'], function(dep1, dep2) {
    return {my:'module'}
 });
 ```
- **relaxed means you dont need to be strict to either standard, but also it would NOT work as a plain AMD/nodejs module without urequire conversion.*
+ * *relaxed means you dont need to be strict to either standard, but also it would NOT work as a plain AMD/nodejs module without urequire conversion.*
 
 uRequire strives to guarantee that your modules are correctly translated and execute on both target environments, even though the easier, less verbose *relaxed* format is used.
 
@@ -181,7 +181,7 @@ Or use an array :
 
 in case you want many global vars.
 
-These globals be created as keys on 'root' (eg 'window' on browsers), with the module as the the value (possibly overwriting existing keys).
+These globals be created as keys on 'root' (eg `window` on browsers), with the module as the value (possibly overwriting existing keys).
 
 #### No worries, `noConflict`
 If you want to save existing root keys and return to their original value at some point, you can use `noConflict`, with similar behaviour to [jQuery's](api.jquery.com/jQuery.noConflict/).
