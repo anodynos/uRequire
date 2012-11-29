@@ -102,7 +102,7 @@ gruntFunction = (grunt) ->
         ]
         dest:'<%= options.buildDir %>/NodeRequirer.js'
 
-      NodeRequirer: # runtime version
+      processBundle: # runtime version
         src: [
           '<banner:meta.varVersion>'
           '<%= options.buildDir %>/process/processBundle.js'

@@ -6,8 +6,9 @@ getFiles = (path, conditionCb)->
   for mp in _wrench.readdirSyncRecursive(path)
     mFile = _path.join path, mp
     if _fs.statSync(mFile).isFile()
-      if conditionCb mFile
-        files.push mp.replace /\\/g, '/'
+      if conditionCb
+        if conditionCb mFile
+          files.push mp.replace /\\/g, '/'
   return files
 
 module.exports = getFiles

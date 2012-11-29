@@ -70,7 +70,6 @@ class ModuleGeneratorTemplates
       #{ if (@o.moduleType is 'nodejs') then '\nreturn module.exports;' else '' }
     """
 
-
   ### private ###
   rootExportsNoConflict: (factoryFn, rootName='root')-> """
 
@@ -84,7 +83,6 @@ class ModuleGeneratorTemplates
     """ + (
             if @o.noConflict
               """
-
                 m.noConflict = function(){
                 #{("  #{rootName}.#{exp} = old_#{exp}" for exp in @o.rootExports).join(';\n')};
                   return m;
@@ -148,9 +146,8 @@ class ModuleGeneratorTemplates
   nodejs: -> """
       #{@header}#{
         if @o.parameters.length > 0 then "\nvar " else ''}#{
-        ("#{if paramIdx is 0 then '' else '    '}#{param} = require('#{@o.nodeDependencies[paramIdx]}')#{
-          if paramIdx < @o.parameters.length-1 then ',\n' else ';'}" for param, paramIdx in @o.parameters).join('')
-      }
+        ("#{if pi is 0 then '' else '    '}#{param} = require('#{@o.nodeDependencies[pi]}')" for param, pi in @o.parameters).join(',\n')
+      };
 
       #{@factoryBodyInjects}
 
