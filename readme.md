@@ -1,4 +1,4 @@
-# uRequire v0.2.6
+# uRequire v0.2.7
 
 **Write *modular Javascript code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation/conversion that targets Web [(AMD/RequireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
 
@@ -8,29 +8,29 @@
 
 The main drive behind uRequire is to enable you to author **boilerplate-free** *modular javascript code* once, and seamlessly execute & test it everywhere (for now **browser** & **nodejs**).
 
-With a simple build step, uRequire converts your modules to UMD (& more) using static code analysis, a code generation template system and build/runtime path resolution + other runtime goodies.
+With a simple build step, uRequire converts your modules to UMD (& more) using static code analysis, a code generation template system and build/runtime path resolution along with other runtime goodies.
 
 ### How ?
 
 Your source can be written either in the 'strict' AMD format `define([], function(){})` or the nodejs/commonjs `require('dep')`.
 
-But, you can also use a *relaxed* or *hybrid* version, eg. use asynch `require`s everywhere and other kinky features.
+But, you can also use a *relaxed* or *hybrid* version, (eg. use asynch `require([], fn)`s everywhere) and extra kinky features.
 
 uRequire converts it to suitable UMD format that can be deployed everywhere.
 
 ### Extras ? Kinky ?
 
-You don't need to surround you code with any UMD-like boilerplate or worry about:
+ * You don't need to surround you code with any UMD-like boilerplate
 
- * [path translations](https://github.com/anodynos/uRequire#bundleRelative-vs-fileRelative-paths), eg from `../../../PersonModel` to `data/PersonModel`
+ * Universal [path translations](https://github.com/anodynos/uRequire#bundleRelative-vs-fileRelative-paths), eg from `../../../PersonModel` to `data/PersonModel`
 
- * missing `require('')` declarations on `define([],...)` that [halt your app](https://github.com/anodynos/uRequire#never-miss-a-dependency)
+ * Never miss a `require('')` declaration on `define([],...)` that [halts your app](https://github.com/anodynos/uRequire#never-miss-a-dependency)
 
- * using RequireJS [loader plugins](https://github.com/anodynos/uRequire#requirejs-loader-plugins)
+ * You can use **RequireJS [loader plugins](https://github.com/anodynos/uRequire#requirejs-loader-plugins)**
 
- * hand-coding module features like exporting to [`root`/`global`/`window`](https://github.com/anodynos/uRequire#simplified-rootexports), or implementing [`noConflict()`](https://github.com/anodynos/uRequire#no-worries-noconflict) etc.
+ * Forget hand-coding boring module features like exporting to [`root`/`global`/`window`](https://github.com/anodynos/uRequire#simplified-rootexports), or implementing [`noConflict()`](https://github.com/anodynos/uRequire#no-worries-noconflict) etc.
 
-uRequire does all this magic for you.
+**`{"uDeclare": "uRequire does all this magic for you."}`**
 
 ### Moto
 
@@ -38,13 +38,13 @@ uRequire does all this magic for you.
 
 *if you're in hurry to code, jump to [features](https://github.com/anodynos/uRequire#features-at-a-glance) and if you wanna hit 'build' goto [Module authoring](https://github.com/anodynos/uRequire/#module-authoring).*
 
-## The cautious Architect's intro: ** Ultimate Aims **
+## The cautious Architect's intro: *Ultimate Aims*
 
 ### A Universal Module Converter
 
-Right now uRequire converts only from *AMD and/or nodejs **to UMD** * and **to pure AMD/nodejs**.
+Right now uRequire converts only from *AMD and/or nodejs* **to UMD**  and **to pure AMD/nodejs**.
 
-The aim is to provide conversion TO and FROM *ANY* JavaScript module systems. Many are obvious (eg Harmony) but it should also convert (or provide transparent runtimes) for plain old html `<script/>` (eg. to help authors of generic .js libs).
+The aim is to provide conversion TO and FROM *ANY* JavaScript module systems. Many are obvious (eg Harmony) but it should also convert (and/or provide transparent runtimes) for plain old html `<script/>` (eg. to help authors of generic .js libs).
 
 uRequire is using a [flexible template](https://github.com/anodynos/uRequire/tree/master/source/code/templates/ModuleGeneratorTemplates.coffee) written in pure Coffeescript, that can do wonders, albeit simple. An average CS coder would need <30 minutes for a 10 liner template like ['nodejs'](https://github.com/anodynos/uRequire/tree/master/source/code/templates/ModuleGeneratorTemplates.coffee#L146-161).
 
@@ -52,7 +52,8 @@ uRequire is using a [flexible template](https://github.com/anodynos/uRequire/tre
 
 uRequire removes the *mud* from **UMD**, which is currently the *only true option* for cross-platform modular javascript development, but its *ugly*.
 
-You will no longer need to add UMD around your *non-modular code* to AMDdify the *deployment*. You are empowered to use modules to **better structure your code during *development* **.
+U will no longer add UMD around your **non-modular code** to AMDdify the *deployment*.
+U are empowered to use modules to **better structure your code** during *development*.
 
 Keep it DRY!
 
@@ -99,16 +100,16 @@ uRequire empowers a form of *declarative feature injection* for modules.
 
 * Declaratively generates the boilerplate for [`rootExports`](https://github.com/anodynos/uRequire#simplified-rootExports) (global variables to export, eg '_', '$' etc), from a simple declarative setting, on any module. Additionally [`noConflict()`](https://github.com/anodynos/uRequire#no-worries-noconflict) boilerplate code can be produced on any module, again declarativelly.
 
- * Checks your dependencies are valid at build time. It identifies dependencies within bundle boundaries and whether those exist.
- It also identifies and works with 'globals', 'externals', ['webRootMap',  'requireJS baseUrl/paths'](https://github.com/anodynos/uRequire#mappings) etc. In future versions uRequire will check their validity, before deploying.
+* Checks your dependencies are valid at build time. It identifies dependencies within bundle boundaries and whether those exist.
+It also identifies and works with 'globals', 'externals', ['webRootMap',  'requireJS baseUrl/paths'](https://github.com/anodynos/uRequire#mappings) etc. In future versions uRequire will check their validity, before deploying.
 
- * Use [loader plugins](https://github.com/anodynos/uRequire#requirejs-loader-plugins) everywhere, web or nodejs.
+* Use [loader plugins](https://github.com/anodynos/uRequire#requirejs-loader-plugins) everywhere, web or nodejs.
 
- * Requires no additional dependency on Web AMD/RequireJs. On nodejs you 'll need `npm install urequire` to execute UMD modules, which gives you extra [deployment functionality](https://github.com/anodynos/uRequire#deployment-options).
+* Requires no additional dependency on Web AMD/RequireJs. On nodejs you 'll need `npm install urequire` to execute UMD modules, which gives you extra [deployment functionality](https://github.com/anodynos/uRequire#deployment-options).
 
 ##Module authoring
 
-With urequire, your modules can be either written in AMD:
+With uRequire, your modules can be either written in AMD:
 
 ```js
 // standard anonymous module format
@@ -143,7 +144,7 @@ define(['dep1', 'dep2'], function(dep1, dep2) {
    return {my:'module'}
 });
 ```
- * *relaxed means you dont need to be strict to either standard, but also it would NOT work as a plain AMD/nodejs module without urequire conversion.*
+ * *relaxed means you dont need to be strict to either standard, but also it would NOT work as a plain AMD/nodejs module without uRequire conversion.*
 
 uRequire strives to guarantee that your modules are correctly translated and execute on both target environments, even though the easier, less verbose *relaxed* format is used.
 
@@ -152,7 +153,7 @@ The idiosyncrasies and limitations of module formats are waived, so you can focu
 For instance you can use both the syntax of sync & asych require, mix absolute/bundleRelative with fileRelative paths, forget about requiring `require` or `module`/`exports` and just be sure that your code will execute on both runtimes in a consistent way.
 
 
-### bundleRelative VS fileRelative paths
+### *bundleRelative* VS *fileRelative* paths
 
 You can use *bundleRelative* (i.e. absolute 'depdir/dep') or *fileRelative* (i.e relative '../../dep') paths interchangeably.
 
@@ -677,7 +678,8 @@ and all others - see package.json dependencies.
 
 ### Further information & articles
 
-[Patterns For Large-Scale JavaScript Application Architecture](http://addyosmani.com/largescalejavascript/) by [Addy Osmani](http://twitter.com/addyosmani)
+* [Writing Modular JavaScript With AMD, CommonJS & ES Harmony](http://addyosmani.com/writing-modular-js/) by [Addy Osmani](http://twitter.com/addyosmani)
+* [Patterns For Large-Scale JavaScript Application Architecture](http://addyosmani.com/largescalejavascript/) by [Addy Osmani](http://twitter.com/addyosmani)
 
 
 
