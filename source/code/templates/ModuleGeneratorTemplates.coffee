@@ -82,7 +82,7 @@ class ModuleGeneratorTemplates
     #{("#{rootName}.#{exp} = m" for exp in @o.rootExports).join(';\n') };
     """ + (
             if @o.noConflict
-              """
+              """\n
                 m.noConflict = function(){
                 #{("  #{rootName}.#{exp} = old_#{exp}" for exp in @o.rootExports).join(';\n')};
                   return m;
@@ -116,8 +116,7 @@ class ModuleGeneratorTemplates
                 "}"
               else
                 'factory'
-              }
-          );
+              });
       }
     })(this, function (#{@parametersPrint}) {\n #{@factoryBodyUMDPrint} \n});
   """ # todo: root / global is NOT WORKING for nodejs like 'this' :-)

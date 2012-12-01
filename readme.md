@@ -1,4 +1,4 @@
-# uRequire v0.2.7
+# uRequire v0.2.8
 
 **Write *modular Javascript code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation/conversion that targets Web [(AMD/RequireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
 
@@ -46,7 +46,7 @@ Right now uRequire converts only from *AMD and/or nodejs* **to UMD**  and **to p
 
 The aim is to provide conversion TO and FROM *ANY* JavaScript module systems. Many are obvious (eg Harmony) but it should also convert (and/or provide transparent runtimes) for plain old html `<script/>` (eg. to help authors of generic .js libs).
 
-uRequire is using a [flexible template](https://github.com/anodynos/uRequire/tree/master/source/code/templates/ModuleGeneratorTemplates.coffee) written in pure Coffeescript, that can do wonders, albeit simple. An average CS coder would need <30 minutes for a 10 liner template like ['nodejs'](https://github.com/anodynos/uRequire/tree/master/source/code/templates/ModuleGeneratorTemplates.coffee#L146-161).
+uRequire is using a [flexible template](https://github.com/anodynos/uRequire/tree/master/source/code/templates/ModuleGeneratorTemplates.coffee) written in pure Coffeescript, that can do wonders, albeit simple. An average CS coder would need <30 minutes for a 10 liner template like ['nodejs'](https://github.com/anodynos/uRequire/tree/6d04decd63e/source/code/templates/ModuleGeneratorTemplates.coffee#L146-161).
 
 ### Boilerplate no more!
 
@@ -77,7 +77,7 @@ The aim is that when no browser/DOM or nodejs specifics are present, the same so
 
 uRequire can generate code and inject it on modules. With flexible templates (& parsers), it can also convert *code structure*.
 
-Hence popular *standardized* functionalities and structures (like [`noConflict()`](https://github.com/anodynos/uRequire/tree/master/source/code/templates/ModuleGeneratorTemplates.coffee#L74-92)), no longer have to be *hand-crafted*. The less code u write, the less errors and barriers!
+Hence popular *standardized* functionalities and structures (like [`noConflict()`](https://github.com/anodynos/uRequire/tree/6d04decd63e/source/code/templates/ModuleGeneratorTemplates.coffee#L74-92)), no longer have to be *hand-crafted*. The less code u write, the less errors and barriers!
 
 uRequire empowers a form of *declarative feature injection* for modules.
 
@@ -524,7 +524,7 @@ Not really.
 
 * If you use nodeJs with and have used the asynch `require([], function(){})`, and you want to go back to strict node format, you "ll have some more work to do converting to `var a = require('a')` and changing its asynch nature, but it shouldn't be so hard (the other way around is much harder).
 
-###Hey, I 've heard browserify *makes node-style require() work in the browser with a server-side build step*. Is it similar to this? Is it better ?
+### Hey, I 've heard browserify *makes node-style require() work in the browser with a server-side build step*. Is it similar to this? Is it better ?
 
 Similar? Better? not really. And at the same time, YES, absolutely!
 
@@ -538,11 +538,11 @@ U can think of this project as a distant counterpart to [browserify](https://git
  #### But hey, can I combine them ?
  See below, the FAQuestions with one answser.
 
-###Have you got any examples ?
+### Have you got any examples ?
 
 All examples are in [uRequireExamples](https://github.com/anodynos/uRequireExamples), the testbed for uRequire & modularity problems/solutions.
 
-####amd-utils tutorial
+#### amd-utils tutorial
 
 Check a more real world one, UMDfying the amd-utils by [millermedeiros](https://github.com/millermedeiros)
 
@@ -685,7 +685,7 @@ and all others - see package.json dependencies.
 
 *PS: Excuse my typo errors, I need to get a solid dictionary for ** WebStorm ** (which otherwise rocks!)*
 
-#License
+# License
 The MIT License
 
 Copyright (c) 2012 Agelos Pikoulas (agelos.pikoulas@gmail.com)

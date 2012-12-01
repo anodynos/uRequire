@@ -34,8 +34,9 @@ convertModule = (modyle, oldJs, bundleFiles, options, reporter)->
       delete moduleInfo.rootExports
     else
       moduleInfo.rootExports = moduleInfo.rootExport if moduleInfo.rootExport #backwards compatible:-)
-      if not _.isArray moduleInfo.rootExports
-        moduleInfo.rootExports = [ moduleInfo.rootExports ]
+      if moduleInfo.rootExports
+        moduleInfo.rootExports = [moduleInfo.rootExports] if not _.isArray moduleInfo.rootExports
+
 
     # pass moduleInfo to optional reporting
     if reporter
