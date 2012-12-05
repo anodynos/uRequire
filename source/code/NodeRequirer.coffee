@@ -1,5 +1,7 @@
 _ = require 'lodash'
 _fs = require 'fs'
+
+slang = require './utils/slang'
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
@@ -279,9 +281,7 @@ class NodeRequirer
               urequireError: "Error loading node or UMD module through nodejs require."
               modulePath: _modulePath, requireUsed: 'nodeRequire', error: err
 
-            suffix = '.js' # make sure we have it @todo:unhack @todo: can it be if global ?
-            if _modulePath.indexOf(suffix, _modulePath.length - suffix.length) is -1
-              _modulePath += '.js'
+            _modulePath = slang.addFileExt _modulePath, '.js' # make sure we have it @todo: Q: can it be if global ?
 
             if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
               l.debug 25, "FAILURE caused: @getRequirejs() '#{_modulePath}'"

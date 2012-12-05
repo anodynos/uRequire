@@ -79,7 +79,9 @@ class ModuleGeneratorTemplates
         ("#{if i is 0 then 'var ' else '    '}old_#{exp} = #{rootName}.#{exp}" for exp, i in @o.rootExports).join(',\n') + ';'
       else ''
     }
+
     #{("#{rootName}.#{exp} = m" for exp in @o.rootExports).join(';\n') };
+
     """ + (
             if @o.noConflict
               """\n
@@ -140,7 +142,14 @@ class ModuleGeneratorTemplates
                       }
                     )(#{@parametersPrint})
                   """, 'window' # rootName
-            ) + "\n});" # thank you jashkenas! see his coffeescript presentation, ending with }); what a joy!
+            ) + "\n});"
+
+  # 'combine' is based on AMD, infusing global as window in case we have rootExports/noConflict
+  combine: -> """
+    (function(window) {
+      #{@AMD()}
+    })(__global);
+  """
 
   nodejs: -> """
       #{@header}#{

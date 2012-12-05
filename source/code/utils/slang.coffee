@@ -1,4 +1,7 @@
-module.exports =
+_ = require 'lodash'
+_.mixin (require 'underscore.string').exports()
+
+slang =
   # takes object o & returns a fn, that returns o[key] ? default value (with key '*')
   certain: (o)-> (key)-> o[key] ? o['*']
 
@@ -13,3 +16,10 @@ module.exports =
       obj[key] = keyValPairs[idx+1]
     return obj
 
+  ## filename related
+  ###
+  @return file + ext, if it doesnt have it (eg add .js to output .js file)
+  ###
+  addFileExt: (file, ext)-> file + if _(file).endsWith(ext) then '' else ext
+
+module.exports = slang

@@ -105,9 +105,9 @@ gruntFunction = (grunt) ->
       processBundle: # runtime version
         src: [
           '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/process/processBundle.js'
+          '<%= options.buildDir %>/process/BundleProcessor.js'
         ]
-        dest:'<%= options.buildDir %>/process/processBundle.js'
+        dest:'<%= options.buildDir %>/process/BundleProcessor.js'
 
 #      md:
 #        src: [
