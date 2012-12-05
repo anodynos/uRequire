@@ -46,6 +46,7 @@ myPackage =
     "uglify-js": "1.3.x"
     "requirejs": ">=2.0.6" # needed by NodeRequirer - saves you from having it in your deps
     "almond": "*" # needed for combine with r.js optimizer
+    "uberscore": "*"
 
   devDependencies:
     #"coffee-script": ">=1.3.3" # needed only as global

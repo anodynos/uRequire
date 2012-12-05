@@ -1,8 +1,8 @@
 ## reporting, in this format
 _ = require 'lodash'
-log = console.log
-slang = require './utils/slang'
+_B = require 'uberscore'
 
+log = console.log
 
 #
 # Embarrasing piece of code, full of misnomers and very custom to this project,
@@ -59,7 +59,7 @@ class DependenciesReporter
             else
               ''
     if depType
-      @addReportData (slang.objkv {}, depType, [dep.resourceName]), modyle
+      @addReportData (_B.okv {}, depType, [dep.resourceName]), modyle
 
   # Augments reportData, that ends up in this form
   #   {

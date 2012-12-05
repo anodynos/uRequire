@@ -3,13 +3,14 @@ _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
 _fs = require 'fs'
 _wrench = require 'wrench'
+_B = require 'uberscore'
 
 # uRequire
 slang = require '../utils/slang'
 upath = require '../paths/upath'
 getFiles = require "./../utils/getFiles"
 DependenciesReporter = require './../DependenciesReporter'
-convertModule = require './convertModule'
+ModuleConverer = require './ModuleConverter'
 l = require './../utils/logger'
 
 class BundleProcessor
@@ -44,19 +45,40 @@ class BundleProcessor
               """
             process.exit(1);
 
+    @options.include ?= [/.*\.(coffee|iced|coco)$/i, /.*\.(js|javascript)$/i] # by default include all
+
     if @options.template is 'combine'
       @options.combinedFile = slang.addFileExt @options.outputPath, '.js'
       @options.outputPath = "#{@options.combinedFile}__temp"
       @interestingDepTypes.push 'global'
 
     @reporter = new DependenciesReporter(if @options.verbose then null else @interestingDepTypes)
-    @loadBundle()
+    @modulesSourceJs = {}
+    @readBundleFiles()
+
+  getModuleSourceJS: (modyle)->
+    if @modulesSourceJs[modyle]
+      @modulesSourceJs[modyle]
+    else
+      source = _fs.readFileSync "#{@options.bundlePath}/#{modyle}", 'utf-8'
+      if upath.extname(modyle) is 'coffee'
+        cs = require 'coffee-script'
+        try
+          source = cs.compile source, bare:true
+        catch err
+          err.uRequire = "Coffeescript mpilation error:\n"
+          l.err err.uRequire, err
+          process.exit(1) if not @options.Continue
+
+    @modulesSourceJs[modyle] = source
+
 
   processModule: (modyle)->
     l.verbose '\nProcessing module: ', modyle
 
-    oldJs = _fs.readFileSync "#{@options.bundlePath}/#{modyle}", 'utf-8'
-    newJs = convertModule modyle, oldJs, @bundleFiles, @options, @reporter
+
+    mc = new ModuleConverer modyle, @getModuleSourceJS(modyle), @bundleFiles, @options, @reporter
+    newJs = mc.convert()
 
     outputFile = upath.join @options.outputPath, modyle
 
@@ -66,26 +88,20 @@ class BundleProcessor
 
     _fs.writeFileSync outputFile, newJs, 'utf-8'
 
-  loadBundle:->
+  readBundleFiles:->
     try
-      @bundleFiles =  getFiles @options.bundlePath # get all files
-      @jsFiles =  getFiles @options.bundlePath,
-        (bundleFilename)=>
-          (upath.extname(bundleFilename) is '.js') and (
-            @options.exclude is undefined or
-            bundleFilename not in @options.exclude
-          )
+      @bundleFiles =  getFiles @options.bundlePath # get all filenames
+
+      @moduleFiles =  getFiles @options.bundlePath,
+        (moduleFilename)=>
+                _B.inFilters(moduleFilename, @options.include) and
+                not _B.inFilters(moduleFilename, @options.exclude)
     catch err
       l.err "*uRequire #{version}*: Something went wrong reading from '#{@options.bundlePath}'. Error=\n", err
       process.exit(1) # always
 
-    l.verbose """\n
-              Bundle files found:
-              #{@bundleFiles}
-
-              Js files found:
-              #{@jsFiles}
-              """
+    l.verbose 'Bundle files found (*.*):\n', @bundleFiles,
+              'Module files found (js, coffee etc):\n', @moduleFiles
 
   ###
 
@@ -141,7 +157,7 @@ class BundleProcessor
   ###
   processBundle: ()->
 
-    for modyle in @jsFiles
+    for modyle in @moduleFiles
       try
         @processModule modyle
       catch err

@@ -1,4 +1,6 @@
 _ = require 'lodash'
+_B = require 'uberscore'
+
 l = require './../utils/logger'
 seekr = require './seekr'
 
@@ -28,12 +30,12 @@ class JSManipulator
   toCode: (astCode = @AST) ->
     proc.gen_code astCode, beautify: @options.beautify
 
-  evalByType: slang.certain {
+  evalByType: _B.certain {
     'string': (val)-> (@toCode val).replace /\"|\'/g, ''
     #'array': (val)->
     #'object': (val)->
     '*': (val)-> @toCode val
-    }
+    }, '*'
 
   safeEval: (elem)=>
     @evalByType(elem[0]).call this, elem #todo change call pattern, bind to instance otherwise

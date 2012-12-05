@@ -61,7 +61,8 @@ urequireCmd
 urequireCmd
   .command('config <configFilePath>') #todo: move out of urequireCmd
   .action (configFilePath)->
-    options = require _fs.realpathSync(configFilePath)
+
+    options = require _fs.realpathSync(configFilePath) # todo: load from JSON, JS(object literal), Coffee(object literal)
 
     # assume bundlePath if empty
     options.bundlePath ?= upath.dirname configFilePath
@@ -108,9 +109,6 @@ options.version = urequireCmd.version()
 
 # to log or not to log
 if not options.verbose then l.verbose = ->
-
-#console.log "\n", urequireCmd
-#console.log "\n", options
 
 urequire = require './urequire'
 bp = new urequire.BundleProcessor(options)

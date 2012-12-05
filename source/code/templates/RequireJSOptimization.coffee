@@ -9,13 +9,13 @@ module.exports =
 
   wrap:
     start: """
-      var isAMD = (typeof define === 'function' && define.amd),
-          isNode = (typeof exports === 'object'),
+      var __isAMD = (typeof define === 'function' && define.amd),
+          __isNode = (typeof exports === 'object'),
           __global = null,
-          nodeRequire = function(){};
+          __nodeRequire = function(){};
 
-      if (isNode) {
-          nodeRequire = require;
+      if (__isNode) {
+          __nodeRequire = require;
           __global = global;
       } else {
           __global = window;
@@ -28,10 +28,10 @@ module.exports =
           return require('uBerscore');
       };
 
-      if (isAMD) {
+      if (__isAMD) {
           define(['lodash'], factory);
       } else {
-          if (isNode) {
+          if (__isNode) {
               module.exports = factory();
           } else {
               factory();
@@ -40,7 +40,7 @@ module.exports =
     """
 
     # We dont have AMD:
-    #require('lodash')
+    # require('lodash')
     # * run the almond factory,
 
     # * rely on globals xxx been established with getGlobal_xxx
