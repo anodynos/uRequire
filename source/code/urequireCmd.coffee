@@ -3,6 +3,9 @@ urequireCmd = require 'commander'
 l = require './utils/logger'
 upath = require './paths/upath'
 _fs = require 'fs'
+_wrench = require "wrench"
+
+
 
 options = {}
 
@@ -59,16 +62,26 @@ urequireCmd
 
 
 urequireCmd
-  .command('config <configFilePath>') #todo: move out of urequireCmd
-  .action (configFilePath)->
+  .command('config <configFile>') #todo: move out of urequireCmd
 
-    options = require _fs.realpathSync(configFilePath) # todo: load from JSON, JS(object literal), Coffee(object literal)
+  # todo: better/generic way to load from JSON, JS(object literal), Coffee(object literal) ?
+  .action (configFile)->
+    cfg = _fs.realpathSync configFile
 
-    # assume bundlePath if empty
-    options.bundlePath ?= upath.dirname configFilePath
+    if upath.extname(cfg) is '.coffee' # #todo: add .coco etc
+      js = (require 'coffee-script').compile (_fs.readFileSync cfg, 'utf-8'), bare:true
+      _fs.writeFileSync upath.changeExt(cfg, '.js'), js, 'utf-8'
 
-    # add configFilePath to exclude'd files ?
-    (options.exclude ?= []).push upath.relative(options.bundlePath, configFilePath)
+    options = require upath.changeExt(cfg, '.js')
+
+    _fs.unlinkSync upath.changeExt(cfg, '.js')
+
+    # Some basics options checks
+    # assume bundlePath, if its empty
+    options.bundlePath ?= upath.dirname configFile
+    # add configFile to exclude'd files ?
+    (options.exclude ?= []).push upath.relative(options.bundlePath, configFile)
+    (options.exclude ?= []).push upath.relative(options.bundlePath, upath.changeExt(configFile, '.js'))
 
 
 urequireCmd.on '--help', ->

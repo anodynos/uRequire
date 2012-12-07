@@ -1,4 +1,6 @@
 _fs = require 'fs'
+_ = require 'lodash'
+_B = require 'uberscore'
 
 gruntFunction = (grunt) ->
 
@@ -60,12 +62,13 @@ gruntFunction = (grunt) ->
       chmod: # change urequireCmd.js to executable - linux only (?mac?)
         command:  switch process.platform
           when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
-          else "rem" #do nothing
+          else "@echo" #do nothing
+
 
       dos2unix: # download from http://sourceforge.net/projects/dos2unix/files/latest/download
         command: switch process.platform
           when "win32" then "dos2unix build/code/urequireCmd.js"
-          else "echo" #do nothing
+          else "@echo" #do nothing
 
       globalInstall:
         command: "npm install -g"
@@ -123,6 +126,8 @@ gruntFunction = (grunt) ->
           "<%= options.buildSpecDir %>/":
             ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
 
+  if process.platform is "win32" then _B.deepExtend gruntConfig,
+    copy:
       globalInstallTests:
         files:
           "<%= options.globalBuildCode %>": [ #dest
@@ -141,16 +146,19 @@ gruntFunction = (grunt) ->
             "<%= options.buildDir %>/**/*.js"  #source
           ]
 
+  _B.deepExtend gruntConfig,
     clean:
-        build: [
-          "<%= options.buildDir %>/**/*.*"
-          "<%= options.buildSpecDir %>/**/*.*"
-        ]
+      build: [
+        "<%= options.buildDir %>/**/*.*"
+        "<%= options.buildSpecDir %>/**/*.*"
+      ]
 
-        deploy: [
-          "<%= options.globalClean %>"
-          "../uRequireExamples/node_modules/urequire/build/code/"
-        ]
+  if process.platform is "win32" then _B.deepExtend gruntConfig,
+    clean:
+      deploy: [
+        "<%= options.globalClean %>"
+        "../uRequireExamples/node_modules/urequire/build/code/"
+      ]
 
   ### shortcuts generation ###
 

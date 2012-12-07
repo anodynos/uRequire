@@ -2,16 +2,23 @@ Features
 
 * r.js optimize & bundle
 
-* watch - copy coffeescript's
+* watch - copy coffeescript's method ?
+
+* compile from coffee etc
+  issue with `coffee -bare` & `define [], ->`, it leaves some stuff outside define([], function(){})  eg. `__slice = [].slice;`
+  Remedy: use nodejs format.
+  Should read everything before and after `define()` ? And stick it where ?
 
 * use Esprima instead of uglify
 
-* function sniff it!
+* function sniff it! Use YouAreDaChef
 
 * urequire config
-  - uRequire : [ '*.js'] #default, if ommited - can include list of inclusions
+  - uRequire : [ '*.js'] #default, if omited - can include list of inclusions
+
   - justCopy : false #
                      # can be []<String> of filenames / templates to skip uRequiring.
+
   - ignore: files to do nothing with - eg "myNotes.txt" !
 
   - a 'requirejs: config: or requirejs 'link'!

@@ -1,6 +1,7 @@
 ## reporting, in this format
 _ = require 'lodash'
 _B = require 'uberscore'
+Dependency = require './Dependency'
 
 log = console.log
 
@@ -11,26 +12,36 @@ log = console.log
 # TODO: refactor it to more generic. Make specs
 class DependenciesReporter
 
-  constructor: (@interestingDepTypes = _.keys(dependencyTypesMessages))->
+  constructor: (@interestingDepTypes = _.keys dependencyTypesMessages )->
     @reportData = {}
 
-  dependencyTypesMessages=
+  dependencyTypesMessages =
+
+    ### 'problematic' ones ###
     untrustedRequireDependencies:
       header: "\u001b[31m Untrusted require('') dependencies found:"
       footer: "They are IGNORED. If evaluated name of the require() isnt in dependency array [..] before require() call, your app WILL HALT and WILL NOT WORK on the web-side (but should be OK on node).\u001b[0m"
     untrustedAsyncDependencies:
       header: "\u001b[31m Untrusted async require(['']) dependencies found:"
       footer: "They are IGNORED. If evaluated name of the require([..]) isnt found, you'll get an http error on web, or exception 'module not found' on node.).\u001b[0m"
-    notFoundInBundle:
-      header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
-      footer: "They are added as-is.\u001b[0m"
-    external:
-      header: "External dependencies (not checked in this version):"
-      footer: "They are added as-is."
-    global:
+
+    ### simply interesting :-) ###
+
+  DT = Dependency.TYPES
+  _B.okv dependencyTypesMessages,
+    DT.global,
       header: "Global-looking dependencies (not checked in this version):"
       footer: "They are added as-is."
-    webRoot:
+
+    DT.notFoundInBundle,
+      header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
+      footer: "They are added as-is.\u001b[0m"
+
+    DT.external,
+      header: "External dependencies (not checked in this version):"
+      footer: "They are added as-is."
+
+    DT.webRoot,
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
 
@@ -43,38 +54,24 @@ class DependenciesReporter
      texts.footer}\n
    """
 
-  reportDep: (dep, modyle)->
-    depType =
-      if dep.isGlobal()
-        'global'
-      else # external-looking deps, like '../../../someLib'
-        if not (dep.isBundleBoundary() or dep.isWebRoot())
-          'external'
-        else  # seem to belong to bundle, but not found, like '../myLib'
-          if dep.isBundleBoundary() and not (dep.isFound() or dep.isGlobal())
-            'notFoundInBundle'
-          else  # webRoot deps, like '/assets/myLib'
-            if dep.isWebRoot()
-              'webRoot'
-            else
-              ''
-    if depType
-      @addReportData (_B.okv {}, depType, [dep.resourceName]), modyle
-
   # Augments reportData, that ends up in this form
   #   {
   #     global: { 'underscore': [ 'some/module', 'other/module' ] },
   #     external: { '../../some/external/lib': [ 'some/module' ]}
   #   }
+  #
   # @param {Object} resolvedDeps, eg
-  #     external:[ '../../some/external/lib', '../../../anotherLib'' ]
-  #     notFoundInBundle:[ '../lame/dir', 'another/lame/lib']
-  # @param {String} modyle The module name
+  #     global: [ 'lodash' ]
+  #     external: [ '../../some/external/lib', '../../../anotherLib'' ]
+  #     notFoundInBundle: [ '../lame/dir', 'another/lame/lib']
+  #
+  # @param {String} modyle The module name, eg 'isAgree.js'
   addReportData: (resolvedDeps, modyle)->
     for depType, resDeps of resolvedDeps when (not _.isEmpty resDeps) and depType in @interestingDepTypes
       @reportData[depType] or= {}
       for resDep in resDeps
-        (@reportData[depType][resDep] or= []).push modyle
+        foundModules = (@reportData[depType][resDep] or= [])
+        foundModules.push modyle if modyle not in foundModules
     null
 
   getReport: ()->
@@ -86,11 +83,20 @@ class DependenciesReporter
 
 module.exports = DependenciesReporter
 
+
+## some debugging code
+#(require('YouAreDaChef').YouAreDaChef DependenciesReporter)
+#
+#  .before 'addReportData', ( resolvedDeps, modyle)->
+#    console.log 'addReportData:', {resolvedDeps, modyle}
+#
+
 ##inline tests
 #rep = new DependenciesReporter()
 #
 #rep.addReportData {
-#    dependencies: [ 'data/messages/hello', 'data/messages/bye' ],
+#    untrustedAsyncDependencies: [ "data + '/messages/hello'", "data + '/messages/bye'" ],
+#    notFoundInBundle: ['data/missingLib.js']
 #    parameters: [],
 #    requireDependencies: [],
 #    wrongDependencies: [ 'require(msgLib)' ],

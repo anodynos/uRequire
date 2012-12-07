@@ -4,12 +4,13 @@ _B = require 'uberscore'
 l = require './../utils/logger'
 seekr = require './seekr'
 
+parser = require("uglify-js").parser
+proc = require("uglify-js").uglify
+_B = require 'uberscore'
+
 # todo: doc it!
 
 class JSManipulator
-  parser = require("uglify-js").parser
-  proc = require("uglify-js").uglify
-  slang = require './../utils/slang'
 
   constructor: (@js = '', @options = {})->
     @options.beautify ?= false
@@ -17,15 +18,13 @@ class JSManipulator
       @AST = parser.parse @js
     catch err
       err.urequireError = """
-            uRequire : error parsing javascript source.
-            Make sure uRequire is using Uglify 1.x, (and NOT 2.x).
-            Otherwise, check you Javascript source!
-            Error=\n
+        uRequire : error parsing javascript source.
+        Make sure uRequire is using Uglify 1.x, (and NOT 2.x).
+        Otherwise, check you Javascript source!
+        Error=\n
       """
       l.err err.urequireError, err
       throw err
-
-    that: this
 
   toCode: (astCode = @AST) ->
     proc.gen_code astCode, beautify: @options.beautify
@@ -76,7 +75,7 @@ class JSManipulator
 class ModuleManipulator extends JSManipulator
   constructor: (js, @options = {})->
     super
-    @options.extractFactory ?= false
+    @options.extractFactory or= false
     @moduleInfo = {} #store all returned info here
     @AST_FactoryBody = null # a ref to the factoryBody, used to produce factBody & l8r to mutate requires
 
@@ -217,7 +216,7 @@ module.exports = ModuleManipulator
 #   }
 #   require('myOtherRequire');
 #  }
-#  console.log("\n main-requiring starting....");
+#  console.log("main-requiring starting....");
 #  var crap = require("crap" + i); //not read
 #
 #  require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
@@ -236,10 +235,10 @@ module.exports = ModuleManipulator
 #"""
 #
 #theJs = """
-#  b = require('b/b-lib');
+#  var b = require('b/b-lib');
 #  module.exports = {b:'b'}
 #"""
 #
-#modMan = new ModuleManipulator theJs, beautify:false
+#modMan = new ModuleManipulator theJs, {beautify:false, extractFactory:true}
 #modMan.extractModuleInfo()
 #log modMan.moduleInfo

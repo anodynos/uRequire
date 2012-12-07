@@ -6,11 +6,10 @@ _wrench = require 'wrench'
 _B = require 'uberscore'
 
 # uRequire
-slang = require '../utils/slang'
 upath = require '../paths/upath'
 getFiles = require "./../utils/getFiles"
 DependenciesReporter = require './../DependenciesReporter'
-ModuleConverer = require './ModuleConverter'
+UModule = require './UModule'
 l = require './../utils/logger'
 
 class BundleProcessor
@@ -48,42 +47,28 @@ class BundleProcessor
     @options.include ?= [/.*\.(coffee|iced|coco)$/i, /.*\.(js|javascript)$/i] # by default include all
 
     if @options.template is 'combine'
-      @options.combinedFile = slang.addFileExt @options.outputPath, '.js'
+      @options.combinedFile = upath.addExt @options.outputPath, '.js'
       @options.outputPath = "#{@options.combinedFile}__temp"
       @interestingDepTypes.push 'global'
 
     @reporter = new DependenciesReporter(if @options.verbose then null else @interestingDepTypes)
-    @modulesSourceJs = {}
     @readBundleFiles()
 
-  getModuleSourceJS: (modyle)->
-    if @modulesSourceJs[modyle]
-      @modulesSourceJs[modyle]
-    else
-      source = _fs.readFileSync "#{@options.bundlePath}/#{modyle}", 'utf-8'
-      if upath.extname(modyle) is 'coffee'
-        cs = require 'coffee-script'
-        try
-          source = cs.compile source, bare:true
-        catch err
-          err.uRequire = "Coffeescript mpilation error:\n"
-          l.err err.uRequire, err
-          process.exit(1) if not @options.Continue
 
-    @modulesSourceJs[modyle] = source
+  #store @uModules
+  processModule: (filename)->
+    l.verbose '\nProcessing module: ', filename
+    moduleSource = _fs.readFileSync "#{@options.bundlePath}/#{filename}", 'utf-8'
 
+    uModule = new UModule filename, moduleSource, @bundleFiles,
+                          @options, @reporter # @todo: dismiss these two!
 
-  processModule: (modyle)->
-    l.verbose '\nProcessing module: ', modyle
+    newJs = uModule.convert()
 
-
-    mc = new ModuleConverer modyle, @getModuleSourceJS(modyle), @bundleFiles, @options, @reporter
-    newJs = mc.convert()
-
-    outputFile = upath.join @options.outputPath, modyle
+    outputFile = upath.join @options.outputPath, "#{upath.trimExt filename}.js" # fixed, output is always .js
 
     if not (_fs.existsSync upath.dirname(outputFile))
-      l.verbose "creating directory #{upath.dirname(outputFile)}"
+      l.verbose "Creating directory #{upath.dirname outputFile}"
       _wrench.mkdirSyncRecursive upath.dirname(outputFile)
 
     _fs.writeFileSync outputFile, newJs, 'utf-8'
@@ -94,14 +79,14 @@ class BundleProcessor
 
       @moduleFiles =  getFiles @options.bundlePath,
         (moduleFilename)=>
-                _B.inFilters(moduleFilename, @options.include) and
-                not _B.inFilters(moduleFilename, @options.exclude)
+          _B.inFilters(moduleFilename, @options.include) and
+          not _B.inFilters(moduleFilename, @options.exclude)
     catch err
       l.err "*uRequire #{version}*: Something went wrong reading from '#{@options.bundlePath}'. Error=\n", err
       process.exit(1) # always
 
     l.verbose 'Bundle files found (*.*):\n', @bundleFiles,
-              'Module files found (js, coffee etc):\n', @moduleFiles
+              '\nModule files found (js, coffee etc):\n', @moduleFiles
 
   ###
 
@@ -161,7 +146,8 @@ class BundleProcessor
       try
         @processModule modyle
       catch err
-        l.err "*uRequire #{version}*: Something went wrong when processing #{modyle}. Error=\n", err
+        l.err "*uRequire #{version}*: Something went wrong while processing '#{modyle}'. Error=\n", err
+        throw err
         process.exit(1) if not @options.Continue
 
     if @options.template is 'combine'
@@ -172,3 +158,4 @@ class BundleProcessor
 
 
 module.exports = BundleProcessor
+
