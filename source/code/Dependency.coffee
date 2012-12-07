@@ -105,7 +105,7 @@ class Dependency
 
 
   isFound: ()-> # @todo: Remove .js dependency - Might have a dep to 'a.js' but we have 'a.coffee'
-    knownExtensions = ['.js', 'coffee'] # @todo: retrieve this info from elsewhere (eg BundleProcessor ?)
+    knownExtensions = ['.js', 'coffee'] # @todo: retrieve this info from elsewhere (eg Bundle ?)
     for ke in knownExtensions
       if (@bundleRelative() + (if @extname then '' else ke)) in @bundleFiles
         return true

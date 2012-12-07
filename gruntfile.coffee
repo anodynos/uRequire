@@ -91,13 +91,6 @@ gruntFunction = (grunt) ->
         ]
         dest:'<%= options.buildDir %>/urequireCmd.js'
 
-      convertModule: # conversion version
-        src: [
-          '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/process/convertModule.js'
-        ]
-        dest:'<%= options.buildDir %>/process/convertModule.js'
-
       NodeRequirer: # runtime version
         src: [
           '<banner:meta.varVersion>'
@@ -105,12 +98,12 @@ gruntFunction = (grunt) ->
         ]
         dest:'<%= options.buildDir %>/NodeRequirer.js'
 
-      processBundle: # runtime version
+      process: # runtime version
         src: [
           '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/process/BundleProcessor.js'
+          '<%= options.buildDir %>/process/Bundle.js'
         ]
-        dest:'<%= options.buildDir %>/process/BundleProcessor.js'
+        dest:'<%= options.buildDir %>/process/Bundle.js'
 
 #      md:
 #        src: [

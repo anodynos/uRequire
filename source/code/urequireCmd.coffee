@@ -124,5 +124,4 @@ options.version = urequireCmd.version()
 if not options.verbose then l.verbose = ->
 
 urequire = require './urequire'
-bp = new urequire.BundleProcessor(options)
-bp.processBundle();
+bp = new urequire.Bundle(options)
