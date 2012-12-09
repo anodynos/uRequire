@@ -8,6 +8,7 @@ Dependency = require "../Dependency"
 l = require '../utils/logger'
 
 module.exports =
+
 class UModule
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
@@ -16,11 +17,11 @@ class UModule
     @_constructor.apply @, arguments
 
   _constructor: (
-    @filename    # the full filename of this module, eg 'models/PersonModel.coffee'
-    @_sourceCode # String of source code eg coffee (or .js)
     @bundle      # todo: 'bundle' where it belongs
+    @filename    # the full filename of this module, eg 'models/PersonModel.coffee'
+    @sourceCode # Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
   )->
-    @adjustModuleInfo()
+    # @adjustModuleInfo() is called on sourceCode.set
 
   ### @return {String} the filename extension of this module, eg `.js` or `.coffee`###
   @property extname:
@@ -32,9 +33,10 @@ class UModule
 
   ###
     Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
+
     Everytime it is set, it checks to see if new & adjusts the module information (require's etc).
 
-    It does not convert, as it wait for instructions from the bundle (eg add some injected Dependencies etc)
+    It does not convert, as it waits for instructions from the bundle (eg add some injected Dependencies etc)
   ###
   @property sourceCode:
     enumerable: false
@@ -42,14 +44,14 @@ class UModule
     set: (src)->
       if src isnt @_sourceCode
         @_sourceCode = src
-        @_sourceCodeJs = ''
+        @_sourceCodeJs = false # mark for compilation to Js might be needed
         @adjustModuleInfo()
 
-  ### Module source code, in Js ###
+  ### Module source code, compiled to JavaScript if it aint already so ###
   @property sourceCodeJs: get: ->
     if not @_sourceCodeJs
       if @extname is '.js'
-        @_sourceCodeJs = @_sourceCode
+        @_sourceCodeJs = @sourceCode
       else # compile to coffee, iced, coco etc
         if @extname is '.coffee'
           l.verbose 'Compiling coffeescript:', @filename
@@ -106,7 +108,7 @@ class UModule
     mi = moduleManipulator.extractModuleInfo()
 
     if _.isEmpty mi
-      l.warn "Not AMD/node module '#{@filename}', copying as-is."
+      l.warn "Not AMD/nodejs module '#{@filename}', copying as-is."
     else if mi.moduleType is 'UMD'
         l.warn "Already UMD module '#{@filename}', copying as-is."
     else if mi.untrustedArrayDependencies
@@ -152,7 +154,6 @@ class UModule
               deps.push dep
               requireReplacements[strDep] = dep.name()
 
-
               if dep.type # for reporting!
                 (@depenenciesTypes[dep.type] or= []).push dep.resourceName
 
@@ -180,7 +181,7 @@ class UModule
 
       @reportDeps()
 
-  ### simply for reference (we could have passed UModule instance it self :-) ###
+  ### for reference (we could have passed UModule instance it self :-) ###
   @property templateInfo: get: -> _B.go { # @todo: report coffeescript problem: `class A \n prop: {@prop1, prop2}` gives `prop1:A.prop1, prop2:A.prop2` instead of
       @moduleName
       @moduleType

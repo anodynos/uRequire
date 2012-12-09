@@ -16,11 +16,11 @@ module.exports =
 class Bundle
   Function::property = (props) -> Object.defineProperty @::, name, descr for name, descr of props
   Function::staticProperty = (props) => Object.defineProperty @::, name, descr for name, descr of props
-  
+  constructor:->@_constructor.apply @, arguments
+
   interestingDepTypes: ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
 
-  constructor: ->
-    @_constructor.apply @, arguments
+  @staticProperty requirejs: get:=> require 'requirejs'
 
   _constructor: (@options)->
     l.verbose "uRequire #{@options.version}: Processing bundle with @options:\n", @options
@@ -49,15 +49,18 @@ class Bundle
             process.exit(1);
 
     # setup up options & defaults
-    @options.include ?= [/.*\.(coffee|iced|coco)$/i, /.*\.(js|javascript)$/i] # by default include all
+    @options.include ?= [
+        /.*\.(coffee)$/i, #/.*\.(coffee|iced|coco)$/i
+        /.*\.(js|javascript)$/i
+    ] # by default include all
 
     if @options.template is 'combine'
+      @interestingDepTypes.push 'global'
       @options.combinedFile = upath.addExt @options.outputPath, '.js'
       @options.outputPath = "#{@options.combinedFile}__temp"
-      @interestingDepTypes.push 'global'
 
     @reporter = new DependenciesReporter(if @options.verbose then null else @interestingDepTypes)
-    @uModules = []
+    @uModules = {}
     @readBundleFiles()
     @process()
 
@@ -112,15 +115,18 @@ class Bundle
   processModule: (filename)->
     moduleSource = _fs.readFileSync "#{@options.bundlePath}/#{filename}", 'utf-8'
 
-    uModule = _.find @uModules, (uM)-> uM.filename is filename
+    # check exists & source up to date
+    if uM = @uModules[filename]
+      if uM.sourceCode isnt moduleSource
+        delete @uModule[filename]
 
-    if not uModule
-      @uModules.push uModule = new UModule filename, moduleSource, @
-    else
-      uModule.sourceCode = moduleSource # if sourceCode changes, it readjusts moduleInfo
+    if not @uModules[filename]
+      uM = @uModules[filename] = new UModule @, filename, moduleSource
 
-    if not uModule.convertedJs # it has changed, and conversion is needed & then saved
-      newJs = uModule.convert()
+
+    ## lets convert !
+    if not uM.convertedJs # it has changed, and conversion is needed & then saved
+      newJs = uM.convert()
       outputFile = upath.join @options.outputPath, "#{upath.trimExt filename}.js" # fixed, output is always .js
 
       if not (_fs.existsSync upath.dirname(outputFile))
@@ -129,19 +135,57 @@ class Bundle
 
       _fs.writeFileSync outputFile, newJs, 'utf-8'
 
+  # Globals dependencies & the variables they might bind with, like {jquery: ['$', 'jQuery']}
+  #
+  # The information is gathered from all modules and joined together.
+  #
+  # Also use options information about globals & the vars they bind with.
+  #
+  # If there is a global that ends up with empty vars eg {myStupidGlobal:[]} (cause nodejs format was used and var names are NOT read there)
+  # Then myStupidGlobal MUST have a var name on the config/options.
+  # @todo: Otherwise, we should alert for fatal error & perhaps quit!
+  # @todo : refactor & generalize !
+  @property globalDepsVars: get:->
+    _globalDepsVars = {}
+
+    gatherDepsVars = (depsVars)->
+      for dep, vars of depsVars
+        existingVars = (_globalDepsVars[dep] or= [])
+        existingVars.push v for v in (_B.arrayize vars) when v not in existingVars
+
+    for uMK, uModule of @uModules
+      gatherDepsVars uModule.globalDepsVars
+
+    if optsDepsVars = @options?.combine?.globalDeps?.varNames
+      gatherDepsVars _.pick(optsDepsVars, _.keys _globalDepsVars)
+
+    _globalDepsVars
+
   ###
 
   ###
   combine:->
-    rjs = require 'requirejs'
-    rjsConfig = require '../templates/RequireJSOptimization'
+
+    almondTemplates = new (require '../templates/AlmondOptimizationTemplate') {
+      globalDepsVars: @globalDepsVars
+      main: "uBerscore"
+    }
+
+    console.log almondTemplates.dependencyFiles
+
+    for fileName, code of almondTemplates.dependencyFiles
+      _fs.writeFileSync "#{@options.outputPath}/#{fileName}.js", code, 'utf-8'
+
+    rjsConfig = {}
+    rjsConfig.paths = almondTemplates.paths
+    rjsConfig.wrap = almondTemplates.wrap
     rjsConfig.baseUrl = @options.outputPath
-    rjsConfig.include = @options.mainName || 'main' # add index & other sensible defaults
+    rjsConfig.include = @options.main || 'main' # @todo: add index & other sensible defaults
     rjsConfig.out = @options.combinedFile
+    rjsConfig.optimize = "none" #  uglify: {beautify: true, no_mangle: true} ,
     rjsConfig.name = 'almond'
 
-    # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
-    try
+    try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
       _fs.writeFileSync "#{@options.outputPath}/almond.js",
         (_fs.readFileSync "#{__dirname}/../../../node_modules/almond/almond.js", 'utf-8'), 'utf-8'
     catch err
@@ -156,8 +200,9 @@ class Bundle
       _fs.unlinkSync @options.combinedFile
     catch err #todo : handle it ?
 
-    # actually optimize with r.js
-    rjs.optimize rjsConfig, (buildResponse)->
+
+    l.verbose "optimize with r.js with a kind of 'build.js' = ", JSON.stringify _.omit(rjsConfig, ['wrap']), null, ' '
+    @requirejs.optimize rjsConfig, (buildResponse)->
       l.verbose 'r.js buildResponse = ', buildResponse
       if false # not @options.watch @todo implement watch
         _wrench.rmdirSyncRecursive @options.outputPath

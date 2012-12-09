@@ -1,0 +1,15 @@
+{"paths": {
+		"src" : "../../src",
+		"text": [
+      "requirejs_plugins/text",
+      "/libs/requirejs_plugins/json",
+      "../../../libs/requirejs_plugins/json",
+      "paths/that/fail/in/fallbackPaths/haltit/github.com/jrburke/requirejs/issues/524"
+    ],
+    "json": [
+      "/libs/requirejs_plugins/json",
+      "../../../libs/requirejs_plugins/json"
+    ],
+    "use": "/libs/requirejs_plugins/use"
+	}
+}
