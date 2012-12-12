@@ -4,17 +4,8 @@ _fs = require 'fs'
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
-
-# @todo: move debug level functionality on logger.coffee :-)
-l = require './utils/logger'
-debugLevel = 0
-ldebug = l.debug
-l.debug = (level, msg)->
-  if _.isString level
-    msg = level
-    level = 99999
-  if level <= debugLevel
-    ldebug "#{level}: *NodeRequirer #{version}*: " + msg
+Logger = require './utils/Logger'
+l = new Logger 'NodeRequirer'
 
 ###
 The `nodejs`'s require facility.

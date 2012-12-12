@@ -5,31 +5,28 @@ upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
-l = require '../utils/logger'
+Logger = require '../utils/Logger'
+l = new Logger 'UModule'
 
 module.exports =
 
 class UModule
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-
-  constructor: ->
-    @_constructor.apply @, arguments
+  constructor:->@_constructor.apply @, arguments
 
   _constructor: (
-    @bundle      # todo: 'bundle' where it belongs
-    @filename    # the full filename of this module, eg 'models/PersonModel.coffee'
+    @bundle      # `Bundle` where it belongs
+    @filename    # full filename of module, eg 'models/PersonModel.coffee'
     @sourceCode # Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
   )->
     # @adjustModuleInfo() is called on sourceCode.set
 
   ### @return {String} the filename extension of this module, eg `.js` or `.coffee`###
-  @property extname:
-    get:-> upath.extname @filename
+  @property extname: get:-> upath.extname @filename
 
   ### @return {String} filename, as read from filesystem (i.e bundleRelative) without extension eg `models/PersonModel` ###
-  @property modulePath:
-    get:-> upath.trimExt(@filename)
+  @property modulePath: get:-> upath.trimExt @filename
 
   ###
     Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
@@ -61,13 +58,22 @@ class UModule
           catch err
             err.uRequire = "Coffeescript compilation error:\n"
             l.err err.uRequire, err
-            process.exit(1) if not @bundle.options.Continue
+            throw err
 
     return @_sourceCodeJs
 
-  convert: (template = @bundle.options.template) ->
+  convert: (build) ->
+    l.debug 10, "Converting uModule #{@modulePath} with template: #{build.template}"
     if @isConvertible
-      @convertedJs = (new ModuleGeneratorTemplates @templateInfo)[template]()
+      ti = @templateInfo
+
+      if build.noRootExports
+        delete ti.rootExports
+      else
+        ti.rootExports = ti.rootExport if ti.rootExport and not ti.rootExports #backwards compatible:-)
+        ti.rootExports = _B.arrayize ti.rootExports
+
+      @convertedJs = (new ModuleGeneratorTemplates ti)[build.template]()
     else
       @convertedJs = @sourceCodeJs
 
@@ -87,7 +93,7 @@ class UModule
       if @isConvertible
         if _.isEmpty @_globalDepsVars # reset at @adjustModuleInfo()
           for d, idx in @arrayDependencies
-            d = new Dependency d, @filename, @bundle.filenames
+            d = new Dependency d, @filename, @bundle.filenames # @todo: store these elsewhere ?
 
             if d.isGlobal() # store the variable(s) associated with it (if there is one & not exists!)
               gdv = (@_globalDepsVars[d.resourceName] or= [])
@@ -97,6 +103,7 @@ class UModule
       else {}
 
 
+  # Extract AMD/module information fpr this module, and augment this instance.
   adjustModuleInfo: ->
     # reset info holders
     @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
@@ -104,6 +111,9 @@ class UModule
     @isConvertible = false
     @convertedJs = ''
 
+    # @todo: break into properties, keeping originals in @moduleInfo,
+    #        calculating @arrayDependencies etc dynamically
+    #         Therefore dependencies can be added at ease!
     moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     mi = moduleManipulator.extractModuleInfo()
 
@@ -117,13 +127,6 @@ class UModule
       @isConvertible = true
       mi.parameters ?= [] #default
       mi.arrayDependencies ?= [] #default
-
-      if @bundle.options.noExport
-        delete mi.rootExports
-      else
-        mi.rootExports = mi.rootExport if mi.rootExport #backwards compatible:-)
-        if mi.rootExports
-          mi.rootExports = [mi.rootExports] if not _.isArray mi.rootExports
 
       # remove *reduntant parameters* (those in excess of the arrayDeps),
       # requireJS doesn't like them if require is 1st param!
@@ -167,16 +170,18 @@ class UModule
       # RequireJs disables runtime scan if even one dep exists in [].
       # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDeps).
       # see https://github.com/jrburke/requirejs/issues/467
+
       mi.arrayDependencies = (d.toString() for d in arrayDeps)
-      if not (_.isEmpty(mi.arrayDependencies) and @bundle.options.scanAllow and not mi.rootExports)
+      if not (_.isEmpty(mi.arrayDependencies) and @bundle.scanAllow and not mi.rootExports)
         for reqDep in requireDeps
           if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin,  signaling nodejs-only executing modules. hence dont add to arrayDeps!
             not (reqDep.toString() in mi.arrayDependencies)
               mi.arrayDependencies.push reqDep.toString()
 
-      mi.nodeDependencies = if @bundle.options.allNodeRequires then mi.arrayDependencies else (d.name() for d in arrayDeps)
+      mi.nodeDependencies = if @bundle.allNodeRequires then mi.arrayDependencies else (d.name() for d in arrayDeps)
 
-      @webRootMap = @bundle.options.webRootMap || '.'
+      @webRootMap = @bundle.webRootMap || '.'
+
       _.extend @, mi
 
       @reportDeps()
@@ -195,7 +200,43 @@ class UModule
       @noConflict
   }, fltr: (v)->not _.isUndefined v
 
+  ###
+    @param { Object | []<String> } dependencyVariables see `bundle.dependencies.bundle`
 
+    `['dep1', 'dep2']`
+
+      or
+
+    ```
+    {
+      'underscore': '_'
+      'jquery': ["$", "jQuery"]
+      'models/PersonModel': ['persons', 'personsModel']
+    }
+    ```
+    These dependencies are added to this module, on all dep arrays + parameters
+
+  ###
+  addDependencies: (dependencyVariables)->
+    @nodeDependencies = @arrayDependencies # we must have the same deps
+                                           # @TODO:CRITICAL must find where arrayDeps have excessive deps (to params),
+                                           # just for requireJs's sake, and insert them there!
+    addDepVar = (dep, varName)-> # todo: NOT IMPLEMTED
+      v.log "ADDING Dependency to module #{@modulePath} : ", dep, varName
+      #@arrayDependencies_BEFORE_ADDING_REQUIRES.push dep
+      #@parameters_IN_SYNC_WITH_ABOVE.push varName
+
+    if _.isArray dependencyVariables
+      depsVars = _.extend @bundle.globalDepsVars, @bundle.dependencies.variableNames # @todo: merge arrays, instead of overwritting
+      for dep in dependencyVariables
+        for varName in depsVars[dep]
+          addDepVar dep, varName
+
+    else
+      if _.isObject dependencyVariables
+        for dep, variables of dependencyVariables
+          for varName in variables
+            addDepVar dep, varName
 
 ## some debugging code
 
@@ -207,7 +248,7 @@ class UModule
 #
 #
 #
-(require('YouAreDaChef').YouAreDaChef UModule)
+#(require('YouAreDaChef').YouAreDaChef UModule)
 
 #  .after '_constructor', ()->
 #    l.debug 100, '\n######### UModule _constructor finished', {
@@ -222,11 +263,11 @@ class UModule
 #  .before /.*/, (match, args...)->
 #    console.log "#### before: #{match}", args
 
-  .before 'convert', ->
-    l.verbose 'Converting with templateInfo = \n', (
-        _B.go @templateInfo,
-          fltr: (v, k)-> not _B.inFilters k, ['factoryBody', /webRootMap/]
-      )
+#  .before 'convert', ->
+#    l.verbose 'Converting with templateInfo = \n', (
+#        _B.go @templateInfo,
+#          fltr: (v, k)-> not _B.inFilters k, ['factoryBody', /webRootMap/]
+#      )
 
 
 

@@ -1,12 +1,13 @@
 _ = require 'lodash'
 _B = require 'uberscore'
 
-l = require './../utils/logger'
+Logger = require '../utils/Logger'
+l = new Logger 'ModuleManipulator'
 seekr = require './seekr'
 
 parser = require("uglify-js").parser
 proc = require("uglify-js").uglify
-_B = require 'uberscore'
+
 
 # todo: doc it!
 
