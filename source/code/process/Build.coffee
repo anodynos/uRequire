@@ -20,7 +20,7 @@ class Build
 
     @out = @outputModuleToFile unless @out
 
-  #@todo : check outputPath exists
+  #@todo : check @outputPath exists
   outputModuleToFile: (modulePath, content)->
     @outputToFile upath.join(@outputPath, "#{modulePath}.js"), content
 

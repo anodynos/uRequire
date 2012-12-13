@@ -19,6 +19,7 @@ class BundleBuilder
   constructor: ->@_constructor.apply @, arguments
 
   _constructor: (@cfg)->
+
     # todo: cater for `simple` format and bring up to the full format
 
     @cfg.bundle.VERSION = '0.3.0 Alpha - change this!'

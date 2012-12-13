@@ -7,6 +7,8 @@ Dependency = require './Dependency'
 Logger = require './utils/Logger'
 l = new Logger 'NodeRequirer'
 
+Logger::debug.level = 0 # disable debug
+
 ###
 The `nodejs`'s require facility.
 

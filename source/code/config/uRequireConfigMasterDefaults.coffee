@@ -74,22 +74,6 @@ uRequireConfig = # Command line options overide these.
     ###
     webRootMap: '.'
 
-    ###
-    *Web/AMD side only option* :
-
-    By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime.
-
-    With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (i.e. nodejs source modules).
-    NOTE: modules with rootExports / noConflict() always have `scanAllow: false`
-    ###
-    scanAllow: false
-
-    ###
-    Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps [].
-    Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.
-    ###
-    allNodeRequires: false
-
     dependencies:
 
       ###
@@ -118,14 +102,15 @@ uRequireConfig = # Command line options overide these.
 
       Each dep will be available in the *whole bundle* under varName(s)
 
-      @param {Object} example {
+      @example {
         'underscore': '_'
         'jquery': ["$", "jQuery"]
         'models/PersonModel': ['persons', 'personsModel']
       }
       @todo: NOT IMPLEMENTED
+      @todo: rename to exports.bundle ?
       ###
-      bundleExports: false
+      bundleExports: undefined
 
       ###
       Export these modules to root/window: works only on Browser (uRequire <=0.3)
@@ -137,16 +122,16 @@ uRequireConfig = # Command line options overide these.
         vars: ['someModuleGlobalVars']
         noConflict: true
       ###
-      rootExports:
-        uBerscore:
-          # descr: 'export these names as global keys, with the value being this uModule.'
-          # type: ['String', '[]'], default: 'undefined'
-          vars: ['uBerscore', '_B']
-
-          # descr: 'Generate noConflict() for uModule'
-          # types: ['boolean', 'function'], default: false
-          # @todo: 'function' not implemented, not even specified!
-          noConflict: false
+#      rootExports:
+#        uBerscore:
+#          # descr: 'export these names as global keys, with the value being this uModule.'
+#          # type: ['String', '[]'], default: 'undefined'
+#          vars: ['uBerscore', '_B']
+#
+#          # descr: 'Generate noConflict() for uModule'
+#          # types: ['boolean', 'function'], default: false
+#          # @todo: 'function' not implemented, not even specified!
+#          noConflict: false
 
 
     ### Build / conversion behaviour  ###
@@ -204,7 +189,25 @@ uRequireConfig = # Command line options overide these.
     ignore exports
     ###
     noRootExports: false
+
     noBundleExports: false
+
+    ###
+    *Web/AMD side only option* :
+
+    By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime.
+
+    With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (i.e. nodejs source modules).
+    NOTE: modules with rootExports / noConflict() always have `scanAllow: false`
+    ###
+    scanAllow: false
+
+    ###
+    Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps [].
+    Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.
+    ###
+    allNodeRequires: false
+
 
     verbose: false
 

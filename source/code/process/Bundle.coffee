@@ -128,7 +128,42 @@ class Bundle
 
     _globalDepsVars
 
+  ###
+    @param { Object | []<String> } dependencyVariables see `bundle.dependencies.bundle`
 
+    `['dep1', 'dep2']`
+
+      or
+
+    ```
+    {
+      'underscore': '_'
+      'jquery': ["$", "jQuery"]
+      'models/PersonModel': ['persons', 'personsModel']
+    }
+    ```
+    These dependencies are added to this module, on all dep arrays + parameters
+
+    @todo : FIX TO CATER FOR var exports format, discover variables names etc
+    Must end up like this
+
+    bundleExports: {
+        'lodash': ['_', 'lodashleme']}
+      }
+  ###
+  addDependencies: (dependencyVariables)->
+
+    if _.isArray dependencyVariables
+      depsVars = _.extend @bundle.globalDepsVars, @bundle.dependencies.variableNames # @todo: merge arrays, instead of overwritting
+      for dep in dependencyVariables
+        for varName in depsVars[dep]
+          addDepVar dep, varName
+
+    else
+      if _.isObject dependencyVariables
+        for dep, variables of dependencyVariables
+          for varName in variables
+            addDepVar dep, varName
 
 
 
@@ -143,8 +178,6 @@ class Bundle
         haveChanges = true
         #@todo: reset reporter!
 
-        # First, dependency inject information
-        # @todo: inject `bundleDependencies`
 
         convertedJS = uModule.convert build # @todo change this
 

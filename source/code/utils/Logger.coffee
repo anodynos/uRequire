@@ -35,6 +35,6 @@ class Logger
       if level <= Logger::debug.level
         log.apply @, msgs
 
-  @::debug.level = 0
+Logger::debug.level = 100
 
 

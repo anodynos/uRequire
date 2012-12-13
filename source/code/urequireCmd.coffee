@@ -33,22 +33,22 @@ urequireCmd
   .option('-i, --include', "NOT IMPLEMENTED. Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', false)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
+  .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `config` setting. Used ONLY with `config`', false)
   #.option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so urequire is not needed @ runtime.', false)
 
 templates = ['AMD', 'UMD', 'nodejs', 'combine']
-for template in templates
-  do (template)->
+for tmplt in templates
+  do (tmplt)->
     urequireCmd
-      .command("#{template} <bundlePath>")
-      .description("Converts all modules in <bundlePath> using '#{template}' template.")
+      .command("#{tmplt} <bundlePath>")
+      .description("Converts all modules in <bundlePath> using '#{tmplt}' template.")
       .action (bundlePath)->
-        console.log 'urequireCmd Called:', template, bundlePath
-        config.build.template = template
+        console.log 'urequireCmd Called:', tmplt, bundlePath
+        config.build.template = tmplt
         config.bundle.bundlePath = bundlePath
 
 urequireCmd
   .command('config <configFile>') #todo: move out of urequireCmd
-
   # todo: better/generic way to load from JSON, JS(object literal), Coffee(object literal) ?
   .action (cfgFile)->
     configFile = _fs.realpathSync cfgFile
@@ -57,18 +57,22 @@ urequireCmd
       js = (require 'coffee-script').compile (_fs.readFileSync configFile, 'utf-8'), bare:true
       _fs.writeFileSync upath.changeExt(configFile, '.js'), js, 'utf-8'
 
-    config = require upath.changeExt(configFile, '.js')
-
-    _fs.unlinkSync upath.changeExt(configFile, '.js')
+    config = require upath.changeExt configFile, '.js'
+    _fs.unlinkSync upath.changeExt configFile, '.js'
 
     # Some basics options checks
     # assume bundlePath, if its empty
     config.bundle.bundlePath or= upath.dirname cfgFile
 
+    if urequireCmd.template
+      if urequireCmd.template in templates
+        config.build.template = urequireCmd.template
+      else
+        l.err 'Wrong --template : ', urequireCmd.template
+
     # ? add configFile to exclude'd files ?
 #    (options.exclude ?= []).push upath.relative(options.bundlePath, configFile)
 #    (options.exclude ?= []).push upath.relative(options.bundlePath, upath.changeExt(configFile, '.js')) # why
-
 
 urequireCmd.on '--help', ->
   console.log """
@@ -106,18 +110,22 @@ urequireCmd.parse process.argv
 
 cmdOptions = _.map(urequireCmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
 
+#cmdConfig = {}
+#_.defaults cmdConfig, _.pick(urequireCmd, cmdOptions)
+
 bundleKeys = _.keys uRequireConfigMasterDefaults.bundle
 buildKeys = _.keys uRequireConfigMasterDefaults.build
 
-_.defaults config.bundle, _B.go urequireCmd, fltr:(v,k)-> k in bundleKeys
-_.defaults config.build, _B.go urequireCmd, fltr:(v,k)-> k in buildKeys
+# overwrite config with CMD options
+_.extend config.bundle, _B.go urequireCmd, fltr:(v,k)-> k in bundleKeys
+_.extend config.build, _B.go urequireCmd, fltr:(v,k)-> k in buildKeys
 
 config.bundle.VERSION = urequireCmd.version()
 
 # to log or not to log
-if not config.verbose then l.verbose = ->
-
-console.log config
+if not config.build.verbose then l.verbose = ->
 
 urequire = require './urequire'
+
+
 bp = new urequire.BundleBuilder config
