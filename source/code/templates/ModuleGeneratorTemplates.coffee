@@ -41,7 +41,7 @@ class ModuleGeneratorTemplates
           "" #keep empty [] not existent, enabling requirejs scan
         else
           if o.moduleType is 'nodejs'
-            "['require', 'module', 'exports'"
+            "['require', 'exports', 'module'"
           else
             "['require'"
       }#{
