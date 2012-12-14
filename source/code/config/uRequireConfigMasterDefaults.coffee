@@ -93,6 +93,7 @@ uRequireConfig = # Command line options overide these.
         underscore: "_"
         jquery: ["$", "jQuery"]
         backbone: "Backbone"
+        knockout: ["ko", 'Knockout'] # @todo:1 are these correct ?
 
       ###
       depe

@@ -1,4 +1,5 @@
 _ = require 'lodash'
+_B = require 'uberscore'
 
 # urequire
 l = new (require '../utils/Logger') 'UModule'

@@ -2,12 +2,13 @@
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
 _B = require 'uberscore'
-
 _fs = require 'fs'
 _wrench = require 'wrench'
 
 # uRequire
-l = new (require '../utils/Logger') 'Bundle'
+Logger = require '../utils/Logger'
+l = new Logger 'Bundle'
+
 upath = require '../paths/upath'
 getFiles = require "./../utils/getFiles"
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
@@ -93,17 +94,18 @@ class Bundle
 
 
   ###
-  Globals dependencies & the variables they might bind with, like {jquery: ['$', 'jQuery']}
+  Globals dependencies & the variables they might bind with, througout the this bundle.
 
   The information is gathered from all modules and joined together.
 
-  Also use bundle.dependencies.variableNames, for globals + varnames bindings.
+  Also it uses bundle.dependencies.variableNames, for globals + varnames bindings.
 
-  @return dependencies.variableNames @example {
-      'underscore': '_'
-      'jquery': ["$", "jQuery"]
-      'models/PersonModel': ['persons', 'personsModel']
-  }
+  @return {dependencies.variableNames} globals & variable names, eg
+              {
+                  'underscore': '_'
+                  'jquery': ["$", "jQuery"]
+                  'models/PersonModel': ['persons', 'personsModel']
+              }
 
   @todo: If there is a global that ends up with empty vars eg {myStupidGlobal:[]}
     (cause nodejs format was used and var names are NOT read there)
@@ -112,6 +114,7 @@ class Bundle
 
   @todo : refactor & generalize !
   ###
+
   @property globalDepsVars: get:->
     _globalDepsVars = {}
 
@@ -123,8 +126,12 @@ class Bundle
     for uMK, uModule of @uModules
       gatherDepsVars uModule.globalDepsVars
 
-    if optsDepsVars = @dependencies?.variableNames
-      gatherDepsVars _.pick optsDepsVars, _.keys(_globalDepsVars) # pick only existing GLOBALS
+    if variableNames = @dependencies?.variableNames
+      l.warn '_globalDepsVars=\n', _globalDepsVars
+      # pick only for existing GLOBALS, that have no vars info discovered yet
+      gg = _B.go variableNames, fltr:(v,k)-> _globalDepsVars[k] and _.isEmpty(_globalDepsVars[k])
+      l.warn '\npicked variableNames=\n', gg
+      gatherDepsVars gg
 
     _globalDepsVars
 
@@ -209,8 +216,6 @@ class Bundle
       @main
     }
 
-    console.log almondTemplates.dependencyFiles
-
     rjsConfig =
       paths: almondTemplates.paths
       wrap: almondTemplates.wrap
@@ -257,17 +262,13 @@ class Bundle
         l.verbose "uRequire: combined file '#{@combinedFile}' written successfully."
 
 
+if Logger::debug.level > 90
+  YADC = require('YouAreDaChef').YouAreDaChef
 
-
-#(require('YouAreDaChef').YouAreDaChef Bundle)
-#
-#  .before /.*/, (match, args...)->
-#    console.log "#### before: #{match} :", args
-#    console.log 'debugLevel', this[match]?.debugLevel
-
-#  combine:->
-#    l.verbose 'combine: optimizing with r.js'
-#  .before 'processModule', (filename)->
-#    v.verbose '\nProcessing module: ', filename
+  YADC(Bundle)
+    .before /_constructor/, (match, bundle, filename)->
+      l.debug "Before '#{match}' with 'filename' = '#{filename}', bundle = \n", _.pick(bundle, [])
+    .before /combine/, (match)->
+      l.debug 'combine: optimizing with r.js'
 
 module.exports = Bundle
