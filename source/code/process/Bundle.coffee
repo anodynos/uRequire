@@ -266,8 +266,8 @@ if Logger::debug.level > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)
-    .before /_constructor/, (match, bundle, filename)->
-      l.debug "Before '#{match}' with 'filename' = '#{filename}', bundle = \n", _.pick(bundle, [])
+    .before /_constructor/, (match, bundleCfg)->
+      l.debug "Before '#{match}' with bundleCfg = \n", _.omit(bundleCfg, [])
     .before /combine/, (match)->
       l.debug 'combine: optimizing with r.js'
 

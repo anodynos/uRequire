@@ -68,40 +68,30 @@ class UModule
       # inject *Dependency Injection* information to arrayDependencies & parameters
       if bundleExports = @bundle?.dependencies?.bundleExports # @todo:5 add a 'see link to bundleExports fixer'
 
-        # fix bundleExports format once and for all!
-        if _.isString bundleExports then bundleExports = [ bundleExports ]
-
-        if _.isArray bundleExports
-          b = {}
-          _B.go bundleExports, grab:(v)->b[v]=[]
-          @bundle.dependencies.bundleExports = bundleExports = b
-          l.debug 30, "fixed format of '@bundle.dependencies.bundleExports' = \n", bundleExports
-
         for depName, varNames of bundleExports
-          varNames = _B.arrayize varNames
           if _.isEmpty varNames
             varNames = @bundle.globalDepsVars[depName]
 
-          if _.isEmpty varNames # @todo : throw error. Also, where else do we need to bail out on globals with no vars ??
+          if _.isEmpty varNames # @todo : still empty, throw error. Also, where else do we need to bail out on globals with no vars ??
             l.err """No variables can be identified for global dependency '#{depName}'.
                      You should add it at 'bundle.dependencies.bundleExports' or 'bundle.dependencies.variableNames'"""
           else
-            for varName in varNames
-              if not (varName in @parameters) # add for all corresponding vars
-                @arrayDependencies.push depName
-                @nodeDependencies.push depName
-                @parameters.push varName
-                l.debug 80, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
+            for varName in varNames when not (varName in @parameters) # add for all corresponding vars
+              @arrayDependencies.push depName
+              @nodeDependencies.push depName
+              @parameters.push varName
+              l.debug 80, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
 
+      # Add all `require('dep')` calls
       # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDependencies).
       # see https://github.com/jrburke/requirejs/issues/467
       #
-      # So load ALL require('dep') fileRelative deps on AMD.
-
-      # Even if there are no other arrayDependenciesm, we still add them all to prevent RequireJS scan @ runtime
+      # So load ALL require('dep') fileRelative deps have to be added to the arrayDependencies on AMD.
+      #
+      # Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
       # (# RequireJs disables runtime scan if even one dep exists in []).
+      #
       # We allow them only if `--scanAllow` or if we have a `rootExports`
-
       if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @moduleInfo.rootExports)
         for reqDep in @requireDeps
           if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
@@ -148,6 +138,18 @@ class UModule
         @_globalDepsVars
       else {}
 
+  @property depsVars:
+    get: ->
+      if @isConvertible
+        if _.isEmpty @_depsVars # reset at @adjustModuleInfo()
+          for d, idx in @arrayDependencies
+            d = new Dependency d, @filename, @bundle.filenames # just for using @todo:3 store these elsewhere ?
+            if d.isGlobal() # store the variable(s) associated with it (if there is one & not exists!)
+              gdv = (@_globalDepsVars[d.resourceName] or= [])
+              gdv.push @parameters[idx] if @parameters[idx] and not (@parameters[idx] in gdv )
+
+        @_globalDepsVars
+      else {}
 
   # Extract AMD/module information fpr this module, and augment this instance.
   # This following code is kinda weird to break into smaller pieces
@@ -158,7 +160,6 @@ class UModule
     @_globalDepsVars = {} # store { jquery: ['$', 'jQuery'] }
     @isConvertible = false
     @convertedJs = ''
-
 
     moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     @moduleInfo = moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
@@ -199,8 +200,7 @@ class UModule
             deps = []
 
             for strDep in (strDepsArray || [])
-              dep = new Dependency strDep, @filename, @bundle.filenames
-              deps.push dep
+              deps.push dep = new Dependency strDep, @filename, @bundle.filenames
               requireReplacements[strDep] = dep.name()
 
               if dep.type # for reporting!
@@ -235,18 +235,6 @@ class UModule
       noConflict: if @build.noRootExports then undefined else @noConflict
   }, fltr: (v)->not _.isUndefined v
 
-  # @todo:2 report coffeescript problem:
-  # ```
-  # class A
-  #   prop: {@prop1, prop2}
-  # ```
-  # gives
-  # ```
-  # prop1:A.prop1,
-  # prop2:A.prop2
-  #```
-
-
 ### Debug information ###
 
 if Logger::debug.level > 90
@@ -254,7 +242,7 @@ if Logger::debug.level > 90
 
   YADC(UModule)
     .before /_constructor/, (match, bundle, filename)->
-      l.debug "Before '#{match}' with 'filename' = '#{filename}', bundle = \n", _.pick(bundle, [])
+      l.debug "Before '#{match}' with filename = '#{filename}'"
 
 
 

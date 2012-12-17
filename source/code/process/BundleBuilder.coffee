@@ -1,11 +1,14 @@
 _ = require 'lodash'
 _B = require 'uberscore'
 
-# urequire
+# logging
 l = new (require '../utils/Logger') 'UModule'
 
+# urequire
 Bundle = require './Bundle'
 Build = require './Build'
+
+_Bs = require '../utils/uBerscoreShortcuts'
 
 ###
   Load Config:
@@ -27,6 +30,12 @@ class BundleBuilder
 
     # check & build config / options
     @checkBuildPathsOrQuit() # @todo:3 improve
+
+
+    if be = @cfg.bundle?.dependencies?.bundleExports
+      @cfg.bundle.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be
+
+    l.debug 50, "@bundle.dependencies.bundleExports' = \n", JSON.stringify @cfg.bundle?.dependencies?.bundleExports, null, ' '
 
     l.verbose """Building '#{@cfg.bundle.bundleName || 'UNNAMED'}' bundle in
                  '#{@cfg.bundle.bundlePath}' with build = """, @cfg.build
