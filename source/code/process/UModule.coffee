@@ -15,12 +15,13 @@ class UModule
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor:->@_constructor.apply @, arguments
 
-  _constructor: (
-    @bundle      # `Bundle` where it belongs
-    @filename    # full filename of module, eg 'models/PersonModel.coffee'
-    @sourceCode # Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
-  )->
-    # @adjustModuleInfo() is called on sourceCode.set
+  ###
+  @param {Object} bundle The Bundle where this UModule belongs
+  @param {String} filename of module, eg 'models/PersonModel.coffee'
+  @param {String} sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
+  ###
+  _constructor: (@bundle, @filename, @sourceCode)->
+    # set '@sourceCode; triggers everything
 
   ### @return {String} the filename extension of this module, eg `.js` or `.coffee`###
   @property extname: get:-> upath.extname @filename
@@ -31,9 +32,10 @@ class UModule
   ###
     Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
 
-    Everytime it is set, it checks to see if new & adjusts the module information (require's etc).
+    Everytime it is set, if its new sourceCode it adjusts moduleInfo, resetting all deps.
 
-    It does not convert, as it waits for instructions from the bundle (eg add some injected Dependencies etc)
+    It does not actually convert, as it waits for instructions from the bundle
+    But the module is ready to provide & alter deps information (eg add some injected Dependencies)
   ###
   @property sourceCode:
     enumerable: false
@@ -62,23 +64,24 @@ class UModule
 
     return @_sourceCodeJs
 
-  convert: (@build) -> #set @build temporarilly: options like scanAllow & noRootExports are needed to calc deps arrays
+  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
 
-      # inject *Dependency Injection* information to arrayDependencies & parameters
-      if bundleExports = @bundle?.dependencies?.bundleExports # @todo:5 add a 'see link to bundleExports fixer'
+      # inject *Dependency Injection* information to arrayDeps, nodeDeps & parameters
+      if bundleExports = @bundle?.dependencies?.bundleExports
 
         for depName, varNames of bundleExports
           if _.isEmpty varNames
-            varNames = @bundle.globalDepsVars[depName]
+            varNames = @bundle.getDepsVars depName: depName
 
           if _.isEmpty varNames # @todo : still empty, throw error. Also, where else do we need to bail out on globals with no vars ??
             l.err """No variables can be identified for global dependency '#{depName}'.
                      You should add it at 'bundle.dependencies.bundleExports' or 'bundle.dependencies.variableNames'"""
-          else
-            for varName in varNames when not (varName in @parameters) # add for all corresponding vars
-              @arrayDependencies.push depName
-              @nodeDependencies.push depName
+          else # add for all corresponding vars
+            for varName in varNames when not (varName in @parameters)
+              d = new Dependency depName, @filename, @bundle.filenames
+              @arrayDeps.push d
+              @nodeDeps.push d
               @parameters.push varName
               l.debug 80, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
 
@@ -86,18 +89,18 @@ class UModule
       # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDependencies).
       # see https://github.com/jrburke/requirejs/issues/467
       #
-      # So load ALL require('dep') fileRelative deps have to be added to the arrayDependencies on AMD.
+      # So load ALL require('dep') fileRelative deps have to be added to the arrayDepsendencies on AMD.
       #
       # Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
       # (# RequireJs disables runtime scan if even one dep exists in []).
       #
       # We allow them only if `--scanAllow` or if we have a `rootExports`
-      if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @moduleInfo.rootExports)
+      if not (_.isEmpty(@arrayDeps) and @build?.scanAllow and not @moduleInfo.rootExports)
         for reqDep in @requireDeps
           if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
-            not (reqDep.toString() in @arrayDependencies)
-              @arrayDependencies.push reqDep.toString()
-              @nodeDependencies.push reqDep.toString() if @build?.allNodeRequires
+            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep) # todo:3 test it
+              @arrayDeps.push reqDep
+              @nodeDeps.push reqDep if @build?.allNodeRequires
 
       ti = @templateInfo
 
@@ -107,57 +110,45 @@ class UModule
         ti.rootExports = ti.rootExport if ti.rootExport and not ti.rootExports #backwards compatible:-)
         ti.rootExports = _B.arrayize ti.rootExports if ti.rootExports
 
-      l.debug 10, "Converting uModule #{@modulePath} with template: #{build.template}"
-      @convertedJs = (new ModuleGeneratorTemplates ti)[build.template]()
+      l.debug 10, "Converting uModule #{@modulePath} with template:\n", build.template
+      moduleTemplate = new ModuleGeneratorTemplates ti
+      @convertedJs = moduleTemplate[build.template.name]()
     else
       @convertedJs = @sourceCodeJs
 
-  reportDeps: ->
-    if @bundle.reporter
-      for repData in [ (_.pick @depenenciesTypes, @bundle.reporter.interestingDepTypes) ]
-        @bundle.reporter.addReportData repData, @filename
 
   ###
-  Finds all `global`s in this module and stores their parameter/variable names
-
-  @return {Object} It creates, caches and returns
-      @_globalDepsVars =
+  Returns all deps in this module along with their corresponding parameters (variable names)
+  @param {Object} q a query with two fields : depType & depName
+  @return {Object}
         jquery: ['$', 'jQuery']
         lodash: ['_']
+        'models/person': ['pm']
   ###
-  @property globalDepsVars:
-    get: ->
-      if @isConvertible
-        if _.isEmpty @_globalDepsVars # reset at @adjustModuleInfo()
-          for d, idx in @arrayDependencies
-            d = new Dependency d, @filename, @bundle.filenames # @todo:3 store these elsewhere ?
-            if d.isGlobal() # store the variable(s) associated with it (if there is one & not exists!)
-              gdv = (@_globalDepsVars[d.resourceName] or= [])
-              gdv.push @parameters[idx] if @parameters[idx] and not (@parameters[idx] in gdv )
+  getDepsAndVars: (q)->
+    depsAndVars = {}
+    if @isConvertible
+      for dep, idx in @arrayDeps when (
+        ((not q.depType) or (q.depType is dep.type)) and
+        ((not q.depName) or (dep.isEqual q.depName))
+      )
+          dv = (depsAndVars[dep.resourceName] or= [])
+          # store the variable(s) associated with dep
+          if @parameters[idx] and not (@parameters[idx] in dv )
+            dv.push @parameters[idx] # if there is a var, add once
 
-        @_globalDepsVars
-      else {}
+      depsAndVars
+    else {}
 
-  @property depsVars:
-    get: ->
-      if @isConvertible
-        if _.isEmpty @_depsVars # reset at @adjustModuleInfo()
-          for d, idx in @arrayDependencies
-            d = new Dependency d, @filename, @bundle.filenames # just for using @todo:3 store these elsewhere ?
-            if d.isGlobal() # store the variable(s) associated with it (if there is one & not exists!)
-              gdv = (@_globalDepsVars[d.resourceName] or= [])
-              gdv.push @parameters[idx] if @parameters[idx] and not (@parameters[idx] in gdv )
-
-        @_globalDepsVars
-      else {}
-
-  # Extract AMD/module information fpr this module, and augment this instance.
-  # This following code is kinda weird to break into smaller pieces
-  # @todo:4 refactor / simpify it / test it
+  ###
+  Extract AMD/module information for this module.
+  Factory bundleRelative deps like `require('path/dep')` are replaced with their fileRelative counterpart
+  Extracted module info augments this instance.
+  @todo:2 its kinda weird, but break into smaller pieces ?
+  ###
   adjustModuleInfo: ->
     # reset info holders
-    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
-    @_globalDepsVars = {} # store { jquery: ['$', 'jQuery'] }
+#    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
     @isConvertible = false
     @convertedJs = ''
 
@@ -172,14 +163,12 @@ class UModule
         l.err "Module '#{@filename}', has untrusted deps #{d for d in @moduleInfo.untrustedDependencies}: copying as-is."
     else
       @isConvertible = true
-      @moduleInfo.parameters or= [] #default
+      @moduleInfo.parameters or= []        #default
       @moduleInfo.arrayDependencies or= [] #default
 
-      # remove *reduntant parameters* (those in excess of the arrayDeps),
-      # requireJS doesn't like them if require is 1st param!
       if _.isEmpty @moduleInfo.arrayDependencies
         @moduleInfo.parameters = []
-      else
+      else # remove *reduntant parameters* (those in excess of the arrayDeps), requireJS doesn't like them if require is 1st param!
         @moduleInfo.parameters = @moduleInfo.parameters[0..@moduleInfo.arrayDependencies.length-1]
 
       # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require'
@@ -189,8 +178,7 @@ class UModule
       requireReplacements = {} # final replacements for all require() calls.
 
       # Go throught all original deps & resolve their fileRelative counterpart.
-      # resolvedDeps stored as a <code>Dependency<code> object
-      [ @arrayDeps      # Store resolvedDeps as res'DepType'
+      [ @arrayDeps  # Store resolvedDeps as res'DepType'
         @requireDeps
         @asyncDeps ] = for strDepsArray in [ # @todo:2 do we need to replaceAsynchRequires ?
            @moduleInfo.arrayDependencies
@@ -198,13 +186,13 @@ class UModule
            @moduleInfo.asyncDependencies
           ]
             deps = []
-
             for strDep in (strDepsArray || [])
               deps.push dep = new Dependency strDep, @filename, @bundle.filenames
               requireReplacements[strDep] = dep.name()
 
-              if dep.type # for reporting!
-                (@depenenciesTypes[dep.type] or= []).push dep.resourceName
+              # add some reporting
+              if @bundle.reporter and (dep.type in @bundle.reporter.interestingDepTypes)
+                @bundle.reporter.addReportData _B.okv {}, dep.type, [ @filename ]
 
             deps
 
@@ -213,12 +201,10 @@ class UModule
 
       # our final 'templateInfo' information follows
       @parameters = _.clone @moduleInfo.parameters
-      @arrayDependencies = (d.toString() for d in @arrayDeps)
-      @nodeDependencies = (d.name() for d in @arrayDeps)
+      @nodeDeps = _.clone @arrayDeps
 
       _.defaults @, @moduleInfo
-      @reportDeps()
-
+      @
 
 
   ### for reference (we could have passed UModule instance it self :-) ###
@@ -227,8 +213,8 @@ class UModule
       @moduleType
       @modulePath
       webRootMap: @bundle.webRootMap || '.'
-      @arrayDependencies
-      @nodeDependencies
+      arrayDependencies: (d.toString() for d in @arrayDeps) # @todo:1 why toString() ?
+      nodeDependencies: (d.name() for d in @nodeDeps) # @todo:1 why name() ?
       @parameters
       @factoryBody
       rootExports: if @build.noRootExports then undefined else @rootExports
@@ -237,7 +223,7 @@ class UModule
 
 ### Debug information ###
 
-if Logger::debug.level > 90
+if l.debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(UModule)

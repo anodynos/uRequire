@@ -177,7 +177,7 @@ class ModuleGeneratorTemplates
 
 ### Debug information ###
 
-if Logger::debug.level > 90
+if l.debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   (YADC ModuleGeneratorTemplates)

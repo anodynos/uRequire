@@ -2,9 +2,11 @@ _ = require 'lodash'
 _B = require 'uberscore'
 
 # logging
-l = new (require '../utils/Logger') 'UModule'
+Logger = require '../utils/Logger'
+l = new Logger 'BundleBuilder'
 
 # urequire
+uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 Bundle = require './Bundle'
 Build = require './Build'
 
@@ -22,30 +24,46 @@ class BundleBuilder
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor: ->@_constructor.apply @, arguments
 
-  _constructor: (@cfg)->
+  _constructor: (config)->
+    bundleCfg = {}
+    buildCfg = {}
+    # read both simple/flat cfg and cfg.bundle
+    _.extend bundleCfg, config.bundle
+    _.extend bundleCfg, _B.go config, fltr: _.keys uRequireConfigMasterDefaults.bundle
 
-    # todo: cater for `simple` format and bring up to the full format
+    _.extend buildCfg, config.build
+    _.extend buildCfg, _B.go config, fltr: _.keys uRequireConfigMasterDefaults.build
 
-    @cfg.bundle.VERSION = '0.3.0 Alpha - change this!'
+
+
+    if not buildCfg.verbose then Logger::verbose = ->
+
+
+
+    bundleCfg.VERSION = if typeof VERSION is 'undefined' then '0.x.0' else VERSION #injected by grunt:concat
+
+    if be = bundleCfg.dependencies?.bundleExports
+      bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
+      l.debug 50, "bundleCfg.dependencies.bundleExports' = \n", JSON.stringify bundleCfg.dependencies?.bundleExports, null, ' '
+
+    ## fix template - ooops - how do we handle it internally ?
+    if not buildCfg.template
+      buildCfg.template = name: 'UMD' # default
+
+    if _.isString buildCfg.template
+      buildCfg.template = name: buildCfg.template
+
+    l.verbose "bundleCfg :\n", JSON.stringify bundleCfg, null, ' '
+    l.verbose "buildCfg :\n", JSON.stringify buildCfg, null, ' '
 
     # check & build config / options
-    @checkBuildPathsOrQuit() # @todo:3 improve
+    if @isPathsOK bundleCfg, buildCfg
+      @bundle = new Bundle bundleCfg
+      @build = new Build buildCfg
 
-
-    if be = @cfg.bundle?.dependencies?.bundleExports
-      @cfg.bundle.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be
-
-    l.debug 50, "@bundle.dependencies.bundleExports' = \n", JSON.stringify @cfg.bundle?.dependencies?.bundleExports, null, ' '
-
-    l.verbose """Building '#{@cfg.bundle.bundleName || 'UNNAMED'}' bundle in
-                 '#{@cfg.bundle.bundlePath}' with build = """, @cfg.build
-
-    # Load Bundle
-    @bundle = new Bundle @cfg.bundle
-    @build = new Build @cfg.build
-
-    # Build bundle against the build setup (@todo: or builds ?)
-    @bundle.buildChangedModules @build
+      # Build bundle against the build setup (@todo: or builds ?)
+      l.debug 50, 'buildChangedModules() with build = \n', @build
+      @bundle.buildChangedModules @build
 
 
     # @todo: & watch its folder
@@ -56,29 +74,54 @@ class BundleBuilder
   #    onFilesChange: (filesChanged)->
   #      bundle.loadModules filesChanged #:[]<String>
 
-  checkBuildPathsOrQuit:->
-    if not @cfg.bundle.bundlePath
+  isPathsOK: (bundle, build)->
+    if not bundle.bundlePath
       l.err """
-        Quitting, no bundlePath specified.
+        Quitting build, no bundlePath specified.
         Use -h for help"""
-      process.exit(1)
+      return false
     else
-      if @cfg.build.forceOverwriteSources
-        @cfg.build.outputPath = @cfg.bundle.bundlePath
-        l.verbose "Forced output to '#{@cfg.build.outputPath}'"
+      if build.forceOverwriteSources
+        build.outputPath = bundle.bundlePath
+        l.verbose "Forced output to '#{build.outputPath}'"
+        return true
       else
-        if not @cfg.build.outputPath
+        if not build.outputPath
           l.err """
-            Quitting, no --outputPath specified.
+            Quitting build, no --outputPath specified.
             Use -f *with caution* to overwrite sources."""
-          process.exit(1)
+          return false
         else
-          if @cfg.build.outputPath is @cfg.bundle.bundlePath #@todo: check normalized
+          if build.outputPath is bundle.bundlePath #@todo: check normalized
             l.err """
-              Quitting, outputPath == bundlePath.
+              Quitting build, outputPath === bundlePath.
               Use -f *with caution* to overwrite sources (no need to specify --outputPath).
               """
-            process.exit(1)
+            return false
 
+    return true
 
 module.exports = BundleBuilder
+
+### Debug information ###
+
+if l.debugLevel > 10 #or true
+  YADC = require('YouAreDaChef').YouAreDaChef
+
+  YADC(BundleBuilder)
+    .before /_constructor/, (match, config)->
+      l.debug 1, "Before '#{match}' with config = ", JSON.stringify(config, null, ' ')
+
+
+# Tests
+#b = new BundleBuilder {
+# "bundle": {
+#  "bundlePath": "blabla"
+# },
+# "build": {
+#  "template": "AMD"
+# },
+# "forceOverwriteSources": true
+#}
+
+

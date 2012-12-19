@@ -252,7 +252,7 @@ More declarative options will follow :-)
 
 ### Mappings
 
-* You can map webRoot `/` to a directory of your nodejs environment (--webRootMap option). The directory can be relative to bundle (paths starting with a `.`) or an absolute file system path (eg `/dev/jslibs`). Just make sure your Web Server has the right content mapped to `/` and you're set!
+* You can map webRootMap `/` to a directory of your nodejs environment (--webRootMap option). The directory can be relative to bundle (paths starting with a `.`) or an absolute file system path (eg `/dev/jslibs`). Just make sure your Web Server has the right content mapped to `/` and you're set!
 
 * You can use the requirejs config `baseUrl` and `paths` on nodejs (only those for now) - just place a file named `requirejs.config.json` in your bundle root directory, with content like {"paths": {"myLib" : "../../myLib"}}. Very usefull for 'importing' bundles, eg running specs against 'myLib' bundle using mocha, jasmine-node etc. Again, use the same config items on RequireJS/Web for transparent cross platform module usage.
 
@@ -333,7 +333,7 @@ Do note:
       * Runtime translation of paths like `models/PersonModel` to `../../models/PersonModel`, depending on where it was called from.
       * Can't use the asynchronous version of `require(['dep'], function(dep){...})`
       * Can't runn of loader plugins, like `text!...` or `json!...`
-      * There's no mapping of `/`, ie webRoot etc or using the requirejs.config's `{baseUrl:"...."} or {paths:"lib":"../../lib"}`
+      * There's no mapping of `/`, ie webRootMap etc or using the requirejs.config's `{baseUrl:"...."} or {paths:"lib":"../../lib"}`
 
     You 'll still get build-time translated bundleRelative paths, to their nodejs fileRelative equivalent.
 
@@ -362,7 +362,7 @@ src/
           helper.js
 </pre>
 
-The src/ directory is said to be your 'bundle root', in urequire terms. It's what you would set `baseUrl` to in requirejs, if your modules were in pure AMD format. All absolute dependencies (those not starting with `./`, `../` or `/`) would be relative to this bundle root, eg 'Application' or 'views/PersonView'. Every UMD file is aware of its location in the bundle and uses it in various ways, such as resolving paths, looking for 'requirejs.config.json', resolving baseUrl/paths & webRoot etc.
+The src/ directory is said to be your 'bundle root', in urequire terms. It's what you would set `baseUrl` to in requirejs, if your modules were in pure AMD format. All absolute dependencies (those not starting with `./`, `../` or `/`) would be relative to this bundle root, eg 'Application' or 'views/PersonView'. Every UMD file is aware of its location in the bundle and uses it in various ways, such as resolving paths, looking for 'requirejs.config.json', resolving baseUrl/paths & webRootMap etc.
 
 Now say your `views/PersonView.js` is
 
@@ -643,7 +643,7 @@ No, from Universal. Require.
 
 ###v0.6 - v0.8
 
-* Configuration file `urequire.json` that will contain all the information regarding your bundle: your default uRequire settings (eg your nodejs webRoot mapping, -scanPrevent), and the most important of all: a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/lodash.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs `paths`.) etc.
+* Configuration file `urequire.json` that will contain all the information regarding your bundle: your default uRequire settings (eg your nodejs webRootMap mapping, -scanPrevent), and the most important of all: a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/lodash.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs `paths`.) etc.
 
 * Additionally, check jamjs & yeoman, cause they deal with deps management as well... piggyback?
 

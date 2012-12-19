@@ -1,10 +1,16 @@
+_ = require 'lodash'
+_.mixin (require 'underscore.string').exports()
+
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 
 
 class Dependency
+  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
+  Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
+  constructor:-> @_constructor.apply @, arguments
 
-  constructor: (@dep, @moduleFilename='', @bundleFiles=[])->
+  _constructor: (@dep, @moduleFilename='', @bundleFiles=[])->
     @dep = @dep.replace /\\/g, '/'
 
     indexOfSep = @dep.indexOf '!'
@@ -24,29 +30,29 @@ class Dependency
     notFoundInBundle: 'notFoundInBundle'
     global: 'global'
     external: 'external'
-    webRoot: 'webRoot'
+    webRootMap: 'webRootMap'
     bundle: 'bundle'
 
-  type:->
+  @property type: get:->
     if @isGlobal()
-      @TYPES.global
+      Dependency.TYPES.global
     else
       if @isExternal()
-        @TYPES.external
+        Dependency.TYPES.external
       else
         if @isNotFoundInBundle()
-          @TYPES.notFoundInBundle
-        else  # webRoot deps, like '/assets/myLib'
-          if @isWebRoot()
-            @TYPES.webRoot
+          Dependency.TYPES.notFoundInBundle
+        else  # webRootMap deps, like '/assets/myLib'
+          if @isWebRootMap()
+            Dependency.TYPES.webRootMap
           else
-            false # @todo:TYPES.bundle
+            Dependency.TYPES.bundle
 
   # @todo @property name: {get}
   name: (options = {})->
-    options.ext ?= true # default true
-    options.plugin ?= true # default true
-    options.relativeType ?= 'file' # default 'file
+    options.ext ?= true
+    options.plugin ?= true
+    options.relativeType ?= 'file'
 
     n = """
       #{  if options?.plugin and @pluginName then @pluginName + '!' else ''
@@ -59,6 +65,22 @@ class Dependency
     else
       n[0..(n.length - @extname.length)-1] #strip extension ?
 
+  toString:-> @name()
+
+  isEqual: (dep)-> # @todo: unhack
+    isSameJSFile = (a,b)->  # checks filenames a & b are equal, with '.js' being default ext
+      upath.defaultExt(a, '.js') is upath.defaultExt(b, '.js')
+
+    if _.isFunction dep.isBundleBoundary  # ducktyping: looks like a Dependnecny!
+      return isSameJSFile dep.name(), @name() #is it the same file, irrespecitve of .js ?
+    else
+      if not _.isString dep
+        dep = dep.toString()
+
+    return (
+       isSameJSFile(dep, @toString()) or # plugin: relativeType: 'file', ext:true}
+       isSameJSFile(dep, @name(relativeType:'bundle')) # plugin, ext, relativeType:'file'
+    )
 
   bundleRelative: ()->
     if @isFileRelative() and @isBundleBoundary()
@@ -78,36 +100,36 @@ class Dependency
     else
       @resourceName
 
-  #toString:-> name()
-  toString:-> @name { plugin: yes, relativeType: 'file', ext:yes}
+  # ###### Where about does this dependency lie ?
 
   isBundleBoundary: ()->
-    if @isWebRoot() or (not @moduleFilename)
+    if @isWebRootMap() or (not @moduleFilename)
       false
     else
       !!pathRelative "$/#{@moduleFilename}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
 
   isFileRelative: ()-> @resourceName[0] is '.'
 
-  isRelative: ()-> @resourceName.indexOf('/') >= 0 and not @isWebRoot()
+  isRelative: ()-> @resourceName.indexOf('/') >= 0 and not @isWebRootMap()
 
-  isWebRoot: ()-> @resourceName[0] is '/'
+  isWebRootMap: ()-> @resourceName[0] is '/'
 
-  isGlobal: ()->  not @isWebRoot() and
+  isGlobal: ()->  not @isWebRootMap() and
                   not @isRelative() and
                   not @isFound()
 
   ### external-looking deps, like '../../../someLib' ###
-  isExternal: ()-> not (@isBundleBoundary() or @isWebRoot())
+  isExternal: ()-> not (@isBundleBoundary() or @isWebRootMap())
 
   ### seem to belong to bundle, but not found, like '../myLib' ###
   isNotFoundInBundle: ()-> @isBundleBoundary() and not (@isFound() or @isGlobal())
 
-
   isFound: ()-> # @todo: Remove .js dependency - Might have a dep to 'a.js' but we have 'a.coffee'
-    knownExtensions = ['.js', 'coffee'] # @todo: retrieve this info from elsewhere (eg Bundle ?)
+    knownExtensions = ['.js', '.coffee'] # @todo: retrieve this info from elsewhere (eg Bundle ?)
     for ke in knownExtensions
       if (@bundleRelative() + (if @extname then '' else ke)) in @bundleFiles
         return true
+
+    return false
 
 module.exports = Dependency

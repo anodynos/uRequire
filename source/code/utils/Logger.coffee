@@ -1,13 +1,14 @@
 _ = require 'lodash'
 
-module.exports =
-
 class Logger
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor:->@_constructor.apply @, arguments
 
-  _constructor: (@title)->
+  _constructor: (@title, @debugLevel = Logger.debugLevel)->
+
+  # default Logger.debugLevel
+  @debugLevel = 100
 
   @getALog: (baseMsg, color, cons)->
     ->
@@ -32,9 +33,7 @@ class Logger
       else
         msgs.unshift "(#{level})"
 
-      if level <= Logger::debug.level
+      if level <= @debugLevel
         log.apply @, msgs
 
-Logger::debug.level = 100
-
-
+module.exports = Logger

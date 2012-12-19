@@ -1,4 +1,4 @@
-console.log '\nDependency-test started'
+_ = require 'lodash'
 
 chai = require 'chai'
 assert = chai.assert
@@ -7,7 +7,6 @@ expect = chai.expect
 Dependency = require "../code/Dependency"
 
 describe "Dependency", ->
-
 
   it "split plugin, extension, resourceName & recostruct as String", ->
     dep = new Dependency 'node!somedir/dep.js'
@@ -28,9 +27,55 @@ describe "Dependency", ->
     expect(dep.toString()).to.equal 'node!../../../rootdir/dep'
     expect(dep.name plugin:no, relativeType:'bundle' ).to.equal 'rootdir/dep'
 
+describe "Dependency isEquals(),", ->
+  dep1 = new Dependency '../../../rootdir/dep.js', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
+  dep2 = new Dependency 'rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
+  dep3 = new Dependency 'node!rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
+
+  it "With `Dependency` as param", ->
+    expect(dep1.isEqual dep2).to.be.true
+    expect(dep2.isEqual dep1).to.be.true
+  it "false when plugin differs", ->
+    expect(dep1.isEqual dep3).to.be.false
+
+  describe "With `String` as param", ->
+    describe " with `bundleRelative` format ", ->
+      it "with .js extensions", ->
+        expect(dep1.isEqual 'rootdir/dep.js').to.be.true
+        expect(dep2.isEqual 'rootdir/dep.js').to.be.true
+      it "plugins still matter", ->
+        expect(dep3.isEqual 'node!rootdir/dep.js').to.be.true
+      it "without extensions", ->
+        expect(dep1.isEqual 'rootdir/dep').to.be.true
+        expect(dep2.isEqual 'rootdir/dep').to.be.true
+        it "plugins still matter", ->
+          expect(dep3.isEqual 'node!rootdir/dep').to.be.true
+
+    describe " with `fileRelative` format ", ->
+      it "with .js extensions", ->
+        expect(dep1.isEqual '../../../rootdir/dep.js').to.be.true
+        expect(dep2.isEqual '../../../rootdir/dep.js').to.be.true
+      it "plugins still matter", ->
+        expect(dep3.isEqual 'node!../../../rootdir/dep.js').to.be.true
+      it "without extensions", ->
+        expect(dep1.isEqual '../../../rootdir/dep').to.be.true
+        expect(dep2.isEqual '../../../rootdir/dep').to.be.true
+        it "plugins still matter", ->
+          expect(dep3.isEqual 'node!../../../rootdir/dep').to.be.true
+
+    it " with false extensions", ->
+      expect(dep1.isEqual 'rootdir/dep.txt').to.be.false
+      expect(dep2.isEqual '../../../rootdir/dep.txt').to.be.false
+
+    it " looking for one in an array", ->
+      deps = [dep1, dep2, dep3]
+      expect(
+        _.any deps, (dep)-> dep.isEqual 'rootdir/dep.js'
+      ).to.be.true
+
 describe "Dependency - resolving many", ->
 
-  it "resolves bundle&file relative, finds external, global, notFound, webRoot", ->
+  it "resolves bundle&file relative, finds external, global, notFound, webRootMap", ->
 
     modyle = 'actions/greet.js'
 
@@ -59,19 +104,24 @@ describe "Dependency - resolving many", ->
       deps.push new Dependency dep, modyle, bundleFiles
 
     fileRelative = ( d.toString() for d in deps )
+
     bundleRelative = ( d.bundleRelative() for d in deps)
+
     global = ( d.toString() for d in deps when d.isGlobal())
-    external = ( d.toString() for d in deps when not (d.isBundleBoundary() or d.isWebRoot()) )
+
+    external = ( d.toString() for d in deps when not (d.isBundleBoundary() or d.isWebRootMap()) )
+
     notFoundInBundle = (
       d.toString() for d in deps when \
         d.isBundleBoundary() and
         not (d.isFound() or d.isGlobal() )
     )
-    webRoot = ( d.toString() for d in deps when d.isWebRoot() )
 
-    # console.log {bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}
+    webRootMap = ( d.toString() for d in deps when d.isWebRootMap() )
 
-    expect({bundleRelative, fileRelative, global, external, notFoundInBundle, webRoot}).to.deep.equal
+    # console.log {bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}
+
+    expect({bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}).to.deep.equal
       bundleRelative: [
         'underscore'                 # global lib
         'data/messages/hello.js'     # .js is removed
@@ -91,5 +141,5 @@ describe "Dependency - resolving many", ->
       global: [ 'underscore' ]
       external:[ '../../some/external/lib.js' ]
       notFoundInBundle:[ '../lame/dir.js' ] #exactly as is
-      webRoot: ['/assets/jpuery-max']
+      webRootMap: ['/assets/jpuery-max']
 

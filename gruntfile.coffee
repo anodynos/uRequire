@@ -34,7 +34,7 @@ gruntFunction = (grunt) ->
       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
       */
       """
-      varVersion: "var version = '<%= pkg.version %>'; //injected by grunt:concat"
+      varVersion: "var VERSION = '<%= pkg.version %>'; //injected by grunt:concat"
       mdVersion: "# uRequire v<%= pkg.version %>"
       usrBinEnvNode: "#!/usr/bin/env node"
 
@@ -101,9 +101,9 @@ gruntFunction = (grunt) ->
       process: # runtime version
         src: [
           '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/process/Bundle.js'
+          '<%= options.buildDir %>/process/BundleBuilder.js'
         ]
-        dest:'<%= options.buildDir %>/process/Bundle.js'
+        dest:'<%= options.buildDir %>/process/BundleBuilder.js'
 
 #      md:
 #        src: [

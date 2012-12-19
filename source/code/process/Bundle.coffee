@@ -12,13 +12,18 @@ l = new Logger 'Bundle'
 upath = require '../paths/upath'
 getFiles = require "./../utils/getFiles"
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
+AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
+Dependency = require '../Dependency'
 DependenciesReporter = require './../DependenciesReporter'
 UModule = require './UModule'
+Build = require './Build'
+BundleBase = require './BundleBase'
+
 
 ###
 
 ###
-class Bundle
+class Bundle extends BundleBase
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor:-> @_constructor.apply @, arguments
@@ -28,44 +33,53 @@ class Bundle
   @staticProperty requirejs: get:=> require 'requirejs'
 
   _constructor: (bundleCfg)->
-    # clone all bundleCfg properties to @
     _.extend @, _B.deepCloneDefaults bundleCfg, uRequireConfigMasterDefaults.bundle
 
-    @main or= 'main' # @todo: add implicit bundleName, or index.js, main.js & other sensible defaults
+    @main or= 'main' # @todo:5 add implicit bundleName, or index.js, main.js & other sensible defaults
     @uModules = {}
-    @reporter = new DependenciesReporter @interestingDepTypes #(if build.verbose then null else @interestingDepTypes)
+    @reporter = new DependenciesReporter @interestingDepTypes #(if @build.verbose then null else @interestingDepTypes)
+
+    #@property filenames: get: -> getFiles @bundlePath # get all filenames each time we 'refresh'
+    ###
+    Read / refresh all files in directory.
+    Not run everytime there is a file added/removed, unless we need to:
+    Runs initially and in unkonwn -watch / refresh situations
+    ###
+    for getFilesFactory, filesFilter of {
+      filenames: -> true # get all files
+      moduleFilenames: (mfn)=> # get only modules
+        (_B.inFilters(mfn, @includes) and not _B.inFilters(mfn, @excludes)) #@todo:2 (uberscore):notFilters()
+    }
+      do (bundle = @)->
+        Bundle.property _B.okv {}, getFilesFactory,
+          get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed 
+              existingFiles = (bundle["_#{getFilesFactory}"] or= [])
+              try
+                 files =  getFiles bundle.bundlePath, filesFilter
+              catch err
+                err.uRequire = "*uRequire #{@VERSION}*: Something went wrong reading from '#{@bundlePath}'."
+                l.err err.uRequire
+                throw err
+
+              newFiles = _.difference files, existingFiles
+              if not _.isEmpty newFiles
+                l.verbose "New #{getFilesFactory} :\n", newFiles
+                existingFiles.push file for file in newFiles
+
+              deletedFiles = _.difference existingFiles, files
+              if not _.isEmpty deletedFiles
+                l.verbose "Deleted #{getFilesFactory} :\n", deletedFiles
+                @deleteModules deletedFiles
+                bundle["_#{getFilesFactory}"] = files
+
+              files
+            @
+
     @loadModules()
-
-
-  ###
-  Read / refresh all files in directory.
-  Not run everytime there is a file added/removed, unless we need to:
-  Runs initially and in unkonwn -watch / refresh situations
-  ###
-  @property moduleFilenames: get: ->
-    try
-      @filenames =  getFiles @bundlePath # get all filenames each time we 'refresh'
-
-      moduleFilenames =  getFiles @bundlePath, (mfn)=>
-        _B.inFilters(mfn, @includes) and not _B.inFilters(mfn, @excludes) #@todo (uberscore):notFilters()
-
-      # @todo: cleanup begone modules
-      #@deleteModules _.difference(_.keys(@uModules), moduleFilenames)
-    catch err
-      err.uRequire = "*uRequire #{@VERSION}*: Something went wrong reading from '#{@bundlePath}'."
-      l.err err.uRequire
-      throw err
-
-    l.verbose 'Bundle files found (*.*):\n', @filenames,
-              '\nModule files found (js, coffee etc):\n', moduleFilenames
-    moduleFilenames
-
-  deleteModules: (modules)->
-    delete @uModules[m] for m in modules if @uModules[m]
 
   ###
     Processes each module, as instructed by `watcher` in a [] paramor read file system (@moduleFilenames)
-    @param build - see `config/uRequireConfigMasterDefaults.coffee`
+    @param @build - see `config/uRequireConfigMasterDefaults.coffee`
     @param String or []<String> with filenames to process.
       @default read files from filesystem (property @moduleFilenames)
   ###
@@ -91,16 +105,137 @@ class Bundle
           l.err err.uRequire
           throw err
 
+  ###
+  @build / convert all uModules that have changed since last @build
+  ###
+  buildChangedModules: (@build)->
 
+    # first, decide where to output when combining
+    if @build.template.name is 'combine'
+      if not @build.combinedFile # change @build's paths
+        @build.combinedFile = upath.changeExt @build.outputPath, '.js'
+        @build.outputPath = "#{@build.combinedFile}__temp"
+        l.debug 95, "Setting @build.combinedFile = '#{@build.outputPath}' and @build.outputPath = '#{@build.outputPath}'"
+      #@interestingDepTypes.push 'global' #@todo: add to this reporter's run !
+
+    @copyNonModuleFiles() #@todo:5 unless bundle or @build says no
+
+    haveChanges = false
+
+    for mfn, uModule of @uModules
+      if not uModule.convertedJs # it has changed, then conversion is needed :-)
+        haveChanges = true
+        #@todo: reset reporter!
+        convertedJS = uModule.convert @build
+
+        if _.isFunction @build.out
+          @build.out uModule.modulePath, convertedJS
+        # todo : else ?
+
+    if @build.template.name is 'combine' and haveChanges
+      @combine @build
+
+    if not _.isEmpty(@reporter.reportData)
+      l.log '\n########### urequire, final report ########### :\n', @reporter.getReport()
+
+  #Bundle::@build.debugLevel = 10 # @todo: try this for debugin'
+
+  getRequireJSConfig: ()->
+      paths:
+        text: "requirejs_plugins/text"
+        json: "requirejs_plugins/json"
+
+  copyAlmondJs:->
+    try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
+      Build.copyFileSync "#{__dirname}/../../../node_modules/almond/almond.js", "#{@build.outputPath}/almond.js"
+    catch err
+      err.uRequire = """
+        uRequire: error copying almond.js from uRequire's installation node_modules - is it installed ?
+        Tried: '#{__dirname}/../../../node_modules/almond/almond.js'
+      """
+      l.err err.uRequire
+      throw err
+
+  copyNonModuleFiles: ->
+    nonModules = (fn for fn in @filenames when fn not in @moduleFilenames)
+    if not _.isEmpty nonModules
+      l.verbose "Copying non-module/excluded files : \n", nonModules
+      for fn in nonModules
+        Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
 
   ###
-  Globals dependencies & the variables they might bind with, througout the this bundle.
+   Copy all bundle's webMap dependencies to outputPath
+   @todo: should copy dep.plugin & dep.resourceName separatelly
+  ###
+  copyWebMapDeps: ->
+    webRootDeps = _.keys @getDepsVars(depType: Dependency.TYPES.webRootMap)
+    if not _.isEmpty webRootDeps
+      l.verbose "Copying webRoot deps :\n", webRootDeps
+      for depName in webRootDeps
+        Build.copyFileSync  "#{@webRoot}#{depName}", #from
+                          "#{@build.outputPath}#{depName}" #to
+
+  deleteModules: (modules)-> #todo: implement it
+    l.debug 50, "delete #{@uModules[m]}" for m in modules if @uModules[m]
+
+  ###
+
+  ###
+  combine: (@build)->
+    almondTemplates = new AlmondOptimizationTemplate {
+      globalDepsVars: @getDepsVars {depType: Dependency.TYPES.global}
+      @main
+    }
+
+    for fileName, genCode of almondTemplates.dependencyFiles
+      Build.outputToFile "#{@build.outputPath}/#{fileName}.js", genCode
+
+    @copyAlmondJs()
+
+    @copyWebMapDeps()
+
+    try #delete old combinedFile
+      _fs.unlinkSync @build.combinedFile
+    catch err
+
+    rjsConfig =
+      paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
+
+      wrap: almondTemplates.wrap
+      baseUrl: @build.outputPath
+      include: @main
+      out: @build.combinedFile
+#      out: (text)=>
+#        #todo: @build.out it!
+#        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
+#        @outputToFile text, @combinedFile
+#        if _fs.existsSync @combinedFile
+#          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
+
+      optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
+      name: 'almond'
+
+    l.verbose "Optimize with r.js with uRequire's 'build.js' = ", JSON.stringify _.omit(rjsConfig, ['wrap']), null, ' '
+    @requirejs.optimize rjsConfig, (buildResponse)->
+      l.verbose 'r.js buildResponse = ', buildResponse
+      if l.debugLevel < 50 # delete outputPath dir, used as combine's temp
+        _wrench.rmdirSyncRecursive @build.outputPath
+
+    setTimeout (->
+      if _fs.existsSync build.combinedFile
+        l.verbose "uRequire: combined file '#{build.combinedFile}' written successfully."
+      else
+        l.err "uRequire: combined file '#{build.combinedFile}' NOT written."
+      ), 100
+
+  ###
+  Gets dependencies & the variables (they bind with), througout the this bundle.
 
   The information is gathered from all modules and joined together.
 
-  Also it uses bundle.dependencies.variableNames, for globals + varnames bindings.
+  Also it uses bundle.dependencies.variableNames, if some dep has no corresponding vars [].
 
-  @return {dependencies.variableNames} globals & variable names, eg
+  @return {dependencies.variableNames} `dependency: ['var1', 'var2']` eg
               {
                   'underscore': '_'
                   'jquery': ["$", "jQuery"]
@@ -112,157 +247,29 @@ class Bundle
     Then myStupidGlobal MUST have a var name on the config.
     Otherwise, we should alert for fatal error & perhaps quit!
 
-  @todo : refactor & generalize !
   ###
-
-  @property globalDepsVars: get:->
-    _globalDepsVars = {}
+  getDepsVars: (q)->
+    depsAndVars = {}
 
     gatherDepsVars = (depsVars)-> # add non-exixsting var to the dep's `vars` array
       for dep, vars of depsVars
-        existingVars = (_globalDepsVars[dep] or= [])
-        existingVars.push v for v in (_B.arrayize vars) when v not in existingVars
+        dv = (depsAndVars[dep] or= [])
+        dv.push v for v in vars when v not in dv
 
     for uMK, uModule of @uModules
-      gatherDepsVars uModule.globalDepsVars
+      gatherDepsVars uModule.getDepsAndVars q
 
+    # pick only for existing GLOBALS, that have no vars info discovered yet
     if variableNames = @dependencies?.variableNames
-      l.warn '_globalDepsVars=\n', _globalDepsVars
-      # pick only for existing GLOBALS, that have no vars info discovered yet
-      gg = _B.go variableNames, fltr:(v,k)-> _globalDepsVars[k] and _.isEmpty(_globalDepsVars[k])
-      l.warn '\npicked variableNames=\n', gg
-      gatherDepsVars gg
+      vn = _B.go variableNames, fltr:(v,k)-> (depsAndVars[k] isnt undefined) and _.isEmpty depsAndVars[k]
+      if not _.isEmpty vn
+        l.warn "\n Had to pick from variableNames for some deps = \n", vn
+      gatherDepsVars vn
 
-    _globalDepsVars
-
-  ###
-    @param { Object | []<String> } dependencyVariables see `bundle.dependencies.bundle`
-
-    `['dep1', 'dep2']`
-
-      or
-
-    ```
-    {
-      'underscore': '_'
-      'jquery': ["$", "jQuery"]
-      'models/PersonModel': ['persons', 'personsModel']
-    }
-    ```
-    These dependencies are added to this module, on all dep arrays + parameters
-
-    @todo : FIX TO CATER FOR var exports format, discover variables names etc
-    Must end up like this
-
-    bundleExports: {
-        'lodash': ['_', 'lodashleme']}
-      }
-  ###
-  addDependencies: (dependencyVariables)->
-
-    if _.isArray dependencyVariables
-      depsVars = _.extend @bundle.globalDepsVars, @bundle.dependencies.variableNames # @todo: merge arrays, instead of overwritting
-      for dep in dependencyVariables
-        for varName in depsVars[dep]
-          addDepVar dep, varName
-
-    else
-      if _.isObject dependencyVariables
-        for dep, variables of dependencyVariables
-          for varName in variables
-            addDepVar dep, varName
+    depsAndVars
 
 
-
-  ###
-  Build / convert all uModules that have changed since last build
-  ###
-  buildChangedModules: (build)->
-    haveChanges = false
-
-    for mfn, uModule of @uModules
-      if not uModule.convertedJs # it has changed, then conversion is needed :-)
-        haveChanges = true
-        #@todo: reset reporter!
-
-
-        convertedJS = uModule.convert build # @todo change this
-
-        # Now, it is send to build.out() or saved to build.outputPath
-
-        # but first, decide where to output when combining
-        if build.template is 'combine' #todo: read properly
-          if not build.combinedFile # change build's paths
-            build.combinedFile = upath.changeExt build.outputPath, '.js'
-            build.outputPath = "#{build.combinedFile}__temp"
-          #@interestingDepTypes.push 'global' #@todo: add to this reporter's run !
-
-        if _.isFunction build.out
-          build.out uModule.modulePath, convertedJS
-
-    @combine build if build.template is 'combine' and haveChanges
-
-    if not _.isEmpty(@reporter.reportData)
-      l.log '\n########### urequire, final report ########### :\n', @reporter.getReport()
-
-  #Bundle::build.debugLevel = 10 # @todo: try this for debugin'
-
-
-  ###
-  ###
-  combine: (build)->
-    almondTemplates = new (require '../templates/AlmondOptimizationTemplate') {
-      @globalDepsVars
-      @main
-    }
-
-    rjsConfig =
-      paths: almondTemplates.paths
-      wrap: almondTemplates.wrap
-      baseUrl: build.outputPath
-      include: @main
-      out: build.combinedFile
-#      out: (text)=>
-#        #todo: build.out it!
-#        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
-#        @outputToFile text, @combinedFile
-#        if _fs.existsSync @combinedFile
-#          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
-
-      optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
-      name: 'almond'
-
-    for fileName, genCode of almondTemplates.dependencyFiles
-      build.outputToFile "#{build.outputPath}/#{fileName}.js", genCode
-
-    try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath #@todo : alternative paths ?
-      build.outputToFile(
-        "#{build.outputPath}/almond.js"
-        _fs.readFileSync("#{__dirname}/../../../node_modules/almond/almond.js", 'utf-8')
-      )
-    catch err
-      err.uRequire = """
-        uRequire: error copying almond.js from uRequire's installation node_modules - is it installed ?
-        Tried here: '#{__dirname}/../../../node_modules/almond/almond.js'
-      """
-      l.err err.uRequire
-      throw err
-
-    try
-      _fs.unlinkSync @combinedFile
-    catch err #todo : handle it ?
-
-    l.verbose "optimize with r.js with our kind of 'uRequire.build.js' = ", JSON.stringify _.omit(rjsConfig, ['wrap']), null, ' '
-    @requirejs.optimize rjsConfig, (buildResponse)->
-      l.verbose 'r.js buildResponse = ', buildResponse
-      if false # not build.watch @todo implement watch
-        _wrench.rmdirSyncRecursive build.outputPath
-
-      if _fs.existsSync @combinedFile
-        l.verbose "uRequire: combined file '#{@combinedFile}' written successfully."
-
-
-if Logger::debug.level > 90
+if l.debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)

@@ -21,15 +21,20 @@ uRequireConfig = # Command line options overide these.
     ###
     Name of the bundle {optional}
 
-    @todo: becomes `bundleName` & is the default for 'main'
+    @todo: `bundleName` & is the (1st) default for 'main'
+    `bundleName` it self can be derived from
+        - --outputPath,
+          - filename part, if 'combine' is used eg if its 'abcProject/abc.js', then 'abc'
+          - folder name, if other templates are used eg 'build/abcProject' gives 'abcProject'
+
     ###
-    bundleName: 'uBerscore'
+    bundleName: ''
 
     #
     # If ommited, it is implied by config's position
     #
     # @example './source/code'
-    bundlePath: undefined
+    bundlePath: ''
 
     ###
     Everything that matches these is not proccessed.
@@ -54,17 +59,17 @@ uRequireConfig = # Command line options overide these.
     ]
 
     ###
-    The main / index file of your bundle.
+    The "main" / "index" file of your bundle.
 
     * Used as 'name' / 'include' on RequireJS build.js,
       where all dependencies (recursivelly) are added to the combined file.
 
     * Also used to as the initiation `require` on your combined bundle.
-      It usually is the bundle that has some rootExports
+      It is the module just kicks off the app and/or requires all your other library modules.
 
     @todo : defaults are 'bundleName, 'index', 'main' etc, the first one that is found in uModules
     ###
-    main: "uBerscore"
+    main: do ()-> if @bundleName then @bundleName else 'main'#@todo: main or index or something in bundle @ runtime!
 
     ###
     Where to map `/` when running in node. On RequireJS its http-server's root.
@@ -111,7 +116,7 @@ uRequireConfig = # Command line options overide these.
       @todo: NOT IMPLEMENTED
       @todo: rename to exports.bundle ?
       ###
-      bundleExports: undefined
+      bundleExports: {}
 
       ###
       Export these modules to root/window: works only on Browser (uRequire <=0.3)
@@ -148,25 +153,30 @@ uRequireConfig = # Command line options overide these.
     If ommited, buildjs.baseUrl is used ?
     @example 'build/code'
     ###
-    outputPath: undefined
+    outputPath: ''
 
     ###
     Output on the same directory as bundlePath.
 
     Useful if your sources are not `real sources` eg. you use coffeescript :-).
     WARNING: -f ignores --outputPath
-    ForceOverwriteSources: false
     ###
-#      templates: # @todo: implement template(s)
-#        combine:
+    forceOverwriteSources: false
+
+    ###
+      String in ['UMD', 'AMD', 'nodejs', 'combine'] @todo: or an object with those as keys + more stuff!
+    ###
+    template: {name: 'UMD'}
+      #combine:
 #          # 'almond': 'Use the Universal build, based on almond. It works as standalone <script>, as AMD dependency and on node!
-#          # @todo: implement other methods ? 'simple AMD build"
+#          # @todo:3 implement other methods ? 'simple AMD build"
 #          #
 #          # @default 'almond' - only one for now
 #          #
 #          method: 'almond'
 #
 #          ###
+
 #          Array of globals that will be inlined (instead of creating a getGlobal_xxx).
 #
 #          * 'true' means all (global) libs are inlined.
@@ -175,7 +185,7 @@ uRequireConfig = # Command line options overide these.
 #          @example depsInline: ['backbone', 'lodash']
 #          @@default undefined/false : 'All globals are replaced with a "getGlobal_#{globalName}"'
 #
-#          @todo: NOT IMPLEMENTED
+#          @todo:4 NOT IMPLEMENTED
 #          ###
 #          depsInline: false
 #
@@ -223,6 +233,7 @@ uRequireConfig = # Command line options overide these.
     # Pass these options on uglify js
     # @todo: NOT IMPLEMENTED
     uglify: false
+
   ###
   Runtime settings - these are used only when executing on nodejs.
   They are written out as a "uRequire.config.js" module used at runtime on the nodejs side.

@@ -41,7 +41,7 @@ class DependenciesReporter
       header: "External dependencies (not checked in this version):"
       footer: "They are added as-is."
 
-    DT.webRoot,
+    DT.webRootMap,
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
 
@@ -101,7 +101,7 @@ module.exports = DependenciesReporter
 #    requireDependencies: [],
 #    wrongDependencies: [ 'require(msgLib)' ],
 #    nodeDependencies: [ '../data/messages/hello', '../data/messages/bye' ],
-#    webRoot: '..'
+#    webRootMap: '..'
 #  }
 #  , 'some/Module'
 #
