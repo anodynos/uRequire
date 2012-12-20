@@ -274,10 +274,32 @@ class NodeRequirer
           try
             loadedModule = @nodeRequire _modulePath
           catch err
-            l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=#{err}"
+            err1 = err
+            l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=\n", err1
             attempts.push
               urequireError: "Error loading node or UMD module through nodejs require."
-              modulePath: _modulePath, requireUsed: 'nodeRequire', error: err
+              modulePath: _modulePath,
+              requireUsed: 'nodeRequire',
+              error:
+                name:err1.name
+                message:err1.message
+                err: err1
+              # @todo:2
+              # 'Generic' javascript / nodejs errors NOT REPORTED correctly
+              # eg
+              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25
+              #    isObj = !_.isArray(oa);
+              #             ^
+              # ReferenceError: _ is not defined
+              #
+              # is reported as
+              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/urequire/build/code/NodeRequirer.js:341
+              #      throw err1;
+              #            ^
+              # ReferenceError: _ is not defined
+              #    at uBerscore.go (/mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25:14)
+
+
 
             suffix = '.js' # make sure we have it @todo:unhack @todo: can it be if global ?
             if _modulePath.indexOf(suffix, _modulePath.length - suffix.length) is -1
@@ -314,7 +336,7 @@ class NodeRequirer
           #{@debugInfo}
         """
 
-      process.exit(1)
+      throw err1
     else
       l.debug 10, """
         #{if isCached then "CACHE-" else ''}loaded module: '#{dep.name()}'
