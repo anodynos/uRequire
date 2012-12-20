@@ -1,4 +1,5 @@
 _ = require 'lodash'
+_.mixin (require 'underscore.string').exports()
 _fs = require 'fs'
 
 upath = require './paths/upath'
@@ -196,10 +197,9 @@ class NodeRequirer extends BundleBase
     #load module either via nodeRequire OR requireJS if it needs a plugin or if it fails!
     attempts = []
     isCached = false
-    modulePaths = @resolvePaths dep, @dirname
     loadedModule = null
 
-    for modulePath in modulePaths when not loadedModule
+    for modulePath, resolvedPathNo in @resolvePaths(dep, @dirname) when not loadedModule
       _modulePath = modulePath # hack cause of coffee-forLoop advancing modulePaths, even if 'when' is falsed
       # check if already loaded
       if (loadedModule = @cachedModules[_modulePath]) # assignment, NOT equality check!
@@ -208,57 +208,110 @@ class NodeRequirer extends BundleBase
         # load a simple node or UMD module.
         if dep.pluginName in [undefined, 'node'] # plugin 'node' is dummy: just signals a require effective only
                                                  # on node execution, hence ommited from arrayDeps.
-
-          l.debug 25, "@nodeRequire '#{_modulePath}'"
+          l.debug 95, "@nodeRequire '#{_modulePath}'"
+          attempts.push
+              modulePath: _modulePath
+              requireUsed: 'nodeRequire'
+              resolvedPathNo: resolvedPathNo
+              dependency:
+                name: dep.name()
+                type: dep.type
           try
             loadedModule = @nodeRequire _modulePath
           catch err
-            l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=#{err}"
-            attempts.push
-              urequireError: "Error loading node or UMD module through nodejs require."
-              modulePath: _modulePath, requireUsed: 'nodeRequire', error: err
+            if err1 is undefined or not _(err.toString()).startsWith "Error: Cannot find module" # prefer to keep 'generic' errors in err1
+              err1 = err
 
-            _modulePath = upath.addExt _modulePath, '.js' # make sure we have it @todo: Q: can it be if global ?
+            l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=\n", err
+            _.extend _.last(attempts),
+                urequireError: "Error loading node or UMD module through nodejs require."
+                error:
+                  name:err.name
+                  message:err.message
+                  errToString:err.toString()
+                  err: err
+
+              # @todo:2
+              # 'Generic' javascript / nodejs errors NOT REPORTED correctly
+              # eg
+              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25
+              #    isObj = !_.isArray(oa);
+              #             ^
+              # ReferenceError: _ is not defined
+              #
+              # is reported as
+              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/urequire/build/code/NodeRequirer.js:341
+              #      throw err1;
+              #            ^
+              # ReferenceError: _ is not defined
+              #    at uBerscore.go (/mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25:14)
+
+
+            _modulePath = upath.addExt _modulePath, '.js' # make sure we have it WHY ? @todo: Q: can it be if global ?
 
             if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
               l.debug 25, "FAILURE caused: @getRequirejs() '#{_modulePath}'"
+              attempts.push
+                  modulePath: _modulePath
+                  requireUsed: 'RequireJS'
+                  resolvedPathNo: resolvedPathNo
+                  dependency:
+                    name: dep.name()
+                    type: dep.type
               try
                 loadedModule = @getRequirejs() _modulePath
               catch err
-                l.debug 35, "FAILED: @getRequirejs() '#{_modulePath}' \n err=#{err}"
-                attempts.push
-                  urequireError: "Error loading module through RequireJS; it previously failed with node's require."
-                  modulePath: _modulePath, requireUsed: 'RequireJS', error: err
+                err2 = err
+                l.debug 35, "FAILED: @getRequirejs() '#{_modulePath}' \n err=#{err2}"
+                _.extend _.last(attempts),
+                    urequireError: "Error loading module through RequireJS; it previously failed with node's require."
+                    error:
+                      name:err2.name
+                      message:err2.message
+                      errToString:err2.toString()
+                      err: err2
         else
           _modulePath = "#{dep.pluginName}!#{_modulePath}"
           l.debug 25, "PLUGIN caused: @getRequirejs() '#{_modulePath}'"
+          attempts.push
+            modulePath: _modulePath
+            requireUsed: 'RequireJS'
+            resolvedPathNo: resolvedPathNo
+            dependency:
+              name: dep.name()
+              type: dep.type
+              pluginName: dep.pluginName
+            pluginPaths: @requireJSConfig?.paths[dep.pluginName]
+            pluginResolvedPaths: @requirejs?.s?.contexts?._?.config?.paths[dep.pluginName]
           try
             loadedModule = @getRequirejs() _modulePath # pluginName!modulePath
           catch err
-            attempts.push
-              urequireError: "Error loading *plugin* module through RequireJS.", plugin: dep.pluginName
-              pluginPaths: @requireJSConfig?.paths[dep.pluginName]
-              pluginResolvedPaths: @requirejs?.s?.contexts?._?.config?.paths[dep.pluginName]
-              modulePath: _modulePath, requireUsed: 'RequireJS', error: err
+            err3 = err
+            _.extend _.last(attempts),
+              urequireError: "Error loading *plugin* module through RequireJS."
+              error:
+                name: err3.name
+                message: err3.message
+                errToString:err3.toString()
+                err: err3
 
     if not loadedModule
-      l.err """
+      l.err """\n
           *uRequire #{l.VERSION}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
-          Quiting with process.exit(1) - Detailed attempts follow:
+          Quiting with throwing 1st error - Detailed attempts follow:
           #{JSON.stringify att, null, ' ' for att in attempts}
 
-          Debug info:
-          #{@debugInfo}
-        """
+          Debug info:\n
+        """, @debugInfo
 
-      process.exit(1)
+      throw err1
     else
-      l.debug 10, """
+      l.debug 70, """
         #{if isCached then "CACHE-" else ''}loaded module: '#{dep.name()}'
                 from : '#{_modulePath}' :-)
       """
       if not isCached
-        l.debug 15, """
+        l.debug 50, """
           debugInfo = \u001b[33m#{@debugInfo}"
         """
 

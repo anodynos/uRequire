@@ -49,8 +49,9 @@ describe "NodeRequirer basics:", ->
 
   describe "resolves Dependency paths:", ->
     it "global-looking Dependency", ->
-      expect(resolvedDeps = nr.resolvePaths new Dependency 'underscore', modyle).to.deep
-        .equal ['underscore', upath.normalize "#{__dirname}/underscore"]
+      resolvedDeps = nr.resolvePaths new Dependency 'underscore', modyle
+      for resDep in ['underscore', upath.normalize "#{__dirname}/underscore"]
+        expect(resDep in resolvedDeps).to.be.true
 
     it "bundleRelative Dependency", ->
       depStr = 'some/pathTo/depName'
