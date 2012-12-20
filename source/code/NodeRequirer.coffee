@@ -243,7 +243,7 @@ class NodeRequirer extends BundleBase
 
     if not loadedModule
       l.err """
-          *uRequire #{version}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
+          *uRequire #{l.VERSION}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
           Quiting with process.exit(1) - Detailed attempts follow:
           #{JSON.stringify att, null, ' ' for att in attempts}
 

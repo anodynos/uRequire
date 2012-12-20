@@ -128,29 +128,30 @@ uRequireConfig = # Command line options overide these.
         vars: ['someModuleGlobalVars']
         noConflict: true
       ###
-#      rootExports:
-#        uBerscore:
-#          # descr: 'export these names as global keys, with the value being this uModule.'
-#          # type: ['String', '[]'], default: 'undefined'
-#          vars: ['uBerscore', '_B']
-#
-#          # descr: 'Generate noConflict() for uModule'
-#          # types: ['boolean', 'function'], default: false
-#          # @todo: 'function' not implemented, not even specified!
-#          noConflict: false
+      rootExports:
+        uBerscore:
+          # descr: 'export these names as global keys, with the value being this uModule.'
+          # type: ['String', '[]'], default: 'undefined'
+          vars: ['uBerscore', '_B']
 
+          # descr: 'Generate noConflict() for uModule'
+          # types: ['boolean', 'function'], default: false
+          # @todo: 'function' not implemented
+          noConflict: false
 
-    ### Build / conversion behaviour  ###
+          # other options ?
+
+  ### Build : The conversion behaviour such as *where* and *what* to output ###
   build:
 
     ###
     Output converted files onto this
 
     * directory
-    * filename
+    * filename (if combining)
     * function @todo: NOT IMPLEMENTED
 
-    If ommited, buildjs.baseUrl is used ?
+    #todo: if ommited, requirejs.buildjs.baseUrl is used ?
     @example 'build/code'
     ###
     outputPath: ''
@@ -258,40 +259,39 @@ uRequireConfig = # Command line options overide these.
 #      paths:
 #        someLib: "../some/lib/path"
 #
-#  RequireJs:
-#    runtime:
-#      paths:
-#        src: "../../src"
-#        text: ["requirejs_plugins/text", "/libs/requirejs_plugins/json"]
-#      baseUrl: "../code" # used at runtime
-#
-#    # A subset of * RequireJS build.js *
-#    # (https://github.com/jrburke/r.js/blob/master/build/example.build.js)
-#    'build.js':
-#
-#      ###
-#      see `appDir` in https://github.com/jrburke/r.js/blob/master/build/example.build.js
-#      @todo: NOT IMPLEMENTED - piggy back on this
-#      ####
-#      appDir: "some/path/"
-#
-#      # Only when Combine ?
-#      #
-#      # When build.js has 'globals' in `paths`,
-#      #    eg `{ jquery: '/libs/jQuery.js' }`
-#      #  it means that these are INLINED.
-#      #
-#      #  Otherwise, when a 'global' is missing from these paths, almond wouldn't compile, so uRequire generates a dummy reference
-#      # that loads the globalDependency from `window` on web or from a simple `require`.
-#      paths:
-#        lodash: "../../libs/lodash.min"
-#
-#      optimize: "none"
-#
-#      #  uglify: {beautify: true, no_mangle: true} ,
+  requirejs:
+      paths:
+        src: "../../src"
+        text: ["requirejs_plugins/text", "/libs/requirejs_plugins/json"]
+      baseUrl: "../code" # used at runtime
+
+    # A subset of * RequireJS build.js *
+    # (https://github.com/jrburke/r.js/blob/master/build/example.build.js)
+    'build.js':
+
+      ###
+      see `appDir` in https://github.com/jrburke/r.js/blob/master/build/example.build.js
+      @todo: NOT IMPLEMENTED - piggy back on this
+      ####
+      appDir: "some/path/"
+
+      # Only when Combine ?
+      #
+      # When build.js has 'globals' in `paths`,
+      #    eg `{ jquery: '/libs/jQuery.js' }`
+      #  it means that these are INLINED.
+      #
+      #  Otherwise, when a 'global' is missing from these paths, almond wouldn't compile, so uRequire generates a dummy reference
+      # that loads the globalDependency from `window` on web or from a simple `require`.
+      paths:
+        lodash: "../../libs/lodash.min"
+
+      optimize: "none"
+
+      #  uglify: {beautify: true, no_mangle: true} ,
 #
 #      ### BELOW HERE NOT USED - comments ###
-#      baseUrl: "use uRequire.bundlePath instead"
+#      baseUrl: "use uRequire.bundlePath instead" ?
 #      appDir:  "use uRequire.appDir instead"
 #
 #

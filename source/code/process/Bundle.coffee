@@ -57,7 +57,7 @@ class Bundle extends BundleBase
               try
                  files =  getFiles bundle.bundlePath, filesFilter
               catch err
-                err.uRequire = "*uRequire #{@VERSION}*: Something went wrong reading from '#{@bundlePath}'."
+                err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
                 l.err err.uRequire
                 throw err
 
@@ -101,7 +101,7 @@ class Bundle extends BundleBase
           l.log "Removed file : '#{@bundlePath}/#{moduleFN}'"
           delete @uModules[moduleFN] if @uModules[moduleFN]
         else
-          err.uRequire = "*uRequire #{@VERSION}*: Something went wrong while processing '#{moduleFN}'."
+          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{moduleFN}'."
           l.err err.uRequire
           throw err
 

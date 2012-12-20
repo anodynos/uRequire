@@ -16,7 +16,7 @@ config = {}
 urequireCmd
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <bundlePath> [options]')
-  .version(VERSION) # 'var version = xxx' written by grunt's banner
+  .version(l.VERSION) # 'var version = xxx' written by grunt's banner
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
   .option('-v, --verbose', 'Print module processing information', undefined)

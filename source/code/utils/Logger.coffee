@@ -1,3 +1,5 @@
+
+# a `var VERSION = "x.x.x"` is placed here by grant:concat
 _ = require 'lodash'
 
 class Logger
@@ -6,9 +8,10 @@ class Logger
   constructor:->@_constructor.apply @, arguments
 
   _constructor: (@title, @debugLevel = Logger.debugLevel)->
-
+    @VERSION = VERSION # added by grant:concat
   # default Logger.debugLevel
   @debugLevel = 100
+
 
   @getALog: (baseMsg, color, cons)->
     ->

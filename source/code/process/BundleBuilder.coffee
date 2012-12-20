@@ -34,13 +34,7 @@ class BundleBuilder
     _.extend buildCfg, config.build
     _.extend buildCfg, _B.go config, fltr: _.keys uRequireConfigMasterDefaults.build
 
-
-
     if not buildCfg.verbose then Logger::verbose = ->
-
-
-
-    bundleCfg.VERSION = if typeof VERSION is 'undefined' then '0.x.0' else VERSION #injected by grunt:concat
 
     if be = bundleCfg.dependencies?.bundleExports
       bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues

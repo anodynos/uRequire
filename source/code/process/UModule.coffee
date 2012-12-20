@@ -64,82 +64,6 @@ class UModule
 
     return @_sourceCodeJs
 
-  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
-    if @isConvertible
-
-      # inject *Dependency Injection* information to arrayDeps, nodeDeps & parameters
-      if bundleExports = @bundle?.dependencies?.bundleExports
-
-        for depName, varNames of bundleExports
-          if _.isEmpty varNames
-            varNames = @bundle.getDepsVars depName: depName
-
-          if _.isEmpty varNames # @todo : still empty, throw error. Also, where else do we need to bail out on globals with no vars ??
-            l.err """No variables can be identified for global dependency '#{depName}'.
-                     You should add it at 'bundle.dependencies.bundleExports' or 'bundle.dependencies.variableNames'"""
-          else # add for all corresponding vars
-            for varName in varNames when not (varName in @parameters)
-              d = new Dependency depName, @filename, @bundle.filenames
-              @arrayDeps.push d
-              @nodeDeps.push d
-              @parameters.push varName
-              l.debug 80, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
-
-      # Add all `require('dep')` calls
-      # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDependencies).
-      # see https://github.com/jrburke/requirejs/issues/467
-      #
-      # So load ALL require('dep') fileRelative deps have to be added to the arrayDepsendencies on AMD.
-      #
-      # Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
-      # (# RequireJs disables runtime scan if even one dep exists in []).
-      #
-      # We allow them only if `--scanAllow` or if we have a `rootExports`
-      if not (_.isEmpty(@arrayDeps) and @build?.scanAllow and not @moduleInfo.rootExports)
-        for reqDep in @requireDeps
-          if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
-            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep) # todo:3 test it
-              @arrayDeps.push reqDep
-              @nodeDeps.push reqDep if @build?.allNodeRequires
-
-      ti = @templateInfo
-
-      if build?.noRootExports
-        delete ti.rootExports
-      else
-        ti.rootExports = ti.rootExport if ti.rootExport and not ti.rootExports #backwards compatible:-)
-        ti.rootExports = _B.arrayize ti.rootExports if ti.rootExports
-
-      l.debug 10, "Converting uModule #{@modulePath} with template:\n", build.template
-      moduleTemplate = new ModuleGeneratorTemplates ti
-      @convertedJs = moduleTemplate[build.template.name]()
-    else
-      @convertedJs = @sourceCodeJs
-
-
-  ###
-  Returns all deps in this module along with their corresponding parameters (variable names)
-  @param {Object} q a query with two fields : depType & depName
-  @return {Object}
-        jquery: ['$', 'jQuery']
-        lodash: ['_']
-        'models/person': ['pm']
-  ###
-  getDepsAndVars: (q)->
-    depsAndVars = {}
-    if @isConvertible
-      for dep, idx in @arrayDeps when (
-        ((not q.depType) or (q.depType is dep.type)) and
-        ((not q.depName) or (dep.isEqual q.depName))
-      )
-          dv = (depsAndVars[dep.resourceName] or= [])
-          # store the variable(s) associated with dep
-          if @parameters[idx] and not (@parameters[idx] in dv )
-            dv.push @parameters[idx] # if there is a var, add once
-
-      depsAndVars
-    else {}
-
   ###
   Extract AMD/module information for this module.
   Factory bundleRelative deps like `require('path/dep')` are replaced with their fileRelative counterpart
@@ -205,6 +129,90 @@ class UModule
 
       _.defaults @, @moduleInfo
       @
+  ###
+  Actually converts the module to the target @build options.
+  ###
+  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
+    if @isConvertible
+
+      # inject Dependencies information to arrayDeps, nodeDeps & parameters
+      if bundleExports = @bundle?.dependencies?.bundleExports
+
+        for depName, varNames of bundleExports
+          if _.isEmpty varNames
+            varNames = @bundle.getDepsVars depName: depName
+
+          if _.isEmpty varNames #
+            # still empty, throw error. Also, where else do we need to bail out on globals with no vars ??
+            l.err """Error converting #{@bundle.bundleName}.
+                     No variable names can be identified for global dependency '#{depName}'.
+                     The variable name is used to *grab* the dependency
+                     uRequire currenlty doen's read your
+                     You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
+                     {
+                      jquery: ['$', 'jQuery']
+                      backbone: ['Backbone']
+                     }
+                     """
+          else
+            for varName in varNames when not (varName in @parameters) # add for all corresponding vars
+              d = new Dependency depName, @filename, @bundle.filenames #its cheap!
+              @arrayDeps.push d
+              @nodeDeps.push d
+              @parameters.push varName
+              l.debug 50, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
+
+      # @todo:3 also add rootExports ?
+
+      # Add all `require('dep')` calls
+      # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDependencies).
+      # see https://github.com/jrburke/requirejs/issues/467
+      #
+      # So load ALL require('dep') fileRelative deps have to be added to the arrayDepsendencies on AMD.
+      #
+      # Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
+      # (# RequireJs disables runtime scan if even one dep exists in []).
+      #
+      # We allow them only if `--scanAllow` or if we have a `rootExports`
+      if not (_.isEmpty(@arrayDeps) and @build?.scanAllow and not @moduleInfo.rootExports)
+        for reqDep in @requireDeps
+          if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
+            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep) # todo:3 test it
+              @arrayDeps.push reqDep
+              @nodeDeps.push reqDep if @build?.allNodeRequires
+
+      ti = @templateInfo
+
+      l.debug 10, "Converting uModule #{@modulePath} with template:\n", build.template
+      moduleTemplate = new ModuleGeneratorTemplates ti
+      @convertedJs = moduleTemplate[build.template.name]()
+    else
+      @convertedJs = @sourceCodeJs
+
+
+  ###
+  Returns all deps in this module along with their corresponding parameters (variable names)
+  @param {Object} q a query with two fields : depType & depName
+  @return {Object}
+        jquery: ['$', 'jQuery']
+        lodash: ['_']
+        'models/person': ['pm']
+  ###
+  getDepsAndVars: (q)->
+    depsAndVars = {}
+    if @isConvertible
+      for dep, idx in @arrayDeps when (
+        ((not q.depType) or (q.depType is dep.type)) and
+        ((not q.depName) or (dep.isEqual q.depName))
+      )
+          dv = (depsAndVars[dep.resourceName] or= [])
+          # store the variable(s) associated with dep
+          if @parameters[idx] and not (@parameters[idx] in dv )
+            dv.push @parameters[idx] # if there is a var, add once
+
+      depsAndVars
+    else {}
+
 
 
   ### for reference (we could have passed UModule instance it self :-) ###
@@ -213,11 +221,21 @@ class UModule
       @moduleType
       @modulePath
       webRootMap: @bundle.webRootMap || '.'
-      arrayDependencies: (d.toString() for d in @arrayDeps) # @todo:1 why toString() ?
-      nodeDependencies: (d.name() for d in @nodeDeps) # @todo:1 why name() ?
+      arrayDependencies: (d.name() for d in @arrayDeps)
+      nodeDependencies: (d.name() for d in @nodeDeps)
       @parameters
       @factoryBody
-      rootExports: if @build.noRootExports then undefined else @rootExports
+
+      rootExports: do ()=>
+                    console.log 'rootExports: @build', @build
+                    result = if @build.noRootExports
+                      undefined
+                    else
+                      if @rootExports then @rootExports else @rootExport # backwards compatible with rootExport :-)
+                    if result
+                      _B.arrayize result
+
+
       noConflict: if @build.noRootExports then undefined else @noConflict
   }, fltr: (v)->not _.isUndefined v
 

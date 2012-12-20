@@ -48,7 +48,6 @@ class Dependency
           else
             Dependency.TYPES.bundle
 
-  # @todo @property name: {get}
   name: (options = {})->
     options.ext ?= true
     options.plugin ?= true
@@ -63,7 +62,7 @@ class Dependency
     if options.ext or not @extname
       n
     else
-      n[0..(n.length - @extname.length)-1] #strip extension ?
+      upath.trimExt n
 
   toString:-> @name()
 

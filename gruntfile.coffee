@@ -86,24 +86,23 @@ gruntFunction = (grunt) ->
         src: [
           '<banner:meta.usrBinEnvNode>'
           '<banner>'
-          '<banner:meta.varVersion>'
           '<%= options.buildDir %>/urequireCmd.js'
         ]
         dest:'<%= options.buildDir %>/urequireCmd.js'
 
-      NodeRequirer: # runtime version
+      VERSION: # runtime l.VERSION
         src: [
           '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/NodeRequirer.js'
+          '<%= options.buildDir %>/utils/Logger.js'
         ]
-        dest:'<%= options.buildDir %>/NodeRequirer.js'
+        dest:'<%= options.buildDir %>/utils/Logger.js'
 
-      process: # runtime version
-        src: [
-          '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/process/BundleBuilder.js'
-        ]
-        dest:'<%= options.buildDir %>/process/BundleBuilder.js'
+#      process: # runtime version
+#        src: [
+#          '<banner:meta.varVersion>'
+#          '<%= options.buildDir %>/process/BundleBuilder.js'
+#        ]
+#        dest:'<%= options.buildDir %>/process/BundleBuilder.js'
 
 #      md:
 #        src: [
@@ -159,11 +158,11 @@ gruntFunction = (grunt) ->
   grunt.registerTask cmd, "shell:#{cmd}" for cmd of gruntConfig.shell
 
   # generic shortcuts
-  grunt.registerTask shortCut, tasks for shortCut, tasks of {
+  grunt.registerTask shortCut, tasks for shortCut, tasks of _B.go {
      # basic commands
-     "default": "clean build deploy test"
+     "default": "clean build test" #deploy b4 'test' 4 windows
      "build":   "clean:build cf copy:specResources concat"
-     "deploy":  "clean:deploy copy dos2unix chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
+     "deploy":  '' # windows only "copy dos2unix chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
      "test":    "coffeeSpec mocha"
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
@@ -174,7 +173,7 @@ gruntFunction = (grunt) ->
      "b":       "build"
      "d":       "deploy"
      "t":       "test"
-  }
+  }, fltr: (v)->!!v
 
   # IDE shortcuts
   grunt.registerTask shortCut, tasks for shortCut, tasks of {
