@@ -4,6 +4,8 @@ ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
 l = require '../utils/logger'
 
+version = "<%= pkg.version %>"
+
 ###
 @param {String} modyle The module name
 @param {String} oldModuleJs The javascript content of the original/old module
