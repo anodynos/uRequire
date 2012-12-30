@@ -104,19 +104,10 @@ describe "Dependency - resolving many", ->
       deps.push new Dependency dep, modyle, bundleFiles
 
     fileRelative = ( d.toString() for d in deps )
-
     bundleRelative = ( d.bundleRelative() for d in deps)
-
     global = ( d.toString() for d in deps when d.isGlobal())
-
-    external = ( d.toString() for d in deps when not (d.isBundleBoundary() or d.isWebRootMap()) )
-
-    notFoundInBundle = (
-      d.toString() for d in deps when \
-        d.isBundleBoundary() and
-        not (d.isFound() or d.isGlobal() )
-    )
-
+    external = ( d.toString() for d in deps when d.isExternal())
+    notFoundInBundle = ( d.toString() for d in deps when d.isNotFoundInBundle() )
     webRootMap = ( d.toString() for d in deps when d.isWebRootMap() )
 
     # console.log {bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}

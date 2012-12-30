@@ -29,23 +29,22 @@ class Build
 
 
   @outputToFile: (outputFilename, content)-> # @todo:1 make private ?
-    l.debug 5, "Writting file #{outputFilename} (#{content.length} chars)"
+    l.debug 5, "Writting file '#{outputFilename}' (#{content.length} chars)"
     try
       if not _fs.existsSync upath.dirname(outputFilename)
-        l.verbose "Creating directory #{upath.dirname outputFilename}"
+        l.verbose "Creating directory '#{upath.dirname outputFilename}'"
         _wrench.mkdirSyncRecursive upath.dirname(outputFilename)
 
       _fs.writeFileSync outputFilename, content, 'utf-8'
       if @watch #if debug
         l.verbose "Written file '#{outputFilename}'"
     catch err
-      err.uRequire = """
-        uRequire: error outputToFile `#{outputFilename}`
-      """
+      err.uRequire = "uRequire: error outputToFile '#{outputFilename}'"
       l.err err.uRequire
       throw err
 
-  # A helper (missing from fs & wrench): @todo: improve (based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/)
+  # copyFile helper (missing from fs & wrench)
+  # @todo: improve (based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/)
   @copyFileSync: (srcFile, destFile) ->
     l.debug 30, "copyFileSync {src='#{srcFile}', dst='#{destFile}'"
     try
@@ -67,9 +66,7 @@ class Build
       _fs.closeSync(fdr)
       _fs.closeSync(fdw)
     catch err
-      err.uRequire = """
-        uRequire: error copyFileSync from `#{srcFile}` to `#{destFile}`
-      """
+      err.uRequire = "uRequire: error copyFileSync from '#{srcFile}' to '#{destFile}'"
       l.err err.uRequire
       throw err
 

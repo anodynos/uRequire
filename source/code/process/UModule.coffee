@@ -68,7 +68,6 @@ class UModule
   Extract AMD/module information for this module.
   Factory bundleRelative deps like `require('path/dep')` are replaced with their fileRelative counterpart
   Extracted module info augments this instance.
-  @todo:2 its kinda weird, but break into smaller pieces ?
   ###
   adjustModuleInfo: ->
     # reset info holders
@@ -104,7 +103,7 @@ class UModule
       # Go throught all original deps & resolve their fileRelative counterpart.
       [ @arrayDeps  # Store resolvedDeps as res'DepType'
         @requireDeps
-        @asyncDeps ] = for strDepsArray in [ # @todo:2 do we need to replaceAsynchRequires ?
+        @asyncDeps ] = for strDepsArray in [ # @todo:2 why do we need to replaceAsynchRequires ?
            @moduleInfo.arrayDependencies
            @moduleInfo.requireDependencies
            @moduleInfo.asyncDependencies
@@ -134,33 +133,44 @@ class UModule
   ###
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
+      l.debug 30, "\n\n**** Converting '#{@modulePath}' ****"
 
       # inject Dependencies information to arrayDeps, nodeDeps & parameters
       if bundleExports = @bundle?.dependencies?.bundleExports
+        l.debug 30, "#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports
 
         for depName, varNames of bundleExports
           if _.isEmpty varNames
-            varNames = @bundle.getDepsVars depName: depName
+            # attempt to read from bundle & store found varNames at @bundle.dependencies.bundleExports
+            varNames = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
+            l.debug 80, """
+              #{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
+              An attempt to infer varNames from bundle:
+            """, varNames
 
-          if _.isEmpty varNames #
-            # still empty, throw error. Also, where else do we need to bail out on globals with no vars ??
-            l.err """Error converting #{@bundle.bundleName}.
-                     No variable names can be identified for global dependency '#{depName}'.
-                     The variable name is used to *grab* the dependency
-                     uRequire currenlty doen's read your
-                     You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
-                     {
-                      jquery: ['$', 'jQuery']
-                      backbone: ['Backbone']
-                     }
-                     """
+          if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
+            err = uRequire: """
+              Error converting #{@bundle.bundleName}.
+              No variable names can be identified for global dependency '#{depName}'.
+              The variable name is used to *grab* the dependency from the global object.
+              You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
+              {
+              jquery: ['$', 'jQuery']
+              backbone: ['Backbone']
+              }
+            """
+            l.err err.uRequire
+            throw err
           else
-            for varName in varNames when not (varName in @parameters) # add for all corresponding vars
-              d = new Dependency depName, @filename, @bundle.filenames #its cheap!
-              @arrayDeps.push d
-              @nodeDeps.push d
-              @parameters.push varName
-              l.debug 50, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
+            for varName in varNames # add for all corresponding vars
+              if not (varName in @parameters)
+                d = new Dependency depName, @filename, @bundle.filenames #its cheap!
+                @arrayDeps.push d
+                @nodeDeps.push d
+                @parameters.push varName
+                l.debug 50, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
+              else
+                l.debug 10, "#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists."
 
       # @todo:3 also add rootExports ?
 
@@ -177,13 +187,12 @@ class UModule
       if not (_.isEmpty(@arrayDeps) and @build?.scanAllow and not @moduleInfo.rootExports)
         for reqDep in @requireDeps
           if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
-            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep) # todo:3 test it
+            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep)
               @arrayDeps.push reqDep
               @nodeDeps.push reqDep if @build?.allNodeRequires
 
       ti = @templateInfo
-
-      l.debug 10, "Converting uModule #{@modulePath} with template:\n", build.template
+      l.verbose "Converting uModule '#{@modulePath}' with template:\n", build.template, '\n and templateInfo:\n', _.omit(ti, ['factoryBody', 'webRootMap', ])
       moduleTemplate = new ModuleGeneratorTemplates ti
       @convertedJs = moduleTemplate[build.template.name]()
     else
@@ -198,14 +207,14 @@ class UModule
         lodash: ['_']
         'models/person': ['pm']
   ###
-  getDepsAndVars: (q)->
+  getDepsAndVars: (q={})->
     depsAndVars = {}
     if @isConvertible
       for dep, idx in @arrayDeps when (
         ((not q.depType) or (q.depType is dep.type)) and
         ((not q.depName) or (dep.isEqual q.depName))
       )
-          dv = (depsAndVars[dep.resourceName] or= [])
+          dv = (depsAndVars[dep.name(relativeType:'bundle')] or= [])
           # store the variable(s) associated with dep
           if @parameters[idx] and not (@parameters[idx] in dv )
             dv.push @parameters[idx] # if there is a var, add once
@@ -227,7 +236,6 @@ class UModule
       @factoryBody
 
       rootExports: do ()=>
-                    console.log 'rootExports: @build', @build
                     result = if @build.noRootExports
                       undefined
                     else

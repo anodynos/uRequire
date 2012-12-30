@@ -1,2 +1,1 @@
-call coffee package.coffee
-grunt.cmd --config ./gruntfile.coffee %*
+grunt.cmd --config ./Gruntfile.coffee %*

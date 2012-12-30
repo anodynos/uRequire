@@ -192,6 +192,7 @@ class NodeRequirer extends BundleBase
 
   @param {Dependency} dep The Dependency to be load.
   @return {module} loaded module or quits if it fails
+  @todo:2 refactor/simplify
   ###
   loadModule: (dep)=>
     #load module either via nodeRequire OR requireJS if it needs a plugin or if it fails!
@@ -231,22 +232,6 @@ class NodeRequirer extends BundleBase
                   errToString:err.toString()
                   err: err
 
-              # @todo:2
-              # 'Generic' javascript / nodejs errors NOT REPORTED correctly
-              # eg
-              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25
-              #    isObj = !_.isArray(oa);
-              #             ^
-              # ReferenceError: _ is not defined
-              #
-              # is reported as
-              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/urequire/build/code/NodeRequirer.js:341
-              #      throw err1;
-              #            ^
-              # ReferenceError: _ is not defined
-              #    at uBerscore.go (/mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25:14)
-
-
             _modulePath = upath.addExt _modulePath, '.js' # make sure we have it WHY ? @todo: Q: can it be if global ?
 
             if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
@@ -266,10 +251,10 @@ class NodeRequirer extends BundleBase
                 _.extend _.last(attempts),
                     urequireError: "Error loading module through RequireJS; it previously failed with node's require."
                     error:
-                      name:err2.name
-                      message:err2.message
-                      errToString:err2.toString()
-                      err: err2
+                      name:err.name
+                      message:err.message
+                      errToString:err.toString()
+                      err: err
         else
           _modulePath = "#{dep.pluginName}!#{_modulePath}"
           l.debug 25, "PLUGIN caused: @getRequirejs() '#{_modulePath}'"
@@ -290,10 +275,10 @@ class NodeRequirer extends BundleBase
             _.extend _.last(attempts),
               urequireError: "Error loading *plugin* module through RequireJS."
               error:
-                name: err3.name
-                message: err3.message
-                errToString:err3.toString()
-                err: err3
+                name: err.name
+                message: err.message
+                errToString:err.toString()
+                err: err
 
     if not loadedModule
       l.err """\n

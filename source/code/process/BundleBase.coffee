@@ -62,8 +62,8 @@ class BundleBase
           if dep.isRelative()  # relative to bundle eg 'a/b/c',
             addit @bundlePath + depName
           else # a single pathpart, like 'underscore' or 'myLib'
-            addit @bundlePath + depName  # or bundleRelative (unlikely)
             addit depName     # global eg 'underscore' (most likely)
+            addit @bundlePath + depName  # or bundleRelative (unlikely)
 
     return resPaths
 

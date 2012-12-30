@@ -12,7 +12,7 @@ l = new Logger 'ModuleGeneratorTemplates'
 #     modulePath: where the module is, within bundle
 #     moduleName: the moduleName, if it exists.
 #     moduleType: type of the original module : 'nodejs' or 'AMD'
-#     type: 'define' or 'require': NOT USED
+#     #type: 'define' or 'require': NOT USED
 #     arrayDependencies: Array of deps, as delcared in AMD, filerelative (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
 #     nodeDependencies: Array for file-relative dependencies, as required by node (eg '../PersonView')
 #     parameters: Array of parameter names, as declared on the original AMD.
@@ -29,8 +29,7 @@ module.exports =
 
 class ModuleGeneratorTemplates
 
-  constructor: ->
-    @_constructor.apply @, arguments
+  constructor:-> @_constructor.apply @, arguments
 
   ###
   @param @ti the templateInfo
@@ -177,10 +176,10 @@ class ModuleGeneratorTemplates
 
 ### Debug information ###
 
-if l.debugLevel > 90
-  YADC = require('YouAreDaChef').YouAreDaChef
-
-  (YADC ModuleGeneratorTemplates)
-    .before /_constructor/, (match, ti)->
-      l.debug "Before '#{match}' with 'templateInfo' = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
-
+#if l.debugLevel > 90
+#  YADC = require('YouAreDaChef').YouAreDaChef
+#
+#  (YADC ModuleGeneratorTemplates)
+#    .before /_constructor/, (match, ti)->
+#      l.debug "Before '#{match}' with 'templateInfo' = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
+#
