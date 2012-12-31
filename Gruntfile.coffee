@@ -13,12 +13,10 @@ gruntFunction = (grunt) ->
 
   globalBuildCode = switch process.platform
     when "win32" then "c:/Program Files/nodejs/node_modules/urequire/build/code/"
-    when 'linux' then "/usr/local/lib/node_modules/urequire/build/code/"
     else ""
 
   globalClean = switch process.platform
     when "win32" then  "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
-    when 'linux' then "/usr/local/lib/node_modules/urequire/build/code/**/*.*"
     else ""
 
   gruntConfig =
@@ -62,13 +60,12 @@ gruntFunction = (grunt) ->
       chmod: # change urequireCmd.js to executable - linux only (?mac?)
         command:  switch process.platform
           when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
-          else "@echo" #do nothing
-
+          else "#" #do nothing
 
       dos2unix: # download from http://sourceforge.net/projects/dos2unix/files/latest/download
         command: switch process.platform
           when "win32" then "dos2unix build/code/urequireCmd.js"
-          else "@echo" #do nothing
+          else "#" #do nothing
 
       globalInstall:
         command: "npm install -g"
@@ -96,20 +93,6 @@ gruntFunction = (grunt) ->
           '<%= options.buildDir %>/utils/Logger.js'
         ]
         dest:'<%= options.buildDir %>/utils/Logger.js'
-
-#      process: # runtime version
-#        src: [
-#          '<banner:meta.varVersion>'
-#          '<%= options.buildDir %>/process/BundleBuilder.js'
-#        ]
-#        dest:'<%= options.buildDir %>/process/BundleBuilder.js'
-
-#      md:
-#        src: [
-#          '<banner:meta.mdVersion>'
-#          './readme.md' #how do we strip 1st line ?
-#        ]
-#        dest: './readme.md'
 
     copy:
       specResources:
