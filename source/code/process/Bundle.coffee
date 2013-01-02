@@ -48,7 +48,7 @@ class Bundle extends BundleBase
     for getFilesFactory, filesFilter of {
       filenames: -> true # get all files
       moduleFilenames: (mfn)=> # get only modules
-        (_B.inFilters(mfn, @includes) and not _B.inFilters(mfn, @excludes)) #@todo:2 (uberscore):notFilters()
+        (_B.inAgreements(mfn, @includes) and not _B.inAgreements(mfn, @excludes)) #@todo:2 (uberscore):notFilters()
     }
       do (bundle = @)->
         Bundle.property _B.okv {}, getFilesFactory,
@@ -125,12 +125,13 @@ class Bundle extends BundleBase
     for mfn, uModule of @uModules
       if not uModule.convertedJs # it has changed, then conversion is needed :-)
         haveChanges = true
-        #@todo: reset reporter!
-        convertedJS = uModule.convert @build
+
+        # @todo: reset reporter!
+        uModule.convert @build
 
         if _.isFunction @build.out
-          @build.out uModule.modulePath, convertedJS
-        # todo : else ?
+          @build.out uModule.modulePath, uModule.convertedJs
+          # @todo:5 else if String, output to this file ?
 
     if @build.template.name is 'combine' and haveChanges
       @combine @build
@@ -140,7 +141,7 @@ class Bundle extends BundleBase
 
   #Bundle::@build.debugLevel = 10 # @todo: try this for debugin'
 
-  getRequireJSConfig: ()->
+  getRequireJSConfig: ()-> #@todo: remove & fix this!
       paths:
         text: "requirejs_plugins/text"
         json: "requirejs_plugins/json"

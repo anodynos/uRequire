@@ -191,12 +191,15 @@ class UModule
               @arrayDeps.push reqDep
               @nodeDeps.push reqDep if @build?.allNodeRequires
 
-      ti = @templateInfo
-      l.verbose "Converting uModule '#{@modulePath}' with template:\n", build.template, '\n and templateInfo:\n', _.omit(ti, ['factoryBody', 'webRootMap', ])
-      moduleTemplate = new ModuleGeneratorTemplates ti
-      @convertedJs = moduleTemplate[build.template.name]()
+      moduleTemplate = new ModuleGeneratorTemplates ti = @templateInfo
+      l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}', templateInfo = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
+
+      @convertedJs = moduleTemplate[@build.template.name]() #todo: pass template, not its name
     else
       @convertedJs = @sourceCodeJs
+
+    @
+
 
 
   ###

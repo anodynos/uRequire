@@ -24,11 +24,11 @@ class uBerscoreShortcuts # class cause its easy :-)
   ###
   arrayToObjectWithValuesAsKeys: (arr)->
     obj = {}
-    _B.go arr, grab: (v)-> obj[v.toString()] = []
+    _B.go arr, grab: (v)-> obj[v + ''] = []
     obj
 
   ###
-  Crap name, I know, but :
+  Crap name, I know :
     it converts 'imperfect' input like
       'str1' or ['str1', 'str2']
     to
@@ -40,21 +40,59 @@ class uBerscoreShortcuts # class cause its easy :-)
       {key: ['stringVal']}
   ###
   toObjectKeysWithArrayValues: (input)->
-    input = _B.arrayize input, _.isString
+    result = _B.arrayize input, _.isString
 
-    if _.isArray input # change ['str1', 'str2'] to {str1:[], str2:[]}
-      input = @arrayToObjectWithValuesAsKeys input
+    if _.isArray result # change ['str1', 'str2'] to {str1:[], str2:[]}
+      result = @arrayToObjectWithValuesAsKeys result
     else
-      if _.isObject input # change `key: 'string'` to `key: ['string']`
-        _B.mutate input, _B.arrayize, _.isString
+      if _.isObject result # change `key: 'string'` to `key: ['string']`
+        _B.mutate result, _B.arrayize, _.isString
 
-    input
+    result
+
+
+
+
+
+  ###
+  Crap name again, an not generic enough, I know that too :
+    it converts 'imperfect' input like
+      'str1' or ['str1', 'str2']
+    to
+      {str1:{name:str1} , str2:{name:str2} }
+
+    or
+      {key1: {}, key1: {}}
+    to
+      {key1: {name: 'key1'}, {key2: {name: 'key1'}}
+
+  @todo: generalize this and the above!
+  ###
+  toObjectKeysWithNameAttributeAsKey: (input)->
+    result = _B.arrayize input, _.isString
+
+    # change ['str1', 'str2'] to {str1:{}, str2:{}}
+    if _.isArray result
+      obj = {}
+      _B.go result, grab: (v)-> obj[v + ''] = {}
+      result = obj
+
+    if _.isObject result # change `key: {} to `key: {name:key}'
+      for key, val of result
+        result[key].name = key
+
+    result
 
 module.exports = new uBerscoreShortcuts
 
-#@todo : specs
+##@todo : specs
 #_Bs = module.exports
 #
 #console.log _Bs.toObjectKeysWithArrayValues 'lalakis'
 #console.log _Bs.toObjectKeysWithArrayValues ['str1', 'str2']
-#console.log JSON.stringify (_Bs.toObjectKeysWithArrayValues {key1: 'lalakis', key2: ['ok','yes']}), null, ' '
+#console.log _Bs.toObjectKeysWithArrayValues {key1: 'lalakis', key2: ['ok','yes']}
+#
+#
+#console.log _Bs.toObjectKeysWithNameAttributeAsKey 'UMD'
+#console.log _Bs.toObjectKeysWithNameAttributeAsKey ['UMD', 'nodejs']
+#console.log _Bs.toObjectKeysWithNameAttributeAsKey(AMD: {}, nodejs: {})

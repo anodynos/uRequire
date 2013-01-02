@@ -25,7 +25,7 @@ uRequireConfig = # Command line options overide these.
     `bundleName` it self can be derived from
         - --outputPath,
           - filename part, if 'combine' is used eg if its 'abcProject/abc.js', then 'abc'
-          - folder name, if other templates are used eg 'build/abcProject' gives 'abcProject'
+          - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
 
     ###
     bundleName: ''
@@ -167,34 +167,29 @@ uRequireConfig = # Command line options overide these.
     ###
       String in ['UMD', 'AMD', 'nodejs', 'combine'] @todo: or an object with those as keys + more stuff!
     ###
-    template: {name: 'UMD'}
-      #combine:
-#          # 'almond': 'Use the Universal build, based on almond. It works as standalone <script>, as AMD dependency and on node!
-#          # @todo:3 implement other methods ? 'simple AMD build"
-#          #
+    template: name: 'UMD'
+      # one among available templates: ['UMD', 'AMD', 'nodejs', 'combine']
+
+#      @todo:4 NOT IMPLEMENTED
+#       # combine options: use a 'Universal' build, based on almond that works as standalone <script>, as AMD dependency and on node!
+#       # @todo:3 implement other methods ? 'simple AMD build"
+#      'combine':
 #          # @default 'almond' - only one for now
-#          #
 #          method: 'almond'
 #
 #          ###
-
 #          Array of globals that will be inlined (instead of creating a getGlobal_xxx).
-#
 #          * 'true' means all (global) libs are inlined.
 #          * String and []<String> are deps that will be inlined
-#
 #          @example depsInline: ['backbone', 'lodash']
 #          @@default undefined/false : 'All globals are replaced with a "getGlobal_#{globalName}"'
-#
 #          @todo:4 NOT IMPLEMENTED
 #          ###
 #          depsInline: false
-#
-#        AMD:''
 
     # Watch for changes in bundle files and reprocess/re output those changed files
     # @todo: NOT IMPLEMENTED.
-    # @todo: it should no write combined file if errors occur
+    # @todo: it should not write combined file if errors occur
     watch: false
 
     ###
@@ -222,6 +217,8 @@ uRequireConfig = # Command line options overide these.
 
 
     verbose: false
+
+    debugLevel: 0
 
     # Dont bail out while processing, mainly on module processing errors.
     # Usefull along with -watch

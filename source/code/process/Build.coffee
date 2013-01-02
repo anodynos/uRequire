@@ -23,6 +23,8 @@ class Build
 
     @out = Build.outputModuleToFile unless @out
 
+  @templates = ['UMD', 'AMD', 'nodejs', 'combine']
+
   #@todo : check @outputPath exists
   @outputModuleToFile: (modulePath, content)->
     Build.outputToFile upath.join(@outputPath, "#{modulePath}.js"), content

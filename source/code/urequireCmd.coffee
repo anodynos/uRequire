@@ -5,6 +5,8 @@ _wrench = require "wrench"
 
 urequireCmd = require 'commander'
 upath = require './paths/upath'
+Build = require './process/Build'
+
 Logger = require './utils/Logger'
 l = new Logger 'urequireCMD'
 
@@ -31,10 +33,8 @@ urequireCmd
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
   .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `config` setting. Used ONLY with `config`', undefined)
-  #.option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so urequire is not needed @ runtime.', false)
 
-templates = ['AMD', 'UMD', 'nodejs', 'combine']
-for tmplt in templates
+for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combine']
   do (tmplt)->
     urequireCmd
       .command("#{tmplt} <bundlePath>")
@@ -60,12 +60,13 @@ urequireCmd
     # Some basics options checks
     # assume bundlePath, if its empty
     config.bundle.bundlePath or= upath.dirname cfgFile
+
     # we allow --template for 'config' action, but there's no easy way to get it in commander
     if urequireCmd.template
-      if urequireCmd.template in templates
+      if urequireCmd.template in Build.templates
         config.template = urequireCmd.template
       else
-        l.err 'Wrong --template : ', urequireCmd.template
+        l.err 'Wrong --template : ', urequireCmd.template # @todo: duplicate check here & BundleBuilder
 
     # ? add configFile to exclude'd files ?
 #    (options.exclude ?= []).push upath.relative(options.bundlePath, configFile)
