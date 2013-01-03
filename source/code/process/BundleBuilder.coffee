@@ -1,6 +1,6 @@
 _ = require 'lodash'
 _B = require 'uberscore'
-
+upath = require '../paths/upath'
 # logging
 Logger = require '../utils/Logger'
 l = new Logger 'BundleBuilder'
@@ -22,11 +22,25 @@ _Bs = require '../utils/uBerscoreShortcuts'
 class BundleBuilder
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-  constructor: ->@_constructor.apply @, arguments
+  constructor: -> @_constructor.apply @, arguments
 
   _constructor: (config)->
     bundleCfg = {}
     buildCfg = {}
+
+    require('better-require')()
+
+    if config.configFile
+      config.configFile = _B.arraize config.configFile
+      # assume bundlePath, if its empty
+      config.bundlePath or= upath.dirname config.configFile
+      # ? add configFile to exclude'd files ?
+      #  (bundle.exclude ?= []).push upath.relative(options.bundlePath, configFile)
+
+
+      cfgFile = require config.configFile #_fs.realpathSync configFile
+      delete config.configFile
+      config = _B.deepCloneDefaults config, cfgFile
 
     # read both simple/flat cfg and cfg.bundle
     _.extend bundleCfg, config.bundle
@@ -36,6 +50,7 @@ class BundleBuilder
     _.extend buildCfg, _B.go config, fltr: _.keys uRequireConfigMasterDefaults.build
 
     if not buildCfg.verbose then Logger::verbose = ->
+    if buildCfg.debugLevel? then Logger::debugLevel = buildCfg.debugLevel
 
     if be = bundleCfg.dependencies?.bundleExports
       bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
@@ -47,12 +62,12 @@ class BundleBuilder
           l.verbose "bundleCfg :\n", JSON.stringify bundleCfg, null, ' '
           l.verbose "buildCfg :\n", JSON.stringify buildCfg, null, ' '
 
-          @bundle = new Bundle bundleCfg
-          @build = new Build buildCfg
-
-          # Build bundle against the build setup (@todo: or builds ?)
-          l.debug 50, 'buildChangedModules() with build = \n', @build
-          @bundle.buildChangedModules @build
+#          @bundle = new Bundle bundleCfg
+#          @build = new Build buildCfg
+#
+#          # Build bundle against the build setup (@todo: or builds ?)
+#          l.debug 50, 'buildChangedModules() with build = \n', @build
+#          @bundle.buildChangedModules @build
 
           # @todo: & watch build's folder
           # @watchDirectory @cfg.bundle.bundlePath
@@ -72,7 +87,7 @@ class BundleBuilder
 
     if not buildCfg.template.name? in Build.templates
       l.err """
-        Quitting build, no valid templates specified.
+        Quitting build, no valid template specified.
         Use -h for help"""
       return false
 

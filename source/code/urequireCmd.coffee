@@ -22,6 +22,7 @@ urequireCmd
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
   .option('-v, --verbose', 'Print module processing information', undefined)
+  .option('-d, --debugLevel <debugLevel>', 'Pring debug information (0-100)', 0)
   .option('-n, --noExports', 'Ignore all web `rootExports` in module definitions', undefined)
   .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", undefined)
   .option('-s, --scanAllow', "By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).", undefined)
@@ -32,7 +33,7 @@ urequireCmd
   .option('-i, --include', "NOT IMPLEMENTED. Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
-  .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `config` setting. Used ONLY with `config`', undefined)
+  .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
 
 for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combine']
   do (tmplt)->
@@ -40,37 +41,13 @@ for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combine']
       .command("#{tmplt} <bundlePath>")
       .description("Converts all modules in <bundlePath> using '#{tmplt}' template.")
       .action (bundlePath)->
-        console.log 'urequireCmd Called:', tmplt, bundlePath
         config.template = tmplt
         config.bundlePath = bundlePath
 
 urequireCmd
-  .command('config <configFile>') #todo: move out of urequireCmd
-  # todo: better/generic way to load from JSON, JS(object literal), Coffee(object literal) ?
-  .action (cfgFile)->
-    configFile = _fs.realpathSync cfgFile
-
-    if upath.extname(configFile) is '.coffee' # #todo: add .coco etc
-      js = (require 'coffee-script').compile (_fs.readFileSync configFile, 'utf-8'), bare:true
-      _fs.writeFileSync upath.changeExt(configFile, '.js'), js, 'utf-8'
-
-    config = require upath.changeExt configFile, '.js'
-    _fs.unlinkSync upath.changeExt configFile, '.js'
-
-    # Some basics options checks
-    # assume bundlePath, if its empty
-    config.bundle.bundlePath or= upath.dirname cfgFile
-
-    # we allow --template for 'config' action, but there's no easy way to get it in commander
-    if urequireCmd.template
-      if urequireCmd.template in Build.templates
-        config.template = urequireCmd.template
-      else
-        l.err 'Wrong --template : ', urequireCmd.template # @todo: duplicate check here & BundleBuilder
-
-    # ? add configFile to exclude'd files ?
-#    (options.exclude ?= []).push upath.relative(options.bundlePath, configFile)
-#    (options.exclude ?= []).push upath.relative(options.bundlePath, upath.changeExt(configFile, '.js')) # why
+  .command('config <configFiles...>')
+  .action (cfgFiles)->
+    config.configFiles = toArray cfgFiles
 
 urequireCmd.on '--help', ->
   console.log """
@@ -100,14 +77,15 @@ urequireCmd.on '--help', ->
       eg. you use coffeescript :-).
       WARNING: -f ignores --outputPath
 """
-
 urequireCmd.parse process.argv
 
-cmdOptions = _.map(urequireCmd.options, (o)-> o.long.slice 2) #hack to get cmd options only ['verbose', 'scanAllow'] etc
-cmdConfig = {}
-_.defaults cmdConfig, _.pick(urequireCmd, cmdOptions)
+#hack to get cmd options only ['verbose', 'scanAllow', 'outputPath', ...] etc
+CMDOPTIONS = _.map(urequireCmd.options, (o)-> o.long.slice 2)
 
-_.extend config, cmdConfig # overwrite anything on config's root by cmdConfig - BundleBuilder overwrites the rest.
+# overwrite anything on config's root by cmdConfig - BundleBuilder handles the rest
+_.extend config, _.pick(urequireCmd, CMDOPTIONS)
 
-urequire = require './urequire'
-bp = new urequire.BundleBuilder config
+if config.verbose or true
+  l.verbose 'uRequire called with cmdConfig=\n', config
+
+#new (require './urequire').BundleBuilder config

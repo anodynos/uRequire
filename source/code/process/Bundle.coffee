@@ -230,11 +230,13 @@ class Bundle extends BundleBase
       ), 100
 
   ###
-  Gets dependencies & the variables (they bind with), througout the this bundle.
+  Gets dependencies & the variables (they bind with), througout this bundle.
 
   The information is gathered from all modules and joined together.
 
   Also it uses bundle.dependencies.variableNames, if some dep has no corresponding vars [].
+
+  @param {Object} q optional query with two optional fields : depType & depName
 
   @return {dependencies.variableNames} `dependency: ['var1', 'var2']` eg
               {
@@ -242,11 +244,6 @@ class Bundle extends BundleBase
                   'jquery': ["$", "jQuery"]
                   'models/PersonModel': ['persons', 'personsModel']
               }
-
-  @todo: If there is a global that ends up with empty vars eg {myStupidGlobal:[]}
-    (cause nodejs format was used and var names are NOT read there)
-    Then myStupidGlobal MUST have a var name on the config.
-    Otherwise, we should alert for fatal error & perhaps quit!
 
   ###
   getDepsVars: (q)->
@@ -260,7 +257,7 @@ class Bundle extends BundleBase
     for uMK, uModule of @uModules
       gatherDepsVars uModule.getDepsAndVars q
 
-    # pick only for existing GLOBALS, that have no vars info discovered yet
+    # pick only for existing deps, that have no vars info discovered yet
     if variableNames = @dependencies?.variableNames
       vn = _B.go variableNames, fltr:(v,k)-> (depsAndVars[k] isnt undefined) and _.isEmpty depsAndVars[k]
       if not _.isEmpty vn

@@ -1,4 +1,3 @@
-
 # a `var VERSION = "x.x.x"` is placed here by grant:concat
 _ = require 'lodash'
 
@@ -7,11 +6,11 @@ class Logger
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor:->@_constructor.apply @, arguments
 
-  _constructor: (@title, @debugLevel = Logger.debugLevel)->
-    @VERSION = VERSION # added by grant:concat
-  # default Logger.debugLevel
-  @debugLevel = 100
+  # default Logger::debugLevel
+  debugLevel: 0
+  VERSION: VERSION # 'VERSION' variable is added by grant:concat
 
+  _constructor: (@title)->
 
   @getALog: (baseMsg, color, cons)->
     ->

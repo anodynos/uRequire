@@ -133,7 +133,7 @@ class UModule
   ###
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
-      l.debug 30, "\n\n**** Converting '#{@modulePath}' ****"
+      l.debug 30, "**** Converting '#{@modulePath}' ****\n"
 
       # inject Dependencies information to arrayDeps, nodeDeps & parameters
       if bundleExports = @bundle?.dependencies?.bundleExports
@@ -155,8 +155,8 @@ class UModule
               The variable name is used to *grab* the dependency from the global object.
               You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
               {
-              jquery: ['$', 'jQuery']
-              backbone: ['Backbone']
+                jquery: ['$', 'jQuery']
+                backbone: ['Backbone']
               }
             """
             l.err err.uRequire
@@ -204,7 +204,7 @@ class UModule
 
   ###
   Returns all deps in this module along with their corresponding parameters (variable names)
-  @param {Object} q a query with two fields : depType & depName
+  @param {Object} q optional query with two optional fields : depType & depName
   @return {Object}
         jquery: ['$', 'jQuery']
         lodash: ['_']
