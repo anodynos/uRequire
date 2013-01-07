@@ -6,7 +6,6 @@ getFiles = require "./../utils/getFiles"
 DependenciesReporter = require './../DependenciesReporter'
 convertModule = require './convertModule'
 l = require './../utils/logger'
-version = "<%= pkg.version %>"
 
 
 processModule = (modyle, bundleFiles, options, reporter)->

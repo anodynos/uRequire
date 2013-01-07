@@ -4,7 +4,6 @@ upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
 #slang = require './utils/slang'
-version = "<%= pkg.version %>"
 
 
 # @todo: move debug level functionality on logger.coffee :-)

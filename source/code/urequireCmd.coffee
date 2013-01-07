@@ -1,16 +1,6 @@
-###!
- <%= pkg.name %> - version <%= pkg.version %>
- Compiled on <%= grunt.template.today("yyyy-mm-dd") %>
- <%= pkg.repository.url %>
- Copyright(c) <%= grunt.template.today("yyyy") %> <%= pkg.author.name %> (<%= pkg.author.email %> )
- Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
-###
-
 _ = require 'lodash'
 urequireCmd = require 'commander'
 l = require './utils/logger'
-
-version = "<%= pkg.version %>"
 
 options = {}
 

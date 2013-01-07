@@ -11,6 +11,25 @@ module.exports = (grunt) ->
   # =============
   grunt.initConfig
 
+    # Package
+    # -------
+    pkg: pkg
+
+    # Metadata
+    # --------
+    meta:
+      version: "var version = '<%= pkg.version %>';"
+      shebang: '#!/usr/bin/env node'
+      banner: '''
+      /*!
+       * <%= pkg.name %> - version <%= pkg.version %>
+       * Compiled on <%= grunt.template.today(\"yyyy-mm-dd\") %>
+       * <%= pkg.repository.url %>
+       * Copyright(c) <%= grunt.template.today(\"yyyy\") %> <%= pkg.author.name %> (<%= pkg.author.email %> )
+       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
+       */
+      '''
+
     # Clean
     # -----
     clean:
@@ -31,17 +50,42 @@ module.exports = (grunt) ->
             '!*.coffee'
           ]
 
-    # Template
-    # --------
-    template:
-      code:
-        files: grunt.file.expandMapping 'source/code/**/*.coffee', 'temp/'
-          rename: (base, path) ->
-            path.replace(/^source\/code\//, base)
+    # Concatenation
+    # -------------
+    concat:
+      options:
+        banner: '<%= meta.version %>'
+
+      urequireCmd:
+        files: [
+          dest: 'build/code/urequireCmd.js'
+          src: 'build/code/urequireCmd.js'
+        ]
 
         options:
-          data:
-            pkg: pkg
+          banner: '''
+          <%= meta.shebang %>
+          <%= meta.banner %>
+          <%= meta.version %>
+          '''
+
+      convertModule:
+        files: [
+          dest: 'build/code/process/convertModule.js'
+          src: 'build/code/process/convertModule.js'
+        ]
+
+      processBundle:
+        files: [
+          dest: 'build/code/process/processBundle.js'
+          src: 'build/code/process/processBundle.js'
+        ]
+
+      NodeRequirer:
+        files: [
+          dest: 'build/code/NodeRequirer.js'
+          src: 'build/code/NodeRequirer.js'
+        ]
 
     # Compilation
     # -----------
@@ -80,21 +124,6 @@ module.exports = (grunt) ->
   for name of pkg.devDependencies when name.substring(0, 6) is 'grunt-'
     grunt.loadNpmTasks name
 
-  # Custom
-  # ======
-
-  # Template
-  # --------
-  grunt.registerMultiTask 'template', 'Render underscore templates', ->
-    # Compile each file; concatenating them into the source if desired.
-    output = for filename in @file.src
-      grunt.template.process grunt.file.read(filename), @options()
-
-    # If we managed to get anything; let the world know.
-    if output.length > 0
-      grunt.file.write @file.dest, output.join('\n') || ''
-      grunt.log.writeln "File #{@file.dest.cyan} created."
-
   # Tasks
   # =====
 
@@ -102,8 +131,8 @@ module.exports = (grunt) ->
   # -----
   grunt.registerTask 'build', [
     'copy:code'
-    'template:code'
     'coffee:code'
+    'concat'
   ]
 
   # Lint

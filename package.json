@@ -46,7 +46,8 @@
   "main": "./build/code/urequire.js",
   "test": "mocha build/spec --recursive --bail --reporter spec",
   "scripts": {
-    "install": "grunt build"
+    "install": "grunt build",
+    "test": "grunt test"
   },
   "directories": {
     "doc": "./doc",
@@ -68,6 +69,7 @@
     "grunt-contrib-clean": "0.4.x",
     "grunt-contrib-copy": "0.3.x",
     "grunt-contrib-coffee": "0.3.x",
+    "grunt-contrib-concat": "0.1.x",
     "grunt-coffeelint": "0.0.x",
     "grunt-simple-mocha": "0.3.x"
   }
