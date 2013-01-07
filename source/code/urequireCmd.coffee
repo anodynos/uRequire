@@ -7,8 +7,6 @@ options = {}
 # helpers
 toArray = (val)-> val.split(',')
 
-console.log
-
 urequireCmd
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <bundlePath> [options]')
