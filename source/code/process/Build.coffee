@@ -73,7 +73,7 @@ class Build
       throw err
 
 
-if l.debugLevel > 90
+if Logger::debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Build)

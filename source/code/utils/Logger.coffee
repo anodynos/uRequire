@@ -16,7 +16,7 @@ class Logger
     ->
       args = Array.prototype.slice.call arguments
       args.unshift "#{color}[#{@title or '?title?'}] #{baseMsg}:"
-      args.push '\u001b[0m' #reset color
+      args.push '\u001b[0m\n' #reset color & new line
       cons.apply null, args
       null
 

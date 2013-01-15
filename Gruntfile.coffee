@@ -2,6 +2,8 @@ _fs = require 'fs'
 _ = require 'lodash'
 _B = require 'uberscore'
 
+isWin32 = process.platform is "win32"
+
 gruntFunction = (grunt) ->
 
   sourceDir     = "source/code"
@@ -11,13 +13,7 @@ gruntFunction = (grunt) ->
 
   pkg = JSON.parse _fs.readFileSync './package.json', 'utf-8'
 
-  globalBuildCode = switch process.platform
-    when "win32" then "c:/Program Files/nodejs/node_modules/urequire/build/code/"
-    else ""
-
-  globalClean = switch process.platform
-    when "win32" then  "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
-    else ""
+  globalBuildCode = "c:/Program Files/nodejs/node_modules/urequire/build/code/"
 
   gruntConfig =
     pkg: "<json:package.json>"
@@ -42,7 +38,6 @@ gruntFunction = (grunt) ->
       sourceSpecDir: sourceSpecDir
       buildSpecDir:  buildSpecDir
       globalBuildCode: globalBuildCode
-      globalClean: globalClean
 
     shell:
       coffee:
@@ -60,12 +55,12 @@ gruntFunction = (grunt) ->
       chmod: # change urequireCmd.js to executable - linux only (?mac?)
         command:  switch process.platform
           when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
-          else "#" #do nothing
+          else "" #do nothing
 
       dos2unix: # download from http://sourceforge.net/projects/dos2unix/files/latest/download
         command: switch process.platform
           when "win32" then "dos2unix build/code/urequireCmd.js"
-          else "#" #do nothing
+          else "" #do nothing
 
       globalInstall:
         command: "npm install -g"
@@ -101,7 +96,7 @@ gruntFunction = (grunt) ->
           "<%= options.buildSpecDir %>/":
             ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
 
-  if process.platform is "win32" then _B.deepExtend gruntConfig,
+  if isWin32 then _B.deepExtend gruntConfig,
     copy:
       globalInstallTests:
         files:
@@ -128,11 +123,12 @@ gruntFunction = (grunt) ->
         "<%= options.buildSpecDir %>/**/*.*"
       ]
 
-  if process.platform is "win32" then _B.deepExtend gruntConfig,
+  if isWin32 then _B.deepExtend gruntConfig,
     clean:
       deploy: [
-        "<%= options.globalClean %>"
+        "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
         "../uRequireExamples/node_modules/urequire/build/code/"
+        "../uBerscore/node_modules/urequire/build/code/"
       ]
 
   ### shortcuts generation ###
@@ -143,9 +139,9 @@ gruntFunction = (grunt) ->
   # generic shortcuts
   grunt.registerTask shortCut, tasks for shortCut, tasks of _B.go {
      # basic commands
-     "default": "clean build test" #deploy b4 'test' 4 windows
+     "default": "clean build test" + if isWin32 then ' deploy' else ''
      "build":   "clean:build cf copy:specResources concat"
-     "deploy":  '' # windows only "copy dos2unix chmod" #chmod alternative "shell:globalInstall" (slower but more 'correct')
+     "deploy":  if isWin32 then "copy dos2unix chmod" else '' #chmod alternative "shell:globalInstall" (slower but more 'correct')
      "test":    "coffeeSpec mocha"
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!

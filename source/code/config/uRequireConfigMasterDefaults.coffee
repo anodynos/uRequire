@@ -93,12 +93,12 @@ uRequireConfig = # Command line options overide these.
 
       Also you can add a different var name that should be globally looked up.
       ###
-      variableNames: # todo : provide some 'common ones' ?
+      variableNames: # todo: provide some 'common ones' that are 'strandard' ?
         lodash: "_"
         underscore: "_"
         jquery: ["$", "jQuery"]
         backbone: "Backbone"
-        knockout: ["ko", 'Knockout'] # @todo:1 are these correct ?
+        knockout: ["ko", 'Knockout']
 
       ###
       depe
@@ -113,35 +113,17 @@ uRequireConfig = # Command line options overide these.
         'jquery': ["$", "jQuery"]
         'models/PersonModel': ['persons', 'personsModel']
       }
-      @todo: NOT IMPLEMENTED
       @todo: rename to exports.bundle ?
       ###
       bundleExports: {}
 
-      ###
-      Export these modules to root/window: works only on Browser (uRequire <=0.3)
-      @example
 
-      someModule: ['someModuleGlobalVars']
-        or
-      someModule:
-        vars: ['someModuleGlobalVars']
-        noConflict: true
-      ###
-      rootExports:
-        uBerscore:
-          # descr: 'export these names as global keys, with the value being this uModule.'
-          # type: ['String', '[]'], default: 'undefined'
-          vars: ['uBerscore', '_B']
+  ###
 
-          # descr: 'Generate noConflict() for uModule'
-          # types: ['boolean', 'function'], default: false
-          # @todo: 'function' not implemented
-          noConflict: false
+    Build : Defines the conversion, such as *where* and *what* to output
 
-          # other options ?
+  ###
 
-  ### Build : The conversion behaviour such as *where* and *what* to output ###
   build:
 
     ###
@@ -194,9 +176,11 @@ uRequireConfig = # Command line options overide these.
 
     ###
     ignore exports
+    # @todo: NOT IMPLEMENTED.
     ###
     noRootExports: false
 
+    # @todo: NOT IMPLEMENTED.
     noBundleExports: false
 
     ###
@@ -214,7 +198,6 @@ uRequireConfig = # Command line options overide these.
     Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.
     ###
     allNodeRequires: false
-
 
     verbose: false
 
@@ -237,38 +220,41 @@ uRequireConfig = # Command line options overide these.
   They are written out as a "uRequire.config.js" module used at runtime on the nodejs side.
   @todo: NOT IMPLEMENTED
   ###
-#  runtime:
-#
-#    # Change the webRootMap compiled with UMD modules, and use this on instead.
-#    webRootMap: "/../../.."
-#
-#    requirejs:
-#      alwaysAsyncRequire:true # true (default) : RJS node behaviour of >= 2.1.x.
-#                              # false: inconsistent RJS 2.0.x behaviour (when all modules are cached, loading is synchronous)
-#      config :
-#        baseUrl: "some/other/path"
-#        paths: rJSON('requirejs.config.json').paths # or `require "json!requirejs.config.json"`
-#
-#
-#_B.deepExtend uRequireConfig, # continue extending
-#  runtime:
-#    requirejsConfig:
-#      paths:
-#        someLib: "../some/lib/path"
-#
+  #  runtime:
+  #
+  #    # Change the webRootMap compiled with UMD modules, and use this on instead.
+  #    webRootMap: "/../../.."
+  #
+  #    requirejs:
+  #      alwaysAsyncRequire:true # true (default) : RJS node behaviour of >= 2.1.x.
+  #                              # false: inconsistent RJS 2.0.x behaviour (when all modules are cached, loading is synchronous)
+  #      config :
+  #        baseUrl: "some/other/path"
+  #        paths: rJSON('requirejs.config.json').paths # or `require "json!requirejs.config.json"`
+  #
+  #
+  #_B.deepExtend uRequireConfig, # continue extending
+  #  runtime:
+  #    requirejsConfig:
+  #      paths:
+  #        someLib: "../some/lib/path"
+  # @todo: NOT IMPLEMENTED
   requirejs:
       paths:
         src: "../../src"
-        text: ["requirejs_plugins/text", "/libs/requirejs_plugins/json"]
+        text: "requirejs_plugins/text"
+        json: "requirejs_plugins/json"
+      # @todo: NOT IMPLEMENTED.
       baseUrl: "../code" # used at runtime
 
-    # A subset of * RequireJS build.js *
+    # A subset of * RequireJS build.js ? *
     # (https://github.com/jrburke/r.js/blob/master/build/example.build.js)
-    'build.js':
+    # @todo: NOT IMPLEMENTED
+    "build.js":
 
       ###
-      see `appDir` in https://github.com/jrburke/r.js/blob/master/build/example.build.js
-      @todo: NOT IMPLEMENTED - piggy back on this
+      piggy back on this? see `appDir` in https://github.com/jrburke/r.js/blob/master/build/example.build.js
+      @todo: NOT IMPLEMENTED -
       ####
       appDir: "some/path/"
 
@@ -290,8 +276,6 @@ uRequireConfig = # Command line options overide these.
 #      ### BELOW HERE NOT USED - comments ###
 #      baseUrl: "use uRequire.bundlePath instead" ?
 #      appDir:  "use uRequire.appDir instead"
-#
-#
 
 #l = console.log
 #l JSON.stringify uRequireConfig, null, ' '

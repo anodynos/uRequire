@@ -194,7 +194,7 @@ class UModule
       moduleTemplate = new ModuleGeneratorTemplates ti = @templateInfo
       l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}', templateInfo = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
 
-      @convertedJs = moduleTemplate[@build.template.name]() #todo: pass template, not its name
+      @convertedJs = moduleTemplate[@build.template.name]() # @todo: pass template, not its name
     else
       @convertedJs = @sourceCodeJs
 
@@ -252,7 +252,7 @@ class UModule
 
 ### Debug information ###
 
-if l.debugLevel > 90
+if Logger::debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(UModule)

@@ -219,7 +219,7 @@ class Bundle extends BundleBase
     l.verbose "Optimize with r.js with uRequire's 'build.js' = ", JSON.stringify _.omit(rjsConfig, ['wrap']), null, ' '
     @requirejs.optimize rjsConfig, (buildResponse)->
       l.verbose 'r.js buildResponse = ', buildResponse
-      if l.debugLevel < 50 # delete outputPath dir, used as combine's temp
+      if Logger::debugLevel < 50 # delete outputPath dir, used as combine's temp
         _wrench.rmdirSyncRecursive @build.outputPath
 
     setTimeout (->
@@ -267,7 +267,7 @@ class Bundle extends BundleBase
     depsAndVars
 
 
-if l.debugLevel > 90
+if Logger::debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)

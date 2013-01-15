@@ -3,8 +3,6 @@ _ = require 'lodash'
 _B = require 'uberscore'
 Dependency = require './Dependency'
 
-log = console.log
-
 #
 # Embarrasing piece of code, full of misnomers and very custom to this project,
 # but could refactoreed to support more generic data gathering transformations for reporting

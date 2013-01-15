@@ -1,4 +1,5 @@
 _ = require 'lodash'
+_fs = require 'fs'
 _B = require 'uberscore'
 upath = require '../paths/upath'
 # logging
@@ -11,6 +12,8 @@ Bundle = require './Bundle'
 Build = require './Build'
 
 _Bs = require '../utils/uBerscoreShortcuts'
+
+require('better-require')() # no need to store it somewhere
 
 ###
   Load Config:
@@ -25,67 +28,72 @@ class BundleBuilder
   constructor: -> @_constructor.apply @, arguments
 
   _constructor: (config)->
-    bundleCfg = {}
-    buildCfg = {}
+    @bundleCfg = {}
+    @buildCfg = {}
 
-    require('better-require')()
+    @storeCfgDefaults config
 
-    if config.configFile
-      config.configFile = _B.arraize config.configFile
-      # assume bundlePath, if its empty
-      config.bundlePath or= upath.dirname config.configFile
+    for cfgFilename in _B.arrayize config.configFiles when cfgFilename # no nulls/empty strings
+      # assume bundlePath, if its empty, from the 1st configFile that comes along
+      @bundleCfg.bundlePath or= upath.dirname cfgFilename
+      # get deep defaults to current configuration 
+      @storeCfgDefaults require _fs.realpathSync cfgFilename
       # ? add configFile to exclude'd files ?
       #  (bundle.exclude ?= []).push upath.relative(options.bundlePath, configFile)
 
+    # We now have our 'final' configs, @bundleCfg & @buildCfg
 
-      cfgFile = require config.configFile #_fs.realpathSync configFile
-      delete config.configFile
-      config = _B.deepCloneDefaults config, cfgFile
+    # verbose / debug anyone ?
+    if @buildCfg.debugLevel? then Logger::debugLevel = @buildCfg.debugLevel
+    if not @buildCfg.verbose then Logger::verbose = ->
 
-    # read both simple/flat cfg and cfg.bundle
-    _.extend bundleCfg, config.bundle
-    _.extend bundleCfg, _B.go config, fltr: _.keys uRequireConfigMasterDefaults.bundle
+    # Lets check & fix different formats or quit if we have anomalies
 
-    _.extend buildCfg, config.build
-    _.extend buildCfg, _B.go config, fltr: _.keys uRequireConfigMasterDefaults.build
+    if be = @bundleCfg.dependencies?.bundleExports
+      @bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
+      l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", JSON.stringify @bundleCfg.dependencies?.bundleExports, null, ' '
 
-    if not buildCfg.verbose then Logger::verbose = ->
-    if buildCfg.debugLevel? then Logger::debugLevel = buildCfg.debugLevel
+    if @isCheckAndFixPaths() and @isCheckAndFixTemplate()
+      l.debug 30, "@bundleCfg :\n", JSON.stringify @bundleCfg, null, ' '
+      l.debug 30, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
 
-    if be = bundleCfg.dependencies?.bundleExports
-      bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
-      l.debug 50, "bundleCfg.dependencies.bundleExports' = \n", JSON.stringify bundleCfg.dependencies?.bundleExports, null, ' '
+      @storeCfgDefaults uRequireConfigMasterDefaults
+      # display full cfgs, after applied master defaults.
+      l.debug 99, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
+      l.debug 99, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
 
-    # check & build config / options
-    if @isPathsOK(bundleCfg, buildCfg) and
-       @isTemplateOk(buildCfg)
-          l.verbose "bundleCfg :\n", JSON.stringify bundleCfg, null, ' '
-          l.verbose "buildCfg :\n", JSON.stringify buildCfg, null, ' '
+       # Lets build !
+      @bundle = new Bundle @bundleCfg
+      @build = new Build @buildCfg
+      @bundle.buildChangedModules @build
 
-#          @bundle = new Bundle bundleCfg
-#          @build = new Build buildCfg
-#
-#          # Build bundle against the build setup (@todo: or builds ?)
-#          l.debug 50, 'buildChangedModules() with build = \n', @build
-#          @bundle.buildChangedModules @build
+  storeCfgDefaults: (cfg)->
+    # read bundle keys from both a) simple/flat cfg and b) cfg.bundle
+    @bundleCfg = _B.deepCloneDefaults @bundleCfg, cfg.bundle
+    @bundleCfg = _B.deepCloneDefaults @bundleCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.bundle
 
-          # @todo: & watch build's folder
-          # @watchDirectory @cfg.bundle.bundlePath
-          #  register something to watch events
-          #  watchDirectory:->
-          #    onFilesChange: (filesChanged)->
-          #      bundle.loadModules filesChanged #:[]<String>
+    # read build keys from both a) simple/flat cfg and b) cfg.build
+    @buildCfg = _B.deepCloneDefaults @buildCfg, cfg.build
+    @buildCfg = _B.deepCloneDefaults @buildCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.build
+
+
+  # @todo:6 watch build's folder & rebuild
+  # @watchDirectory @cfg.bundle.bundlePath
+  #  register something to watch events
+  #  watchDirectory:->
+  #    onFilesChange: (filesChanged)->
+  #      bundle.loadModules filesChanged #:[]<String>
 
   # fix & check if template is Ok.
-  isTemplateOk: (buildCfg)->
+  isCheckAndFixTemplate: ->
 
-    if not buildCfg.template
-      buildCfg.template = {name: 'UMD'} # default
+    if not @buildCfg.template
+      @buildCfg.template = {name: 'UMD'} # default
 
-    if _.isString buildCfg.template
-      buildCfg.template = {name: buildCfg.template} # default
+    if _.isString @buildCfg.template
+      @buildCfg.template = {name: @buildCfg.template} # default
 
-    if not buildCfg.template.name? in Build.templates
+    if not @buildCfg.template.name? in Build.templates
       l.err """
         Quitting build, no valid template specified.
         Use -h for help"""
@@ -93,25 +101,26 @@ class BundleBuilder
 
     return true
 
-  isPathsOK: (bundleCfg, buildCfg)->
-    if not bundleCfg.bundlePath
+  isCheckAndFixPaths: ->
+
+    if not @bundleCfg.bundlePath
       l.err """
         Quitting build, no bundlePath specified.
         Use -h for help"""
       return false
     else
-      if buildCfg.forceOverwriteSources
-        buildCfg.outputPath = bundleCfg.bundlePath
-        l.verbose "Forced output to '#{buildCfg.outputPath}'"
+      if @buildCfg.forceOverwriteSources
+        @buildCfg.outputPath = @bundleCfg.bundlePath
+        l.verbose "Forced output to '#{@buildCfg.outputPath}'"
         return true
       else
-        if not buildCfg.outputPath
+        if not @buildCfg.outputPath
           l.err """
             Quitting build, no --outputPath specified.
             Use -f *with caution* to overwrite sources."""
           return false
         else
-          if buildCfg.outputPath is bundleCfg.bundlePath #@todo: check normalized
+          if @buildCfg.outputPath is @bundleCfg.bundlePath # @todo: check normalized ?
             l.err """
               Quitting build, outputPath === bundlePath.
               Use -f *with caution* to overwrite sources (no need to specify --outputPath).
@@ -124,23 +133,9 @@ module.exports = BundleBuilder
 
 ### Debug information ###
 
-if l.debugLevel > 10 #or true
+if Logger::debugLevel > 10 or true
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(BundleBuilder)
     .before /_constructor/, (match, config)->
       l.debug 1, "Before '#{match}' with config = ", JSON.stringify(config, null, ' ')
-
-
-# Tests
-#b = new BundleBuilder {
-# "bundle": {
-#  "bundlePath": "blabla"
-# },
-# "build": {
-#  "template": "AMD"
-# },
-# "forceOverwriteSources": true
-#}
-
-
