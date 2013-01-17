@@ -36,6 +36,8 @@ class Bundle extends BundleBase
     _.extend @, _B.deepCloneDefaults bundleCfg, uRequireConfigMasterDefaults.bundle
 
     @main or= 'main' # @todo:5 add implicit bundleName, or index.js, main.js & other sensible defaults
+    @bundleName or= @main # @todo:4 where should this default to ?
+
     @uModules = {}
     @reporter = new DependenciesReporter @interestingDepTypes #(if @build.verbose then null else @interestingDepTypes)
 
@@ -219,14 +221,24 @@ class Bundle extends BundleBase
     l.verbose "Optimize with r.js with uRequire's 'build.js' = ", JSON.stringify _.omit(rjsConfig, ['wrap']), null, ' '
     @requirejs.optimize rjsConfig, (buildResponse)->
       l.verbose 'r.js buildResponse = ', buildResponse
-      if Logger::debugLevel < 50 # delete outputPath dir, used as combine's temp
-        _wrench.rmdirSyncRecursive @build.outputPath
 
     setTimeout (->
       if _fs.existsSync build.combinedFile
-        l.verbose "uRequire: combined file '#{build.combinedFile}' written successfully."
+        l.verbose "Combined file '#{build.combinedFile}' written successfully."
+
+        # delete outputPath, used as temp directory with individual AMD files
+        if Logger::debugLevel < 50
+          l.debug 40, "Deleting temporary directory '#{build.outputPath}'."
+          _wrench.rmdirSyncRecursive build.outputPath
+        else
+          l.debug "NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50."
       else
-        l.err "uRequire: combined file '#{build.combinedFile}' NOT written."
+        l.err """
+        Combined file '#{build.combinedFile}' NOT written."
+
+        Perhaps you have a missing dependcency ? Note you can check AMD files used in temporary directory '#{build.outputPath}'.
+        """
+
       ), 100
 
   ###

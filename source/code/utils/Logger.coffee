@@ -15,8 +15,9 @@ class Logger
   @getALog: (baseMsg, color, cons)->
     ->
       args = Array.prototype.slice.call arguments
-      args.unshift "#{color}[#{@title or '?title?'}] #{baseMsg}:"
-      args.push '\u001b[0m\n' #reset color & new line
+      args.unshift "[#{@title or '?title?'}] #{baseMsg}:"
+      args.unshift "#{color}\n"
+      args.push '\u001b[0m' #reset color
       cons.apply null, args
       null
 

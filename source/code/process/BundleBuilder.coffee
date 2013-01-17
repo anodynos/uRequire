@@ -13,15 +13,14 @@ Build = require './Build'
 
 _Bs = require '../utils/uBerscoreShortcuts'
 
-require('better-require')() # no need to store it somewhere
+require('butter-require')() # no need to store it somewhere
 
 ###
-  Load Config:
+  Load config :
     * check options
     * Load (a) bundle(s) and (a) build(s)
     * Build & watch for changes
 ###
-
 class BundleBuilder
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
@@ -69,11 +68,11 @@ class BundleBuilder
 
   storeCfgDefaults: (cfg)->
     # read bundle keys from both a) simple/flat cfg and b) cfg.bundle
-    @bundleCfg = _B.deepCloneDefaults @bundleCfg, cfg.bundle
+    @bundleCfg = _B.deepCloneDefaults @bundleCfg, cfg.bundle or {}
     @bundleCfg = _B.deepCloneDefaults @bundleCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.bundle
 
     # read build keys from both a) simple/flat cfg and b) cfg.build
-    @buildCfg = _B.deepCloneDefaults @buildCfg, cfg.build
+    @buildCfg = _B.deepCloneDefaults @buildCfg, cfg.build or {}
     @buildCfg = _B.deepCloneDefaults @buildCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.build
 
 

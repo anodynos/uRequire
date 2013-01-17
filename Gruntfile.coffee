@@ -140,13 +140,14 @@ gruntFunction = (grunt) ->
   grunt.registerTask shortCut, tasks for shortCut, tasks of _B.go {
      # basic commands
      "default": "clean build test" + if isWin32 then ' deploy' else ''
-     "build":   "clean:build cf copy:specResources concat"
+     "build":   "shell:coffee concat"
      "deploy":  if isWin32 then "copy dos2unix chmod" else '' #chmod alternative "shell:globalInstall" (slower but more 'correct')
-     "test":    "coffeeSpec mocha"
+     "test":    "shell:coffeeSpec copy:specResources mocha"
+
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
      "cfw":     "coffeeWatch"
-     "cl":      "clean"
+     "cl":      "clean"rfefa
      "cp":      "copy" #" todo: all ?
 
      "b":       "build"
