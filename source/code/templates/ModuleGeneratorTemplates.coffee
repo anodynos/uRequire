@@ -150,8 +150,8 @@ class ModuleGeneratorTemplates
                   """, 'window' # rootName
             ) + "\n});"
 
-  # 'combine' is based on AMD, infusing global as window in case we have rootExports/noConflict
-  combine: -> """
+  # 'combined' is based on AMD, infusing global as window in case we have rootExports/noConflict
+  combined: -> """
     (function(window) {
       #{@AMD()}
     })(__global);

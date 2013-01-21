@@ -147,13 +147,13 @@ gruntFunction = (grunt) ->
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
      "cfw":     "coffeeWatch"
-     "cl":      "clean"rfefa
+     "cl":      "clean"
      "cp":      "copy" #" todo: all ?
 
      "b":       "build"
      "d":       "deploy"
      "t":       "test"
-  }, fltr: (v)->!!v
+  }, fltr: (v)->!!v #bangbang forces boolean value
 
   # IDE shortcuts
   grunt.registerTask shortCut, tasks for shortCut, tasks of {

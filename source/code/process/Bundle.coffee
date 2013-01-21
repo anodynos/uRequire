@@ -113,7 +113,7 @@ class Bundle extends BundleBase
   buildChangedModules: (@build)->
 
     # first, decide where to output when combining
-    if @build.template.name is 'combine'
+    if @build.template.name is 'combined'
       if not @build.combinedFile # change @build's paths
         @build.combinedFile = upath.changeExt @build.outputPath, '.js'
         @build.outputPath = "#{@build.combinedFile}__temp"
@@ -135,7 +135,7 @@ class Bundle extends BundleBase
           @build.out uModule.modulePath, uModule.convertedJs
           # @todo:5 else if String, output to this file ?
 
-    if @build.template.name is 'combine' and haveChanges
+    if @build.template.name is 'combined' and haveChanges
       @combine @build
 
     if not _.isEmpty(@reporter.reportData)

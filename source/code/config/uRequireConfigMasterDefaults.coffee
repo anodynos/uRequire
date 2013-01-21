@@ -24,7 +24,7 @@ uRequireConfig = # Command line options overide these.
     @todo: `bundleName` & is the (1st) default for 'main'
     `bundleName` it self can be derived from
         - --outputPath,
-          - filename part, if 'combine' is used eg if its 'abcProject/abc.js', then 'abc'
+          - filename part, if 'combined' is used eg if its 'abcProject/abc.js', then 'abc'
           - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
 
     ###
@@ -86,7 +86,7 @@ uRequireConfig = # Command line options overide these.
 
       They can be infered from the code of course (AMD only for now), but it good to list them here also.
 
-      They are used to 'fetch' the global var at runtime, eg, when `combine:'almond'` is used.
+      They are used to 'fetch' the global var at runtime, eg, when `combined:'almond'` is used.
 
       In case they are missing from modules (i.e u use the 'nodejs' module format only),
       and aren't here either, 'almond' build will fail.
@@ -147,15 +147,15 @@ uRequireConfig = # Command line options overide these.
     forceOverwriteSources: false
 
     ###
-      String in ['UMD', 'AMD', 'nodejs', 'combine'] @todo: or an object with those as keys + more stuff!
+      String in ['UMD', 'AMD', 'nodejs', 'combined'] @todo: or an object with those as keys + more stuff!
     ###
     template: name: 'UMD'
-      # one among available templates: ['UMD', 'AMD', 'nodejs', 'combine']
+      # one among available templates: ['UMD', 'AMD', 'nodejs', 'combined']
 
 #      @todo:4 NOT IMPLEMENTED
-#       # combine options: use a 'Universal' build, based on almond that works as standalone <script>, as AMD dependency and on node!
+#       # combined options: use a 'Universal' build, based on almond that works as standalone <script>, as AMD dependency and on node!
 #       # @todo:3 implement other methods ? 'simple AMD build"
-#      'combine':
+#      'combined':
 #          # @default 'almond' - only one for now
 #          method: 'almond'
 #
@@ -207,7 +207,7 @@ uRequireConfig = # Command line options overide these.
     # Usefull along with -watch
     #
     # @example ignore a coffeescript compile error, just do all the other modules.
-    #          Or on a 'combine' conversion when a 'global' has no 'var' association anywhere, just hold on, ignore this global and continue.
+    #          Or on a 'combined' conversion when a 'global' has no 'var' association anywhere, just hold on, ignore this global and continue.
     # @todo: NOT IMPLEMENTED
     continue: false
 
@@ -258,7 +258,7 @@ uRequireConfig = # Command line options overide these.
       ####
       appDir: "some/path/"
 
-      # Only when Combine ?
+      # Only when combined ?
       #
       # When build.js has 'globals' in `paths`,
       #    eg `{ jquery: '/libs/jQuery.js' }`

@@ -35,7 +35,7 @@ urequireCmd
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
 
-for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combine']
+for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combined']
   do (tmplt)->
     urequireCmd
       .command("#{tmplt} <bundlePath>")

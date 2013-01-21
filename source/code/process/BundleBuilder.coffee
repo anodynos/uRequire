@@ -26,21 +26,24 @@ class BundleBuilder
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor: -> @_constructor.apply @, arguments
 
-  _constructor: (config)->
+  _constructor: (configs...)->
     @bundleCfg = {}
     @buildCfg = {}
 
-    @storeCfgDefaults config
+    for config in configs when config
+      @storeCfgDefaults config
 
-    for cfgFilename in _B.arrayize config.configFiles when cfgFilename # no nulls/empty strings
-      # assume bundlePath, if its empty, from the 1st configFile that comes along
-      @bundleCfg.bundlePath or= upath.dirname cfgFilename
-      # get deep defaults to current configuration 
-      @storeCfgDefaults require _fs.realpathSync cfgFilename
-      # ? add configFile to exclude'd files ?
-      #  (bundle.exclude ?= []).push upath.relative(options.bundlePath, configFile)
+      for cfgFilename in _B.arrayize config.configFiles when cfgFilename # no nulls/empty strings
+        # assume bundlePath, if its empty, from the 1st configFile that comes along
+        @bundleCfg.bundlePath or= upath.dirname cfgFilename
+        # get deep defaults to current configuration
+        @storeCfgDefaults require _fs.realpathSync cfgFilename
+        # ? add configFile to exclude'd files ?
+        #  (bundle.exclude ?= []).push upath.relative(options.bundlePath, configFile)
 
+    ###
     # We now have our 'final' configs, @bundleCfg & @buildCfg
+    ###
 
     # verbose / debug anyone ?
     if @buildCfg.debugLevel? then Logger::debugLevel = @buildCfg.debugLevel
@@ -92,9 +95,9 @@ class BundleBuilder
     if _.isString @buildCfg.template
       @buildCfg.template = {name: @buildCfg.template} # default
 
-    if not @buildCfg.template.name? in Build.templates
+    if @buildCfg.template.name not in Build.templates
       l.err """
-        Quitting build, no valid template specified.
+        Quitting build, invalid template '#{@buildCfg.template.name}' specified.
         Use -h for help"""
       return false
 

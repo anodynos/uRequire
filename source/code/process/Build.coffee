@@ -23,7 +23,7 @@ class Build
 
     @out = Build.outputModuleToFile unless @out
 
-  @templates = ['UMD', 'AMD', 'nodejs', 'combine']
+  @templates = ['UMD', 'AMD', 'nodejs', 'combined']
 
   #@todo : check @outputPath exists
   @outputModuleToFile: (modulePath, content)->
