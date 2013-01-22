@@ -14,24 +14,12 @@
   }
  ],
  "keywords": [
-  "AMD",
-  "UMD",
-  "UMDjs",
-  "requirejs",
-  "require",
-  "define",
-  "module",
-  "modules",
-  "modular",
-  "format",
-  "convert",
-  "converter",
-  "umdify",
-  "nodefy",
-  "browserify",
-  "dependency",
-  "dependencies",
-  "bundle"
+    "modules", "module", "modular", "format",
+    "convert", "converter", "conversion",
+    "commonjs", "AMD", "UMD", "UMDjs",
+    "requirejs","require", "define", "umdify",
+    "nodefy", "browserify", "dependency", "dependencies",
+    "bundle", "package"
  ],
  "repository": {
   "type": "git",

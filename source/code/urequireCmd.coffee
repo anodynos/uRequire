@@ -113,10 +113,16 @@ if _.isEmpty config
     Not looking for any default config file in this uRequire version.
     Type -h if U R after help!"
   """
-
-
 else
-  if config.verbose or true
+  if config.verbose
     l.verbose 'uRequireCmd called with cmdConfig=\n', config
 
-  new (require './urequire').BundleBuilder config
+  done = config.done = (doneValue)->
+    if doneValue
+      l.debug 60, "uRequireCmd done() successfully!"
+    else
+      l.err "uRequireCmd done(), with errors!"
+      process.exit 1
+
+  bb = new (require './urequire').BundleBuilder config
+  bb.buildBundle done

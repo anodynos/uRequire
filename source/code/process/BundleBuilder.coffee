@@ -64,10 +64,21 @@ class BundleBuilder
       l.debug 99, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
       l.debug 99, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
 
-       # Lets build !
+       # Prepare for buildBundle() !
       @bundle = new Bundle @bundleCfg
       @build = new Build @buildCfg
+    else
+      if _.isFunction configs[0].done
+        configs[0].done false
+
+  # @param done A callback promise (eg. grunt's @async()) that is called when its finished
+  buildBundle: (done)->
+    if not (!@build or !@bundle)
+      @build.done = done or ->
       @bundle.buildChangedModules @build
+    else
+      l.err "buildBundle(): I have !@build or !@bundle - can't build!"
+      done(false) if _.isFunction done
 
   storeCfgDefaults: (cfg)->
     # read bundle keys from both a) simple/flat cfg and b) cfg.bundle

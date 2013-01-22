@@ -18,17 +18,38 @@ uRequireConfig = # Command line options overide these.
 
   #All bundle information is nested bellow
   bundle:
-    ###
-    Name of the bundle {optional}
-
-    @todo: `bundleName` & is the (1st) default for 'main'
-    `bundleName` it self can be derived from
-        - --outputPath,
-          - filename part, if 'combined' is used eg if its 'abcProject/abc.js', then 'abc'
-          - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
 
     ###
-    bundleName: ''
+    Name of the bundle, eg 'MyLibrary'
+
+    @optional
+
+    `bundleName` its self can be derived from:
+      - if using grunt, it defaults to the multi-task @target (eg {urequire: 'MyBundlename': {bundle : {}, build:{} }}
+
+      @todo:
+      - --outputPath,
+        - filename part, if 'combined' is used eg if its 'abcProject/abc.js', then 'abc'
+        - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
+
+    @note: `bundleName` & is the (1st) default for 'main'
+
+    ###
+    bundleName: undefined
+
+    ###
+    The "main" / "index" module file of your bundle.
+
+    * Used as 'name' / 'include' on RequireJS build.js.
+      It should be the 'entry' point module of your bundle, where all dependencies are `require`'d.
+      r.js recursivelly adds them the combined file.
+
+    * It is also used to as the initiation `require` on your combined bundle.
+      It is the module just kicks off the app and/or requires all your other library modules.
+
+    * Defaults to 'bundleName', 'index', 'main' etc, the first one that is found in uModules.
+    ###
+    main: undefined
 
     #
     # If ommited, it is implied by config's position
@@ -57,19 +78,6 @@ uRequireConfig = # Command line options overide these.
         /.*\.(coffee)$/i, # @todo: #/.*\.(coffee|iced|coco)$/i
         /.*\.(js|javascript)$/i
     ]
-
-    ###
-    The "main" / "index" file of your bundle.
-
-    * Used as 'name' / 'include' on RequireJS build.js,
-      where all dependencies (recursivelly) are added to the combined file.
-
-    * Also used to as the initiation `require` on your combined bundle.
-      It is the module just kicks off the app and/or requires all your other library modules.
-
-    @todo : defaults are 'bundleName, 'index', 'main' etc, the first one that is found in uModules
-    ###
-    main: do ()-> if @bundleName then @bundleName else 'main'#@todo: main or index or something in bundle @ runtime!
 
     ###
     Where to map `/` when running in node. On RequireJS its http-server's root.

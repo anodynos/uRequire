@@ -153,7 +153,7 @@ gruntFunction = (grunt) ->
      "b":       "build"
      "d":       "deploy"
      "t":       "test"
-  }, fltr: (v)->!!v #bangbang forces boolean value
+  }, fltr: (v)-> !!v #bangbang forces boolean value
 
   # IDE shortcuts
   grunt.registerTask shortCut, tasks for shortCut, tasks of {
