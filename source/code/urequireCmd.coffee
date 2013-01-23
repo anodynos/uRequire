@@ -28,7 +28,7 @@ urequireCmd
   .option('-s, --scanAllow', "By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).", undefined)
   .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.', undefined)
   .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
-  .option('-C --continue', 'NOT IMPLEMENTED Dont bail out while processing (mainly on module processing errors)', undefined)
+  .option('-C, --continue', 'NOT IMPLEMENTED Dont bail out while processing (mainly on module processing errors)', undefined)
   .option('-u, --uglify', 'NOT IMPLEMENTED. Pass through uglify before saving.', undefined)
   .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', undefined)
   .option('-i, --include', "NOT IMPLEMENTED. Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
@@ -59,7 +59,7 @@ urequireCmd.on '--help', ->
                     or                                            \u001b[32m
     $ urequire config path/to/configFile.json,anotherConfig.js    \u001b[0m
 
-  Command line values have precedence over configFiles; values on configFiles on the left have precedence over those on the right (deeply traversing).
+  *Note: Command line values have precedence over configFiles; values on configFiles on the left have precedence over those on the right (deeply traversing).*
 
   Module files in your bundle can conform to the *standard AMD* format: \u001b[36m
       // standard AMD module format - unnamed or named (not recommended by AMD)
@@ -94,8 +94,9 @@ urequireCmd.on '--help', ->
     - Your source can be coffeescript (more will follow) - .coffee files are internally translated to js.
 
     - configFiles can be written as a .js module, .coffee module, json and much more - see 'butter-require'
+
+    uRequire version #{l.VERSION}
   """
-  l.verbose "uRequire version #{l.VERSION}"
 
 urequireCmd.parse process.argv
 
@@ -107,22 +108,22 @@ _.extend config, _.pick(urequireCmd, CMDOPTIONS)
 delete config.version
 
 if _.isEmpty config
-  l.verbose "uRequire version #{l.VERSION}"
   l.err """
     No CMD options or config file specified.
     Not looking for any default config file in this uRequire version.
     Type -h if U R after help!"
   """
+  l.log "uRequire version #{l.VERSION}"
 else
   if config.verbose
     l.verbose 'uRequireCmd called with cmdConfig=\n', config
 
-  done = config.done = (doneValue)->
-    if doneValue
-      l.debug 60, "uRequireCmd done() successfully!"
+  config.done = (doneValue)->
+    if (doneValue is true) or (doneValue is undefined)
+      l.verbose "uRequireCmd done() successfully!"
     else
       l.err "uRequireCmd done(), with errors!"
       process.exit 1
 
   bb = new (require './urequire').BundleBuilder config
-  bb.buildBundle done
+  bb.buildBundle()

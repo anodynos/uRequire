@@ -8,6 +8,8 @@
 _fs =  require 'fs'
 _= require 'lodash'
 _B = require 'uberscore'
+Logger = require '../utils/Logger'
+l = new Logger 'uRequireConfigMasterDefaults'
 
 rJSON = (file)-> JSON.parse _fs.readFileSync file, 'utf-8'
 
@@ -285,5 +287,4 @@ uRequireConfig = # Command line options overide these.
 #      baseUrl: "use uRequire.bundlePath instead" ?
 #      appDir:  "use uRequire.appDir instead"
 
-#l = console.log
-#l JSON.stringify uRequireConfig, null, ' '
+#l.log l.prettify uRequireConfig

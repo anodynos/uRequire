@@ -136,7 +136,7 @@ class UModule
       l.debug 30, "**** Converting '#{@modulePath}' ****\n"
 
       # inject Dependencies information to arrayDeps, nodeDeps & parameters
-      if bundleExports = @bundle?.dependencies?.bundleExports
+      if not _.isEmpty (bundleExports = @bundle?.dependencies?.bundleExports)
         l.debug 30, "#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports
 
         for depName, varNames of bundleExports
@@ -150,14 +150,30 @@ class UModule
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
             err = uRequire: """
-              Error converting #{@bundle.bundleName}.
-              No variable names can be identified for global dependency '#{depName}'.
-              The variable name is used to *grab* the dependency from the global object.
+              Error converting bundle named '#{@bundle.bundleName}' in '#{@bundle.bundlePath}'.
+
+              No variable names can be identified for bundleExports dependency '#{depName}'.
+              These variable name are used to :
+                - inject the dependency into each module
+                - grab the dependency from the global object, when running as <script>.
+
               You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
-              {
-                jquery: ['$', 'jQuery']
-                backbone: ['Backbone']
-              }
+              ```
+                bundleExports: {
+                  '#{depName}': 'VARIABLE_IT_BINDS_WITH',
+                  ...
+                  jquery: ['$', 'jQuery'],
+                  backbone: ['Backbone']
+                }
+              ```
+              instead of the simpler
+
+              ```
+                bundleExports: [ '#{depName}', 'jquery', 'backbone' ]
+              ```
+
+              Alternativelly, define at least one module that has this dependency + variable binding,
+              using AMD instead of commonJs format, and uRequire will find it!
             """
             l.err err.uRequire
             throw err

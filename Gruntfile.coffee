@@ -2,8 +2,6 @@ _fs = require 'fs'
 _ = require 'lodash'
 _B = require 'uberscore'
 
-isWin32 = process.platform is "win32"
-
 gruntFunction = (grunt) ->
 
   sourceDir     = "source/code"
@@ -12,8 +10,6 @@ gruntFunction = (grunt) ->
   buildSpecDir  = "build/spec"
 
   pkg = JSON.parse _fs.readFileSync './package.json', 'utf-8'
-
-  globalBuildCode = "c:/Program Files/nodejs/node_modules/urequire/build/code/"
 
   gruntConfig =
     pkg: "<json:package.json>"
@@ -37,7 +33,6 @@ gruntFunction = (grunt) ->
       buildDir:      buildDir
       sourceSpecDir: sourceSpecDir
       buildSpecDir:  buildSpecDir
-      globalBuildCode: globalBuildCode
 
     shell:
       coffee:
@@ -52,19 +47,6 @@ gruntFunction = (grunt) ->
       mocha:
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
 
-      chmod: # change urequireCmd.js to executable - linux only (?mac?)
-        command:  switch process.platform
-          when "linux" then "chmod +x '#{globalBuildCode}urequireCmd.js'"
-          else "" #do nothing
-
-      dos2unix: # download from http://sourceforge.net/projects/dos2unix/files/latest/download
-        command: switch process.platform
-          when "win32" then "dos2unix build/code/urequireCmd.js"
-          else "" #do nothing
-
-      globalInstall:
-        command: "npm install -g"
-
       doc:
         command: "codo source/code --title 'uRequire #{pkg.version} API documentation' --cautious"
 
@@ -72,6 +54,13 @@ gruntFunction = (grunt) ->
         failOnError: true
         stdout: true
         stderr: true
+
+    copy:
+      specResources:
+        options: flatten: false
+        files:  #copy all ["source/**/*.html", "...txt" ]
+          "<%= options.buildSpecDir %>/":
+            ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
 
     concat:
       bin:
@@ -89,46 +78,10 @@ gruntFunction = (grunt) ->
         ]
         dest:'<%= options.buildDir %>/utils/Logger.js'
 
-    copy:
-      specResources:
-        options: flatten: false
-        files:                       #copy all ["source/**/*.html", "...txt" ]
-          "<%= options.buildSpecDir %>/":
-            ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
-
-  if isWin32 then _B.deepExtend gruntConfig,
-    copy:
-      globalInstallTests:
-        files:
-          "<%= options.globalBuildCode %>": [ #dest
-            "<%= options.buildDir %>/**/*.js"  #source
-          ]
-
-      uRequireExamples_node_modules: #needed by the examples, makeNodeRequire()
-        files:
-          "../uRequireExamples/node_modules/urequire/build/code/": [ #dest
-            "<%= options.buildDir %>/**/*.js"  #source
-          ]
-
-      uBerscore_node_modules: #needed by the examples, makeNodeRequire()
-        files:
-          "../uBerscore/node_modules/urequire/build/code/": [ #dest
-            "<%= options.buildDir %>/**/*.js"  #source
-          ]
-
-  _B.deepExtend gruntConfig,
     clean:
       build: [
         "<%= options.buildDir %>/**/*.*"
         "<%= options.buildSpecDir %>/**/*.*"
-      ]
-
-  if isWin32 then _B.deepExtend gruntConfig,
-    clean:
-      deploy: [
-        "c:/Program Files/nodejs/node_modules/urequire/build/code/**/*.*"
-        "../uRequireExamples/node_modules/urequire/build/code/"
-        "../uBerscore/node_modules/urequire/build/code/"
       ]
 
   ### shortcuts generation ###
@@ -139,19 +92,16 @@ gruntFunction = (grunt) ->
   # generic shortcuts
   grunt.registerTask shortCut, tasks for shortCut, tasks of _B.go {
      # basic commands
-     "default": "clean build test" + if isWin32 then ' deploy' else ''
+     "default": "clean build test"
      "build":   "shell:coffee concat"
-     "deploy":  if isWin32 then "copy dos2unix chmod" else '' #chmod alternative "shell:globalInstall" (slower but more 'correct')
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
       # generic shortcuts
      "cf":      "shell:coffee" # there's a 'coffee' task already!
      "cfw":     "coffeeWatch"
      "cl":      "clean"
-     "cp":      "copy" #" todo: all ?
 
      "b":       "build"
-     "d":       "deploy"
      "t":       "test"
   }, fltr: (v)-> !!v #bangbang forces boolean value
 
@@ -159,7 +109,6 @@ gruntFunction = (grunt) ->
   grunt.registerTask shortCut, tasks for shortCut, tasks of {
     "alt-c": "cp"
     "alt-b": "b"
-    "alt-d": "d"
     "alt-t": "t"
   }
 

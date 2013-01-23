@@ -2,6 +2,7 @@ _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
 _fs = require 'fs'
 
+
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
@@ -106,7 +107,7 @@ class NodeRequirer extends BundleBase
         for bundlePathsRjsConfig, config of NodeRequirer::requireJSConfigs
           rjsConfigs[bundlePathsRjsConfig] = config
 
-        JSON.stringify di, null, ' ' # force reading of nested objects ?
+        l.prettify di
 
 
   ###
@@ -284,7 +285,7 @@ class NodeRequirer extends BundleBase
       l.err """\n
           *uRequire #{l.VERSION}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
           Quiting with throwing 1st error - Detailed attempts follow:
-          #{JSON.stringify att, null, ' ' for att in attempts}
+          #{l.prettify att for att in attempts}
 
           Debug info:\n
         """, @debugInfo

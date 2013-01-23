@@ -30,6 +30,8 @@ class BundleBuilder
     @bundleCfg = {}
     @buildCfg = {}
 
+    @buildCfg.done = configs[0]?.done or ->
+
     for config in configs when config
       @storeCfgDefaults config
 
@@ -47,50 +49,54 @@ class BundleBuilder
 
     # verbose / debug anyone ?
     if @buildCfg.debugLevel? then Logger::debugLevel = @buildCfg.debugLevel
-    if not @buildCfg.verbose then Logger::verbose = ->
+    if not @buildCfg.verbose
+      if Logger::debugLevel >= 50
+        l.warn 'Enabling verbose, because debugLevel >= 50'
+      else
+        Logger::verbose = ->
 
     # Lets check & fix different formats or quit if we have anomalies
 
     if be = @bundleCfg.dependencies?.bundleExports
       @bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
-      l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", JSON.stringify @bundleCfg.dependencies?.bundleExports, null, ' '
+      l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify @bundleCfg.dependencies?.bundleExports
 
-    if @isCheckAndFixPaths() and @isCheckAndFixTemplate()
-      l.debug 30, "@bundleCfg :\n", JSON.stringify @bundleCfg, null, ' '
-      l.debug 30, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
+    l.debug 30, "user @bundleCfg :\n", l.prettify @bundleCfg
+    l.debug 30, "user @buildCfg :\n", l.prettify @buildCfg
 
+    if @isCheckAndFixPaths() and @isCheckAndFixTemplate() # Prepare for buildBundle() !
       @storeCfgDefaults uRequireConfigMasterDefaults
       # display full cfgs, after applied master defaults.
-      l.debug 99, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
-      l.debug 99, "@buildCfg :\n", JSON.stringify @buildCfg, null, ' '
+      l.debug 90, "final @bundleCfg :\n", l.prettify @bundleCfg
+      l.debug 90, "final @buildCfg :\n", l.prettify @buildCfg
 
-       # Prepare for buildBundle() !
       @bundle = new Bundle @bundleCfg
       @build = new Build @buildCfg
-    else
-      if _.isFunction configs[0].done
-        configs[0].done false
 
-  # @param done A callback promise (eg. grunt's @async()) that is called when its finished
-  buildBundle: (done)->
+    else # something went wrong with paths, template etc #@todo:2,4 add more fixes/checks ?
+      @buildCfg.done false
+
+  buildBundle: ->
     if not (!@build or !@bundle)
-      @build.done = done or ->
       @bundle.buildChangedModules @build
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
-      done(false) if _.isFunction done
+      @buildCfg.done false
 
+  ###
+    Store cfg (without overwritting) in our @bundleCfg
+    @todo: 1,1 store _.keys uRequireConfigMasterDefaults.bundle & build
+  ###
   storeCfgDefaults: (cfg)->
     # read bundle keys from both a) simple/flat cfg and b) cfg.bundle
-    @bundleCfg = _B.deepCloneDefaults @bundleCfg, cfg.bundle or {}
     @bundleCfg = _B.deepCloneDefaults @bundleCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.bundle
+    @bundleCfg = _B.deepCloneDefaults @bundleCfg, cfg.bundle or {}
 
     # read build keys from both a) simple/flat cfg and b) cfg.build
-    @buildCfg = _B.deepCloneDefaults @buildCfg, cfg.build or {}
     @buildCfg = _B.deepCloneDefaults @buildCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.build
+    @buildCfg = _B.deepCloneDefaults @buildCfg, cfg.build or {}
 
-
-  # @todo:6 watch build's folder & rebuild
+  # @todo:6,6 watch build's folder & rebuild
   # @watchDirectory @cfg.bundle.bundlePath
   #  register something to watch events
   #  watchDirectory:->
@@ -99,7 +105,6 @@ class BundleBuilder
 
   # fix & check if template is Ok.
   isCheckAndFixTemplate: ->
-
     if not @buildCfg.template
       @buildCfg.template = {name: 'UMD'} # default
 
@@ -115,7 +120,6 @@ class BundleBuilder
     return true
 
   isCheckAndFixPaths: ->
-
     if not @bundleCfg.bundlePath
       l.err """
         Quitting build, no bundlePath specified.
@@ -151,4 +155,4 @@ if Logger::debugLevel > 10 or true
 
   YADC(BundleBuilder)
     .before /_constructor/, (match, config)->
-      l.debug 1, "Before '#{match}' with config = ", JSON.stringify(config, null, ' ')
+      l.debug 1, "Before '#{match}' with config = ", l.prettify config

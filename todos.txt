@@ -1,22 +1,18 @@
 Features
 
-* r.js optimize & bundle
+Current:
+* urequire config
+  - justCopy : false #
+     # can be []<String> of filenames / templates to skip uRequiring.
 
+  - 'requirejs config / requirejs 'link'
+    Remove hardcoded paths!
+
+Future:
 * watch - copy coffeescript's method ?
-
 * use Esprima instead of uglify
 
-* function sniff it! Use YouAreDaChef
-
-* urequire config
-  - uRequire : [ '*.js'] #default, if omited - can include list of inclusions
-
-  - justCopy : false #
-                     # can be []<String> of filenames / templates to skip uRequiring.
-
-  - a 'requirejs: config: or requirejs 'link'!
-
-  - check jam, package.json, requirejs.packages
+* check jam, package.json, requirejs.packages
 
 General:
   * more tests

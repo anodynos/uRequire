@@ -24,6 +24,7 @@ class Build
     @out = Build.outputModuleToFile unless @out
 
   @templates = ['UMD', 'AMD', 'nodejs', 'combined']
+  @moduleExtensions = ['js', 'javascript','coffee'] # 'iced', 'coco', 'ts', 'ls'
 
   #@todo : check @outputPath exists
   @outputModuleToFile: (modulePath, content)->

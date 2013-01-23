@@ -1,6 +1,27 @@
-# uRequire v0.2.8
+# uRequire v0.3.0alpha
 
 **Write *modular Javascript code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation/conversion that targets Web [(AMD/RequireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
+
+___________________________________________________________________________
+## Breaking news for v0.3.0 alpha
+
+This documentation is from version 0.2.x.
+
+Everything mentioned here works, but current version 0.3 (still in alpha) brings many new changes, NOT yet documented :
+
+- The 'combine' template, that builds your bundle (modules collection) into a single .js file that works as plain <script>, AMD or nodejs, AS IS.
+
+- The 'configFiles' features, where a hierarchy of *uRequireConfig* files is used to allow a fine-grained definition of the bundle & build information.
+
+- Other sexy features like *bundleExports* (dependencies that are implicitely required in all your modules), improved debugging and a huge code revamp.
+
+  Check out [github.com/anodynos/uBerscore](github.com/anodynos/uBerscore) project and especially
+  `source/code/uRequireConfig.coffee` and in `Gruntfile.coffee` check urequire / shell:urequire tatks to see some v0.3 examples.
+
+  For a 'full' config documentation (still not 100% stable) check `source/code/config/uRequireConfigMasterDefaults.coffee`
+
+  Also check [grunt-urequire](https://github.com/aearly/grunt-urequire) if you're using Grunt.
+___________________________________________________________________________
 
 ## The hasty coder intro :
 

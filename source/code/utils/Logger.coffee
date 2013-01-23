@@ -8,7 +8,7 @@ class Logger
 
   # default Logger::debugLevel
   debugLevel: 0
-  VERSION: VERSION # 'VERSION' variable is added by grant:concat
+  VERSION: if typeof VERSION is 'undefined' then '{VERSION}' else VERSION # 'VERSION' variable is added by grant:concat
 
   _constructor: (@title)->
 
@@ -21,7 +21,7 @@ class Logger
       cons.apply null, args
       null
 
-  err:  Logger.getALog "ERROR", '\u001b[31m', console.log #red
+  err:  Logger.getALog "ERROR", '\u001b[31m', console.error #red
   log: Logger.getALog "", '\u001b[0m', console.log
   verbose: Logger.getALog "", '\u001b[32m', console.log
   warn: Logger.getALog "WARNING", '\u001b[33m', console.log #yellow
@@ -38,5 +38,9 @@ class Logger
 
       if level <= @debugLevel
         log.apply @, msgs
+
+  prettify: do (util = require 'util')->
+    (o)->
+      util.inspect o, false, null, true
 
 module.exports = Logger
