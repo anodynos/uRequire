@@ -1,0 +1,13 @@
+{
+  "paths": {
+		"src" : "../../src",
+		"text": [
+      "requirejs_plugins/text",
+      "/libs/requirejs_plugins/json"
+    ],
+    "json": [
+        "../../../libs/requirejs_plugins/json",
+        "/libs/requirejs_plugins/json"
+    ]
+	}
+}

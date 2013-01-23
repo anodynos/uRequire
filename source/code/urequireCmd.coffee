@@ -1,132 +1,129 @@
 _ = require 'lodash'
-urequireCmd = require 'commander'
-l = require './utils/logger'
+_B = require 'uberscore'
+_fs = require 'fs'
+_wrench = require "wrench"
 
-options = {}
+urequireCmd = require 'commander'
+upath = require './paths/upath'
+Build = require './process/Build'
+
+Logger = require './utils/Logger'
+l = new Logger 'urequireCMD'
 
 # helpers
 toArray = (val)-> val.split(',')
 
-console.log
+config = {}
 
 urequireCmd
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <bundlePath> [options]')
-  .version(version) # 'var version = xxx' written by grunt's banner
+  .version(l.VERSION) # 'var version = xxx' written by grunt's banner
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
-  .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', false)
-  .option('-v, --verbose', 'Print module processing information', false)
-  .option('-n, --noExports', 'Ignore all web `rootExports` in module definitions', false)
-  .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", false)
-  .option('-s, --scanAllow', "By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).", false)
-  .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.', false)
-  .option('-C --Continue', 'Dont bail out while processing (mainly on module processing errors)', true)
-  .option('-u, --uglify', 'NOT IMPLEMENTED. Pass through uglify before saving.', false)
-  .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', toArray)
-  .option('-l, --listOfModules', 'NOT IMPLEMENTED. Process only modules/files in comma sep list - supports wildcards?', toArray)
-  .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', false)
-  .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', false)
-  #.option('-i, --inline', 'NOT IMPLEMENTED. Use inline nodeRequire, so urequire is not needed @ runtime.', false)
+  .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
+  .option('-v, --verbose', 'Print module processing information', undefined)
+  .option('-d, --debugLevel <debugLevel>', 'Pring debug information (0-100)', undefined)
+  .option('-n, --noExports', 'Ignore all web `rootExports` in module definitions', undefined)
+  .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", undefined)
+  .option('-s, --scanAllow', "By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).", undefined)
+  .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.', undefined)
+  .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
+  .option('-C, --continue', 'NOT IMPLEMENTED Dont bail out while processing (mainly on module processing errors)', undefined)
+  .option('-u, --uglify', 'NOT IMPLEMENTED. Pass through uglify before saving.', undefined)
+  .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', undefined)
+  .option('-i, --include', "NOT IMPLEMENTED. Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
+  .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
+  .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
 
-
-urequireCmd
-  .command('UMD <bundlePath>')
-  .description("Converts all .js modules in <bundlePath> using an UMD template")
-  .action (bundlePath)->
-    options.bundlePath = bundlePath
-    options.template = 'UMD'
-
-urequireCmd
-  .command('AMD <bundlePath>')
-  .description("Converts with an AMD template, pass through r.js optimizer - see 'urequire AMD -h'")
-  .option('-W, --webOptimize',
-    """
-    AMD Web optimizer, through RequireJS r.js
-
-    -- NOT IMPLEMENTED. --
-
-    Pass through r.js optimizer, using build.js & requirejs.config.json
-    """, false)
-  .action (bundlePath)->
-    options.bundlePath = bundlePath
-    options.template = 'AMD'
-
-    # read webOptimize param
-    for cmd in urequireCmd.commands
-      if cmd._name is 'AMD' and cmd.webOptimize
-        options.webOptimize = cmd.webOptimize
+for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combined']
+  do (tmplt)->
+    urequireCmd
+      .command("#{tmplt} <bundlePath>")
+      .description("Converts all modules in <bundlePath> using '#{tmplt}' template.")
+      .action (bundlePath)->
+        config.template = tmplt
+        config.bundlePath = bundlePath
 
 urequireCmd
-  .command('nodejs <bundlePath>')
-  .description("")
-  .action (bundlePath)->
-    options.bundlePath = bundlePath
-    options.template = 'nodejs'
+  .command('config <configFiles...>')
+  .action (cfgFiles)->
+    config.configFiles = toArray cfgFiles
 
 urequireCmd.on '--help', ->
-  console.log """
+  l.log """
   Examples:
                                                                   \u001b[32m
     $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle   \u001b[0m
                     or                                            \u001b[32m
-    $ urequire UMD path/to/moduleBundle -f                        \u001b[0m
+    $ urequire AMD path/to/moduleBundle -f                        \u001b[0m
+                    or                                            \u001b[32m
+    $ urequire config path/to/configFile.json,anotherConfig.js    \u001b[0m
 
-  Module files in your bundle can conform to the standard AMD format:
-      // standard anonymous modules format                  \u001b[33m
-    - define(['dep1', 'dep2'], function(dep1, dep2) {...})  \u001b[0m
-                            or
-      // named modules also work, but are NOT recommended                 \u001b[33m
-    - define('moduleName', ['dep1', 'dep2'], function(dep1, dep2) {...})  \u001b[0m
+  *Note: Command line values have precedence over configFiles; values on configFiles on the left have precedence over those on the right (deeply traversing).*
 
-    A 'relaxed' format can be used, see the docs.
+  Module files in your bundle can conform to the *standard AMD* format: \u001b[36m
+      // standard AMD module format - unnamed or named (not recommended by AMD)
+      define(['dep1', 'dep2'], function(dep1, dep2) {...});  \u001b[0m
 
-  Alternativelly modules can use the nodejs module format:
-    - var dep1 = require('dep1');
+  Alternativelly modules can use the *standard nodejs/CommonJs* format: \u001b[36m
+      var dep1 = require('dep1');
       var dep2 = require('dep2');
       ...
-      module.exports = {my: 'module'}
+      module.exports = {my: 'module'} \u001b[0m
+
+  Finally, a 'relaxed' format can be used (combination of AMD+commonJs), along with asynch requires, requirejs plugins, rootExports + noConflict boilerplate, bundleExports and much more - see the docs. \u001b[36m
+      // uRequire 'relaxed' modules format
+    - define(['dep1', 'dep2'], function(dep1, dep2) {
+        ...
+        // nodejs-style requires, with no side effects
+        dep3 = require('dep3');
+        ....
+        // asynchronous AMD-style requires work in nodejs
+        require(['someDep', 'another/dep'], function(someDep, anotherDep){...});
+
+        // RequireJS plugins work on web + nodejs
+        myJson = require('json!ican/load/requirejs/plugins/myJson.json');
+        ....
+        return {my: 'module'};
+      }); \u001b[0m
 
   Notes:
-    --forceOverwriteSources (-f) is useful if your sources are not `real sources`
-      eg. you use coffeescript :-).
+    --forceOverwriteSources (-f) is useful if your sources are not `real sources`  eg. you use coffeescript :-).
       WARNING: -f ignores --outputPath
-"""
+
+    - Your source can be coffeescript (more will follow) - .coffee files are internally translated to js.
+
+    - configFiles can be written as a .js module, .coffee module, json and much more - see 'butter-require'
+
+    uRequire version #{l.VERSION}
+  """
 
 urequireCmd.parse process.argv
 
-cmdOptions = _.map(urequireCmd.options, (o)-> o.long.slice 2) #hack to get cmd options only
-#copy over to 'options', to decouple urequire from cmd.
-options = _.defaults options, _.pick(urequireCmd, cmdOptions)
-options.version = urequireCmd.version()
+#hack to get cmd options only ['verbose', 'scanAllow', 'outputPath', ...] etc
+CMDOPTIONS = _.map(urequireCmd.options, (o)-> o.long.slice 2)
 
-# to log or not to log
-if not options.verbose then l.verbose = ->
+# overwrite anything on config's root by cmdConfig - BundleBuilder handles the rest
+_.extend config, _.pick(urequireCmd, CMDOPTIONS)
+delete config.version
 
-#console.log "\n", urequireCmd
-#console.log "\n", options
-
-if not options.bundlePath
+if _.isEmpty config
   l.err """
-    Quitting, no bundlePath specified.
-    Use -h for help"""
-  process.exit(1)
+    No CMD options or config file specified.
+    Not looking for any default config file in this uRequire version.
+    Type -h if U R after help!"
+  """
+  l.log "uRequire version #{l.VERSION}"
 else
-  if options.forceOverwriteSources
-    options.outputPath = options.bundlePath
-    l.verbose "Forced output to '#{options.outputPath}'"
-  else
-    if not options.outputPath
-      l.err """
-        Quitting, no --outputPath specified.
-        Use -f *with caution* to overwrite sources."""
-      process.exit(1)
-    else
-      if options.outputPath is options.bundlePath
-        l.err """
-          Quitting, outputPath == bundlePath.
-          Use -f *with caution* to overwrite sources (no need to specify --outputPath).
-          """
-        process.exit(1);
+  if config.verbose
+    l.verbose 'uRequireCmd called with cmdConfig=\n', config
 
-urequire = require './urequire'
-urequire.processBundle options
+  config.done = (doneValue)->
+    if (doneValue is true) or (doneValue is undefined)
+      l.verbose "uRequireCmd done() successfully!"
+    else
+      l.err "uRequireCmd done(), with errors!"
+      process.exit 1
+
+  bb = new (require './urequire').BundleBuilder config
+  bb.buildBundle()

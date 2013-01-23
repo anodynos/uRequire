@@ -1,6 +1,29 @@
-# uRequire v0.2.8
+# uRequire v0.3.0alpha
 
 **Write *modular Javascript code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation/conversion that targets Web [(AMD/RequireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
+
+___________________________________________________________________________
+## Breaking news for v0.3.0 alpha
+
+This documentation is from version 0.2.x.
+
+Everything mentioned here works, but current version 0.3 (still in alpha) brings many new changes, NOT yet documented :
+
+- The 'combine' template, that builds your bundle (modules collection) into a single .js file that works as plain `<script/>`, AMD or nodejs, AS IS.
+
+- The 'configFiles' features, where a hierarchy of *uRequireConfig* files is used to allow a fine-grained definition of the bundle & build information.
+
+- Other sexy features like *bundleExports* (dependencies that are implicitely required in all your modules), improved debugging and a huge code revamp.
+
+  Check out [github.com/anodynos/uBerscore](github.com/anodynos/uBerscore) project and especially
+  `source/code/uRequireConfig.coffee` and in `Gruntfile.coffee` check urequire / shell:urequire tatks to see some v0.3 examples.
+
+  For a 'full' config documentation (still not 100% stable) check `source/code/config/uRequireConfigMasterDefaults.coffee`
+
+  Also check [grunt-urequire](https://github.com/aearly/grunt-urequire) if you're using Grunt.
+___________________________________________________________________________
+
+# Back to v2.9 docs
 
 ## The hasty coder intro :
 
@@ -252,7 +275,7 @@ More declarative options will follow :-)
 
 ### Mappings
 
-* You can map webRoot `/` to a directory of your nodejs environment (--webRootMap option). The directory can be relative to bundle (paths starting with a `.`) or an absolute file system path (eg `/dev/jslibs`). Just make sure your Web Server has the right content mapped to `/` and you're set!
+* You can map webRootMap `/` to a directory of your nodejs environment (--webRootMap option). The directory can be relative to bundle (paths starting with a `.`) or an absolute file system path (eg `/dev/jslibs`). Just make sure your Web Server has the right content mapped to `/` and you're set!
 
 * You can use the requirejs config `baseUrl` and `paths` on nodejs (only those for now) - just place a file named `requirejs.config.json` in your bundle root directory, with content like {"paths": {"myLib" : "../../myLib"}}. Very usefull for 'importing' bundles, eg running specs against 'myLib' bundle using mocha, jasmine-node etc. Again, use the same config items on RequireJS/Web for transparent cross platform module usage.
 
@@ -333,7 +356,7 @@ Do note:
       * Runtime translation of paths like `models/PersonModel` to `../../models/PersonModel`, depending on where it was called from.
       * Can't use the asynchronous version of `require(['dep'], function(dep){...})`
       * Can't runn of loader plugins, like `text!...` or `json!...`
-      * There's no mapping of `/`, ie webRoot etc or using the requirejs.config's `{baseUrl:"...."} or {paths:"lib":"../../lib"}`
+      * There's no mapping of `/`, ie webRootMap etc or using the requirejs.config's `{baseUrl:"...."} or {paths:"lib":"../../lib"}`
 
     You 'll still get build-time translated bundleRelative paths, to their nodejs fileRelative equivalent.
 
@@ -362,7 +385,7 @@ src/
           helper.js
 </pre>
 
-The src/ directory is said to be your 'bundle root', in urequire terms. It's what you would set `baseUrl` to in requirejs, if your modules were in pure AMD format. All absolute dependencies (those not starting with `./`, `../` or `/`) would be relative to this bundle root, eg 'Application' or 'views/PersonView'. Every UMD file is aware of its location in the bundle and uses it in various ways, such as resolving paths, looking for 'requirejs.config.json', resolving baseUrl/paths & webRoot etc.
+The src/ directory is said to be your 'bundle root', in urequire terms. It's what you would set `baseUrl` to in requirejs, if your modules were in pure AMD format. All absolute dependencies (those not starting with `./`, `../` or `/`) would be relative to this bundle root, eg 'Application' or 'views/PersonView'. Every UMD file is aware of its location in the bundle and uses it in various ways, such as resolving paths, looking for 'requirejs.config.json', resolving baseUrl/paths & webRootMap etc.
 
 Now say your `views/PersonView.js` is
 
@@ -643,7 +666,7 @@ No, from Universal. Require.
 
 ###v0.6 - v0.8
 
-* Configuration file `urequire.json` that will contain all the information regarding your bundle: your default uRequire settings (eg your nodejs webRoot mapping, -scanPrevent), and the most important of all: a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/lodash.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs `paths`.) etc.
+* Configuration file `urequire.json` that will contain all the information regarding your bundle: your default uRequire settings (eg your nodejs webRootMap mapping, -scanPrevent), and the most important of all: a `relaxed` config used on both the web side and nodejs that knows facts like which are the bundle modules or that `underscore` is a 'global' (i.e it needs a requireJS/web {paths: {'underscore': '/libs/lodash.js'}} and on node its ususally an `npm install underscore`, but it could also use the same requireJs `paths`.) etc.
 
 * Additionally, check jamjs & yeoman, cause they deal with deps management as well... piggyback?
 

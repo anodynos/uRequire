@@ -1,12 +1,7 @@
 /.idea/
 /node_modules/
-/libs/
 /source/
 /grunt*
-/samples
 /build/spec/
-/build/examples/
-/package.coffee
 /.npmignore
 /*.bat
-/*.sh

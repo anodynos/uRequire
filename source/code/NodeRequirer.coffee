@@ -1,22 +1,15 @@
 _ = require 'lodash'
+_.mixin (require 'underscore.string').exports()
 _fs = require 'fs'
+
+
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
-#slang = require './utils/slang'
+Logger = require './utils/Logger'
+l = new Logger 'NodeRequirer', 0 # disable runtime debug
 
-
-# @todo: move debug level functionality on logger.coffee :-)
-l = require './utils/logger'
-debugLevel = 0
-ldebug = l.debug
-l.debug = (level, msg)->
-  if _.isString level
-    msg = level
-    level = 99999
-  if level <= debugLevel
-    ldebug "#{level}: *NodeRequirer #{version}*: " + msg
-
+BundleBase = require './process/BundleBase'
 ###
 The `nodejs`'s require facility.
 
@@ -31,26 +24,25 @@ An instance of `NodeRequirer` is created for each UMD module, when running on no
 @author Agelos Pikoulas
 
 ###
-class NodeRequirer
+class NodeRequirer extends BundleBase
   Function::property = (props) -> Object.defineProperty @::, name, descr for name, descr of props
   Function::staticProperty = (props) => Object.defineProperty @::, name, descr for name, descr of props
 
   ###
-  functionSniffer wants constructor being dummy that calls the real one;-)
+  YADC wants can't grab real 'constructor'
   ###
-  constructor: ->
-    @_constructor.apply @, arguments
+  constructor: -> @_constructor.apply @, arguments
 
   ###
   Create a NodeRequirer instance, passing paths resolution information.
 
   @param {String} modyle `module` name of current UMD module (that calls 'require'). Relative to bundle, eg 'models/Person', as hardcoded in generated uRequire UMD.
   @param {String} dirname `__dirname` passed at runtime from the UMD module, poiniting to its self (i.e filename of the .js file).
-  @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to bundleRoot).
+  @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to bundlePath).
   ###
   _constructor: (@modyle, @dirname, @webRootMap)->
 
-    @bundleRoot = upath.normalize (
+    @bundlePath = upath.normalize (
       @dirname + '/' + (pathRelative "$/#{upath.dirname @modyle}", "$/") + '/'
     )
 
@@ -60,38 +52,29 @@ class NodeRequirer
         @dirname='#{@dirname}'
         @webRootMap='#{@webRootMap}')
 
-        - calculated @bundleRoot (from @modyle & @dirname) = #{@bundleRoot}
+        Calculated @bundlePath (from @modyle & @dirname) = #{@bundlePath}
     """
 
     if @getRequireJSConfig().baseUrl
-      oldBundleRoot = @bundleRoot
+      oldbundlePath = @bundlePath
       baseUrl = @getRequireJSConfig().baseUrl
 
-      l.debug 7, "  - `baseUrl` (from requireJsConfig ) = #{baseUrl}"
+      l.debug 7, "`baseUrl` (from requireJsConfig ) = #{baseUrl}"
 
-      @bundleRoot = upath.normalize (
+      @bundlePath = upath.normalize (
         if baseUrl[0] is '/'  #web root as reference
           @webRoot
-        else                  #bundleRoot as reference
-          @bundleRoot
+        else                  #bundlePath as reference
+          @bundlePath
         ) + '/' + baseUrl + '/'
 
-      l.debug 5, "    - final `@bundleRoot` (from requireJsConfig.baseUrl & @bundleRoot) = #{@bundleRoot}"
-#      if oldBundleRoot isnt @bundleRoot # store requireJSConfig for this new @bundleRoot
+      l.debug 5, "Final `@bundlePath` (from requireJsConfig.baseUrl & @bundlePath) = #{@bundlePath}"
+#      if oldbundlePath isnt @bundlePath # store requireJSConfig for this new @bundlePath
 #        l.debug """
 #          ### stroring rjs config ###
-#          NodeRequirer::requireJSConfigs[#{@bundleRoot}] = NodeRequirer::requireJSConfigs[#{oldBundleRoot}]
+#          NodeRequirer::requireJSConfigs[#{@bundlePath}] = NodeRequirer::requireJSConfigs[#{oldbundlePath}]
 #        """
-#        NodeRequirer::requireJSConfigs[@bundleRoot] = NodeRequirer::requireJSConfigs[oldBundleRoot]
-
-  @property
-    webRoot:
-      get: -> upath.normalize "#{
-        if @webRootMap[0] is '.' # hardwired as path from bundleRoot
-          @bundleRoot + '/' + @webRootMap
-        else
-          @webRootMap # an OS file system dir, as-is
-        }"
+#        NodeRequirer::requireJSConfigs[@bundlePath] = NodeRequirer::requireJSConfigs[oldbundlePath]
 
   ###
   @property {Function}
@@ -110,21 +93,21 @@ class NodeRequirer
     debugInfo:
       get:->
         di = {
-          bundleRoot: @bundleRoot
+          bundlePath: @bundlePath
           webRoot: @webRoot
         }
 
-        rjsLoaded = di["requirejsLoaded[@bundleRoot]"] = {}
-        for bundleRootsRjs, rjs of NodeRequirer::requirejsLoaded
-          rjsConfig = rjsLoaded[bundleRootsRjs] = {}
+        rjsLoaded = di["requirejsLoaded[@bundlePath]"] = {}
+        for bundlePathsRjs, rjs of NodeRequirer::requirejsLoaded
+          rjsConfig = rjsLoaded[bundlePathsRjs] = {}
           rjsConfig["requirejs._.config.baseUrl"] = rjs.s?.contexts?._?.config.baseUrl
           rjsConfig["requirejs._.config.paths"] = rjs.s?.contexts?._?.config.paths
 
-        rjsConfigs = di["requireJSConfigs[@bundleRoot]"] = {}
-        for bundleRootsRjsConfig, config of NodeRequirer::requireJSConfigs
-          rjsConfigs[bundleRootsRjsConfig] = config
+        rjsConfigs = di["requireJSConfigs[@bundlePath]"] = {}
+        for bundlePathsRjsConfig, config of NodeRequirer::requireJSConfigs
+          rjsConfigs[bundlePathsRjsConfig] = config
 
-        JSON.stringify di, null, ' ' # force reading of nested objects ?
+        l.prettify di
 
 
   ###
@@ -134,50 +117,50 @@ class NodeRequirer
   cachedModules: {}
 
   ###
-  Load 'requirejs.config.json' for @bundleRoot & cache it with @bundleRoot as key.
-  @return {RequireJSConfig object} the requireJSConfig for @bundleRoot (or {} if 'requirejs.config.json' not found/not valid json)
+  Load 'requirejs.config.json' for @bundlePath & cache it with @bundlePath as key.
+  @return {RequireJSConfig object} the requireJSConfig for @bundlePath (or {} if 'requirejs.config.json' not found/not valid json)
   ###
   getRequireJSConfig: ->
     NodeRequirer::requireJSConfigs ?= {}  # static / store in class
 
-    if NodeRequirer::requireJSConfigs[@bundleRoot] is undefined
+    if NodeRequirer::requireJSConfigs[@bundlePath] is undefined
       try
-        rjsc = require('fs').readFileSync @bundleRoot + 'requirejs.config.json', 'utf-8'
+        rjsc = require('fs').readFileSync @bundlePath + 'requirejs.config.json', 'utf-8'
       catch error
-        # l.err "urequire: error loading requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
+        # l.err "urequire: error loading requirejs.config.json from #{@bundlePath + 'requirejs.config.json'}"
         #do nothing, we just dont have a requirejs.config.json
 
       if rjsc
         try
-          NodeRequirer::requireJSConfigs[@bundleRoot] = JSON.parse rjsc
+          NodeRequirer::requireJSConfigs[@bundlePath] = JSON.parse rjsc
         catch error
-          l.err "urequire: error parsing requirejs.config.json from #{@bundleRoot + 'requirejs.config.json'}"
+          l.err "urequire: error parsing requirejs.config.json from #{@bundlePath + 'requirejs.config.json'}"
 
-      NodeRequirer::requireJSConfigs[@bundleRoot] ?= {} # if still undefined, after so much effort
+      NodeRequirer::requireJSConfigs[@bundlePath] ?= {} # if still undefined, after so much effort
 
-    return NodeRequirer::requireJSConfigs[@bundleRoot]
+    return NodeRequirer::requireJSConfigs[@bundlePath]
 
   ###
-  Load the [Requirejs](http://requirejs.org/) system module (as npm installed), & cache for @bundleRoot as key.
+  Load the [Requirejs](http://requirejs.org/) system module (as npm installed), & cache for @bundlePath as key.
 
-  Then cache it in static NodeRequirer::requirejsLoaded[@bundleRoot], so only one instance
-  is shared among all `NodeRequirer`s for a given @bundleRoot. Hence, its created only once,
-  first time it's needed (for each distinct @bundleRoot).
+  Then cache it in static NodeRequirer::requirejsLoaded[@bundlePath], so only one instance
+  is shared among all `NodeRequirer`s for a given @bundlePath. Hence, its created only once,
+  first time it's needed (for each distinct @bundlePath).
 
   It is configuring rjs with resolved paths, for each of the paths entry in `requirejs.config.json`.
-  Resolved paths are relative to `@bundleRoot` (instead of `@dirname`).
+  Resolved paths are relative to `@bundlePath` (instead of `@dirname`).
 
-  @return {requirejs} The module `RequireJS` for node, configured for this @bundleRoot.
+  @return {requirejs} The module `RequireJS` for node, configured for this @bundlePath.
   ###
   getRequirejs: ->
     NodeRequirer::requirejsLoaded ?= {}  # static / store in class
 
-    if not NodeRequirer::requirejsLoaded[@bundleRoot]
+    if not NodeRequirer::requirejsLoaded[@bundlePath]
       requirejs = @nodeRequire 'requirejs'
 
       requireJsConf =
         nodeRequire: @nodeRequire
-        baseUrl: @bundleRoot
+        baseUrl: @bundlePath
 
       # resolve each path, as we do in modules - take advantage of webRoot etc.
       if @getRequireJSConfig().paths
@@ -189,56 +172,14 @@ class NodeRequirer
           requireJsConf.paths[pathName] or= []
 
           for pathEntry in pathEntries
-            for resolvedPath in @resolvePaths(new Dependency(pathEntry), @bundleRoot) #rjs paths are relative to bundleRoot, not some file
+            for resolvedPath in @resolvePaths(new Dependency(pathEntry), @bundlePath) #rjs paths are relative to bundlePath, not some file
               requireJsConf.paths[pathName].push resolvedPath if not (resolvedPath in requireJsConf.paths[pathName])
 
       requirejs.config requireJsConf
 
-      NodeRequirer::requirejsLoaded[@bundleRoot] = requirejs
+      NodeRequirer::requirejsLoaded[@bundlePath] = requirejs
 
-    return NodeRequirer::requirejsLoaded[@bundleRoot]
-
-  ###
-  For a given `Dependency`, resolve *all possible* paths to the file.
-
-  `resolvePaths` is respecting:
-       - The `Dependency`'s own semantics, eg `webRoot` if `dep` is relative to web root (i.e starts with `\`) and similarly for isRelative etc. See <code>Dependency</code>
-       - `@relativeTo` param, which defaults to the module file calling `require` (ie. @dirname), but can be anything eg. @bundleRoot.
-       - `requirejs` config, if it exists in this instance of NodeRequirer
-
-  @param {Dependency} dep The Dependency instance whose paths we are resolving.
-  @param {String} relativeTo Resolve relative to this path. Default is `@dirname`, i.e the module/file that called `require`
-
-  @return {Array<String>} The resolved paths of the Dependency
-  ###
-  resolvePaths: (dep, relativeTo = @dirname)->
-    depName = dep.name plugin:no, ext:yes
-
-    resPaths = []
-    addit = (path)-> resPaths.push upath.normalize path
-
-    if dep.isFileRelative() #relative to requiring file's dir
-      addit relativeTo + '/' + depName
-    else
-      if dep.isWebRoot() # web-root path
-        addit @webRoot + depName
-      else # requireJS baseUrl/Paths
-        pathStart = depName.split('/')[0]
-        if @getRequireJSConfig().paths?[pathStart] #eg src/
-          paths = @getRequireJSConfig().paths[pathStart]
-          if not _(paths).isArray()
-            paths = [ paths ] #else _(paths).isString()
-
-          for path in paths # add them all
-            addit @bundleRoot + (depName.replace pathStart, path)
-        else
-          if dep.isRelative()  # relative to bundle eg 'a/b/c',
-            addit @bundleRoot + depName
-          else # a single pathpart, like 'underscore' or 'myLib'
-            addit @bundleRoot + depName  # or bundleRelative (unlikely)
-            addit depName     # global eg 'underscore' (most likely)
-
-    return resPaths
+    return NodeRequirer::requirejsLoaded[@bundlePath]
 
   ###
   Loads *one* module, synchronously.
@@ -252,6 +193,7 @@ class NodeRequirer
 
   @param {Dependency} dep The Dependency to be load.
   @return {module} loaded module or quits if it fails
+  @todo:2 refactor/simplify
   ###
   loadModule: (dep)=>
     #load module either via nodeRequire OR requireJS if it needs a plugin or if it fails!
@@ -279,7 +221,7 @@ class NodeRequirer
           try
             loadedModule = @nodeRequire _modulePath
           catch err
-            if err1 is undefined or err.toString() isnt "Error: Cannot find module 'main'"
+            if err1 is undefined or not _(err.toString()).startsWith "Error: Cannot find module" # prefer to keep 'generic' errors in err1
               err1 = err
 
             l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=\n", err
@@ -291,28 +233,7 @@ class NodeRequirer
                   errToString:err.toString()
                   err: err
 
-              # @todo:2
-              # 'Generic' javascript / nodejs errors NOT REPORTED correctly
-              # eg
-              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25
-              #    isObj = !_.isArray(oa);
-              #             ^
-              # ReferenceError: _ is not defined
-              #
-              # is reported as
-              # /mnt/tc/DevelopmentProjects/WebStormWorkspace/p/urequire/build/code/NodeRequirer.js:341
-              #      throw err1;
-              #            ^
-              # ReferenceError: _ is not defined
-              #    at uBerscore.go (/mnt/tc/DevelopmentProjects/WebStormWorkspace/p/uBerscore/build/code/go.js:25:14)
-
-            #hacked - brought forward from v0.3 :-)
-            addExt = (file, ext)->
-              endsWith = (str, suffix)-> str.indexOf(suffix, str.length - suffix.length) isnt -1 #
-              return file + if endsWith(file, ext) then '' else ext
-
-            _modulePath = addExt _modulePath, '.js' # make sure we have it WHY ? @todo: Q: can it be if global ?
-
+            _modulePath = upath.addExt _modulePath, '.js' # make sure we have it WHY ? @todo: Q: can it be if global ?
 
             if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
               l.debug 25, "FAILURE caused: @getRequirejs() '#{_modulePath}'"
@@ -331,10 +252,10 @@ class NodeRequirer
                 _.extend _.last(attempts),
                     urequireError: "Error loading module through RequireJS; it previously failed with node's require."
                     error:
-                      name:err2.name
-                      message:err2.message
-                      errToString:err2.toString()
-                      err: err2
+                      name:err.name
+                      message:err.message
+                      errToString:err.toString()
+                      err: err
         else
           _modulePath = "#{dep.pluginName}!#{_modulePath}"
           l.debug 25, "PLUGIN caused: @getRequirejs() '#{_modulePath}'"
@@ -355,16 +276,16 @@ class NodeRequirer
             _.extend _.last(attempts),
               urequireError: "Error loading *plugin* module through RequireJS."
               error:
-                name: err3.name
-                message: err3.message
-                errToString:err3.toString()
-                err: err3
+                name: err.name
+                message: err.message
+                errToString:err.toString()
+                err: err
 
     if not loadedModule
       l.err """\n
-          *uRequire #{version}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
+          *uRequire #{l.VERSION}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
           Quiting with throwing 1st error - Detailed attempts follow:
-          #{JSON.stringify att, null, ' ' for att in attempts}
+          #{l.prettify att for att in attempts}
 
           Debug info:\n
         """, @debugInfo
@@ -381,7 +302,6 @@ class NodeRequirer
         """
 
       return @cachedModules[_modulePath] = loadedModule # caching as 'plugin!filename' (if its plugin loaded)
-
 
 
   ###
