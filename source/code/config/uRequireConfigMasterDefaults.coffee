@@ -103,7 +103,13 @@ uRequireConfig = # Command line options overide these.
 
       Also you can add a different var name that should be globally looked up.
       ###
-      variableNames: # todo: provide some 'common ones' that are 'strandard' ?
+      variableNames: {}
+
+      # Some known variableNames, have them as backup!
+      # todo: provide some 'common ones' that are 'strandard'
+      knownVariableNames:
+        chai: 'chai'
+        mocha: 'mocha'
         lodash: "_"
         underscore: "_"
         jquery: ["$", "jQuery"]

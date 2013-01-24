@@ -133,7 +133,7 @@ class UModule
   ###
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
-      l.debug 30, "**** Converting '#{@modulePath}' ****\n"
+      l.debug 30, "Converting module '#{@modulePath}'"
 
       # inject Dependencies information to arrayDeps, nodeDeps & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.bundleExports)
@@ -143,37 +143,42 @@ class UModule
           if _.isEmpty varNames
             # attempt to read from bundle & store found varNames at @bundle.dependencies.bundleExports
             varNames = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
-            l.debug 80, """
+            l.debug 40, """
               #{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
               An attempt to infer varNames from bundle:
             """, varNames
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
+            console.log 'bundleExports=', bundleExports
             err = uRequire: """
               Error converting bundle named '#{@bundle.bundleName}' in '#{@bundle.bundlePath}'.
 
               No variable names can be identified for bundleExports dependency '#{depName}'.
-              These variable name are used to :
+
+              These variable names are used to :
                 - inject the dependency into each module
                 - grab the dependency from the global object, when running as <script>.
 
+              Remedy:
+
               You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
-              ```
-                bundleExports: {
-                  '#{depName}': 'VARIABLE_IT_BINDS_WITH',
-                  ...
-                  jquery: ['$', 'jQuery'],
-                  backbone: ['Backbone']
-                }
-              ```
+                ```
+                  bundleExports: {
+                    '#{depName}': 'VARIABLE_IT_BINDS_WITH',
+                    ...
+                    jquery: ['$', 'jQuery'],
+                    backbone: ['Backbone']
+                  }
+                ```
               instead of the simpler
+                ```
+                  bundleExports: [ '#{depName}', 'jquery', 'backbone' ]
+                ```
 
-              ```
-                bundleExports: [ '#{depName}', 'jquery', 'backbone' ]
-              ```
-
-              Alternativelly, define at least one module that has this dependency + variable binding,
-              using AMD instead of commonJs format, and uRequire will find it!
+              Alternativelly, pick one medicine :
+                - define at least one module that has this dependency + variable binding, using AMD instead of commonJs format, and uRequire will find it!
+                - declare it in the above format, but in `bundle.dependencies.variableNames` and uRequre will pick it from there!
+                - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
             """
             l.err err.uRequire
             throw err
@@ -220,28 +225,31 @@ class UModule
 
   ###
   Returns all deps in this module along with their corresponding parameters (variable names)
+
+  Note: currently, only AMD-modules provide us with the variable-binding of dependencies!
+
   @param {Object} q optional query with two optional fields : depType & depName
   @return {Object}
+      {
         jquery: ['$', 'jQuery']
         lodash: ['_']
         'models/person': ['pm']
+      }
   ###
-  getDepsAndVars: (q={})->
-    depsAndVars = {}
+  getDepsVars: (q={})->
+    depsVars = {}
     if @isConvertible
       for dep, idx in @arrayDeps when (
         ((not q.depType) or (q.depType is dep.type)) and
         ((not q.depName) or (dep.isEqual q.depName))
       )
-          dv = (depsAndVars[dep.name(relativeType:'bundle')] or= [])
+          dv = (depsVars[dep.name(relativeType:'bundle')] or= [])
           # store the variable(s) associated with dep
           if @parameters[idx] and not (@parameters[idx] in dv )
             dv.push @parameters[idx] # if there is a var, add once
 
-      depsAndVars
+      depsVars
     else {}
-
-
 
   ### for reference (we could have passed UModule instance it self :-) ###
   @property templateInfo: get: -> _B.go {

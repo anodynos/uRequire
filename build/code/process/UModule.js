@@ -220,7 +220,7 @@ module.exports = UModule = (function() {
     var bundleExports, d, depName, err, moduleTemplate, reqDep, ti, varName, varNames, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
     this.build = build;
     if (this.isConvertible) {
-      l.debug(30, "**** Converting '" + this.modulePath + "' ****\n");
+      l.debug(30, "Converting module '" + this.modulePath + "'");
       if (!_.isEmpty((bundleExports = (_ref = this.bundle) != null ? (_ref1 = _ref.dependencies) != null ? _ref1.bundleExports : void 0 : void 0))) {
         l.debug(30, "" + this.modulePath + ": injecting dependencies \n", this.bundle.dependencies.bundleExports);
         for (depName in bundleExports) {
@@ -229,11 +229,12 @@ module.exports = UModule = (function() {
             varNames = bundleExports[depName] = this.bundle.getDepsVars({
               depName: depName
             })[depName];
-            l.debug(80, "" + this.modulePath + ": dependency '" + depName + "' had no corresponding parameters/variable names to bind with.\nAn attempt to infer varNames from bundle:", varNames);
+            l.debug(40, "" + this.modulePath + ": dependency '" + depName + "' had no corresponding parameters/variable names to bind with.\nAn attempt to infer varNames from bundle:", varNames);
           }
           if (_.isEmpty(varNames)) {
+            console.log('bundleExports=', bundleExports);
             err = {
-              uRequire: "Error converting bundle named '" + this.bundle.bundleName + "' in '" + this.bundle.bundlePath + "'.\n\nNo variable names can be identified for bundleExports dependency '" + depName + "'.\nThese variable name are used to :\n  - inject the dependency into each module\n  - grab the dependency from the global object, when running as <script>.\n\nYou should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a\n```\n  bundleExports: {\n    '" + depName + "': 'VARIABLE_IT_BINDS_WITH',\n    ...\n    jquery: ['$', 'jQuery'],\n    backbone: ['Backbone']\n  }\n```\ninstead of the simpler\n\n```\n  bundleExports: [ '" + depName + "', 'jquery', 'backbone' ]\n```\n\nAlternativelly, define at least one module that has this dependency + variable binding,\nusing AMD instead of commonJs format, and uRequire will find it!"
+              uRequire: "Error converting bundle named '" + this.bundle.bundleName + "' in '" + this.bundle.bundlePath + "'.\n\nNo variable names can be identified for bundleExports dependency '" + depName + "'.\n\nThese variable names are used to :\n  - inject the dependency into each module\n  - grab the dependency from the global object, when running as <script>.\n\nRemedy:\n\nYou should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a\n  ```\n    bundleExports: {\n      '" + depName + "': 'VARIABLE_IT_BINDS_WITH',\n      ...\n      jquery: ['$', 'jQuery'],\n      backbone: ['Backbone']\n    }\n  ```\ninstead of the simpler\n  ```\n    bundleExports: [ '" + depName + "', 'jquery', 'backbone' ]\n  ```\n\nAlternativelly, pick one medicine :\n  - define at least one module that has this dependency + variable binding, using AMD instead of commonJs format, and uRequire will find it!\n  - declare it in the above format, but in `bundle.dependencies.variableNames` and uRequre will pick it from there!\n  - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)"
             };
             l.err(err.uRequire);
             throw err;
@@ -278,20 +279,25 @@ module.exports = UModule = (function() {
 
   /*
     Returns all deps in this module along with their corresponding parameters (variable names)
+  
+    Note: currently, only AMD-modules provide us with the variable-binding of dependencies!
+  
     @param {Object} q optional query with two optional fields : depType & depName
     @return {Object}
+        {
           jquery: ['$', 'jQuery']
           lodash: ['_']
           'models/person': ['pm']
+        }
   */
 
 
-  UModule.prototype.getDepsAndVars = function(q) {
-    var dep, depsAndVars, dv, idx, _i, _len, _name, _ref, _ref1;
+  UModule.prototype.getDepsVars = function(q) {
+    var dep, depsVars, dv, idx, _i, _len, _name, _ref, _ref1;
     if (q == null) {
       q = {};
     }
-    depsAndVars = {};
+    depsVars = {};
     if (this.isConvertible) {
       _ref = this.arrayDeps;
       for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
@@ -299,14 +305,14 @@ module.exports = UModule = (function() {
         if (!(((!q.depType) || (q.depType === dep.type)) && ((!q.depName) || (dep.isEqual(q.depName))))) {
           continue;
         }
-        dv = (depsAndVars[_name = dep.name({
+        dv = (depsVars[_name = dep.name({
           relativeType: 'bundle'
-        })] || (depsAndVars[_name] = []));
+        })] || (depsVars[_name] = []));
         if (this.parameters[idx] && !(_ref1 = this.parameters[idx], __indexOf.call(dv, _ref1) >= 0)) {
           dv.push(this.parameters[idx]);
         }
       }
-      return depsAndVars;
+      return depsVars;
     } else {
       return {};
     }

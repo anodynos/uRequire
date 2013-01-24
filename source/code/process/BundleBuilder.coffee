@@ -57,9 +57,17 @@ class BundleBuilder
 
     # Lets check & fix different formats or quit if we have anomalies
 
+    # Convert from `bundleExports: ['lodash', 'jquery']` to the valid-internally `bundleExports: {'lodash':[], 'jquery':[]}`
     if be = @bundleCfg.dependencies?.bundleExports
       @bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
-      l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify @bundleCfg.dependencies?.bundleExports
+      if not _.isEmpty @bundleCfg.dependencies.bundleExports
+        l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify @bundleCfg.dependencies?.bundleExports
+
+    # @todo:2 whre to stick these ?
+    _B.mutate varNames, _B.arrayize for varNames in [
+      @bundleCfg.dependencies.variableNames
+      uRequireConfigMasterDefaults.bundle.dependencies.knownVariableNames
+    ]
 
     l.debug 30, "user @bundleCfg :\n", l.prettify @bundleCfg
     l.debug 30, "user @buildCfg :\n", l.prettify @buildCfg
@@ -67,8 +75,8 @@ class BundleBuilder
     if @isCheckAndFixPaths() and @isCheckAndFixTemplate() # Prepare for buildBundle() !
       @storeCfgDefaults uRequireConfigMasterDefaults
       # display full cfgs, after applied master defaults.
-      l.debug 90, "final @bundleCfg :\n", l.prettify @bundleCfg
-      l.debug 90, "final @buildCfg :\n", l.prettify @buildCfg
+      l.debug 80, "final @bundleCfg :\n", l.prettify @bundleCfg
+      l.debug 80, "final @buildCfg :\n", l.prettify @buildCfg
 
       @bundle = new Bundle @bundleCfg
       @build = new Build @buildCfg

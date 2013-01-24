@@ -20,8 +20,7 @@ Everything mentioned here works, but current version 0.3 (still in alpha) brings
 
   For a 'full' config documentation (still not 100% stable) check `source/code/config/uRequireConfigMasterDefaults.coffee`
 
-  Also check [grunt-urequire](https://github.com/aearly/grunt-urequire) if you're using Grunt.
-___________________________________________________________________________
+Hell___________________________________________________________________________
 
 # Back to v2.9 docs
 

@@ -90,7 +90,9 @@ module.exports = uRequireConfig = {
             Also you can add a different var name that should be globally looked up.
       */
 
-      variableNames: {
+      variableNames: {},
+      knownVariableNames: {
+        chai: 'chai',
         lodash: "_",
         underscore: "_",
         jquery: ["$", "jQuery"],

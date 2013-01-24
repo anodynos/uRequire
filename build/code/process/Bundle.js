@@ -313,7 +313,7 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.combine = function(build) {
-    var almondTemplates, fileName, genCode, mainModuleCandidate, rjsConfig, _i, _len, _ref1, _ref2,
+    var almondTemplates, fileName, genCode, globalDepsVars, mainModuleCandidate, rjsConfig, _i, _len, _ref1, _ref2,
       _this = this;
     this.build = build;
     if (!this.main) {
@@ -344,56 +344,68 @@ Bundle = (function(_super) {
       l.err("Quiting cause 'bundle.main' is missing (after so much effort).\nNo module found either as bundleName = '" + this.bundleName + "', nor as ['index', 'main'].");
       return this.build.done(false);
     } else {
-      almondTemplates = new AlmondOptimizationTemplate({
-        globalDepsVars: this.getDepsVars({
-          depType: Dependency.TYPES.global
-        }),
-        main: this.main
+      globalDepsVars = this.getDepsVars({
+        depType: Dependency.TYPES.global
       });
-      _ref2 = almondTemplates.dependencyFiles;
-      for (fileName in _ref2) {
-        genCode = _ref2[fileName];
-        Build.outputToFile("" + this.build.outputPath + "/" + fileName + ".js", genCode);
-      }
-      this.copyAlmondJs();
-      this.copyWebMapDeps();
-      try {
-        _fs.unlinkSync(this.build.combinedFile);
-      } catch (err) {
-
-      }
-      rjsConfig = {
-        paths: _.extend(almondTemplates.paths, this.getRequireJSConfig().paths),
-        wrap: almondTemplates.wrap,
-        baseUrl: this.build.outputPath,
-        include: this.main,
-        out: this.build.combinedFile,
-        optimize: "none",
-        name: 'almond'
-      };
-      if (l.debugLevel >= 90) {
-        rjsConfig.logLevel = 0;
-      }
-      l.verbose("Optimize with r.js with uRequire's 'build.js' = ", l.prettify(_.omit(rjsConfig, ['wrap'])));
-      this.requirejs.optimize(_.clone(rjsConfig), function(buildResponse) {
-        return l.verbose('r.js buildResponse = ', buildResponse);
-      });
-      return setTimeout((function() {
-        l.debug(60, 'Checking r.js output file...');
-        if (_fs.existsSync(build.combinedFile)) {
-          l.verbose("Combined file '" + build.combinedFile + "' written successfully.");
-          if (Logger.prototype.debugLevel < 50) {
-            l.debug(40, "Deleting temporary directory '" + build.outputPath + "'.");
-            _wrench.rmdirSyncRecursive(build.outputPath);
-          } else {
-            l.debug("NOT Deleting temporary directory '" + build.outputPath + "', due to debugLevel >= 50.");
+      if (_.any(globalDepsVars, function(v, k) {
+        return _.isEmpty(v);
+      })) {
+        l.err("Quiting cause some global dependencies are missing a variable binding:\n\n" + (l.prettify(_B.go(globalDepsVars, {
+          fltr: function(v) {
+            return _.isEmpty(v);
           }
-          return build.done(true);
-        } else {
-          l.err("Combined file '" + build.combinedFile + "' NOT written.\"\n\n  Some remedy:\n\n   a) Is your *bundle.main = '" + _this.main + "'* or *bundle.bundleName = '" + _this.bundleName + "'* properly defined ?\n      - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.\n      - 'bundleName' is what 'main' defaults to, if its a module.\n\n   b) Perhaps you have a missing dependcency ?\n      r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.\n\n   c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).\n      *Note this prevents uRequire from finishing properly / printing this message!*\n\n   Note that you can check the AMD-ish files used in temporary directory '" + build.outputPath + "'.\n\n   More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m\n   " + (l.prettify(rjsConfig)));
-          return build.done(false);
+        }))) + "\n\nThese variable names are used to grab the dependency from the global object, when running as <script>.\nEg. 'jquery' corresponds to '$' or 'jQuery', hence it should be known as `jquery: ['$', 'jQuery']`\n\nRemedy:\n\nYou should add it at uRequireConfig 'bundle.dependencies.variableNames' as:\n  ```\n    variableNames: {\n      'myDep1': 'VARIABLE_IT_BINDS_WITH',\n      'myDep2': ['VARIABLE_IT_BINDS_WITH', 'ANOTHER VARIABLE_IT_BINDS_WITH']\n    }\n  ```\nAlternativelly, pick one medicine :\n  - define at least one module that has this dependency + variable binding (currently using AMD only) and uRequire will find it!\n  - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)\n  - RTFM & let us know if still no remedy!");
+        return this.build.done(false);
+      } else {
+        almondTemplates = new AlmondOptimizationTemplate({
+          globalDepsVars: globalDepsVars,
+          main: this.main
+        });
+        _ref2 = almondTemplates.dependencyFiles;
+        for (fileName in _ref2) {
+          genCode = _ref2[fileName];
+          Build.outputToFile("" + this.build.outputPath + "/" + fileName + ".js", genCode);
         }
-      }), 100);
+        this.copyAlmondJs();
+        this.copyWebMapDeps();
+        try {
+          _fs.unlinkSync(this.build.combinedFile);
+        } catch (err) {
+
+        }
+        rjsConfig = {
+          paths: _.extend(almondTemplates.paths, this.getRequireJSConfig().paths),
+          wrap: almondTemplates.wrap,
+          baseUrl: this.build.outputPath,
+          include: this.main,
+          out: this.build.combinedFile,
+          optimize: "none",
+          name: 'almond'
+        };
+        if (l.debugLevel >= 90) {
+          rjsConfig.logLevel = 0;
+        }
+        l.verbose("Optimize with r.js with uRequire's 'build.js' = \n", l.prettify(_.omit(rjsConfig, ['wrap'])));
+        this.requirejs.optimize(_.clone(rjsConfig), function(buildResponse) {
+          return l.verbose('r.js buildResponse = ', buildResponse);
+        });
+        return setTimeout((function() {
+          l.debug(60, 'Checking r.js output file...');
+          if (_fs.existsSync(build.combinedFile)) {
+            l.verbose("Combined file '" + build.combinedFile + "' written successfully.");
+            if (Logger.prototype.debugLevel < 50) {
+              l.debug(40, "Deleting temporary directory '" + build.outputPath + "'.");
+              _wrench.rmdirSyncRecursive(build.outputPath);
+            } else {
+              l.debug("NOT Deleting temporary directory '" + build.outputPath + "', due to debugLevel >= 50.");
+            }
+            return build.done(true);
+          } else {
+            l.err("Combined file '" + build.combinedFile + "' NOT written.\"\n\n  Some remedy:\n\n   a) Is your *bundle.main = '" + _this.main + "'* or *bundle.bundleName = '" + _this.bundleName + "'* properly defined ?\n      - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.\n      - 'bundleName' is what 'main' defaults to, if its a module.\n\n   b) Perhaps you have a missing dependcency ?\n      r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.\n\n   c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).\n      *Note this prevents uRequire from finishing properly / printing this message!*\n\n   Note that you can check the AMD-ish files used in temporary directory '" + build.outputPath + "'.\n\n   More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m\n   " + (l.prettify(rjsConfig)));
+            return build.done(false);
+          }
+        }), 100);
+      }
     }
   };
 
@@ -416,14 +428,14 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.getDepsVars = function(q) {
-    var depsAndVars, gatherDepsVars, uMK, uModule, variableNames, vn, _ref1, _ref2;
-    depsAndVars = {};
-    gatherDepsVars = function(depsVars) {
+    var depsVars, gatherDepsVars, uMK, uModule, vn, _ref1, _ref2;
+    depsVars = {};
+    gatherDepsVars = function(_depsVars) {
       var dep, dv, v, vars, _results;
       _results = [];
-      for (dep in depsVars) {
-        vars = depsVars[dep];
-        dv = (depsAndVars[dep] || (depsAndVars[dep] = []));
+      for (dep in _depsVars) {
+        vars = _depsVars[dep];
+        dv = (depsVars[dep] || (depsVars[dep] = []));
         _results.push((function() {
           var _i, _len, _results1;
           _results1 = [];
@@ -441,20 +453,29 @@ Bundle = (function(_super) {
     _ref1 = this.uModules;
     for (uMK in _ref1) {
       uModule = _ref1[uMK];
-      gatherDepsVars(uModule.getDepsAndVars(q));
+      gatherDepsVars(uModule.getDepsVars(q));
     }
-    if (variableNames = (_ref2 = this.dependencies) != null ? _ref2.variableNames : void 0) {
-      vn = _B.go(variableNames, {
+    if ((_ref2 = this.dependencies) != null ? _ref2.variableNames : void 0) {
+      vn = _B.go(this.dependencies.variableNames, {
         fltr: function(v, k) {
-          return (depsAndVars[k] !== void 0) && _.isEmpty(depsAndVars[k]);
+          return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]);
         }
       });
       if (!_.isEmpty(vn)) {
-        l.warn("\n Had to pick from variableNames for some deps = \n", vn);
+        l.warn("\n Picked from `@dependencies.variableNames` for some deps with missing dep-variable bindings: \n", vn);
+        gatherDepsVars(vn);
       }
+    }
+    vn = _B.go(this.dependencies.knownVariableNames, {
+      fltr: function(v, k) {
+        return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]);
+      }
+    });
+    if (!_.isEmpty(vn)) {
+      l.warn("\n Picked from `@dependencies.knownVariableNames` for some deps with missing dep-variable bindings: \n", vn);
       gatherDepsVars(vn);
     }
-    return depsAndVars;
+    return depsVars;
   };
 
   return Bundle;

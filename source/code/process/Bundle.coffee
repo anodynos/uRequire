@@ -48,35 +48,34 @@ class Bundle extends BundleBase
   Not run everytime there is a file added/removed, unless we need to:
   Runs initially and in unkonwn -watch / refresh situations
   ###
-  #todo:9,3 FIX THIS - its not working for multiple Bundle objects
   for getFilesFactory, filesFilter of {
     filenames: -> true # get all files
     moduleFilenames: (mfn)-> # get only modules
       (_B.inAgreements(mfn, @includes) and not _B.inAgreements(mfn, @excludes)) #@todo:2 (uberscore):notFilters()
   }
-      Bundle.property _B.okv {}, getFilesFactory,
-        get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
-            existingFiles = (@["_#{getFilesFactory}"] or= [])
-            try
-               files =  getFiles @bundlePath, _.bind filesFilter, @
-            catch err
-              err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
-              l.err err.uRequire
-              throw err
+    Bundle.property _B.okv {}, getFilesFactory,
+      get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
+        existingFiles = (@["_#{getFilesFactory}"] or= [])
+        try
+           files =  getFiles @bundlePath, _.bind filesFilter, @
+        catch err
+          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
+          l.err err.uRequire
+          throw err
 
-            newFiles = _.difference files, existingFiles
-            if not _.isEmpty newFiles
-              l.verbose "New #{getFilesFactory} :\n", newFiles
-              existingFiles.push file for file in newFiles
+        newFiles = _.difference files, existingFiles
+        if not _.isEmpty newFiles
+          l.verbose "New #{getFilesFactory} :\n", newFiles
+          existingFiles.push file for file in newFiles
 
-            deletedFiles = _.difference existingFiles, files
-            if not _.isEmpty deletedFiles
-              l.verbose "Deleted #{getFilesFactory} :\n", deletedFiles
-              @deleteModules deletedFiles
-              @["_#{getFilesFactory}"] = files
+        deletedFiles = _.difference existingFiles, files
+        if not _.isEmpty deletedFiles
+          l.verbose "Deleted #{getFilesFactory} :\n", deletedFiles
+          @deleteModules deletedFiles
+          @["_#{getFilesFactory}"] = files
 
-            files
-          @
+        files
+      @
 
 
   ###
@@ -212,83 +211,109 @@ class Bundle extends BundleBase
       """
       @build.done false
 
-    else # actually combine (r.js optimize)
+    else
+      globalDepsVars = @getDepsVars {depType: Dependency.TYPES.global}
+      # check we have a global dependency without a variable binding & quit!
+      if _.any(globalDepsVars, (v,k)-> _.isEmpty v)
+        l.err """
+          Quiting cause some global dependencies are missing a variable binding:
 
-      almondTemplates = new AlmondOptimizationTemplate {
-        globalDepsVars: @getDepsVars {depType: Dependency.TYPES.global}
-        @main
-      }
+          #{l.prettify _B.go globalDepsVars, fltr: (v)->_.isEmpty v}
 
-      for fileName, genCode of almondTemplates.dependencyFiles
-        Build.outputToFile "#{@build.outputPath}/#{fileName}.js", genCode
+          These variable names are used to grab the dependency from the global object, when running as <script>.
+          Eg. 'jquery' corresponds to '$' or 'jQuery', hence it should be known as `jquery: ['$', 'jQuery']`
 
-      @copyAlmondJs()
+          Remedy:
 
-      @copyWebMapDeps()
+          You should add it at uRequireConfig 'bundle.dependencies.variableNames' as:
+            ```
+              variableNames: {
+                'myDep1': 'VARIABLE_IT_BINDS_WITH',
+                'myDep2': ['VARIABLE_IT_BINDS_WITH', 'ANOTHER VARIABLE_IT_BINDS_WITH']
+              }
+            ```
+          Alternativelly, pick one medicine :
+            - define at least one module that has this dependency + variable binding (currently using AMD only) and uRequire will find it!
+            - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
+            - RTFM & let us know if still no remedy!
+        """
+        @build.done false
 
-      try #delete old combinedFile
-        _fs.unlinkSync @build.combinedFile
-      catch err
+      else # actually combine (r.js optimize)
+        almondTemplates = new AlmondOptimizationTemplate {
+          globalDepsVars
+          @main
+        }
 
-      rjsConfig =
-        paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
+        for fileName, genCode of almondTemplates.dependencyFiles
+          Build.outputToFile "#{@build.outputPath}/#{fileName}.js", genCode
 
-        wrap: almondTemplates.wrap
-        baseUrl: @build.outputPath
-        include: @main
-        out: @build.combinedFile
-  #      out: (text)=>
-  #        #todo: @build.out it!
-  #        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
-  #        @outputToFile text, @combinedFile
-  #        if _fs.existsSync @combinedFile
-  #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
+        @copyAlmondJs()
+        @copyWebMapDeps()
 
-        optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
-        name: 'almond'
-      rjsConfig.logLevel = 0 if l.debugLevel >= 90
+        try #delete old combinedFile
+          _fs.unlinkSync @build.combinedFile
+        catch err
 
-      l.verbose "Optimize with r.js with uRequire's 'build.js' = ", l.prettify _.omit(rjsConfig, ['wrap'])
-      @requirejs.optimize _.clone(rjsConfig), (buildResponse)->
-        l.verbose 'r.js buildResponse = ', buildResponse
+        rjsConfig =
+          paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
 
-#      if true
-      setTimeout  (=>
-        l.debug 60, 'Checking r.js output file...'
-        if _fs.existsSync build.combinedFile
-          l.verbose "Combined file '#{build.combinedFile}' written successfully."
+          wrap: almondTemplates.wrap
+          baseUrl: @build.outputPath
+          include: @main
+          out: @build.combinedFile
+    #      out: (text)=>
+    #        #todo: @build.out it!
+    #        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
+    #        @outputToFile text, @combinedFile
+    #        if _fs.existsSync @combinedFile
+    #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
 
-          # delete outputPath, used as temp directory with individual AMD files
-          if Logger::debugLevel < 50
-            l.debug 40, "Deleting temporary directory '#{build.outputPath}'."
-            _wrench.rmdirSyncRecursive build.outputPath
+          optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
+          name: 'almond'
+        rjsConfig.logLevel = 0 if l.debugLevel >= 90
+
+        l.verbose "Optimize with r.js with uRequire's 'build.js' = \n", l.prettify _.omit(rjsConfig, ['wrap'])
+        @requirejs.optimize _.clone(rjsConfig), (buildResponse)->
+          l.verbose 'r.js buildResponse = ', buildResponse
+
+  #      if true
+        setTimeout  (=>
+          l.debug 60, 'Checking r.js output file...'
+          if _fs.existsSync build.combinedFile
+            l.verbose "Combined file '#{build.combinedFile}' written successfully."
+
+            # delete outputPath, used as temp directory with individual AMD files
+            if Logger::debugLevel < 50
+              l.debug 40, "Deleting temporary directory '#{build.outputPath}'."
+              _wrench.rmdirSyncRecursive build.outputPath
+            else
+              l.debug "NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50."
+            build.done true
           else
-            l.debug "NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50."
-          build.done true
-        else
-          l.err """
-          Combined file '#{build.combinedFile}' NOT written."
+            l.err """
+            Combined file '#{build.combinedFile}' NOT written."
 
-            Some remedy:
+              Some remedy:
 
-             a) Is your *bundle.main = '#{@main}'* or *bundle.bundleName = '#{@bundleName}'* properly defined ?
-                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.
-                - 'bundleName' is what 'main' defaults to, if its a module.
+               a) Is your *bundle.main = '#{@main}'* or *bundle.bundleName = '#{@bundleName}'* properly defined ?
+                  - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.
+                  - 'bundleName' is what 'main' defaults to, if its a module.
 
-             b) Perhaps you have a missing dependcency ?
-                r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+               b) Perhaps you have a missing dependcency ?
+                  r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
 
-             c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
-                *Note this prevents uRequire from finishing properly / printing this message!*
+               c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
+                  *Note this prevents uRequire from finishing properly / printing this message!*
 
-             Note that you can check the AMD-ish files used in temporary directory '#{build.outputPath}'.
+               Note that you can check the AMD-ish files used in temporary directory '#{build.outputPath}'.
 
-             More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
-             #{l.prettify rjsConfig}
-          """
+               More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+               #{l.prettify rjsConfig}
+            """
 
-          build.done false
-      ), 100
+            build.done false
+        ), 100
 
 
 
@@ -310,24 +335,32 @@ class Bundle extends BundleBase
 
   ###
   getDepsVars: (q)->
-    depsAndVars = {}
+    depsVars = {}
 
-    gatherDepsVars = (depsVars)-> # add non-exixsting var to the dep's `vars` array
-      for dep, vars of depsVars
-        dv = (depsAndVars[dep] or= [])
+    gatherDepsVars = (_depsVars)-> # add non-exixsting var to the dep's `vars` array
+      for dep, vars of _depsVars
+        dv = (depsVars[dep] or= [])
         dv.push v for v in vars when v not in dv
 
+    # gather depsVars from all loaded uModules
     for uMK, uModule of @uModules
-      gatherDepsVars uModule.getDepsAndVars q
+      gatherDepsVars uModule.getDepsVars q
 
-    # pick only for existing deps, that have no vars info discovered yet
-    if variableNames = @dependencies?.variableNames
-      vn = _B.go variableNames, fltr:(v,k)-> (depsAndVars[k] isnt undefined) and _.isEmpty depsAndVars[k]
+    # pick from @dependencies.variableNames only for existing deps, that have no vars info discovered yet
+    if @dependencies?.variableNames
+      vn = _B.go @dependencies.variableNames, fltr:(v,k)-> (depsVars[k] isnt undefined) and _.isEmpty depsVars[k]
       if not _.isEmpty vn
-        l.warn "\n Had to pick from variableNames for some deps = \n", vn
+        l.warn "\n Picked from `@dependencies.variableNames` for some deps with missing dep-variable bindings: \n", vn
+        gatherDepsVars vn
+
+    # 'urequireCfg.bundle.dependencies.knownVariableNames' contain known ones
+    #   eg `jquery:['$'], lodash:['_']` etc
+    vn = _B.go @dependencies.knownVariableNames, fltr:(v,k)-> (depsVars[k] isnt undefined) and _.isEmpty depsVars[k]
+    if not _.isEmpty vn
+      l.warn "\n Picked from `@dependencies.knownVariableNames` for some deps with missing dep-variable bindings: \n", vn
       gatherDepsVars vn
 
-    depsAndVars
+    depsVars
 
 
 if Logger::debugLevel > 90

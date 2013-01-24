@@ -61,7 +61,7 @@ BundleBuilder = (function() {
   }
 
   BundleBuilder.prototype._constructor = function() {
-    var be, cfgFilename, config, configs, _base, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3;
+    var be, cfgFilename, config, configs, varNames, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4;
     configs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
     this.bundleCfg = {};
     this.buildCfg = {};
@@ -98,14 +98,21 @@ BundleBuilder = (function() {
     }
     if (be = (_ref2 = this.bundleCfg.dependencies) != null ? _ref2.bundleExports : void 0) {
       this.bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues(be);
-      l.debug(20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify((_ref3 = this.bundleCfg.dependencies) != null ? _ref3.bundleExports : void 0));
+      if (!_.isEmpty(this.bundleCfg.dependencies.bundleExports)) {
+        l.debug(20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify((_ref3 = this.bundleCfg.dependencies) != null ? _ref3.bundleExports : void 0));
+      }
+    }
+    _ref4 = [this.bundleCfg.dependencies.variableNames, uRequireConfigMasterDefaults.bundle.dependencies.knownVariableNames];
+    for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
+      varNames = _ref4[_k];
+      _B.mutate(varNames, _B.arrayize);
     }
     l.debug(30, "user @bundleCfg :\n", l.prettify(this.bundleCfg));
     l.debug(30, "user @buildCfg :\n", l.prettify(this.buildCfg));
     if (this.isCheckAndFixPaths() && this.isCheckAndFixTemplate()) {
       this.storeCfgDefaults(uRequireConfigMasterDefaults);
-      l.debug(90, "final @bundleCfg :\n", l.prettify(this.bundleCfg));
-      l.debug(90, "final @buildCfg :\n", l.prettify(this.buildCfg));
+      l.debug(80, "final @bundleCfg :\n", l.prettify(this.bundleCfg));
+      l.debug(80, "final @buildCfg :\n", l.prettify(this.buildCfg));
       this.bundle = new Bundle(this.bundleCfg);
       return this.build = new Build(this.buildCfg);
     } else {
