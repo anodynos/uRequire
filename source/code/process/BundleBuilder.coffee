@@ -65,8 +65,8 @@ class BundleBuilder
 
     # @todo:2 whre to stick these ?
     _B.mutate varNames, _B.arrayize for varNames in [
-      @bundleCfg.dependencies.variableNames
-      uRequireConfigMasterDefaults.bundle.dependencies.knownVariableNames
+      @bundleCfg?.dependencies?.variableNames or {}
+      uRequireConfigMasterDefaults.bundle.dependencies._knownVariableNames
     ]
 
     l.debug 30, "user @bundleCfg :\n", l.prettify @bundleCfg

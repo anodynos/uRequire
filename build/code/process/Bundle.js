@@ -98,11 +98,17 @@ Bundle = (function(_super) {
 
 
   _ref = {
-    filenames: function() {
-      return true;
+    filenames: function(mfn) {
+      return !_B.inAgreements(mfn, this.ignore);
     },
     moduleFilenames: function(mfn) {
-      return _B.inAgreements(mfn, this.includes) && !_B.inAgreements(mfn, this.excludes);
+      return !_B.inAgreements(mfn, this.ignore) && _B.inAgreements(mfn, this._knownModules);
+    },
+    processModuleFilenames: function(mfn) {
+      return _B.inAgreements(mfn, this._knownModules) && (!_B.inAgreements(mfn, this.ignore)) && (_B.inAgreements(mfn, this.processModules) || _.isEmpty(this.processModules));
+    },
+    copyNonModulesFilenames: function(mfn) {
+      return !_B.inAgreements(mfn, this.ignore) && !_B.inAgreements(mfn, this._knownModules) && _B.inAgreements(mfn, this.copyNonModules);
     }
   };
   for (getFilesFactory in _ref) {
@@ -150,7 +156,7 @@ Bundle = (function(_super) {
   Bundle.prototype.loadModules = function(moduleFilenames) {
     var fullModulePath, moduleFN, moduleSource, _i, _len, _ref1, _results;
     if (moduleFilenames == null) {
-      moduleFilenames = this.moduleFilenames;
+      moduleFilenames = this.processModuleFilenames;
     }
     _ref1 = _B.arrayize(moduleFilenames);
     _results = [];
@@ -250,24 +256,13 @@ Bundle = (function(_super) {
   };
 
   Bundle.prototype.copyNonModuleFiles = function() {
-    var fn, nonModules, _i, _len, _results;
-    nonModules = (function() {
-      var _i, _len, _ref1, _results;
-      _ref1 = this.filenames;
+    var cnmf, fn, _i, _len, _results;
+    cnmf = this.copyNonModulesFilenames;
+    if (!_.isEmpty(cnmf)) {
+      l.verbose("Copying non-module/excluded files : \n", cnmf);
       _results = [];
-      for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
-        fn = _ref1[_i];
-        if (__indexOf.call(this.moduleFilenames, fn) < 0) {
-          _results.push(fn);
-        }
-      }
-      return _results;
-    }).call(this);
-    if (!_.isEmpty(nonModules)) {
-      l.verbose("Copying non-module/excluded files : \n", nonModules);
-      _results = [];
-      for (_i = 0, _len = nonModules.length; _i < _len; _i++) {
-        fn = nonModules[_i];
+      for (_i = 0, _len = cnmf.length; _i < _len; _i++) {
+        fn = cnmf[_i];
         _results.push(Build.copyFileSync("" + this.bundlePath + "/" + fn, "" + this.build.outputPath + "/" + fn));
       }
       return _results;
@@ -466,13 +461,13 @@ Bundle = (function(_super) {
         gatherDepsVars(vn);
       }
     }
-    vn = _B.go(this.dependencies.knownVariableNames, {
+    vn = _B.go(this.dependencies._knownVariableNames, {
       fltr: function(v, k) {
         return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]);
       }
     });
     if (!_.isEmpty(vn)) {
-      l.warn("\n Picked from `@dependencies.knownVariableNames` for some deps with missing dep-variable bindings: \n", vn);
+      l.warn("\n Picked from `@dependencies._knownVariableNames` for some deps with missing dep-variable bindings: \n", vn);
       gatherDepsVars(vn);
     }
     return depsVars;

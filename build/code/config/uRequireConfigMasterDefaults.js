@@ -50,24 +50,50 @@ module.exports = uRequireConfig = {
     main: void 0,
     bundlePath: '',
     /*
-        Everything that matches these is not proccessed.
+        Files that match these Agreements* are completelly IGNORED
     
-        Can be a String, a RegExp or a Fucntion(item)
-        Or an array of those
+        @default: [], no file is ignored.
+    
+        @type Agreement || []<Agreement>
+              Aggreement is a String, a RegExp or a Fucntion(item).
     
         @example
         [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
     */
 
-    excludes: [],
+    ignore: [],
     /*
-        List of modules to include, WITH extension.
-        Can A string, RegExp or a Function(item)
+        Modules to process, WITH extension. @todo: use without extension ?
+    
+        @default [/./], all modules are processed
+    
+        @type Agreement || []<Agreement>
+              Aggreement is a String, a RegExp or a Fucntion(item).
+    
     
         @example ['module1.js', 'myLibs/mylib1.js']
     */
 
-    includes: [/.*\.(coffee)$/i, /.*\.(js|javascript)$/i],
+    processModules: [/./],
+    /*
+        Filesname (that are not modules), to copy to output dir.
+    
+        @default
+    
+        @type Agreement || []<Agreement>
+              Aggreement is a String, a RegExp or a Fucntion(item).
+    
+        @default [/./], ie. all non-module files are copied
+    
+        @example ['module1.js', 'myLibs/mylib1.js']
+    */
+
+    copyNonModules: [/./],
+    /*
+          Modules lie in this
+    */
+
+    _knownModules: [/.*\.(coffee)$/i, /.*\.(js|javascript)$/i],
     /*
         Where to map `/` when running in node. On RequireJS its http-server's root.
     
@@ -91,8 +117,9 @@ module.exports = uRequireConfig = {
       */
 
       variableNames: {},
-      knownVariableNames: {
+      _knownVariableNames: {
         chai: 'chai',
+        mocha: 'mocha',
         lodash: "_",
         underscore: "_",
         jquery: ["$", "jQuery"],

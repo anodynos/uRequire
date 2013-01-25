@@ -61,7 +61,7 @@ BundleBuilder = (function() {
   }
 
   BundleBuilder.prototype._constructor = function() {
-    var be, cfgFilename, config, configs, varNames, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4;
+    var be, cfgFilename, config, configs, varNames, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
     configs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
     this.bundleCfg = {};
     this.buildCfg = {};
@@ -102,9 +102,9 @@ BundleBuilder = (function() {
         l.debug(20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify((_ref3 = this.bundleCfg.dependencies) != null ? _ref3.bundleExports : void 0));
       }
     }
-    _ref4 = [this.bundleCfg.dependencies.variableNames, uRequireConfigMasterDefaults.bundle.dependencies.knownVariableNames];
-    for (_k = 0, _len2 = _ref4.length; _k < _len2; _k++) {
-      varNames = _ref4[_k];
+    _ref6 = [((_ref4 = this.bundleCfg) != null ? (_ref5 = _ref4.dependencies) != null ? _ref5.variableNames : void 0 : void 0) || {}, uRequireConfigMasterDefaults.bundle.dependencies._knownVariableNames];
+    for (_k = 0, _len2 = _ref6.length; _k < _len2; _k++) {
+      varNames = _ref6[_k];
       _B.mutate(varNames, _B.arrayize);
     }
     l.debug(30, "user @bundleCfg :\n", l.prettify(this.bundleCfg));

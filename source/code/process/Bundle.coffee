@@ -49,33 +49,46 @@ class Bundle extends BundleBase
   Runs initially and in unkonwn -watch / refresh situations
   ###
   for getFilesFactory, filesFilter of {
-    filenames: -> true # get all files
+
+    filenames: (mfn)-> not _B.inAgreements mfn, @ignore # get all non-ignored files
+
     moduleFilenames: (mfn)-> # get only modules
-      (_B.inAgreements(mfn, @includes) and not _B.inAgreements(mfn, @excludes)) #@todo:2 (uberscore):notFilters()
+       not _B.inAgreements(mfn, @ignore) and
+        _B.inAgreements(mfn, @_knownModules)
+
+    processModuleFilenames: (mfn)->
+      _B.inAgreements(mfn, @_knownModules) and
+      (not _B.inAgreements mfn, @ignore) and
+      (_B.inAgreements(mfn, @processModules) or _.isEmpty @processModules)
+
+    copyNonModulesFilenames: (mfn)->
+       not _B.inAgreements(mfn, @ignore) and
+       not _B.inAgreements(mfn, @_knownModules) and
+       _B.inAgreements(mfn, @copyNonModules)
   }
-    Bundle.property _B.okv {}, getFilesFactory,
-      get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
-        existingFiles = (@["_#{getFilesFactory}"] or= [])
-        try
-           files =  getFiles @bundlePath, _.bind filesFilter, @
-        catch err
-          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
-          l.err err.uRequire
-          throw err
+      Bundle.property _B.okv {}, getFilesFactory,
+        get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
+          existingFiles = (@["_#{getFilesFactory}"] or= [])
+          try
+             files =  getFiles @bundlePath, _.bind filesFilter, @
+          catch err
+            err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
+            l.err err.uRequire
+            throw err
 
-        newFiles = _.difference files, existingFiles
-        if not _.isEmpty newFiles
-          l.verbose "New #{getFilesFactory} :\n", newFiles
-          existingFiles.push file for file in newFiles
+          newFiles = _.difference files, existingFiles
+          if not _.isEmpty newFiles
+            l.verbose "New #{getFilesFactory} :\n", newFiles
+            existingFiles.push file for file in newFiles
 
-        deletedFiles = _.difference existingFiles, files
-        if not _.isEmpty deletedFiles
-          l.verbose "Deleted #{getFilesFactory} :\n", deletedFiles
-          @deleteModules deletedFiles
-          @["_#{getFilesFactory}"] = files
+          deletedFiles = _.difference existingFiles, files
+          if not _.isEmpty deletedFiles
+            l.verbose "Deleted #{getFilesFactory} :\n", deletedFiles
+            @deleteModules deletedFiles
+            @["_#{getFilesFactory}"] = files
 
-        files
-      @
+          files
+        @
 
 
   ###
@@ -84,7 +97,7 @@ class Bundle extends BundleBase
     @param String or []<String> with filenames to process.
       @default read files from filesystem (property @moduleFilenames)
   ###
-  loadModules: (moduleFilenames = @moduleFilenames)->
+  loadModules: (moduleFilenames = @processModuleFilenames)->
     for moduleFN in _B.arrayize moduleFilenames
       fullModulePath = "#{@bundlePath}/#{moduleFN}"
       try
@@ -163,10 +176,10 @@ class Bundle extends BundleBase
       throw err
 
   copyNonModuleFiles: ->
-    nonModules = (fn for fn in @filenames when fn not in @moduleFilenames)
-    if not _.isEmpty nonModules
-      l.verbose "Copying non-module/excluded files : \n", nonModules
-      for fn in nonModules
+    cnmf = @copyNonModulesFilenames
+    if not _.isEmpty cnmf
+      l.verbose "Copying non-module/excluded files : \n", cnmf
+      for fn in cnmf
         Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
 
   ###
@@ -353,11 +366,11 @@ class Bundle extends BundleBase
         l.warn "\n Picked from `@dependencies.variableNames` for some deps with missing dep-variable bindings: \n", vn
         gatherDepsVars vn
 
-    # 'urequireCfg.bundle.dependencies.knownVariableNames' contain known ones
+    # 'urequireCfg.bundle.dependencies._knownVariableNames' contain known ones
     #   eg `jquery:['$'], lodash:['_']` etc
-    vn = _B.go @dependencies.knownVariableNames, fltr:(v,k)-> (depsVars[k] isnt undefined) and _.isEmpty depsVars[k]
+    vn = _B.go @dependencies._knownVariableNames, fltr:(v,k)-> (depsVars[k] isnt undefined) and _.isEmpty depsVars[k]
     if not _.isEmpty vn
-      l.warn "\n Picked from `@dependencies.knownVariableNames` for some deps with missing dep-variable bindings: \n", vn
+      l.warn "\n Picked from `@dependencies._knownVariableNames` for some deps with missing dep-variable bindings: \n", vn
       gatherDepsVars vn
 
     depsVars
