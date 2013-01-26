@@ -154,7 +154,7 @@ class ModuleGeneratorTemplates extends Template
               ,
               'window') # rootName
           ,
-          # our Function declaration params
+          # our factory function declaration params
           @parametersPrint)
       }
     );

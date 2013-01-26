@@ -66,6 +66,10 @@ BundleBuilder = (function() {
     this.bundleCfg = {};
     this.buildCfg = {};
     this.buildCfg.done = ((_ref = configs[0]) != null ? _ref.done : void 0) || function() {};
+    /*
+        Default-copy all configuration from all configs... that are passed.
+    */
+
     for (_i = 0, _len = configs.length; _i < _len; _i++) {
       config = configs[_i];
       if (!(config)) {
@@ -83,7 +87,12 @@ BundleBuilder = (function() {
       }
     }
     /*
-        # We now have our 'final' configs, @bundleCfg & @buildCfg
+        We should now have our 'final' configs, @bundleCfg & @buildCfg
+    
+        Lets check they are ok & fix formats!
+    
+        @todo:(7 4 5) make part of the recursive fixation above
+        @todo:(3 2 9) Make generic, for all kinds of schematization, transforamtion & validation of config data.
     */
 
     if (this.buildCfg.debugLevel != null) {
@@ -96,6 +105,10 @@ BundleBuilder = (function() {
         Logger.prototype.verbose = function() {};
       }
     }
+    /*
+        Lets check & fix different formats or quit if we have anomalies
+    */
+
     if (be = (_ref2 = this.bundleCfg.dependencies) != null ? _ref2.bundleExports : void 0) {
       this.bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues(be);
       if (!_.isEmpty(this.bundleCfg.dependencies.bundleExports)) {

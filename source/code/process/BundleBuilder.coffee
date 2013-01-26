@@ -27,14 +27,23 @@ class BundleBuilder
   constructor: -> @_constructor.apply @, arguments
 
   _constructor: (configs...)->
+
+    # Create our 2 main config objects : 'bundle' & 'build'
     @bundleCfg = {}
     @buildCfg = {}
 
-    @buildCfg.done = configs[0]?.done or ->
+    @buildCfg.done = configs[0]?.done or -> # @todo: remove / test user configable
 
+    ###
+    Default-copy all configuration from all configs... that are passed.
+    ###
+
+    # @todo:(7 5 4) we need to trully 'recursivelly' process !
     for config in configs when config
       @storeCfgDefaults config
 
+      # in each config, we might have nested configFiles
+      # todo: read configFiles with the proper recursion above
       for cfgFilename in _B.arrayize config.configFiles when cfgFilename # no nulls/empty strings
         # assume bundlePath, if its empty, from the 1st configFile that comes along
         @bundleCfg.bundlePath or= upath.dirname cfgFilename
@@ -44,7 +53,12 @@ class BundleBuilder
         #  (bundle.exclude ?= []).push upath.relative(options.bundlePath, configFile)
 
     ###
-    # We now have our 'final' configs, @bundleCfg & @buildCfg
+    We should now have our 'final' configs, @bundleCfg & @buildCfg
+
+    Lets check they are ok & fix formats!
+
+    @todo:(7 4 5) make part of the recursive fixation above
+    @todo:(3 2 9) Make generic, for all kinds of schematization, transforamtion & validation of config data.
     ###
 
     # verbose / debug anyone ?
@@ -55,15 +69,27 @@ class BundleBuilder
       else
         Logger::verbose = ->
 
-    # Lets check & fix different formats or quit if we have anomalies
 
-    # Convert from `bundleExports: ['lodash', 'jquery']` to the valid-internally `bundleExports: {'lodash':[], 'jquery':[]}`
+    ###
+    Lets check & fix different formats or quit if we have anomalies
+    ###
+
+    # Convert from
+    #
+    #     bundleExports: ['lodash', 'jquery']
+    #
+    # to the valid-internally
+    #
+    #     bundleExports: {
+    #       'lodash':[],
+    #       'jquery':[]
+    #     }
     if be = @bundleCfg.dependencies?.bundleExports
       @bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
       if not _.isEmpty @bundleCfg.dependencies.bundleExports
         l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify @bundleCfg.dependencies?.bundleExports
 
-    # @todo:2 whre to stick these ?
+    # @todo:2 where to stick these ?
     _B.mutate varNames, _B.arrayize for varNames in [
       @bundleCfg?.dependencies?.variableNames or {}
       uRequireConfigMasterDefaults.bundle.dependencies._knownVariableNames

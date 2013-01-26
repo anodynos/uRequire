@@ -5,24 +5,81 @@
 ___________________________________________________________________________
 ## Breaking news for v0.3.0 alpha
 
-This documentation is from version 0.2.x.
+This documentation is from older versions v0.1.x / 0.2.x.
 
-Everything mentioned here works, but current version 0.3 (still in alpha) brings many new changes, NOT yet documented :
+_Skip below, if you're after general information._
 
-- The 'combine' template, that builds your bundle (modules collection) into a single .js file that works as plain `<script/>`, AMD or nodejs, AS IS.
+Everything mentioned here works the same, but current version 0.3 (still in alpha) brings many great features, NOT yet documented :
 
-- The 'configFiles' features, where a hierarchy of *uRequireConfig* files is used to allow a fine-grained definition of the bundle & build information.
+### Universal **Combined** Module optimization for Web, AMD & nodejs!
 
-- Other sexy features like *bundleExports* (dependencies that are implicitely required in all your modules), improved debugging and a huge code revamp.
+The most important feature, a new `combined` template, that builds (optimizes with `r.js` & `almond`) and outputs a single .js file, thats a 3-fold build: Web/Script, Web/AMD & nodejs.
 
-  Check out [github.com/anodynos/uBerscore](github.com/anodynos/uBerscore) project and especially
-  `source/code/uRequireConfig.coffee` and in `Gruntfile.coffee` check urequire / shell:urequire tatks to see some v0.3 examples.
+In all cases, globals/externals dont have to be inlined, but can be used either from `window`, the *AMD config* or *nodejs `require`* respectively.
+The `combined` script automagically *detects at runtime where it is excuting* and chooses appropriatelly.
 
-  For a 'full' config documentation (still not 100% stable) check `source/code/config/uRequireConfigMasterDefaults.coffee`
+In more detail:
 
-Hell___________________________________________________________________________
+#### Web/Script </script>
 
-# Back to v2.9 docs
+Works in browser, as a simple `<script/>`, independently of AMD/RequireJS.
+The script can register some global (`window`) variables when it loads, for example `$2` or `_B`, via the `rootExports` declaration.
+It accesses all other (non-included) global dependencies through the global space (`window`), like all plain `<script/>` do.
+So for example, you load your 'jquery.js', 'lodash.js', 'Backbone.js' and then you load your 'MyApp.js' and you're done!
+
+#### Web/AMD
+
+Works as an AMD dependency, loading all other (non-included) dependencies through AMD's mechanism.
+In other words its using `rjs.baseUrl`, `rjs.paths`, `rjs.shim` etc.
+
+#### nodejs
+
+Works in nodejs, as is. Its loading all (non-included) dependencies through nodejs's 'require'.
+It has no other dependencies, i.e you dont need to have *uRequire* or *RequireJs* installed locally at all.
+
+Are you still concatating files ? uRequire your project now!
+
+###  **bundleExports**, a dependencies-injection mechanism:
+
+A sexy new feature, `dependencies.bundleExports` allows you to declare bundle-wide *global* dependencies. These are implicitely available in all your modules, without repeating the `require`s.
+
+For example, if you use ['lodash', 'backbone', 'myLib', ...] in all your bundle modules, just use a `dependencies.bundleExports: ['lodash', 'backbone', 'myLib']` and its saving you from having to require 'em in **every module of your bundle**.
+
+If you want to have precise control over the variables that hold you modules, use this format:
+
+    dependencies.bundleExports: {
+        'lodash': '_',
+        'backbone': 'Backbone',
+        'myLib': ['myLib', 'myLibOtherName']
+       }
+
+Most times, uRequire can discover the variable names, if its 'define'd even once in an AMD module!
+
+### **uRequire config** A completely new 'bundle' & 'build' hierarchical configuration scheme.
+
+The 'configs'/'configFiles' feature, where a hierarchical/inheritance chain of *uRequire config* files is used to allow a fine-grained definition of the bundle & build information.
+It is very flexible:
+  - it understands keys both in the 'root' of your config or in 'bundle'/'build' hashes
+  - it provides shortcuts, to convert simple declarations to more complex ones.
+
+### Other features
+- `.coffee` files are valid source modules (.coco, .ls & .ts are coming)
+- Improved debugging / warning / informational handling and output.
+- Huge code revamp, can easily be used by other libraries (check `urequireCMD.coffee` & [grunt-urequire](https://github.com/aearly/grunt-urequire)).
+
+### Documentation/development is still WIP
+
+For details/glimpse check [github.com/anodynos/uBerscore](https://github.com/anodynos/uBerscore) project :
+
+* Have a glance at the code structure 'uberscore.coffee', dont pay any attention on what each sub-module does.
+* See `examples/uBerscoreExample_XXX.html` and `spec/specRunnerXXX.html` for how each build is used.
+* Check `source/code/uRequireConfig.coffee` & `source/code/uRequireConfig_UMDBuild.json` to see how easilt you can define `bundle`s and `build`s.
+* In `Gruntfile.coffee` check the `urequire:xxx` & `shell:urequireXXX` tasks to see some examples
+* For more config documentation (still not-stable & incomplete!) check `source/code/config/uRequireConfigMasterDefaults.coffee`.
+
+___________________________________________________________________________
+
+# Back to v1.x/v2.9 docs
 
 ## The hasty coder intro :
 

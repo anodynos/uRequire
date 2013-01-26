@@ -24,7 +24,7 @@ uBerscoreShortcuts = (function() {
       string1: []
       string2: []
     }
-    @todo:2 make generic ?
+    @todo:(2 5 6) make generic ?
   */
 
 
@@ -40,7 +40,6 @@ uBerscoreShortcuts = (function() {
   };
 
   /*
-    Crap name, I know :
       it converts 'imperfect' input like
         'str1' or ['str1', 'str2']
       to
@@ -50,6 +49,8 @@ uBerscoreShortcuts = (function() {
         {key: 'stringVal'}
       to
         {key: ['stringVal']}
+    @todo:(2 5 6) Crap name again, an not generic enough, I know that too :
+    todo :
   */
 
 
@@ -67,7 +68,7 @@ uBerscoreShortcuts = (function() {
   };
 
   /*
-    Crap name again, an not generic enough, I know that too :
+    @todo:(2 3 6) Crap name again, an not generic enough, I know that too :
       it converts 'imperfect' input like
         'str1' or ['str1', 'str2']
       to
@@ -78,12 +79,15 @@ uBerscoreShortcuts = (function() {
       to
         {key1: {name: 'key1'}, {key2: {name: 'key1'}}
   
-    @todo: generalize this and the above!
+    @todo:(2 3 7) Generalize this and the above!
   */
 
 
-  uBerscoreShortcuts.prototype.toObjectKeysWithNameAttributeAsKey = function(input) {
+  uBerscoreShortcuts.prototype.toObjectKeysWithNameAttributeAsKey = function(input, name) {
     var key, obj, result, val;
+    if (name == null) {
+      name = 'name';
+    }
     result = _B.arrayize(input, _.isString);
     if (_.isArray(result)) {
       obj = {};
@@ -97,7 +101,7 @@ uBerscoreShortcuts = (function() {
     if (_.isObject(result)) {
       for (key in result) {
         val = result[key];
-        result[key].name = key;
+        result[key][name] = key;
       }
     }
     return result;

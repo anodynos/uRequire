@@ -20,7 +20,7 @@ class uBerscoreShortcuts # class cause its easy :-)
     string1: []
     string2: []
   }
-  @todo:2 make generic ?
+  @todo:(2 5 6) make generic ?
   ###
   arrayToObjectWithValuesAsKeys: (arr)->
     obj = {}
@@ -28,7 +28,6 @@ class uBerscoreShortcuts # class cause its easy :-)
     obj
 
   ###
-  Crap name, I know :
     it converts 'imperfect' input like
       'str1' or ['str1', 'str2']
     to
@@ -38,6 +37,9 @@ class uBerscoreShortcuts # class cause its easy :-)
       {key: 'stringVal'}
     to
       {key: ['stringVal']}
+  @todo:(2 5 6) Crap name again, an not generic enough, I know that too :
+  todo :
+
   ###
   toObjectKeysWithArrayValues: (input)->
     result = _B.arrayize input, _.isString
@@ -55,7 +57,7 @@ class uBerscoreShortcuts # class cause its easy :-)
 
 
   ###
-  Crap name again, an not generic enough, I know that too :
+  @todo:(2 3 6) Crap name again, an not generic enough, I know that too :
     it converts 'imperfect' input like
       'str1' or ['str1', 'str2']
     to
@@ -66,9 +68,9 @@ class uBerscoreShortcuts # class cause its easy :-)
     to
       {key1: {name: 'key1'}, {key2: {name: 'key1'}}
 
-  @todo: generalize this and the above!
+  @todo:(2 3 7) Generalize this and the above!
   ###
-  toObjectKeysWithNameAttributeAsKey: (input)->
+  toObjectKeysWithNameAttributeAsKey: (input, name='name')->
     result = _B.arrayize input, _.isString
 
     # change ['str1', 'str2'] to {str1:{}, str2:{}}
@@ -79,7 +81,7 @@ class uBerscoreShortcuts # class cause its easy :-)
 
     if _.isObject result # change `key: {} to `key: {name:key}'
       for key, val of result
-        result[key].name = key
+        result[key][name] = key
 
     result
 
