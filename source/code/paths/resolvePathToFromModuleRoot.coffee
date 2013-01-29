@@ -1,9 +1,9 @@
 #todo: add tests
-resolvePathToFromModuleRoot = (modyle, pathFromModuleRoot)->
+resolvePathToFromModuleRoot = (moduleName, pathFromModuleRoot)->
   pathRelative = require './pathRelative'
   _path = require 'path'
 
-  stepsToBundleRoot = pathRelative "$/#{_path.dirname modyle}", '$/', {dot4Current:true}
+  stepsToBundleRoot = pathRelative "$/#{_path.dirname moduleName}", '$/', {dot4Current:true}
 
   if pathFromModuleRoot
     if pathFromModuleRoot[0] is '.' # a path relative to bundleRoot. Pass it as relative to this module

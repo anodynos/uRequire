@@ -107,7 +107,7 @@ class ModuleGeneratorTemplates extends Template
       @runTimeDiscovery +
       @_functionIFI("""
          if (typeof exports === 'object') {
-            var nr = new (require('urequire').NodeRequirer) ('#{@ti.modulePath}', __dirname, '#{@ti.webRootMap}');
+            var nr = new (require('urequire').NodeRequirer) ('#{@ti.modulePath}', module, __dirname, '#{@ti.webRootMap}');
             module.exports = factory(nr.require#{
               if (@ti.moduleType is 'nodejs') then ', exports, module' else ''}#{
               (", nr.require('#{nDep}')" for nDep in @ti.nodeDependencies).join('')});

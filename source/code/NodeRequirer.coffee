@@ -2,7 +2,6 @@ _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
 _fs = require 'fs'
 
-
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
@@ -36,23 +35,28 @@ class NodeRequirer extends BundleBase
   ###
   Create a NodeRequirer instance, passing paths resolution information.
 
-  @param {String} modyle `module` name of current UMD module (that calls 'require'). Relative to bundle, eg 'models/Person', as hardcoded in generated uRequire UMD.
+  @param {String} moduleNameBR `module` name of current UMD module (that calls 'require'), in bundleRelative format, eg 'models/Person', as hardcoded in generated uRequire UMD.
+
+  @param {Object} modyle The node `module` object of the current UMD module (that calls 'require').
+                  Used to issue the actual node `require` on the module, to preserve the correct `node_modules` lookup paths (as opposed to using the NodeRequirer's paths.
+
   @param {String} dirname `__dirname` passed at runtime from the UMD module, poiniting to its self (i.e filename of the .js file).
+
   @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to bundlePath).
   ###
-  _constructor: (@modyle, @dirname, @webRootMap)->
+  _constructor: (@moduleNameBR, @modyle, @dirname, @webRootMap)->
 
     @bundlePath = upath.normalize (
-      @dirname + '/' + (pathRelative "$/#{upath.dirname @modyle}", "$/") + '/'
+      @dirname + '/' + (pathRelative "$/#{upath.dirname @moduleNameBR}", "$/") + '/'
     )
 
     l.debug 6, """
       new NodeRequirer(
-        @modyle='#{@modyle}'
+        @moduleNameBR='#{@moduleNameBR}'
         @dirname='#{@dirname}'
         @webRootMap='#{@webRootMap}')
 
-        Calculated @bundlePath (from @modyle & @dirname) = #{@bundlePath}
+        Calculated @bundlePath (from @moduleNameBR & @dirname) = #{@bundlePath}
     """
 
     if @getRequireJSConfig().baseUrl
@@ -78,15 +82,14 @@ class NodeRequirer extends BundleBase
 
   ###
   @property {Function}
-  A @staticProperty (class variable) that defaults to node's `require`.
+  A @property that defaults to node's `require`, invoked on the module to preserve `node_modules` path lookup.
   It can be swaped with another/mock version (eg by spec tests).
   ###
-  nodeRequire: undefined # only for Codo's sake! Its properly defined below as a static property
 
-  @staticProperty
+  @property
     nodeRequire:
-      get: => @_nodeRequire or require
-      set: (@_nodeRequire)=>
+      get: -> @_nodeRequire or _.bind @modyle.require, @modyle
+      set: (@_nodeRequire)->
 
 
   @property
@@ -283,7 +286,7 @@ class NodeRequirer extends BundleBase
 
     if not loadedModule
       l.err """\n
-          *uRequire #{l.VERSION}*: failed to load dependency: '#{dep}' in module '#{@modyle}' from #{_modulePath}
+          *uRequire #{l.VERSION}*: failed to load dependency: '#{dep}' in module '#{@moduleNameBR}' from #{_modulePath}
           Quiting with throwing 1st error - Detailed attempts follow:
           #{l.prettify att for att in attempts}
 
@@ -325,14 +328,14 @@ class NodeRequirer extends BundleBase
       callback  # type: '()->'
   )=>
     if _(strDeps).isString() # String - synchronous call
-      return @loadModule new Dependency strDeps, @modyle
+      return @loadModule new Dependency strDeps, @moduleNameBR
     else
       if _(strDeps).isArray() # we have an []<String>:
         deps = [] # []<Dependency>
 
         #isAllCached = true # not needed anymore
         for strDep in strDeps
-          deps.push dep = new Dependency strDep, @modyle
+          deps.push dep = new Dependency strDep, @moduleNameBR
           # checking if all cached not needed anymore in 2.1.x
           #cacheName = dep.name plugin:yes, relativeType:'bundle', ext:yes
           #if @cachedModules[cacheName] is undefined

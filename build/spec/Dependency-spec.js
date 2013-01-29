@@ -44,9 +44,9 @@ describe("Dependency", function() {
       ext: false
     })).to.equal('somedir/dep');
   });
-  it("uses modyle & bundleFiles to convert from fileRelative to bundleRelative", function() {
+  it("uses modyleName & bundleFiles to convert from fileRelative to bundleRelative", function() {
     var dep;
-    dep = new Dependency('../../../rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']);
+    dep = new Dependency('../../../rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']);
     expect(dep.extname).to.equal(void 0);
     expect(dep.pluginName).to.equal(void 0);
     expect(dep.name({
@@ -57,9 +57,9 @@ describe("Dependency", function() {
     })).to.equal('../../../rootdir/dep');
     return expect(dep.toString()).to.equal('../../../rootdir/dep');
   });
-  return it("uses modyle & bundleFiles to convert from bundleRelative to fileRelative", function() {
+  return it("uses modyleName & bundleFiles to convert from bundleRelative to fileRelative", function() {
     var dep;
-    dep = new Dependency('path/from/bundleroot/to/some/nested/module', 'path/from/bundleroot/modyle.js', ['path/from/bundleroot/to/some/nested/module.coffee']);
+    dep = new Dependency('path/from/bundleroot/to/some/nested/module', 'path/from/bundleroot/modyleName.js', ['path/from/bundleroot/to/some/nested/module.coffee']);
     expect(dep.name({
       relativeType: 'bundle'
     })).to.equal('path/from/bundleroot/to/some/nested/module');
@@ -72,9 +72,9 @@ describe("Dependency", function() {
 
 describe("Dependency isEquals(),", function() {
   var dep1, dep2, dep3;
-  dep1 = new Dependency('../../../rootdir/dep.js', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']);
-  dep2 = new Dependency('rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']);
-  dep3 = new Dependency('node!rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']);
+  dep1 = new Dependency('../../../rootdir/dep.js', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']);
+  dep2 = new Dependency('rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']);
+  dep3 = new Dependency('node!rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']);
   it("With `Dependency` as param", function() {
     expect(dep1.isEqual(dep2)).to.be["true"];
     return expect(dep2.isEqual(dep1)).to.be["true"];
@@ -131,14 +131,14 @@ describe("Dependency isEquals(),", function() {
 
 describe("Dependency - resolving many", function() {
   return it("resolves bundle&file relative, finds external, global, notFound, webRootMap", function() {
-    var bundleFiles, bundleRelative, d, dep, deps, external, fileRelative, global, modyle, notFoundInBundle, strDependencies, webRootMap, _i, _len;
-    modyle = 'actions/greet.js';
+    var bundleFiles, bundleRelative, d, dep, deps, external, fileRelative, global, modyleName, notFoundInBundle, strDependencies, webRootMap, _i, _len;
+    modyleName = 'actions/greet.js';
     bundleFiles = ['main.js', 'actions/greet.js', 'calc/add.js', 'calc/multiply.js', 'calc/more/powerof.js', 'data/numbers.js', 'data/messages/bye.js', 'data/messages/hello.coffee'];
     strDependencies = ['underscore', 'data/messages/hello.js', '../data/messages/bye', '../lame/dir.js', '../../some/external/lib.js', '/assets/jpuery-max'];
     deps = [];
     for (_i = 0, _len = strDependencies.length; _i < _len; _i++) {
       dep = strDependencies[_i];
-      deps.push(new Dependency(dep, modyle, bundleFiles));
+      deps.push(new Dependency(dep, modyleName, bundleFiles));
     }
     fileRelative = (function() {
       var _j, _len1, _results;

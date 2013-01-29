@@ -7,18 +7,18 @@ assert = chai.assert
 expect = chai.expect
 
 describe "Has bundle root as default for webRootMap", ->
-  it "counts 0 steps to reach bundle root from modyle @ bundle root", ->
+  it "counts 0 steps to reach bundle root from moduleName @ bundle root", ->
     expect(resolvePathToFromModuleRoot 'rootModule.js', null).to.equal '.'
 
-  it "counts 2 steps to reach bundle root from modyle @ 2 dirs from bundle root", ->
+  it "counts 2 steps to reach bundle root from moduleName @ 2 dirs from bundle root", ->
     expect(resolvePathToFromModuleRoot 'dir1/dir2/someModule.js', null).to.equal '../..'
 
 
 describe "Adjusts relative webRootMap paths to bundle root", ->
-  it "counts 0 extra steps to reach webRootMap from modyle @ root ", ->
+  it "counts 0 extra steps to reach webRootMap from moduleName @ root ", ->
     expect(resolvePathToFromModuleRoot 'rootModule.js', '../../relative/path').to.equal '../../relative/path'
 
-  it "counts 2 extra steps to reach bundle path from modyle ", ->
+  it "counts 2 extra steps to reach bundle path from moduleName ", ->
     expect(resolvePathToFromModuleRoot 'dir1/dir2/someModule.js', '..\\..\\relative\\path').to.equal '../../../../relative/path'
 
 

@@ -34,10 +34,10 @@ describe "Dependency", ->
     expect(dep.toString()).to.equal dep.name()
     expect(dep.name plugin:no, ext:no ).to.equal 'somedir/dep'
 
-  it "uses modyle & bundleFiles to convert from fileRelative to bundleRelative", ->
+  it "uses modyleName & bundleFiles to convert from fileRelative to bundleRelative", ->
     dep = new Dependency(
-      '../../../rootdir/dep'       # dependency name
-      'path/from/bundleroot/modyle.js'  # the module that has this dependenecy
+      '../../../rootdir/dep'            # dependency name
+      'path/from/bundleroot/modyleName.js'  # the module that has this dependenecy
       ['rootdir/dep.js']                # module files in bundle
     )
     expect(dep.extname).to.equal undefined
@@ -47,10 +47,10 @@ describe "Dependency", ->
     expect(dep.toString()).to.equal '../../../rootdir/dep'
 
 
-  it "uses modyle & bundleFiles to convert from bundleRelative to fileRelative", ->
+  it "uses modyleName & bundleFiles to convert from bundleRelative to fileRelative", ->
     dep = new Dependency(
       'path/from/bundleroot/to/some/nested/module'           # dependency name
-      'path/from/bundleroot/modyle.js'                       # the module that has this dependenecy
+      'path/from/bundleroot/modyleName.js'                       # the module that has this dependenecy
       ['path/from/bundleroot/to/some/nested/module.coffee']  # module files in bundle
     )
     expect(dep.name relativeType:'bundle').to.equal 'path/from/bundleroot/to/some/nested/module'
@@ -58,9 +58,9 @@ describe "Dependency", ->
     expect(dep.toString()).to.equal './to/some/nested/module'
 
 describe "Dependency isEquals(),", ->
-  dep1 = new Dependency '../../../rootdir/dep.js', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
-  dep2 = new Dependency 'rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
-  dep3 = new Dependency 'node!rootdir/dep', 'path/from/bundleroot/modyle.js', ['rootdir/dep.js']
+  dep1 = new Dependency '../../../rootdir/dep.js', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']
+  dep2 = new Dependency 'rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']
+  dep3 = new Dependency 'node!rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']
 
   it "With `Dependency` as param", ->
     expect(dep1.isEqual dep2).to.be.true
@@ -107,7 +107,7 @@ describe "Dependency - resolving many", ->
 
   it "resolves bundle&file relative, finds external, global, notFound, webRootMap", ->
 
-    modyle = 'actions/greet.js'
+    modyleName = 'actions/greet.js'
 
     bundleFiles = [
        'main.js'
@@ -131,7 +131,7 @@ describe "Dependency - resolving many", ->
 
     deps = []
     for dep in strDependencies
-      deps.push new Dependency dep, modyle, bundleFiles
+      deps.push new Dependency dep, modyleName, bundleFiles
 
     fileRelative = ( d.name relativeType:'file' for d in deps )
     bundleRelative = ( d.name relativeType:'bundle' for d in deps)

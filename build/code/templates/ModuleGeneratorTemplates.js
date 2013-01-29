@@ -109,7 +109,7 @@ module.exports = ModuleGeneratorTemplates = (function(_super) {
 
   ModuleGeneratorTemplates.prototype.UMD = function() {
     var nDep;
-    return this.header + this._functionIFI(this.runTimeDiscovery + this._functionIFI("if (typeof exports === 'object') {\n   var nr = new (require('urequire').NodeRequirer) ('" + this.ti.modulePath + "', __dirname, '" + this.ti.webRootMap + "');\n   module.exports = factory(nr.require" + (this.ti.moduleType === 'nodejs' ? ', exports, module' : '') + (((function() {
+    return this.header + this._functionIFI(this.runTimeDiscovery + this._functionIFI("if (typeof exports === 'object') {\n   var nr = new (require('urequire').NodeRequirer) ('" + this.ti.modulePath + "', module, __dirname, '" + this.ti.webRootMap + "');\n   module.exports = factory(nr.require" + (this.ti.moduleType === 'nodejs' ? ', exports, module' : '') + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.ti.nodeDependencies;
       _results = [];

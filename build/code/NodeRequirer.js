@@ -78,19 +78,25 @@ NodeRequirer = (function(_super) {
   /*
     Create a NodeRequirer instance, passing paths resolution information.
   
-    @param {String} modyle `module` name of current UMD module (that calls 'require'). Relative to bundle, eg 'models/Person', as hardcoded in generated uRequire UMD.
+    @param {String} moduleNameBR `module` name of current UMD module (that calls 'require'), in bundleRelative format, eg 'models/Person', as hardcoded in generated uRequire UMD.
+  
+    @param {Object} modyle The node `module` object of the current UMD module (that calls 'require').
+                    Used to issue the actual node `require` on the module, to preserve the correct `node_modules` lookup paths (as opposed to using the NodeRequirer's paths.
+  
     @param {String} dirname `__dirname` passed at runtime from the UMD module, poiniting to its self (i.e filename of the .js file).
+  
     @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to bundlePath).
   */
 
 
-  NodeRequirer.prototype._constructor = function(modyle, dirname, webRootMap) {
+  NodeRequirer.prototype._constructor = function(moduleNameBR, modyle, dirname, webRootMap) {
     var baseUrl, oldbundlePath;
+    this.moduleNameBR = moduleNameBR;
     this.modyle = modyle;
     this.dirname = dirname;
     this.webRootMap = webRootMap;
-    this.bundlePath = upath.normalize(this.dirname + '/' + (pathRelative("$/" + (upath.dirname(this.modyle)), "$/")) + '/');
-    l.debug(6, "new NodeRequirer(\n  @modyle='" + this.modyle + "'\n  @dirname='" + this.dirname + "'\n  @webRootMap='" + this.webRootMap + "')\n\n  Calculated @bundlePath (from @modyle & @dirname) = " + this.bundlePath);
+    this.bundlePath = upath.normalize(this.dirname + '/' + (pathRelative("$/" + (upath.dirname(this.moduleNameBR)), "$/")) + '/');
+    l.debug(6, "new NodeRequirer(\n  @moduleNameBR='" + this.moduleNameBR + "'\n  @dirname='" + this.dirname + "'\n  @webRootMap='" + this.webRootMap + "')\n\n  Calculated @bundlePath (from @moduleNameBR & @dirname) = " + this.bundlePath);
     if (this.getRequireJSConfig().baseUrl) {
       oldbundlePath = this.bundlePath;
       baseUrl = this.getRequireJSConfig().baseUrl;
@@ -102,20 +108,18 @@ NodeRequirer = (function(_super) {
 
   /*
     @property {Function}
-    A @staticProperty (class variable) that defaults to node's `require`.
+    A @property that defaults to node's `require`, invoked on the module to preserve `node_modules` path lookup.
     It can be swaped with another/mock version (eg by spec tests).
   */
 
 
-  NodeRequirer.prototype.nodeRequire = void 0;
-
-  NodeRequirer.staticProperty({
+  NodeRequirer.property({
     nodeRequire: {
       get: function() {
-        return NodeRequirer._nodeRequire || require;
+        return this._nodeRequire || _.bind(this.modyle.require, this.modyle);
       },
       set: function(_nodeRequire) {
-        NodeRequirer._nodeRequire = _nodeRequire;
+        this._nodeRequire = _nodeRequire;
       }
     }
   });
@@ -358,7 +362,7 @@ NodeRequirer = (function(_super) {
       }
     }
     if (!loadedModule) {
-      l.err("\n\n*uRequire " + l.VERSION + "*: failed to load dependency: '" + dep + "' in module '" + this.modyle + "' from " + _modulePath + "\nQuiting with throwing 1st error - Detailed attempts follow:\n" + ((function() {
+      l.err("\n\n*uRequire " + l.VERSION + "*: failed to load dependency: '" + dep + "' in module '" + this.moduleNameBR + "' from " + _modulePath + "\nQuiting with throwing 1st error - Detailed attempts follow:\n" + ((function() {
         var _j, _len1, _results;
         _results = [];
         for (_j = 0, _len1 = attempts.length; _j < _len1; _j++) {
@@ -399,13 +403,13 @@ NodeRequirer = (function(_super) {
     var dep, deps, loadDepsAndCall, strDep, _i, _len,
       _this = this;
     if (_(strDeps).isString()) {
-      return this.loadModule(new Dependency(strDeps, this.modyle));
+      return this.loadModule(new Dependency(strDeps, this.moduleNameBR));
     } else {
       if (_(strDeps).isArray()) {
         deps = [];
         for (_i = 0, _len = strDeps.length; _i < _len; _i++) {
           strDep = strDeps[_i];
-          deps.push(dep = new Dependency(strDep, this.modyle));
+          deps.push(dep = new Dependency(strDep, this.moduleNameBR));
         }
         loadDepsAndCall = function() {
           var loadedDeps, _j, _len1;

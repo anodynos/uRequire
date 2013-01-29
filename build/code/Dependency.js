@@ -37,10 +37,19 @@ Dependency = (function() {
     this._constructor.apply(this, arguments);
   }
 
-  Dependency.prototype._constructor = function(dep, moduleFilename, bundleFiles) {
+  /*
+      @param {String} dep The dependency name, i.e 'uberscore' or '../mylibs/dep'
+      @param {String} inModuleName The module name that has this dependency (optional).
+                      Used to calculate relative paths.
+      @param {Array<String>} The files in the bundle (bundleRelative).
+                             Used to calculate whether 'myDep' isFound, isGlobal etc.
+  */
+
+
+  Dependency.prototype._constructor = function(dep, inModuleName, bundleFiles) {
     var indexOfSep;
     this.dep = dep;
-    this.moduleFilename = moduleFilename != null ? moduleFilename : '';
+    this.inModuleName = inModuleName != null ? inModuleName : '';
     this.bundleFiles = bundleFiles != null ? bundleFiles : [];
     this.dep = this.dep.replace(/\\/g, '/');
     indexOfSep = this.dep.indexOf('!');
@@ -136,15 +145,15 @@ Dependency = (function() {
 
   Dependency.prototype._bundleRelative = function() {
     if (this.isFileRelative() && this.isBundleBoundary()) {
-      return upath.normalize("" + (upath.dirname(this.moduleFilename)) + "/" + this.resourceName);
+      return upath.normalize("" + (upath.dirname(this.inModuleName)) + "/" + this.resourceName);
     } else {
       return this.resourceName;
     }
   };
 
   Dependency.prototype._fileRelative = function() {
-    if (this.moduleFilename && this.isFound()) {
-      return pathRelative("$/" + (upath.dirname(this.moduleFilename)), "$/" + (this._bundleRelative()), {
+    if (this.inModuleName && this.isFound()) {
+      return pathRelative("$/" + (upath.dirname(this.inModuleName)), "$/" + (this._bundleRelative()), {
         dot4Current: true
       });
     } else {
@@ -153,10 +162,10 @@ Dependency = (function() {
   };
 
   Dependency.prototype.isBundleBoundary = function() {
-    if (this.isWebRootMap() || (!this.moduleFilename)) {
+    if (this.isWebRootMap() || (!this.inModuleName)) {
       return false;
     } else {
-      return !!pathRelative("$/" + this.moduleFilename + "/../../" + this.resourceName, "$");
+      return !!pathRelative("$/" + this.inModuleName + "/../../" + this.resourceName, "$");
     }
   };
 

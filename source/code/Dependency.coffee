@@ -10,7 +10,14 @@ class Dependency
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor:-> @_constructor.apply @, arguments
 
-  _constructor: (@dep, @moduleFilename='', @bundleFiles=[])->
+  ###
+    @param {String} dep The dependency name, i.e 'uberscore' or '../mylibs/dep'
+    @param {String} inModuleName The module name that has this dependency (optional).
+                    Used to calculate relative paths.
+    @param {Array<String>} The files in the bundle (bundleRelative).
+                           Used to calculate whether 'myDep' isFound, isGlobal etc.
+  ###
+  _constructor: (@dep, @inModuleName='', @bundleFiles=[])->
     @dep = @dep.replace /\\/g, '/'
 
     indexOfSep = @dep.indexOf '!'
@@ -86,23 +93,23 @@ class Dependency
 
   _bundleRelative: ()->
     if @isFileRelative() and @isBundleBoundary()
-      upath.normalize "#{upath.dirname @moduleFilename}/#{@resourceName}"
+      upath.normalize "#{upath.dirname @inModuleName}/#{@resourceName}"
     else
       @resourceName
 
   _fileRelative: ()->
-    if @moduleFilename and @isFound()
-      pathRelative "$/#{upath.dirname @moduleFilename}", "$/#{@_bundleRelative()}", dot4Current:true
+    if @inModuleName and @isFound()
+      pathRelative "$/#{upath.dirname @inModuleName}", "$/#{@_bundleRelative()}", dot4Current:true
     else
       @resourceName
 
   # ###### Where about does this dependency lie ?
 
   isBundleBoundary: ()->
-    if @isWebRootMap() or (not @moduleFilename)
+    if @isWebRootMap() or (not @inModuleName)
       false
     else
-      !!pathRelative "$/#{@moduleFilename}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
+      !!pathRelative "$/#{@inModuleName}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
 
   isFileRelative: ()-> @resourceName[0] is '.'
 

@@ -63,7 +63,7 @@ It is very flexible:
   - it provides shortcuts, to convert simple declarations to more complex ones.
 
 ### Other features
-- `.coffee` files are valid source modules (.coco, .ls & .ts are coming)
+- `.coffee` files are valid source modules (.iced, .coco, .ls & .ts are coming). All modules are compiled and parsed only as javascript; module generation is again just javascript (currently - see #14).
 - Improved debugging / warning / informational handling and output.
 - Huge code revamp, can easily be used by other libraries (check `urequireCMD.coffee` & [grunt-urequire](https://github.com/aearly/grunt-urequire)).
 
