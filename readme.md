@@ -37,7 +37,7 @@ In other words its using `rjs.baseUrl`, `rjs.paths`, `rjs.shim` etc.
 Works in nodejs, as is. Its loading all (non-included) dependencies through nodejs's 'require'.
 It has no other dependencies, i.e you dont need to have *uRequire* or *RequireJs* installed locally at all.
 
-Are you still concatating files ? uRequire your project now!
+Are you still concatenating files ? uRequire your project now!
 
 ###  **bundleExports**, a dependencies-injection mechanism:
 
