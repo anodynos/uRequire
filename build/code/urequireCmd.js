@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /*!
-* urequire - version 0.3.0alpha18
-* Compiled on 2013-01-29
+* urequire - version 0.3.0alpha19
+* Compiled on 2013-02-04
 * git://github.com/anodynos/urequire
 * Copyright(c) 2013 Agelos Pikoulas (agelos.pikoulas@gmail.com )
 * Licensed MIT http://www.opensource.org/licenses/mit-license.php

@@ -8,7 +8,7 @@ class Logger
 
   # default Logger::debugLevel
   debugLevel: 0
-  VERSION: if typeof VERSION is 'undefined' then '{VERSION}' else VERSION # 'VERSION' variable is added by grant:concat
+  VERSION: if not VERSION? then '{VERSION}' else VERSION # 'VERSION' variable is added by grant:concat
 
   _constructor: (@title)->
 
@@ -39,8 +39,8 @@ class Logger
       if level <= @debugLevel
         log.apply @, msgs
 
-  prettify: do (util = require 'util')->
+  prettify: do (inspect = require('util').inspect)->
     (o)->
-      util.inspect o, false, null, true
+      "\u001b[0m#{(inspect o, false, null, true)}".replace /\n/g, ''
 
 module.exports = Logger

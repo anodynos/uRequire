@@ -40,6 +40,7 @@ class Dependency
     external: 'external'
     webRootMap: 'webRootMap'
     bundle: 'bundle'
+    #todo: other valid types ?
 
   @property type: get:->
     if @isGlobal()

@@ -2,6 +2,8 @@ Using todo: UEG scheme - check `todo-notes.md`
 
 ## uRequire.config
 
+- (8 5 3) Proper recursive reading / fixation of config files
+
 - (7 8 2)
    Which files to / not-to copy.
    # can be []<String> of filenames / templates to skip uRequiring.
@@ -16,7 +18,21 @@ Using todo: UEG scheme - check `todo-notes.md`
 - (5 7 4) Warnings of non-valid/depracated config options
 
 ## build
-- (5 3 7) Watch files changes / reconvert modules / combine :
+- (7 2 1) Fix rudimentary Reporting!
+
+- (6 4 3) Build / Final report should include all automatically made decisions like :
+          a) All chosen/binded 'globals', along with their bindings
+             (eg. inform user they have to bind dep 'utils' with variable 'utils' -
+              then they'll realize they are writting against nodejs and their script wont run as is on Web)
+          b)
+
+- (5 8 2) 'Simple' UMD conversion, without uRequire dependency on nodejs
+
+
+- (6 3 2) Check for same moduleName, but different extension (eg 'lib/mymodule.js' & 'lib/mymodule.coffee')
+
+
+- (4 3 7) Watch files changes / reconvert modules / combine :
            Use 'npm install watch' ?
 
 ## Module manipulation

@@ -5,6 +5,7 @@ upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
+
 Logger = require '../utils/Logger'
 l = new Logger 'UModule'
 
@@ -83,7 +84,7 @@ class UModule
     else if @moduleInfo.moduleType is 'UMD'
         l.warn "Already UMD module '#{@filename}', copying as-is."
     else if @moduleInfo.untrustedArrayDependencies
-        l.err "Module '#{@filename}', has untrusted deps #{d for d in @moduleInfo.untrustedDependencies}: copying as-is."
+        l.err "Module '#{@filename}', has untrusted deps #{d for d in @moduleInfo.untrustedArrayDependencies}: copying as-is."
     else
       @isConvertible = true
       @moduleInfo.parameters or= []        #default
@@ -114,13 +115,19 @@ class UModule
               requireReplacements[strDep] = dep.name()
 
               # add some reporting
-              if @bundle.reporter and (dep.type in @bundle.reporter.interestingDepTypes)
-                @bundle.reporter.addReportData _B.okv {}, dep.type, [ @filename ]
+              if @bundle.reporter
+                @bundle.reporter.addReportData _B.okv({}, # build a `{'global':'lodash':['_']}`
+                  dep.type, [dep.name()]
+                ), @modulePath
 
             deps
-
       # replace 'require()' calls using requireReplacements
       @moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
+
+      # add remaining dependencies (eg 'untrustedRequireDependencies') to DependenciesReport
+      if @bundle.reporter
+        for repData in [ (_.pick @moduleInfo, @bundle.reporter.interestingDepTypes) ]
+          @bundle.reporter.addReportData repData, @modulePath
 
       # our final 'templateInfo' information follows
       @parameters = _.clone @moduleInfo.parameters

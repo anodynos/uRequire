@@ -70,32 +70,29 @@ Bundle = (function(_super) {
     this._constructor.apply(this, arguments);
   }
 
-  Bundle.prototype.interestingDepTypes = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies'];
+  Bundle.prototype._constructor = function(bundleCfg) {
+    _.extend(this, _B.deepCloneDefaults(bundleCfg, uRequireConfigMasterDefaults.bundle));
+    this.reporter = new DependenciesReporter();
+    this.uModules = {};
+    return this.loadModules();
+    /* handle bundle.bundleName & bundle.main
+    */
+
+  };
 
   Bundle.staticProperty({
     requirejs: {
       get: function() {
         return require('requirejs');
       }
+      /*
+        Read / refresh all files in directory.
+        Not run everytime there is a file added/removed, unless we need to:
+        Runs initially and in unkonwn -watch / refresh situations (@todo:NOT IMPLEMENTED)
+      */
+
     }
   });
-
-  Bundle.prototype._constructor = function(bundleCfg) {
-    _.extend(this, _B.deepCloneDefaults(bundleCfg, uRequireConfigMasterDefaults.bundle));
-    this.uModules = {};
-    this.loadModules();
-    /* handle bundle.bundleName & bundle.main
-    */
-
-    return this.reporter = new DependenciesReporter(this.interestingDepTypes);
-  };
-
-  /*
-    Read / refresh all files in directory.
-    Not run everytime there is a file added/removed, unless we need to:
-    Runs initially and in unkonwn -watch / refresh situations
-  */
-
 
   _ref = {
     filenames: function(mfn) {
@@ -200,7 +197,7 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.buildChangedModules = function(build) {
-    var haveChanges, mfn, uModule, _ref1;
+    var haveChanges, mfn, report, uModule, _ref1;
     this.build = build;
     if (this.build.template.name === 'combined') {
       if (!this.build.combinedFile) {
@@ -222,8 +219,9 @@ Bundle = (function(_super) {
         }
       }
     }
-    if (!_.isEmpty(this.reporter.reportData)) {
-      l.log('\n########### urequire, final report ########### :\n', this.reporter.getReport());
+    report = this.reporter.getReport(this.build.interestingDepTypes);
+    if (!_.isEmpty(report)) {
+      l.log('\n########### urequire, final report ########### :\n', report);
     }
     if (this.build.template.name === 'combined') {
       if (haveChanges) {

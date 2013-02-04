@@ -9,6 +9,7 @@ l = new Logger 'Build'
 
 # uRequire
 upath = require '../paths/upath'
+DependenciesReporter = require './../DependenciesReporter'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 
 module.exports =
@@ -21,7 +22,16 @@ class Build
   _constructor: (buildCfg)->
     _.extend @, _B.deepCloneDefaults buildCfg, uRequireConfigMasterDefaults.build
 
-    @out = Build.outputModuleToFile unless @out
+    @out = Build.outputModuleToFile unless @out #todo: check 'out' - what's out there ?
+
+    @interestingDepTypes =
+      if @verbose
+        DependenciesReporter::reportedDepTypes
+      else
+        idp = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
+        if @template.name is 'combined'
+          idp.push 'global'
+        idp
 
   @templates = ['UMD', 'AMD', 'nodejs', 'combined']
   @moduleExtensions = ['js', 'javascript','coffee'] # 'iced', 'coco', 'ts', 'ls'

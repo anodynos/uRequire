@@ -11,8 +11,7 @@ Dependency = require('./Dependency');
 DependenciesReporter = (function() {
   var DT, dependencyTypesMessages;
 
-  function DependenciesReporter(interestingDepTypes) {
-    this.interestingDepTypes = interestingDepTypes != null ? interestingDepTypes : _.keys(dependencyTypesMessages);
+  function DependenciesReporter() {
     this.reportData = {};
   }
 
@@ -28,10 +27,11 @@ DependenciesReporter = (function() {
       header: "\u001b[31m Untrusted async require(['']) dependencies found:",
       footer: "They are IGNORED. If evaluated name of the require([..]) isnt found, you'll get an http error on web, or exception 'module not found' on node.).\u001b[0m"
     }
-    /* simply interesting :-)
-    */
-
   };
+
+  /* simply interesting :-)
+  */
+
 
   DT = Dependency.TYPES;
 
@@ -48,6 +48,8 @@ DependenciesReporter = (function() {
     header: "Web root dependencies '/' (not checked in this version):",
     footer: "They are added as-is."
   });
+
+  DependenciesReporter.prototype.reportedDepTypes = _.keys(dependencyTypesMessages);
 
   DependenciesReporter.prototype.reportTemplate = function(texts, dependenciesFound) {
     var dependency, mf, moduleFiles;
@@ -74,7 +76,7 @@ DependenciesReporter = (function() {
     var depType, foundModules, resDep, resDeps, _base, _base1, _i, _len;
     for (depType in resolvedDeps) {
       resDeps = resolvedDeps[depType];
-      if (!((!_.isEmpty(resDeps)) && __indexOf.call(this.interestingDepTypes, depType) >= 0)) {
+      if (!(!_.isEmpty(resDeps))) {
         continue;
       }
       (_base = this.reportData)[depType] || (_base[depType] = {});
@@ -89,12 +91,15 @@ DependenciesReporter = (function() {
     return null;
   };
 
-  DependenciesReporter.prototype.getReport = function() {
+  DependenciesReporter.prototype.getReport = function(interestingDepTypes) {
     var depType, depTypesMsgs, report;
+    if (interestingDepTypes == null) {
+      interestingDepTypes = this.reportedDepTypes;
+    }
     report = "";
     for (depType in dependencyTypesMessages) {
       depTypesMsgs = dependencyTypesMessages[depType];
-      if (__indexOf.call(this.interestingDepTypes, depType) >= 0) {
+      if (__indexOf.call(interestingDepTypes, depType) >= 0) {
         if (this.reportData[depType]) {
           report += this.reportTemplate(depTypesMsgs, this.reportData[depType]);
         }

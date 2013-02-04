@@ -142,7 +142,15 @@ module.exports = uRequireConfig = {
             @todo: rename to exports.bundle ?
       */
 
-      bundleExports: {}
+      bundleExports: {},
+      /*
+              Replace all right hand side dependencies (String value or []<String> values), to the left side (key)
+              Eg `lodash: ['underscore']` replaces all "underscore" deps to "lodash" in the build files.
+      */
+
+      replaceTo: {
+        lodash: ['underscore']
+      }
     }
   },
   /*

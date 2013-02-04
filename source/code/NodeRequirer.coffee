@@ -214,7 +214,7 @@ class NodeRequirer extends BundleBase
         if dep.pluginName in [undefined, 'node'] # plugin 'node' is dummy: just signals a require effective only
                                                  # on node execution, hence ommited from arrayDeps.
           l.debug 95, "@nodeRequire '#{_modulePath}'"
-          attempts.push
+          attempts.push # @todo: (7 2 1) store @module.require.paths
               modulePath: _modulePath
               requireUsed: 'nodeRequire'
               resolvedPathNo: resolvedPathNo

@@ -10,7 +10,7 @@ Dependency = require './Dependency'
 # TODO: refactor it to more generic. Make specs
 class DependenciesReporter
 
-  constructor: (@interestingDepTypes = _.keys dependencyTypesMessages )->
+  constructor: ()->
     @reportData = {}
 
   dependencyTypesMessages =
@@ -23,8 +23,7 @@ class DependenciesReporter
       header: "\u001b[31m Untrusted async require(['']) dependencies found:"
       footer: "They are IGNORED. If evaluated name of the require([..]) isnt found, you'll get an http error on web, or exception 'module not found' on node.).\u001b[0m"
 
-    ### simply interesting :-) ###
-
+  ### simply interesting :-) ###
   DT = Dependency.TYPES
   _B.okv dependencyTypesMessages,
     DT.global,
@@ -42,6 +41,8 @@ class DependenciesReporter
     DT.webRootMap,
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
+
+  reportedDepTypes: _.keys dependencyTypesMessages
 
   reportTemplate: (texts, dependenciesFound)-> """
    \n#{texts.header}
@@ -65,16 +66,16 @@ class DependenciesReporter
   #
   # @param {String} modyle The module name, eg 'isAgree.js'
   addReportData: (resolvedDeps, modyle)->
-    for depType, resDeps of resolvedDeps when (not _.isEmpty resDeps) and depType in @interestingDepTypes
+    for depType, resDeps of resolvedDeps when (not _.isEmpty resDeps)
       @reportData[depType] or= {}
       for resDep in resDeps
         foundModules = (@reportData[depType][resDep] or= [])
         foundModules.push modyle if modyle not in foundModules
     null
 
-  getReport: ()->
+  getReport: (interestingDepTypes = @reportedDepTypes)->
     report = ""
-    for depType, depTypesMsgs of dependencyTypesMessages when depType in @interestingDepTypes
+    for depType, depTypesMsgs of dependencyTypesMessages when depType in interestingDepTypes
       if @reportData[depType]
          report += @reportTemplate depTypesMsgs, @reportData[depType]
     return report

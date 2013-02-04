@@ -26,27 +26,26 @@ BundleBase = require './BundleBase'
 class Bundle extends BundleBase
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
+
   constructor:-> @_constructor.apply @, arguments
-
-  interestingDepTypes: ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
-
-  @staticProperty requirejs: get:=> require 'requirejs'
-
   _constructor: (bundleCfg)->
-    _.extend @, _B.deepCloneDefaults bundleCfg, uRequireConfigMasterDefaults.bundle
+    _.extend @, _B.deepCloneDefaults bundleCfg, uRequireConfigMasterDefaults.bundle #todo: do we need this here ?
+
+    @reporter = new DependenciesReporter()
 
     @uModules = {}
     @loadModules()
 
     ### handle bundle.bundleName & bundle.main ###
     #@bundleName or= @main # @todo:4 where else should this default to, if not @main ?
-    @reporter = new DependenciesReporter @interestingDepTypes #(if @build.verbose then null else @interestingDepTypes)
 
-  #@property filenames: get: -> getFiles @bundlePath # get all filenames each time we 'refresh'
+
+  @staticProperty requirejs: get:=> require 'requirejs'
+
   ###
   Read / refresh all files in directory.
   Not run everytime there is a file added/removed, unless we need to:
-  Runs initially and in unkonwn -watch / refresh situations
+  Runs initially and in unkonwn -watch / refresh situations (@todo:NOT IMPLEMENTED)
   ###
   for getFilesFactory, filesFilter of {
 
@@ -131,7 +130,6 @@ class Bundle extends BundleBase
         @build.combinedFile = upath.changeExt @build.outputPath, '.js'
         @build.outputPath = "#{@build.combinedFile}__temp"
         l.debug 95, "Setting @build.combinedFile = '#{@build.outputPath}' and @build.outputPath = '#{@build.outputPath}'"
-      #@interestingDepTypes.push 'global' #@todo: add to this reporter's run !
 
     @copyNonModuleFiles() #@todo:5 unless bundle or @build says no
 
@@ -148,8 +146,9 @@ class Bundle extends BundleBase
           @build.out uModule.modulePath, uModule.convertedJs
           # @todo:5 else if String, output to this file ?
 
-    if not _.isEmpty(@reporter.reportData)
-      l.log '\n########### urequire, final report ########### :\n', @reporter.getReport()
+    report = @reporter.getReport(@build.interestingDepTypes)
+    if not _.isEmpty(report)
+      l.log '\n########### urequire, final report ########### :\n', report
 
     if @build.template.name is 'combined'
       if haveChanges

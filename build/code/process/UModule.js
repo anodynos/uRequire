@@ -144,7 +144,7 @@ module.exports = UModule = (function() {
   });
 
   UModule.prototype.adjustModuleInfo = function() {
-    var d, dep, deps, moduleManipulator, pd, requireReplacements, strDep, strDepsArray, _base, _base1, _i, _len, _ref, _ref1;
+    var d, dep, deps, moduleManipulator, pd, repData, requireReplacements, strDep, strDepsArray, _base, _base1, _i, _j, _len, _len1, _ref, _ref1, _ref2;
     this.isConvertible = false;
     this.convertedJs = '';
     moduleManipulator = new ModuleManipulator(this.sourceCodeJs, {
@@ -158,7 +158,7 @@ module.exports = UModule = (function() {
     } else if (this.moduleInfo.untrustedArrayDependencies) {
       return l.err("Module '" + this.filename + "', has untrusted deps " + ((function() {
         var _i, _len, _ref, _results;
-        _ref = this.moduleInfo.untrustedDependencies;
+        _ref = this.moduleInfo.untrustedArrayDependencies;
         _results = [];
         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
           d = _ref[_i];
@@ -184,7 +184,7 @@ module.exports = UModule = (function() {
       }
       requireReplacements = {};
       _ref1 = (function() {
-        var _j, _k, _len1, _len2, _ref1, _ref2, _ref3, _results;
+        var _j, _k, _len1, _len2, _ref1, _ref2, _results;
         _ref1 = [this.moduleInfo.arrayDependencies, this.moduleInfo.requireDependencies, this.moduleInfo.asyncDependencies];
         _results = [];
         for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
@@ -195,8 +195,8 @@ module.exports = UModule = (function() {
             strDep = _ref2[_k];
             deps.push(dep = new Dependency(strDep, this.filename, this.bundle.filenames));
             requireReplacements[strDep] = dep.name();
-            if (this.bundle.reporter && (_ref3 = dep.type, __indexOf.call(this.bundle.reporter.interestingDepTypes, _ref3) >= 0)) {
-              this.bundle.reporter.addReportData(_B.okv({}, dep.type, [this.filename]));
+            if (this.bundle.reporter) {
+              this.bundle.reporter.addReportData(_B.okv({}, dep.type, [dep.name()]), this.modulePath);
             }
           }
           _results.push(deps);
@@ -204,6 +204,13 @@ module.exports = UModule = (function() {
         return _results;
       }).call(this), this.arrayDeps = _ref1[0], this.requireDeps = _ref1[1], this.asyncDeps = _ref1[2];
       this.moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires(requireReplacements);
+      if (this.bundle.reporter) {
+        _ref2 = [_.pick(this.moduleInfo, this.bundle.reporter.interestingDepTypes)];
+        for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
+          repData = _ref2[_j];
+          this.bundle.reporter.addReportData(repData, this.modulePath);
+        }
+      }
       this.parameters = _.clone(this.moduleInfo.parameters);
       this.nodeDeps = _.clone(this.arrayDeps);
       _.defaults(this, this.moduleInfo);
