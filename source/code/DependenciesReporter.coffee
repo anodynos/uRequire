@@ -27,8 +27,11 @@ class DependenciesReporter
   DT = Dependency.TYPES
   _B.okv dependencyTypesMessages,
     DT.global,
-      header: "Global-looking dependencies (not checked in this version):"
-      footer: "They are added as-is."
+      header: "Global-looking dependencies (those without fileRelative (eg `./`) & not present in bundle's root):"
+      footer: """
+        Note: When executing on plain nodejs, globals are `require`d as is.
+              When executing on Web/AMD or uRequire/UMD they use `rjs.baseUrl`/`rjs.paths`, if present.
+      """
 
     DT.notFoundInBundle,
       header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
@@ -46,7 +49,7 @@ class DependenciesReporter
 
   reportTemplate: (texts, dependenciesFound)-> """
    \n#{texts.header}
-     #{ "'#{dependency}' @ [
+     #{ "'#{dependency}' dependendency appears in modules: [
        #{("\n         '" +
          mf + "'" for mf in moduleFiles)}\n  ]\n" for dependency, moduleFiles of dependenciesFound
         }#{

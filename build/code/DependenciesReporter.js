@@ -36,8 +36,8 @@ DependenciesReporter = (function() {
   DT = Dependency.TYPES;
 
   _B.okv(dependencyTypesMessages, DT.global, {
-    header: "Global-looking dependencies (not checked in this version):",
-    footer: "They are added as-is."
+    header: "Global-looking dependencies (those without fileRelative (eg `./`) & not present in bundle's root):",
+    footer: "Note: When executing on plain nodejs, globals are `require`d as is.\n      When executing on Web/AMD or uRequire/UMD they use `rjs.baseUrl`/`rjs.paths`, if present."
   }, DT.notFoundInBundle, {
     header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
     footer: "They are added as-is.\u001b[0m"
@@ -58,7 +58,7 @@ DependenciesReporter = (function() {
       _results = [];
       for (dependency in dependenciesFound) {
         moduleFiles = dependenciesFound[dependency];
-        _results.push("'" + dependency + "' @ [    " + ((function() {
+        _results.push("'" + dependency + "' dependendency appears in modules: [    " + ((function() {
           var _i, _len, _results1;
           _results1 = [];
           for (_i = 0, _len = moduleFiles.length; _i < _len; _i++) {

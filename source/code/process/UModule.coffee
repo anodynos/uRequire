@@ -126,7 +126,7 @@ class UModule
 
       # add remaining dependencies (eg 'untrustedRequireDependencies') to DependenciesReport
       if @bundle.reporter
-        for repData in [ (_.pick @moduleInfo, @bundle.reporter.interestingDepTypes) ]
+        for repData in [ (_.pick @moduleInfo, @bundle.reporter.reportedDepTypes) ]
           @bundle.reporter.addReportData repData, @modulePath
 
       # our final 'templateInfo' information follows

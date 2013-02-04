@@ -205,7 +205,7 @@ module.exports = UModule = (function() {
       }).call(this), this.arrayDeps = _ref1[0], this.requireDeps = _ref1[1], this.asyncDeps = _ref1[2];
       this.moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires(requireReplacements);
       if (this.bundle.reporter) {
-        _ref2 = [_.pick(this.moduleInfo, this.bundle.reporter.interestingDepTypes)];
+        _ref2 = [_.pick(this.moduleInfo, this.bundle.reporter.reportedDepTypes)];
         for (_j = 0, _len1 = _ref2.length; _j < _len1; _j++) {
           repData = _ref2[_j];
           this.bundle.reporter.addReportData(repData, this.modulePath);

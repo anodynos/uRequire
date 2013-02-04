@@ -146,9 +146,9 @@ class Bundle extends BundleBase
           @build.out uModule.modulePath, uModule.convertedJs
           # @todo:5 else if String, output to this file ?
 
-    report = @reporter.getReport(@build.interestingDepTypes)
+    report = @reporter.getReport @build.interestingDepTypes
     if not _.isEmpty(report)
-      l.log '\n########### urequire, final report ########### :\n', report
+      l.log 'Report for this `build`:\n', report
 
     if @build.template.name is 'combined'
       if haveChanges
@@ -158,7 +158,7 @@ class Bundle extends BundleBase
     else
       @build.done true
 
-  getRequireJSConfig: ()-> #@todo: remove & fix this!
+  getRequireJSConfig: ()-> #@todo:(7 5 2) remove & fix this!
       paths:
         text: "requirejs_plugins/text"
         json: "requirejs_plugins/json"
@@ -293,7 +293,23 @@ class Bundle extends BundleBase
         setTimeout  (=>
           l.debug 60, 'Checking r.js output file...'
           if _fs.existsSync build.combinedFile
-            l.verbose "Combined file '#{build.combinedFile}' written successfully."
+            l.log "Combined file '#{build.combinedFile}' written successfully."
+
+            if not _.isEmpty(@getDepsVars depType:'global')
+              l.log """
+                Global bindinds: make sure the following global dependencies
+
+                #{l.prettify @getDepsVars depType:'global'}
+
+                are available when combined script '#{build.combinedFile}' is running on:
+
+                  a) nodejs: they should exist as a local `nodes_modules`.
+
+                  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)
+
+                  c) Web/Script: the binded variables (eg '_' or '$')
+                     must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
+              """
 
             # delete outputPath, used as temp directory with individual AMD files
             if Logger::debugLevel < 50

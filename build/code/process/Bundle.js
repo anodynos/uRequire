@@ -221,7 +221,7 @@ Bundle = (function(_super) {
     }
     report = this.reporter.getReport(this.build.interestingDepTypes);
     if (!_.isEmpty(report)) {
-      l.log('\n########### urequire, final report ########### :\n', report);
+      l.log('Report for this `build`:\n', report);
     }
     if (this.build.template.name === 'combined') {
       if (haveChanges) {
@@ -385,7 +385,14 @@ Bundle = (function(_super) {
         return setTimeout((function() {
           l.debug(60, 'Checking r.js output file...');
           if (_fs.existsSync(build.combinedFile)) {
-            l.verbose("Combined file '" + build.combinedFile + "' written successfully.");
+            l.log("Combined file '" + build.combinedFile + "' written successfully.");
+            if (!_.isEmpty(_this.getDepsVars({
+              depType: 'global'
+            }))) {
+              l.log("Global bindinds: make sure the following global dependencies\n\n" + (l.prettify(_this.getDepsVars({
+                depType: 'global'
+              }))) + "\n\nare available when combined script '" + build.combinedFile + "' is running on:\n\n  a) nodejs: they should exist as a local `nodes_modules`.\n\n  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)\n\n  c) Web/Script: the binded variables (eg '_' or '$')\n     must be a globally loaded (i.e `window.$`) BEFORE loading '" + build.combinedFile + "'");
+            }
             if (Logger.prototype.debugLevel < 50) {
               l.debug(40, "Deleting temporary directory '" + build.outputPath + "'.");
               _wrench.rmdirSyncRecursive(build.outputPath);
