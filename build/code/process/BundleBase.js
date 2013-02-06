@@ -92,7 +92,7 @@ BundleBase = (function() {
         pathStart = depName.split('/')[0];
         if ((_ref = this.getRequireJSConfig().paths) != null ? _ref[pathStart] : void 0) {
           paths = this.getRequireJSConfig().paths[pathStart];
-          if (!_(paths).isArray()) {
+          if (!_.isArray(paths)) {
             paths = [paths];
           }
           for (_i = 0, _len = paths.length; _i < _len; _i++) {

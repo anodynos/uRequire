@@ -120,7 +120,7 @@ ModuleManipulator = (function(_super) {
 
   ModuleManipulator.prototype._gatherItemsInSegments = function(astArray, segments) {
     var elType, elem, _base, _i, _len, _name, _results;
-    if (!_(astArray).isArray()) {
+    if (!_.isArray(astArray)) {
       astArray = [astArray];
     }
     _results = [];
@@ -180,7 +180,7 @@ ModuleManipulator = (function(_super) {
           }
           if (factoryFn) {
             fn = this.readAST['function'](factoryFn);
-            if (!_(fn.args).isEmpty()) {
+            if (!_.isEmpty(fn.args)) {
               this.moduleInfo.parameters = fn.args;
             }
             this.AST_FactoryBody = ['block', fn.body];
@@ -207,7 +207,7 @@ ModuleManipulator = (function(_super) {
           max: 5
         },
         '_function': function(f) {
-          if (_(f.args).isEqual(['root', 'factory'])) {
+          if (_.isEqual(f.args, ['root', 'factory'])) {
             this.moduleInfo.moduleType = 'UMD';
             this.AST_FactoryBody = null;
             return 'stop';
@@ -242,7 +242,7 @@ ModuleManipulator = (function(_super) {
         }
       };
       seekr([requireCallsSeeker], this.AST_FactoryBody, this.readAST, this);
-      if (!_(this.moduleInfo.requireDependencies).isEmpty()) {
+      if (!_.isEmpty(this.moduleInfo.requireDependencies)) {
         this.moduleInfo.requireDependencies = _.difference(_.uniq(this.moduleInfo.requireDependencies), this.moduleInfo.arrayDependencies);
       }
     }
@@ -251,7 +251,7 @@ ModuleManipulator = (function(_super) {
 
   ModuleManipulator.prototype._replaceASTStringElements = function(astArray, replacements) {
     var elem, _i, _len, _results;
-    if (!_(astArray).isArray()) {
+    if (!_.isArray(astArray)) {
       astArray = [astArray];
     }
     _results = [];

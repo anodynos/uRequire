@@ -251,9 +251,11 @@ class Bundle extends BundleBase
         """
         @build.done false
 
-      else # actually combine (r.js optimize)
+      else
+
         almondTemplates = new AlmondOptimizationTemplate {
           globalDepsVars
+          noWeb:@dependencies.noWeb
           @main
         }
 
@@ -272,7 +274,8 @@ class Bundle extends BundleBase
 
           wrap: almondTemplates.wrap
           baseUrl: @build.outputPath
-          include: @main
+          include: [@main]
+          deps: @dependencies.noWeb # we include the 'fake' AMD files 'getNoWebDep_XXX'
           out: @build.combinedFile
     #      out: (text)=>
     #        #todo: @build.out it!
@@ -285,6 +288,7 @@ class Bundle extends BundleBase
           name: 'almond'
         rjsConfig.logLevel = 0 if l.debugLevel >= 90
 
+        # actually combine (r.js optimize)
         l.verbose "Optimize with r.js with uRequire's 'build.js' = \n", l.prettify _.omit(rjsConfig, ['wrap'])
         @requirejs.optimize _.clone(rjsConfig), (buildResponse)->
           l.verbose 'r.js buildResponse = ', buildResponse
@@ -295,11 +299,12 @@ class Bundle extends BundleBase
           if _fs.existsSync build.combinedFile
             l.log "Combined file '#{build.combinedFile}' written successfully."
 
-            if not _.isEmpty(@getDepsVars depType:'global')
+            globalDepsVars = @getDepsVars depType:'global'
+            if not _.isEmpty globalDepsVars
               l.log """
                 Global bindinds: make sure the following global dependencies
 
-                #{l.prettify @getDepsVars depType:'global'}
+                #{l.prettify globalDepsVars}
 
                 are available when combined script '#{build.combinedFile}' is running on:
 
@@ -375,15 +380,25 @@ class Bundle extends BundleBase
       gatherDepsVars uModule.getDepsVars q
 
     # pick from @dependencies.variableNames only for existing deps, that have no vars info discovered yet
+    # todo: remove from here / refactor
     if @dependencies?.variableNames
-      vn = _B.go @dependencies.variableNames, fltr:(v,k)-> (depsVars[k] isnt undefined) and _.isEmpty depsVars[k]
+      vn = _B.go @dependencies.variableNames,
+                 fltr:(v,k)=>
+                    (depsVars[k] isnt undefined) and
+                    _.isEmpty(depsVars[k]) and
+                    not (k in @dependencies?.noWeb)
       if not _.isEmpty vn
         l.warn "\n Picked from `@dependencies.variableNames` for some deps with missing dep-variable bindings: \n", vn
         gatherDepsVars vn
 
     # 'urequireCfg.bundle.dependencies._knownVariableNames' contain known ones
     #   eg `jquery:['$'], lodash:['_']` etc
-    vn = _B.go @dependencies._knownVariableNames, fltr:(v,k)-> (depsVars[k] isnt undefined) and _.isEmpty depsVars[k]
+    # todo: remove from here / refactor
+    vn = _B.go @dependencies._knownVariableNames,
+               fltr:(v,k)=>
+                  (depsVars[k] isnt undefined) and
+                  _.isEmpty(depsVars[k]) and
+                  not (k in @dependencies?.noWeb)
     if not _.isEmpty vn
       l.warn "\n Picked from `@dependencies._knownVariableNames` for some deps with missing dep-variable bindings: \n", vn
       gatherDepsVars vn

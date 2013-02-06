@@ -352,6 +352,7 @@ Bundle = (function(_super) {
       } else {
         almondTemplates = new AlmondOptimizationTemplate({
           globalDepsVars: globalDepsVars,
+          noWeb: this.dependencies.noWeb,
           main: this.main
         });
         _ref2 = almondTemplates.dependencyFiles;
@@ -370,7 +371,8 @@ Bundle = (function(_super) {
           paths: _.extend(almondTemplates.paths, this.getRequireJSConfig().paths),
           wrap: almondTemplates.wrap,
           baseUrl: this.build.outputPath,
-          include: this.main,
+          include: [this.main],
+          deps: this.dependencies.noWeb,
           out: this.build.combinedFile,
           optimize: "none",
           name: 'almond'
@@ -386,12 +388,11 @@ Bundle = (function(_super) {
           l.debug(60, 'Checking r.js output file...');
           if (_fs.existsSync(build.combinedFile)) {
             l.log("Combined file '" + build.combinedFile + "' written successfully.");
-            if (!_.isEmpty(_this.getDepsVars({
+            globalDepsVars = _this.getDepsVars({
               depType: 'global'
-            }))) {
-              l.log("Global bindinds: make sure the following global dependencies\n\n" + (l.prettify(_this.getDepsVars({
-                depType: 'global'
-              }))) + "\n\nare available when combined script '" + build.combinedFile + "' is running on:\n\n  a) nodejs: they should exist as a local `nodes_modules`.\n\n  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)\n\n  c) Web/Script: the binded variables (eg '_' or '$')\n     must be a globally loaded (i.e `window.$`) BEFORE loading '" + build.combinedFile + "'");
+            });
+            if (!_.isEmpty(globalDepsVars)) {
+              l.log("Global bindinds: make sure the following global dependencies\n\n" + (l.prettify(globalDepsVars)) + "\n\nare available when combined script '" + build.combinedFile + "' is running on:\n\n  a) nodejs: they should exist as a local `nodes_modules`.\n\n  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)\n\n  c) Web/Script: the binded variables (eg '_' or '$')\n     must be a globally loaded (i.e `window.$`) BEFORE loading '" + build.combinedFile + "'");
             }
             if (Logger.prototype.debugLevel < 50) {
               l.debug(40, "Deleting temporary directory '" + build.outputPath + "'.");
@@ -428,7 +429,8 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.getDepsVars = function(q) {
-    var depsVars, gatherDepsVars, uMK, uModule, vn, _ref1, _ref2;
+    var depsVars, gatherDepsVars, uMK, uModule, vn, _ref1, _ref2,
+      _this = this;
     depsVars = {};
     gatherDepsVars = function(_depsVars) {
       var dep, dv, v, vars, _results;
@@ -458,7 +460,8 @@ Bundle = (function(_super) {
     if ((_ref2 = this.dependencies) != null ? _ref2.variableNames : void 0) {
       vn = _B.go(this.dependencies.variableNames, {
         fltr: function(v, k) {
-          return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]);
+          var _ref3;
+          return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]) && !(__indexOf.call((_ref3 = _this.dependencies) != null ? _ref3.noWeb : void 0, k) >= 0);
         }
       });
       if (!_.isEmpty(vn)) {
@@ -468,7 +471,8 @@ Bundle = (function(_super) {
     }
     vn = _B.go(this.dependencies._knownVariableNames, {
       fltr: function(v, k) {
-        return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]);
+        var _ref3;
+        return (depsVars[k] !== void 0) && _.isEmpty(depsVars[k]) && !(__indexOf.call((_ref3 = _this.dependencies) != null ? _ref3.noWeb : void 0, k) >= 0);
       }
     });
     if (!_.isEmpty(vn)) {

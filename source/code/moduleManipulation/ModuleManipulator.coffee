@@ -81,7 +81,7 @@ class ModuleManipulator extends JSManipulator
     @AST_FactoryBody = null # a ref to the factoryBody, used to produce factBody & l8r to mutate requires
 
   _gatherItemsInSegments: (astArray, segments)->
-    astArray = [astArray] if not _(astArray).isArray()
+    astArray = [astArray] if not _.isArray astArray
     for elem in astArray
       elType = elem[0] #eg 'string'
       if not segments[elType]
@@ -124,7 +124,7 @@ class ModuleManipulator extends JSManipulator
           if factoryFn # found AMD, otherwise its null
             fn = @readAST['function'] factoryFn
 
-            @moduleInfo.parameters = fn.args if not _(fn.args).isEmpty() # args of function (dep1, dep2)
+            @moduleInfo.parameters = fn.args if not _.isEmpty(fn.args) # args of function (dep1, dep2)
             @AST_FactoryBody = ['block', fn.body ] #needed l8r for replacing body require deps
 
 #            @moduleInfo.parameters = factoryFn[2] if not _(factoryFn[2]).isEmpty() # args of function (dep1, dep2)
@@ -142,7 +142,7 @@ class ModuleManipulator extends JSManipulator
       UMDSeeker =
         level: min: 4, max: 5
         '_function': (f)->
-          if _(f.args).isEqual ['root', 'factory']
+          if _.isEqual f.args, ['root', 'factory']
             @moduleInfo.moduleType = 'UMD'
             @AST_FactoryBody = null
             'stop'
@@ -166,13 +166,13 @@ class ModuleManipulator extends JSManipulator
 
       seekr [ requireCallsSeeker ], @AST_FactoryBody, @readAST, @
       # some tidying up : keep only 1) unique requireDeps & 2) extra to 'dependencies'
-      if not _(@moduleInfo.requireDependencies).isEmpty()
+      if not _.isEmpty @moduleInfo.requireDependencies
         @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.arrayDependencies
 
     return @moduleInfo
 
   _replaceASTStringElements: (astArray, replacements)->
-    astArray = [astArray] if not _(astArray).isArray()
+    astArray = [astArray] if not _.isArray astArray
     for elem in astArray
       if elem[0] is 'string' # i.e elType
         if replacements[elem[1]]

@@ -220,7 +220,7 @@ NodeRequirer = (function(_super) {
         _ref1 = this.getRequireJSConfig().paths;
         for (pathName in _ref1) {
           pathEntries = _ref1[pathName];
-          if (!_(pathEntries).isArray()) {
+          if (!_.isArray(pathEntries)) {
             pathEntries = [pathEntries];
           }
           (_base1 = requireJsConf.paths)[pathName] || (_base1[pathName] = []);
@@ -287,7 +287,7 @@ NodeRequirer = (function(_super) {
           try {
             loadedModule = this.nodeRequire(_modulePath);
           } catch (err) {
-            if (err1 === void 0 || !_(err.toString()).startsWith("Error: Cannot find module")) {
+            if (err1 === void 0 || !_.startsWith(err.toString(), "Error: Cannot find module")) {
               err1 = err;
             }
             l.debug(35, "FAILED: @nodeRequire '" + _modulePath + "' \n err=\n", err);
@@ -402,10 +402,10 @@ NodeRequirer = (function(_super) {
   NodeRequirer.prototype.require = function(strDeps, callback) {
     var dep, deps, loadDepsAndCall, strDep, _i, _len,
       _this = this;
-    if (_(strDeps).isString()) {
+    if (_.isString(strDeps)) {
       return this.loadModule(new Dependency(strDeps, this.moduleNameBR));
     } else {
-      if (_(strDeps).isArray()) {
+      if (_.isArray(strDeps)) {
         deps = [];
         for (_i = 0, _len = strDeps.length; _i < _len; _i++) {
           strDep = strDeps[_i];
@@ -418,7 +418,7 @@ NodeRequirer = (function(_super) {
             dep = deps[_j];
             loadedDeps.push(_this.loadModule(dep));
           }
-          if (_(callback).isFunction()) {
+          if (_.isFunction(callback)) {
             return callback.apply(null, loadedDeps);
           }
         };

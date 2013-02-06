@@ -66,12 +66,17 @@ module.exports = AlmondOptimizationTemplates = (function(_super) {
   AlmondOptimizationTemplates.property({
     paths: {
       get: function() {
-        var globalDep, globalVars, _paths, _ref;
+        var globalDep, globalVars, noWebDep, _i, _len, _paths, _ref, _ref1;
         _paths = {};
         _ref = this.ti.globalDepsVars;
         for (globalDep in _ref) {
           globalVars = _ref[globalDep];
           _paths[globalDep] = "getGlobal_" + globalDep;
+        }
+        _ref1 = this.ti.noWeb;
+        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+          noWebDep = _ref1[_i];
+          _paths[noWebDep] = "getNoWebDep_" + noWebDep;
         }
         return _paths;
       }
@@ -81,17 +86,35 @@ module.exports = AlmondOptimizationTemplates = (function(_super) {
   AlmondOptimizationTemplates.property({
     dependencyFiles: {
       get: function() {
-        var globalDep, globalVars, _dependencyFiles, _ref;
+        var globalDep, globalVars, noWebDep, _dependencyFiles, _i, _len, _ref, _ref1;
         _dependencyFiles = {};
         _ref = this.ti.globalDepsVars;
         for (globalDep in _ref) {
           globalVars = _ref[globalDep];
-          _dependencyFiles["getGlobal_" + globalDep] = "define(" + this._function("if (typeof " + globalVars[0] + " === \"undefined\") {\n  return __nodeRequire('" + globalDep + "');\n} else {\n  return " + globalVars[0] + ";\n};") + ");";
+          _dependencyFiles["getGlobal_" + globalDep] = this.grabDependencyVarOrRequireIt(globalDep, globalVars);
+        }
+        _ref1 = this.ti.noWeb;
+        for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
+          noWebDep = _ref1[_i];
+          _dependencyFiles["getNoWebDep_" + noWebDep] = this.grabDependencyVarOrRequireIt(noWebDep, []);
         }
         return _dependencyFiles;
       }
     }
   });
+
+  AlmondOptimizationTemplates.prototype.grabDependencyVarOrRequireIt = function(dep, depVars) {
+    var depVar;
+    return "define(" + this._function(((function() {
+      var _i, _len, _results;
+      _results = [];
+      for (_i = 0, _len = depVars.length; _i < _len; _i++) {
+        depVar = depVars[_i];
+        _results.push("if (typeof " + depVar + " !== 'undefined'){return " + depVar + ";}");
+      }
+      return _results;
+    })()).join(';') + ("return __nodeRequire('" + dep + "');")) + ");";
+  };
 
   return AlmondOptimizationTemplates;
 

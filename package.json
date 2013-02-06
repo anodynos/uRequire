@@ -1,7 +1,7 @@
 {
  "name": "urequire",
  "description": "Module converter: write modular code once, convert to UMD and run/test on AMD (browser/requirejs) & nodejs.",
- "version": "0.3.0alpha20",
+ "version": "0.3.0alpha21",
  "homepage": "https://github.com/anodynos/urequire",
  "author": {
   "name": "Agelos Pikoulas",
@@ -41,7 +41,7 @@
   "node": "*"
  },
  "dependencies": {
-  "lodash": "0.10.x",
+  "lodash": "*",
   "underscore.string":"*",
   "uberscore": ">=0.0.5",
   "commander": "1.1.x",

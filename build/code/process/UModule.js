@@ -224,7 +224,7 @@ module.exports = UModule = (function() {
 
 
   UModule.prototype.convert = function(build) {
-    var bundleExports, d, depName, err, moduleTemplate, reqDep, ti, varName, varNames, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4;
+    var bundleExports, d, depName, err, moduleTemplate, reqDep, ti, varName, varNames, _i, _j, _len, _len1, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
     this.build = build;
     if (this.isConvertible) {
       l.debug(30, "Converting module '" + this.modulePath + "'");
@@ -267,9 +267,9 @@ module.exports = UModule = (function() {
           reqDep = _ref3[_j];
           if (reqDep.pluginName !== 'node' && !(_.any(this.arrayDeps, function(dep) {
             return dep.isEqual(reqDep);
-          }))) {
+          })) && !(_ref4 = reqDep.name(), __indexOf.call(((_ref5 = this.bundle.dependencies) != null ? _ref5.noWeb : void 0) || [], _ref4) >= 0)) {
             this.arrayDeps.push(reqDep);
-            if ((_ref4 = this.build) != null ? _ref4.allNodeRequires : void 0) {
+            if ((_ref6 = this.build) != null ? _ref6.allNodeRequires : void 0) {
               this.nodeDeps.push(reqDep);
             }
           }

@@ -214,8 +214,9 @@ class UModule
       # We allow them only if `--scanAllow` or if we have a `rootExports`
       if not (_.isEmpty(@arrayDeps) and @build?.scanAllow and not @moduleInfo.rootExports)
         for reqDep in @requireDeps
-          if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
-            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep)
+          if reqDep.pluginName isnt 'node' and                # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
+            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep) and # not already there
+            not (reqDep.name() in (@bundle.dependencies?.noWeb or []))
               @arrayDeps.push reqDep
               @nodeDeps.push reqDep if @build?.allNodeRequires
 

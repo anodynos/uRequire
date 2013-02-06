@@ -169,7 +169,7 @@ class NodeRequirer extends BundleBase
       if @getRequireJSConfig().paths
         requireJsConf.paths = {}
         for pathName, pathEntries of @getRequireJSConfig().paths
-          if not _(pathEntries).isArray()
+          if not _.isArray(pathEntries)
             pathEntries = [ pathEntries ]
 
           requireJsConf.paths[pathName] or= []
@@ -224,7 +224,7 @@ class NodeRequirer extends BundleBase
           try
             loadedModule = @nodeRequire _modulePath
           catch err
-            if err1 is undefined or not _(err.toString()).startsWith "Error: Cannot find module" # prefer to keep 'generic' errors in err1
+            if err1 is undefined or not _.startsWith(err.toString(), "Error: Cannot find module") # prefer to keep 'generic' errors in err1
               err1 = err
 
             l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=\n", err
@@ -327,10 +327,10 @@ class NodeRequirer extends BundleBase
       strDeps # type: [ 'String', '[]<String>' ]
       callback  # type: '()->'
   )=>
-    if _(strDeps).isString() # String - synchronous call
+    if _.isString strDeps # String - synchronous call
       return @loadModule new Dependency strDeps, @moduleNameBR
     else
-      if _(strDeps).isArray() # we have an []<String>:
+      if _.isArray strDeps # we have an []<String>:
         deps = [] # []<Dependency>
 
         #isAllCached = true # not needed anymore
@@ -348,7 +348,7 @@ class NodeRequirer extends BundleBase
 
           # todo: should we check cb, before wasting time requiring modules ?
           #       Or maybe it was intentional, for caching modules asynchronously.
-          if _(callback).isFunction()
+          if _.isFunction callback
             callback.apply null, loadedDeps
 
 #            if isAllCached #load *synchronously* (matching RequireJS's behaviour, when all modules are already loaded/cached!)

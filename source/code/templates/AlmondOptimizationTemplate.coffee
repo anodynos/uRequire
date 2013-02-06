@@ -56,6 +56,9 @@ class AlmondOptimizationTemplates extends Template
     for globalDep, globalVars of @ti.globalDepsVars
       _paths[globalDep] = "getGlobal_#{globalDep}"
 
+    for noWebDep in @ti.noWeb
+      _paths[noWebDep] = "getNoWebDep_#{noWebDep}"
+
     _paths
 
   # @return {
@@ -66,24 +69,45 @@ class AlmondOptimizationTemplates extends Template
     _dependencyFiles = {}
     for globalDep, globalVars of @ti.globalDepsVars
       _dependencyFiles["getGlobal_#{globalDep}"] =
-        "define(" +
-            @_function("""
-              if (typeof #{globalVars[0]} === "undefined") {
-                return __nodeRequire('#{globalDep}');
-              } else {
-                return #{globalVars[0]};
-              };
-            """) +
-        ");"
+        @grabDependencyVarOrRequireIt globalDep, globalVars
+
+    for noWebDep in @ti.noWeb
+      _dependencyFiles["getNoWebDep_#{noWebDep}"] =
+        @grabDependencyVarOrRequireIt noWebDep, [] #"noWebDep_"+noWebDep
+
+#        "define(" +
+#            @_function("""
+#              if (typeof #{globalVars[0]} === "undefined") {
+#                return __nodeRequire("#{globalDep}");
+#              } else {
+#                return #{globalVars[0]};
+#              };
+#            """) +
+#        ");"
 
     _dependencyFiles
 
-#
-#console.log a = new AlmondOptimizationTemplates {
+  # @todo:(7 7 1) Try to find all variables, not just the first!
+  grabDependencyVarOrRequireIt: (dep, depVars)->
+     "define(" +
+        @_function(
+
+          ("if (typeof #{depVar} !== 'undefined'){return #{depVar};}" for depVar in depVars).join(';') +
+
+          "return __nodeRequire('#{dep}');"
+        ) + ");"
+
+#a = new AlmondOptimizationTemplates {
 #  globals:
 #    lodash: ['_', 'lodash']
 #    backbone: ['Backbone']
 #  main: "uBerscore"
+#  globalDepsVars:
+#    underscore: ['_']
+#    knockout: ['ko', 'KO']
+#  noWeb:["utils", "fs"]
 #  }
 #
-#console.log a.dependencyFiles
+#lp = (o)-> console.log require('util').inspect o, false, null, true
+#
+#lp a.dependencyFiles

@@ -23,7 +23,7 @@ for fName, fn of _path when _.isFunction fn
   eg to add .js to output .js file
 ###
 upath.addExt = (file, ext)->
-  file + if _(file).endsWith(ext) then '' else ext
+  file + if _.endsWith(file, ext) then '' else ext
 
 upath.trimExt = (file)->
   file[0..(file.length - @extname(file).length)-1]
@@ -39,7 +39,7 @@ upath.changeExt = (file, ext)->
 ###
 upath.defaultExt = (file, ext)->
   oldExt = upath.extname file
-  if oldExt and oldExt.length <=4 and oldExt.length >= 1
+  if oldExt and (oldExt.length <= 4) and (oldExt.length >= 1)
     file
   else
     upath.addExt file, ext

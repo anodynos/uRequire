@@ -53,8 +53,8 @@ class BundleBase
         pathStart = depName.split('/')[0]
         if @getRequireJSConfig().paths?[pathStart] #eg src/
           paths = @getRequireJSConfig().paths[pathStart]
-          if not _(paths).isArray()
-            paths = [ paths ] #else _(paths).isString()
+          if not _.isArray(paths)
+            paths = [ paths ] #else _.isString(paths)
 
           for path in paths # add them all
             addit @bundlePath + (depName.replace pathStart, path)

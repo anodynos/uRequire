@@ -42,7 +42,7 @@ for (fName in _path) {
 
 
 upath.addExt = function(file, ext) {
-  return file + (_(file).endsWith(ext) ? '' : ext);
+  return file + (_.endsWith(file, ext) ? '' : ext);
 };
 
 upath.trimExt = function(file) {
@@ -67,7 +67,7 @@ upath.changeExt = function(file, ext) {
 upath.defaultExt = function(file, ext) {
   var oldExt;
   oldExt = upath.extname(file);
-  if (oldExt && oldExt.length <= 4 && oldExt.length >= 1) {
+  if (oldExt && (oldExt.length <= 4) && (oldExt.length >= 1)) {
     return file;
   } else {
     return upath.addExt(file, ext);
