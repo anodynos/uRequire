@@ -26,7 +26,7 @@ class BundleBuilder
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
   constructor: -> @_constructor.apply @, arguments
 
-  _constructor: (configs...)->
+  _constructor: (@configs...)->
 
     # Create our 2 main config objects : 'bundle' & 'build'
     @bundleCfg = {}
@@ -45,8 +45,6 @@ class BundleBuilder
       # in each config, we might have nested configFiles
       # todo: read configFiles with the proper recursion above
       for cfgFilename in _B.arrayize config.configFiles when cfgFilename # no nulls/empty strings
-        # assume bundlePath, if its empty, from the 1st configFile that comes along
-        @bundleCfg.bundlePath or= upath.dirname cfgFilename
         # get deep defaults to current configuration
         @storeCfgDefaults require _fs.realpathSync cfgFilename
         # ? add configFile to exclude'd files ?
@@ -155,10 +153,16 @@ class BundleBuilder
 
   isCheckAndFixPaths: ->
     if not @bundleCfg.bundlePath
-      l.err """
-        Quitting build, no bundlePath specified.
-        Use -h for help"""
-      return false
+      # assume bundlePath, from the 1st configFile that come along
+      if cfgFile = @configs[0]?.configFiles[0]
+        l.debug 40, "Assuming bundlePath = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
+        @bundleCfg.bundlePath = upath.dirname cfgFile
+        return true
+      else
+        l.err """
+          Quitting build, no bundlePath specified.
+          Use -h for help"""
+        return false
     else
       if @buildCfg.forceOverwriteSources
         @buildCfg.outputPath = @bundleCfg.bundlePath

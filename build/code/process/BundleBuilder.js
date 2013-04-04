@@ -61,8 +61,9 @@ BundleBuilder = (function() {
   }
 
   BundleBuilder.prototype._constructor = function() {
-    var be, cfgFilename, config, configs, varNames, _base, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
+    var be, cfgFilename, config, configs, varNames, _i, _j, _k, _len, _len1, _len2, _ref, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6;
     configs = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+    this.configs = configs;
     this.bundleCfg = {};
     this.buildCfg = {};
     this.buildCfg.done = ((_ref = configs[0]) != null ? _ref.done : void 0) || function() {};
@@ -79,11 +80,9 @@ BundleBuilder = (function() {
       _ref1 = _B.arrayize(config.configFiles);
       for (_j = 0, _len1 = _ref1.length; _j < _len1; _j++) {
         cfgFilename = _ref1[_j];
-        if (!(cfgFilename)) {
-          continue;
+        if (cfgFilename) {
+          this.storeCfgDefaults(require(_fs.realpathSync(cfgFilename)));
         }
-        (_base = this.bundleCfg).bundlePath || (_base.bundlePath = upath.dirname(cfgFilename));
-        this.storeCfgDefaults(require(_fs.realpathSync(cfgFilename)));
       }
     }
     /*
@@ -179,9 +178,16 @@ BundleBuilder = (function() {
   };
 
   BundleBuilder.prototype.isCheckAndFixPaths = function() {
+    var cfgFile, _ref;
     if (!this.bundleCfg.bundlePath) {
-      l.err("Quitting build, no bundlePath specified.\nUse -h for help");
-      return false;
+      if (cfgFile = (_ref = this.configs[0]) != null ? _ref.configFiles[0] : void 0) {
+        l.debug(40, "Assuming bundlePath = '" + (upath.dirname(cfgFile)) + "' from 1st configFile: '" + cfgFile + "'");
+        this.bundleCfg.bundlePath = upath.dirname(cfgFile);
+        return true;
+      } else {
+        l.err("Quitting build, no bundlePath specified.\nUse -h for help");
+        return false;
+      }
     } else {
       if (this.buildCfg.forceOverwriteSources) {
         this.buildCfg.outputPath = this.bundleCfg.bundlePath;
