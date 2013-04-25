@@ -1,5 +1,5 @@
-Logger = require '../utils/Logger'
-l = new Logger 'AlmondOptimizationTemplates'
+_B = require 'uberscore'
+l = new _B.Logger 'AlmondOptimizationTemplates'
 
 Template = require './Template'
 

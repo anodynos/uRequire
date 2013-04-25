@@ -1,13 +1,12 @@
 _ = require 'lodash'
 _B = require 'uberscore'
-upath = require '../paths/upath'
 
+l = new _B.Logger 'UModule'
+
+upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
-
-Logger = require '../utils/Logger'
-l = new Logger 'UModule'
 
 module.exports =
 
@@ -284,7 +283,9 @@ class UModule
 
 ### Debug information ###
 
-if Logger::debugLevel > 90
+l.log '_B.Logger.debugLevel', _B.Logger.debugLevel
+
+if _B.Logger.debugLevel >= 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(UModule)

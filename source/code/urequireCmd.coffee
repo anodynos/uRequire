@@ -1,14 +1,14 @@
 _ = require 'lodash'
-_B = require 'uberscore'
 _fs = require 'fs'
 _wrench = require "wrench"
+_B = require 'uberscore'
+
+l = new _B.Logger 'urequireCMD'
 
 urequireCmd = require 'commander'
 upath = require './paths/upath'
 Build = require './process/Build'
 
-Logger = require './utils/Logger'
-l = new Logger 'urequireCMD'
 
 # helpers
 toArray = (val)-> val.split(',')

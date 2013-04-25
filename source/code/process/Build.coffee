@@ -1,11 +1,9 @@
 _ = require 'lodash'
-_B = require 'uberscore'
 _fs = require 'fs'
 _wrench = require 'wrench'
+_B = require 'uberscore'
 
-#Logging
-Logger = require '../utils/Logger'
-l = new Logger 'Build'
+l = new _B.Logger 'Build'
 
 # uRequire
 upath = require '../paths/upath'
@@ -84,7 +82,7 @@ class Build
       throw err
 
 
-if Logger::debugLevel > 90
+if _B.Logger::debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Build)

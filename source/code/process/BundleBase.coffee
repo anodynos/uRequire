@@ -1,11 +1,12 @@
 _ = require 'lodash'
 _fs = require 'fs'
+_B = require 'uberscore'
+
+l = new _B.Logger 'NodeRequirer'
 
 upath = require '../paths/upath'
 pathRelative = require '../paths/pathRelative'
 Dependency = require '../Dependency'
-Logger = require '../utils/Logger'
-l = new Logger 'NodeRequirer'
 
 ###
 Common functionality used at build time (Bundle) or runtime (NodeRequirer)

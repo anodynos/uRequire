@@ -5,8 +5,8 @@ _fs = require 'fs'
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './Dependency'
-Logger = require './utils/Logger'
-l = new Logger 'NodeRequirer', 0 # disable runtime debug
+_B = require 'uberscore'
+l = new _B.Logger 'NodeRequirer', 0 # disable runtime debug
 
 BundleBase = require './process/BundleBase'
 ###

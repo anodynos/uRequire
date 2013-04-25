@@ -1,9 +1,9 @@
 _ = require 'lodash'
+_B = require 'uberscore'
+
+l = new _B.Logger 'ModuleGeneratorTemplates'
 
 pathRelative = require('../paths/pathRelative')
-Logger = require '../utils/Logger'
-l = new Logger 'ModuleGeneratorTemplates'
-
 Template = require './Template'
 #
 #  A 'simple' template for a UMD module. Based on https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js

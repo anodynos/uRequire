@@ -1,17 +1,18 @@
 _ = require 'lodash'
 _fs = require 'fs'
 _B = require 'uberscore'
-upath = require '../paths/upath'
-# logging
-Logger = require '../utils/Logger'
-l = new Logger 'BundleBuilder'
+
+l = new _B.Logger 'BundleBuilder'
 
 # urequire
+upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
-Bundle = require './Bundle'
-Build = require './Build'
 
 _Bs = require '../utils/uBerscoreShortcuts'
+
+Bundle = require './Bundle' # @todo: YADC _B.Logging.debugLevel check not working when these load up
+Build = require './Build'
+
 
 require('butter-require')() # no need to store it somewhere
 
@@ -60,12 +61,15 @@ class BundleBuilder
     ###
 
     # verbose / debug anyone ?
-    if @buildCfg.debugLevel? then Logger::debugLevel = @buildCfg.debugLevel
+    if @buildCfg.debugLevel?
+      _B.Logger.debugLevel = @buildCfg.debugLevel
+      l.log 'Setting _B.Logger.debugLevel =', _B.Logger.debugLevel
+
     if not @buildCfg.verbose
-      if Logger::debugLevel >= 50
+      if _B.Logger.debugLevel >= 50
         l.warn 'Enabling verbose, because debugLevel >= 50'
       else
-        Logger::verbose = ->
+        _B.Logger::verbose = ->
 
 
     ###
@@ -188,7 +192,7 @@ module.exports = BundleBuilder
 
 ### Debug information ###
 
-if Logger::debugLevel > 10 or true
+if _B.Logger::debugLevel > 10 or true
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(BundleBuilder)

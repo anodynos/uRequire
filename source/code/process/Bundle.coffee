@@ -1,14 +1,13 @@
 # external
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
-_B = require 'uberscore'
 _fs = require 'fs'
 _wrench = require 'wrench'
+_B = require 'uberscore'
+
+l = new _B.Logger 'Bundle'
 
 # uRequire
-Logger = require '../utils/Logger'
-l = new Logger 'Bundle'
-
 upath = require '../paths/upath'
 getFiles = require "./../utils/getFiles"
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
@@ -317,7 +316,7 @@ class Bundle extends BundleBase
               """
 
             # delete outputPath, used as temp directory with individual AMD files
-            if Logger::debugLevel < 50
+            if _B.Logger::debugLevel < 50
               l.debug 40, "Deleting temporary directory '#{build.outputPath}'."
               _wrench.rmdirSyncRecursive build.outputPath
             else
@@ -406,7 +405,7 @@ class Bundle extends BundleBase
     depsVars
 
 
-if Logger::debugLevel > 90
+if _B.Logger::debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)
