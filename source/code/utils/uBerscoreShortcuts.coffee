@@ -42,7 +42,7 @@ class uBerscoreShortcuts # class cause its easy :-)
 
   ###
   toObjectKeysWithArrayValues: (input)->
-    result = _B.arrayize input, _.isString
+    result = if _.isString input then _B.arrayize(input) else input
 
     if _.isArray result # change ['str1', 'str2'] to {str1:[], str2:[]}
       result = @arrayToObjectWithValuesAsKeys result
@@ -51,9 +51,6 @@ class uBerscoreShortcuts # class cause its easy :-)
         _B.mutate result, _B.arrayize, _.isString
 
     result
-
-
-
 
 
   ###
@@ -71,7 +68,7 @@ class uBerscoreShortcuts # class cause its easy :-)
   @todo:(2 3 7) Generalize this and the above!
   ###
   toObjectKeysWithNameAttributeAsKey: (input, name='name')->
-    result = _B.arrayize input, _.isString
+    result = if _.isString input then _B.arrayize(input) else input
 
     # change ['str1', 'str2'] to {str1:{}, str2:{}}
     if _.isArray result
@@ -89,10 +86,12 @@ module.exports = new uBerscoreShortcuts
 
 ##@todo : specs
 #_Bs = module.exports
+#l = new _B.Logger 'Dummy tests'
 #
-#console.log _Bs.toObjectKeysWithArrayValues 'lalakis'
-#console.log _Bs.toObjectKeysWithArrayValues ['str1', 'str2']
-#console.log _Bs.toObjectKeysWithArrayValues {key1: 'lalakis', key2: ['ok','yes']}
+#l.log _Bs.toObjectKeysWithArrayValues 'lalakis'
+#l.log _Bs.toObjectKeysWithArrayValues ['str1', 'str2']
+#l.log _Bs.toObjectKeysWithArrayValues {key1: 'lalakis', key2: ['ok','yes']}
+#l.log _B.mutate {key1: 'lalakis', key2: ['ok','yes']}, _B.arrayize, _.isString
 #
 #
 #console.log _Bs.toObjectKeysWithNameAttributeAsKey 'UMD'

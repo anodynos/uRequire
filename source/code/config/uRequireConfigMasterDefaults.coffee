@@ -5,14 +5,11 @@
 #   *  if on node, write to a .json or .js file
 #   *  return as UMD/AMD/nodejs module otherwise
 
-_fs =  require 'fs'
+#_fs =  require 'fs'
 _= require 'lodash'
-_B = require 'uberscore'
-Logger = require '../utils/Logger'
-l = new Logger 'uRequireConfigMasterDefaults'
+#_B = require 'uberscore'
 
-rJSON = (file)-> JSON.parse _fs.readFileSync file, 'utf-8'
-
+#rJSON = (file)-> JSON.parse _fs.readFileSync file, 'utf-8'
 
 module.exports =
 
@@ -287,8 +284,8 @@ uRequireConfig = # Command line options overide these.
   #    webRootMap: "/../../.."
   #
   #    requirejs:
-  #      alwaysAsyncRequire:true # true (default) : RJS node behaviour of >= 2.1.x.
-  #                              # false: inconsistent RJS 2.0.x behaviour (when all modules are cached, loading is synchronous)
+  #      alwaysAsyncRequire:true # true (default) : RJS node behavior of >= 2.1.x.
+  #                              # false: inconsistent RJS 2.0.x behavior (when all modules are cached, loading is synchronous)
   #      config :
   #        baseUrl: "some/other/path"
   #        paths: rJSON('requirejs.config.json').paths # or `require "json!requirejs.config.json"`
@@ -337,5 +334,3 @@ uRequireConfig = # Command line options overide these.
 #      ### BELOW HERE NOT USED - comments ###
 #      baseUrl: "use uRequire.bundlePath instead" ?
 #      appDir:  "use uRequire.appDir instead"
-
-#l.log l.prettify uRequireConfig

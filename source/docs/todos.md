@@ -1,5 +1,8 @@
 Using todo: UEG scheme - check `todo-notes.md`
 
+## NodeRequirer loading
+- (7 5 2) - NodeRequirer should not missinform on exceptions - test with deliberate errors
+
 ## uRequire.config
 
 - (8 5 3) Proper recursive reading / fixation of config files
