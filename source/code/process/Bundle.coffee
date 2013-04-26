@@ -109,7 +109,7 @@ class Bundle extends BundleBase
         if not @uModules[moduleFN]
           @uModules[moduleFN] = new UModule @, moduleFN, moduleSource
       catch err
-        l.debug 80, err
+        l.debug(80, err)
         if not _fs.existsSync fullModulePath  # remove it, if missing from filesystem
           l.log "Missing file '#{fullModulePath}', removing module '#{moduleFN}'"
           delete @uModules[moduleFN] if @uModules[moduleFN]
@@ -128,7 +128,9 @@ class Bundle extends BundleBase
       if not @build.combinedFile # change @build's paths
         @build.combinedFile = upath.changeExt @build.outputPath, '.js'
         @build.outputPath = "#{@build.combinedFile}__temp"
-        l.debug 95, "Setting @build.combinedFile = '#{@build.outputPath}' and @build.outputPath = '#{@build.outputPath}'"
+        l.debug("Setting @build.combinedFile =", @build.outputPath,
+                ' and @build.outputPath = ', @build.outputPath
+        ) if l.deb 30
 
     @copyNonModuleFiles() #@todo:5 unless bundle or @build says no
 
@@ -193,7 +195,7 @@ class Bundle extends BundleBase
                           "#{@build.outputPath}#{depName}" #to
 
   deleteModules: (modules)-> #todo: implement it
-    l.debug 50, "delete #{@uModules[m]}" for m in modules if @uModules[m]
+    l.debug("delete #{@uModules[m]}" for m in modules if @uModules[m]) if l.deb 30
 
   ###
 
@@ -285,16 +287,16 @@ class Bundle extends BundleBase
 
           optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
           name: 'almond'
-        rjsConfig.logLevel = 0 if l.debugLevel >= 90
+        rjsConfig.logLevel = 0 if _B.Logger.debugLevel >= 90
 
         # actually combine (r.js optimize)
-        l.verbose "Optimize with r.js with uRequire's 'build.js' = \n", l.prettify _.omit(rjsConfig, ['wrap'])
+        l.verbose "Optimize with r.js with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
         @requirejs.optimize _.clone(rjsConfig), (buildResponse)->
           l.verbose 'r.js buildResponse = ', buildResponse
 
   #      if true
         setTimeout  (=>
-          l.debug 60, 'Checking r.js output file...'
+          l.debug(60, 'Checking r.js output file...')
           if _fs.existsSync build.combinedFile
             l.log "Combined file '#{build.combinedFile}' written successfully."
 
@@ -302,8 +304,8 @@ class Bundle extends BundleBase
             if not _.isEmpty globalDepsVars
               l.log """
                 Global bindinds: make sure the following global dependencies
-
-                #{l.prettify globalDepsVars}
+                """
+                , globalDepsVars, """
 
                 are available when combined script '#{build.combinedFile}' is running on:
 
@@ -316,11 +318,11 @@ class Bundle extends BundleBase
               """
 
             # delete outputPath, used as temp directory with individual AMD files
-            if _B.Logger::debugLevel < 50
-              l.debug 40, "Deleting temporary directory '#{build.outputPath}'."
+            if _B.Logger.debugLevel < 50
+              l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
               _wrench.rmdirSyncRecursive build.outputPath
             else
-              l.debug "NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50."
+              l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50.")
             build.done true
           else
             l.err """
@@ -341,8 +343,8 @@ class Bundle extends BundleBase
                Note that you can check the AMD-ish files used in temporary directory '#{build.outputPath}'.
 
                More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
-               #{l.prettify rjsConfig}
-            """
+
+            """, rjsConfig
 
             build.done false
         ), 100
@@ -405,14 +407,14 @@ class Bundle extends BundleBase
     depsVars
 
 
-if _B.Logger::debugLevel > 90
+if _B.Logger.debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)
     .before /_constructor/, (match, bundleCfg)->
-      l.debug "Before '#{match}' with bundleCfg = \n", _.omit(bundleCfg, [])
+      l.debug("Before '#{match}' with bundleCfg = \n", _.omit(bundleCfg, []))
     .before /combine/, (match)->
-      l.debug 'combine: optimizing with r.js'
+      l.debug('combine: optimizing with r.js')
 
 module.exports = Bundle
 

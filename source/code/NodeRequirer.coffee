@@ -50,20 +50,20 @@ class NodeRequirer extends BundleBase
       @dirname + '/' + (pathRelative "$/#{upath.dirname @moduleNameBR}", "$/") + '/'
     )
 
-    l.debug 6, """
+    l.debug("""
       new NodeRequirer(
         @moduleNameBR='#{@moduleNameBR}'
         @dirname='#{@dirname}'
         @webRootMap='#{@webRootMap}')
 
         Calculated @bundlePath (from @moduleNameBR & @dirname) = #{@bundlePath}
-    """
+    """) if l.deb 10
 
     if @getRequireJSConfig().baseUrl
       oldbundlePath = @bundlePath
       baseUrl = @getRequireJSConfig().baseUrl
 
-      l.debug 7, "`baseUrl` (from requireJsConfig ) = #{baseUrl}"
+      l.debug("`baseUrl` (from requireJsConfig ) = #{baseUrl}") if l.deb 15
 
       @bundlePath = upath.normalize (
         if baseUrl[0] is '/'  #web root as reference
@@ -72,12 +72,12 @@ class NodeRequirer extends BundleBase
           @bundlePath
         ) + '/' + baseUrl + '/'
 
-      l.debug 5, "Final `@bundlePath` (from requireJsConfig.baseUrl & @bundlePath) = #{@bundlePath}"
+      l.debug("Final `@bundlePath` (from requireJsConfig.baseUrl & @bundlePath) = #{@bundlePath}") if l.deb 30
 #      if oldbundlePath isnt @bundlePath # store requireJSConfig for this new @bundlePath
-#        l.debug """
+#        l.debug("""
 #          ### stroring rjs config ###
 #          NodeRequirer::requireJSConfigs[#{@bundlePath}] = NodeRequirer::requireJSConfigs[#{oldbundlePath}]
-#        """
+#        """)
 #        NodeRequirer::requireJSConfigs[@bundlePath] = NodeRequirer::requireJSConfigs[oldbundlePath]
 
   ###
@@ -213,7 +213,7 @@ class NodeRequirer extends BundleBase
         # load a simple node or UMD module.
         if dep.pluginName in [undefined, 'node'] # plugin 'node' is dummy: just signals a require effective only
                                                  # on node execution, hence ommited from arrayDeps.
-          l.debug 95, "@nodeRequire '#{_modulePath}'"
+          l.debug("@nodeRequire '#{_modulePath}'") if l.deb 95
           attempts.push # @todo: (7 2 1) store @module.require.paths
               modulePath: _modulePath
               requireUsed: 'nodeRequire'
@@ -227,7 +227,7 @@ class NodeRequirer extends BundleBase
             if err1 is undefined or not _.startsWith(err.toString(), "Error: Cannot find module") # prefer to keep 'generic' errors in err1
               err1 = err
 
-            l.debug 35, "FAILED: @nodeRequire '#{_modulePath}' \n err=\n", err
+            l.debug("FAILED: @nodeRequire '#{_modulePath}' \n err=\n", err) if l.deb 35
             _.extend _.last(attempts),
                 urequireError: "Error loading node or UMD module through nodejs require."
                 error:
@@ -239,7 +239,7 @@ class NodeRequirer extends BundleBase
             _modulePath = upath.addExt _modulePath, '.js' # make sure we have it WHY ? @todo: Q: can it be if global ?
 
             if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
-              l.debug 25, "FAILURE caused: @getRequirejs() '#{_modulePath}'"
+              l.debug("FAILURE caused: @getRequirejs() '#{_modulePath}'") if l.deb 25
               attempts.push
                   modulePath: _modulePath
                   requireUsed: 'RequireJS'
@@ -251,7 +251,7 @@ class NodeRequirer extends BundleBase
                 loadedModule = @getRequirejs() _modulePath
               catch err
                 err2 = err
-                l.debug 35, "FAILED: @getRequirejs() '#{_modulePath}' \n err=#{err2}"
+                l.debug("FAILED: @getRequirejs() '#{_modulePath}' \n err=#{err2}") if l.deb 35
                 _.extend _.last(attempts),
                     urequireError: "Error loading module through RequireJS; it previously failed with node's require."
                     error:
@@ -261,7 +261,7 @@ class NodeRequirer extends BundleBase
                       err: err
         else
           _modulePath = "#{dep.pluginName}!#{_modulePath}"
-          l.debug 25, "PLUGIN caused: @getRequirejs() '#{_modulePath}'"
+          l.debug("PLUGIN caused: @getRequirejs() '#{_modulePath}'") if l.deb 25
           attempts.push
             modulePath: _modulePath
             requireUsed: 'RequireJS'
@@ -295,14 +295,14 @@ class NodeRequirer extends BundleBase
 
       throw err1
     else
-      l.debug 70, """
+      l.debug("""
         #{if isCached then "CACHE-" else ''}loaded module: '#{dep.name()}'
                 from : '#{_modulePath}' :-)
-      """
+      """) if l.deb 70
       if not isCached
-        l.debug 50, """
+        l.debug("""
           debugInfo = \u001b[33m#{@debugInfo}"
-        """
+        """) if l.deb 50
 
       return @cachedModules[_modulePath] = loadedModule # caching as 'plugin!filename' (if its plugin loaded)
 

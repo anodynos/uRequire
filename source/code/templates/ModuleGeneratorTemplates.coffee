@@ -188,5 +188,5 @@ class ModuleGeneratorTemplates extends Template
 #
 #  (YADC ModuleGeneratorTemplates)
 #    .before /_constructor/, (match, ti)->
-#      l.debug "Before '#{match}' with 'templateInfo' = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
+#      l.debug("Before '#{match}' with 'templateInfo' = \n", _.omit(ti, ['factoryBody', 'webRootMap', ]))
 #

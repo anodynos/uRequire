@@ -10,10 +10,6 @@ uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 
 _Bs = require '../utils/uBerscoreShortcuts'
 
-Bundle = require './Bundle' # @todo: YADC _B.Logging.debugLevel check not working when these load up
-Build = require './Build'
-
-
 require('butter-require')() # no need to store it somewhere
 
 ###
@@ -63,7 +59,7 @@ class BundleBuilder
     # verbose / debug anyone ?
     if @buildCfg.debugLevel?
       _B.Logger.debugLevel = @buildCfg.debugLevel
-      l.log 'Setting _B.Logger.debugLevel =', _B.Logger.debugLevel
+      l.debug 0, 'Setting _B.Logger.debugLevel =', _B.Logger.debugLevel
 
     if not @buildCfg.verbose
       if _B.Logger.debugLevel >= 50
@@ -71,6 +67,9 @@ class BundleBuilder
       else
         _B.Logger::verbose = ->
 
+    # @todo: why here? Why @ ? We need to have _B.Logging.debugLevel ready for YADC check
+    @Bundle = require './Bundle'
+    @Build = require './Build'
 
     ###
     Lets check & fix different formats or quit if we have anomalies
@@ -89,7 +88,8 @@ class BundleBuilder
     if be = @bundleCfg.dependencies?.bundleExports
       @bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
       if not _.isEmpty @bundleCfg.dependencies.bundleExports
-        l.debug 20, "@bundleCfg.dependencies.bundleExports' = \n", l.prettify @bundleCfg.dependencies?.bundleExports
+        l.debug("@bundleCfg.dependencies.bundleExports' = \n",
+                 @bundleCfg.dependencies?.bundleExports) if l.deb 20
 
     # @todo:2 where to stick these ?
     _B.mutate varNames, _B.arrayize for varNames in [
@@ -97,17 +97,17 @@ class BundleBuilder
       uRequireConfigMasterDefaults.bundle.dependencies._knownVariableNames
     ]
 
-    l.debug 30, "user @bundleCfg :\n", l.prettify @bundleCfg
-    l.debug 30, "user @buildCfg :\n", l.prettify @buildCfg
+    l.debug("user @bundleCfg :\n", @bundleCfg) if l.deb 30
+    l.debug("user @buildCfg :\n", @buildCfg) if l.deb 30
 
     if @isCheckAndFixPaths() and @isCheckAndFixTemplate() # Prepare for buildBundle() !
       @storeCfgDefaults uRequireConfigMasterDefaults
       # display full cfgs, after applied master defaults.
-      l.debug 80, "final @bundleCfg :\n", l.prettify @bundleCfg
-      l.debug 80, "final @buildCfg :\n", l.prettify @buildCfg
+      l.debug("final @bundleCfg :\n", @bundleCfg) if l.deb 20
+      l.debug("final @buildCfg :\n", @buildCfg) if l.deb 20
 
-      @bundle = new Bundle @bundleCfg
-      @build = new Build @buildCfg
+      @bundle = new @Bundle @bundleCfg
+      @build = new @Build @buildCfg
 
     else # something went wrong with paths, template etc #@todo:2,4 add more fixes/checks ?
       @buildCfg.done false
@@ -147,7 +147,7 @@ class BundleBuilder
     if _.isString @buildCfg.template
       @buildCfg.template = {name: @buildCfg.template} # default
 
-    if @buildCfg.template.name not in Build.templates
+    if @buildCfg.template.name not in @Build.templates
       l.err """
         Quitting build, invalid template '#{@buildCfg.template.name}' specified.
         Use -h for help"""
@@ -159,7 +159,7 @@ class BundleBuilder
     if not @bundleCfg.bundlePath
       # assume bundlePath, from the 1st configFile that come along
       if cfgFile = @configs[0]?.configFiles[0]
-        l.debug 40, "Assuming bundlePath = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
+        l.debug("Assuming bundlePath = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'") if l.deb(40)
         @bundleCfg.bundlePath = upath.dirname cfgFile
         return true
       else
@@ -192,9 +192,9 @@ module.exports = BundleBuilder
 
 ### Debug information ###
 
-if _B.Logger::debugLevel > 10 or true
+if _B.Logger.debugLevel > 10 or true
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(BundleBuilder)
     .before /_constructor/, (match, config)->
-      l.debug 1, "Before '#{match}' with config = ", l.prettify config
+      l.debug(1, "Before '#{match}' with config = ", config)

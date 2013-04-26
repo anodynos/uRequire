@@ -53,7 +53,7 @@ class UModule
         @_sourceCodeJs = @sourceCode
       else # compile to coffee, iced, coco etc
         if @extname is '.coffee'
-          l.debug 95, "Compiling coffeescript '#{@filename}'"
+          l.debug("Compiling coffeescript '#{@filename}'") if l.deb 90
           cs = require 'coffee-script'
           try
             @_sourceCodeJs = cs.compile @sourceCode, bare:true
@@ -139,20 +139,20 @@ class UModule
   ###
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
-      l.debug 30, "Converting module '#{@modulePath}'"
+      l.debug("Converting module '#{@modulePath}'") if l.deb 30
 
       # inject Dependencies information to arrayDeps, nodeDeps & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.bundleExports)
-        l.debug 30, "#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports
+        l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports) if l.deb 30
 
         for depName, varNames of bundleExports
           if _.isEmpty varNames
             # attempt to read from bundle & store found varNames at @bundle.dependencies.bundleExports
             varNames = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
-            l.debug 40, """
+            l.debug("""
               #{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
               An attempt to infer varNames from bundle:
-            """, varNames
+              """, varNames) if l.deb 40
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
             console.log 'bundleExports=', bundleExports
@@ -195,9 +195,9 @@ class UModule
                 @arrayDeps.push d
                 @nodeDeps.push d
                 @parameters.push varName
-                l.debug 50, "#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'"
+                l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 50
               else
-                l.debug 10, "#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists."
+                l.debug("#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") if l.deb 10
 
       # @todo:3 also add rootExports ?
 
@@ -282,15 +282,12 @@ class UModule
   }, fltr: (v)->not _.isUndefined v
 
 ### Debug information ###
-
-l.log '_B.Logger.debugLevel', _B.Logger.debugLevel
-
 if _B.Logger.debugLevel >= 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(UModule)
     .before /_constructor/, (match, bundle, filename)->
-      l.debug "Before '#{match}' with filename = '#{filename}'"
+      l.debug("Before '#{match}' with filename = '#{filename}'")
 
 
 

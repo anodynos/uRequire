@@ -40,7 +40,7 @@ class Build
 
 
   @outputToFile: (outputFilename, content)-> # @todo:1 make private ?
-    l.debug 5, "Writting file '#{outputFilename}' (#{content.length} chars)"
+    l.debug("Writting file ", outputFilename, content.length, ' chars') if l.deb 5
     try
       if not _fs.existsSync upath.dirname(outputFilename)
         l.verbose "Creating directory '#{upath.dirname outputFilename}'"
@@ -57,7 +57,7 @@ class Build
   # copyFile helper (missing from fs & wrench)
   # @todo: improve (based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/)
   @copyFileSync: (srcFile, destFile) ->
-    l.debug 30, "copyFileSync {src='#{srcFile}', dst='#{destFile}'"
+    l.debug("copyFileSync {src='#{srcFile}', dst='#{destFile}'") if l.deb 30
     try
       BUF_LENGTH = 64*1024
       buff = new Buffer(BUF_LENGTH)
@@ -82,9 +82,9 @@ class Build
       throw err
 
 
-if _B.Logger::debugLevel > 90
+if _B.Logger.debugLevel > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Build)
     .before /_constructor/, (match, buildCfg)->
-      l.debug "Before '#{match}' with buildCfg = \n", _.omit(buildCfg, [])
+      l.debug("Before '#{match}' with buildCfg = \n", _.omit(buildCfg, []))
