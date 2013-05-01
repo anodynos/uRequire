@@ -67,16 +67,19 @@ gruntFunction = (grunt) ->
         src: [
           '<banner:meta.usrBinEnvNode>'
           '<banner>'
+          '<banner:meta.varVersion>'  # add a runtime l.VERSION to _B.Logger's prototype
           '<%= options.buildDir %>/urequireCmd.js'
         ]
         dest:'<%= options.buildDir %>/urequireCmd.js'
 
-      VERSION: # runtime l.VERSION
+      VERSIONurequire:                # add a runtime l.VERSION to _B.Logger's prototype
         src: [
+          '<banner>'
           '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/utils/Logger.js'
+          '<%= options.buildDir %>/urequire.js'
         ]
-        dest:'<%= options.buildDir %>/utils/Logger.js'
+        dest:'<%= options.buildDir %>/urequire.js'
+
 
     clean:
       build: [
@@ -118,9 +121,10 @@ gruntFunction = (grunt) ->
 
   null
 
-#debug : call with a dummy 'grunt', that spits params on console.log
+# debug : call with a dummy 'grunt', that spits params on console.log
 #gruntFunction
 #  initConfig: (cfg)-> console.log 'grunt: initConfig\n', JSON.stringify cfg, null, ' '
 #  loadNpmTasks: (tsk)-> console.log 'grunt: registerTask: ', tsk
 #  registerTask: (shortCut, task)-> console.log 'grunt: registerTask:', shortCut, task
+
 module.exports = gruntFunction

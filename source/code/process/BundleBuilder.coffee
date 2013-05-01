@@ -8,9 +8,8 @@ l = new _B.Logger 'BundleBuilder'
 upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 
+blendConfigs = require '../config/blendConfigs'
 _Bs = require '../utils/uBerscoreShortcuts'
-
-require('butter-require')() # no need to store it somewhere
 
 ###
   Load config :
@@ -25,35 +24,17 @@ class BundleBuilder
 
   _constructor: (@configs...)->
 
-    # Create our 2 main config objects : 'bundle' & 'build'
-    @bundleCfg = {}
-    @buildCfg = {}
+    # blend all configuration from all configs passed (including nested .configFiles)
+    finalCfg = blendConfigs configs
 
+    # Create our 2 main config objects : 'bundle' & 'build'
+    @bundleCfg = finalCfg.bundle
+    @buildCfg = finalCfg.build
     @buildCfg.done = configs[0]?.done or -> # @todo: remove / test user configable
 
     ###
-    Default-copy all configuration from all configs... that are passed.
-    ###
-
-    # @todo:(7 5 4) we need to trully 'recursivelly' process !
-    for config in configs when config
-      @storeCfgDefaults config
-
-      # in each config, we might have nested configFiles
-      # todo: read configFiles with the proper recursion above
-      for cfgFilename in _B.arrayize config.configFiles when cfgFilename # no nulls/empty strings
-        # get deep defaults to current configuration
-        @storeCfgDefaults require _fs.realpathSync cfgFilename
-        # ? add configFile to exclude'd files ?
-        #  (bundle.exclude ?= []).push upath.relative(options.bundlePath, configFile)
-
-    ###
     We should now have our 'final' configs, @bundleCfg & @buildCfg
-
     Lets check they are ok & fix formats!
-
-    @todo:(7 4 5) make part of the recursive fixation above
-    @todo:(3 2 9) Make generic, for all kinds of schematization, transforamtion & validation of config data.
     ###
 
     # verbose / debug anyone ?
@@ -75,33 +56,10 @@ class BundleBuilder
     Lets check & fix different formats or quit if we have anomalies
     ###
 
-    # Convert from
-    #
-    #     bundleExports: ['lodash', 'jquery']
-    #
-    # to the valid-internally
-    #
-    #     bundleExports: {
-    #       'lodash':[],
-    #       'jquery':[]
-    #     }
-    if be = @bundleCfg.dependencies?.bundleExports
-      @bundleCfg.dependencies.bundleExports = _Bs.toObjectKeysWithArrayValues be # see toObjectKeysWithArrayValues
-      if not _.isEmpty @bundleCfg.dependencies.bundleExports
-        l.debug("@bundleCfg.dependencies.bundleExports' = \n",
-                 @bundleCfg.dependencies?.bundleExports) if l.deb 20
-
-    # @todo:2 where to stick these ?
-    _B.mutate varNames, _B.arrayize for varNames in [
-      @bundleCfg?.dependencies?.variableNames or {}
-      uRequireConfigMasterDefaults.bundle.dependencies._knownVariableNames
-    ]
-
     l.debug("user @bundleCfg :\n", @bundleCfg) if l.deb 30
     l.debug("user @buildCfg :\n", @buildCfg) if l.deb 30
 
     if @isCheckAndFixPaths() and @isCheckAndFixTemplate() # Prepare for buildBundle() !
-      @storeCfgDefaults uRequireConfigMasterDefaults
       # display full cfgs, after applied master defaults.
       l.debug("final @bundleCfg :\n", @bundleCfg) if l.deb 20
       l.debug("final @buildCfg :\n", @buildCfg) if l.deb 20
@@ -109,7 +67,7 @@ class BundleBuilder
       @bundle = new @Bundle @bundleCfg
       @build = new @Build @buildCfg
 
-    else # something went wrong with paths, template etc #@todo:2,4 add more fixes/checks ?
+    else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
       @buildCfg.done false
 
   buildBundle: ->
@@ -118,19 +76,6 @@ class BundleBuilder
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
-
-  ###
-    Store cfg (without overwritting) in our @bundleCfg
-    @todo: 1,1 store _.keys uRequireConfigMasterDefaults.bundle & build
-  ###
-  storeCfgDefaults: (cfg)->
-    # read bundle keys from both a) simple/flat cfg and b) cfg.bundle
-    @bundleCfg = _B.deepCloneDefaults @bundleCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.bundle
-    @bundleCfg = _B.deepCloneDefaults @bundleCfg, cfg.bundle or {}
-
-    # read build keys from both a) simple/flat cfg and b) cfg.build
-    @buildCfg = _B.deepCloneDefaults @buildCfg, _B.go cfg, fltr: _.keys uRequireConfigMasterDefaults.build
-    @buildCfg = _B.deepCloneDefaults @buildCfg, cfg.build or {}
 
   # @todo:6,6 watch build's folder & rebuild
   # @watchDirectory @cfg.bundle.bundlePath
@@ -158,7 +103,7 @@ class BundleBuilder
   isCheckAndFixPaths: ->
     if not @bundleCfg.bundlePath
       # assume bundlePath, from the 1st configFile that come along
-      if cfgFile = @configs[0]?.configFiles[0]
+      if cfgFile = @configs[0]?.configFiles?[0]?
         l.debug("Assuming bundlePath = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'") if l.deb(40)
         @bundleCfg.bundlePath = upath.dirname cfgFile
         return true

@@ -3,9 +3,10 @@ _fs = require 'fs'
 _wrench = require "wrench"
 _B = require 'uberscore'
 
+_B.Logger::VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat
 l = new _B.Logger 'urequireCMD'
 
-urequireCmd = require 'commander'
+urequireCommander = require 'commander'
 upath = require './paths/upath'
 Build = require './process/Build'
 
@@ -15,7 +16,7 @@ toArray = (val)-> val.split(',')
 
 config = {}
 
-urequireCmd
+urequireCommander
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <bundlePath> [options]')
   .version(l.VERSION) # 'var version = xxx' written by grunt's banner
@@ -37,19 +38,19 @@ urequireCmd
 
 for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combined']
   do (tmplt)->
-    urequireCmd
+    urequireCommander
       .command("#{tmplt} <bundlePath>")
       .description("Converts all modules in <bundlePath> using '#{tmplt}' template.")
       .action (bundlePath)->
         config.template = tmplt
         config.bundlePath = bundlePath
 
-urequireCmd
+urequireCommander
   .command('config <configFiles...>')
   .action (cfgFiles)->
     config.configFiles = toArray cfgFiles
 
-urequireCmd.on '--help', ->
+urequireCommander.on '--help', ->
   l.log """
   Examples:
                                                                   \u001b[32m
@@ -98,13 +99,13 @@ urequireCmd.on '--help', ->
     uRequire version #{l.VERSION}
   """
 
-urequireCmd.parse process.argv
+urequireCommander.parse process.argv
 
 #hack to get cmd options only ['verbose', 'scanAllow', 'outputPath', ...] etc
-CMDOPTIONS = _.map(urequireCmd.options, (o)-> o.long.slice 2)
+CMDOPTIONS = _.map(urequireCommander.options, (o)-> o.long.slice 2)
 
 # overwrite anything on config's root by cmdConfig - BundleBuilder handles the rest
-_.extend config, _.pick(urequireCmd, CMDOPTIONS)
+_.extend config, _.pick(urequireCommander, CMDOPTIONS)
 delete config.version
 
 if _.isEmpty config

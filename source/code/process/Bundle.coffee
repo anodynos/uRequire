@@ -202,7 +202,7 @@ class Bundle extends BundleBase
   ###
   combine: (@build)->
 
-    if not @main # set to bundleName, or index.js, main.js & other sensible defaults
+    if not @main # set to bundleName, or index.js, main.js @todo: & other sensible defaults ?
       for mainModuleCandidate in [@bundleName, 'index', 'main'] when mainModuleCandidate and not @main
         @main = _.find @moduleFilenames, (mf)->
             for ext in Build.moduleExtensions
@@ -211,11 +211,13 @@ class Bundle extends BundleBase
             false
 
         if @main
+          @mainExt = @main
+          @main = upath.trimExt @main
           l.warn """
            combine() note: 'bundle.main', your *entry-point module* was missing from bundle config(s).
-           It's defaulting to '#{upath.trimExt @main}', from existing '#{@bundlePath}/#{@main}' module in your bundlePath.
-           """
-          @main = upath.trimExt @main
+           It's defaulting to #{if @main is @bundleName then 'bundle.bundleName = ' else ''
+           }'#{@main}', as uRequire found an existing '#{@bundlePath}/#{@mainExt}' module in your bundlePath.
+          """
 
     if not @main
       l.err """
@@ -302,12 +304,8 @@ class Bundle extends BundleBase
 
             globalDepsVars = @getDepsVars depType:'global'
             if not _.isEmpty globalDepsVars
-              l.log """
-                Global bindinds: make sure the following global dependencies
-                """
-                , globalDepsVars, """
-
-                are available when combined script '#{build.combinedFile}' is running on:
+              l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars, """\n
+                  are available when combined script '#{build.combinedFile}' is running on:
 
                   a) nodejs: they should exist as a local `nodes_modules`.
 

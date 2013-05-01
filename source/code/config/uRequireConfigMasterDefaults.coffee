@@ -141,7 +141,6 @@ uRequireConfig = # Command line options overide these.
         knockout: ["ko", 'Knockout']
 
       ###
-      depe
       { dependency: varName(s) *}
           or
       ['dep1', 'dep2'] (with discovered or ../variableNames names
@@ -153,7 +152,7 @@ uRequireConfig = # Command line options overide these.
         'jquery': ["$", "jQuery"]
         'models/PersonModel': ['persons', 'personsModel']
       }
-      @todo: rename to exports.bundle | bundleGlobals | sometheing else?
+      @todo: rename to exports.bundle | bundleGlobals | something else?
       ###
       bundleExports: {}
 
@@ -168,7 +167,6 @@ uRequireConfig = # Command line options overide these.
       ###
         Replace all right hand side dependencies (String value or []<String> values), to the left side (key)
         Eg `lodash: ['underscore']` replaces all "underscore" deps to "lodash" in the build files.
-
       ###
       #@todo: Not implemented
       replaceTo:
@@ -214,9 +212,13 @@ uRequireConfig = # Command line options overide these.
 #       # combined options: use a 'Universal' build, based on almond that works as standalone <script>, as AMD dependency and on node!
 #       # @todo:3 implement other methods ? 'simple AMD build"
 #      'combined':
+
 #          # @default 'almond' - only one for now
 #          method: 'almond'
 #
+           # Code to be injected before the factory = {....} definition - eg variables available throughout your module
+#          inject: "var VERSION = '0.0.8'; //injected by grunt:concat"
+
 #          ###
 #          Array of globals that will be inlined (instead of creating a getGlobal_xxx).
 #          * 'true' means all (global) libs are inlined.
