@@ -1,7 +1,7 @@
 _ = require 'lodash'
 _B = require 'uberscore'
 
-l = new _B.Logger 'ModuleGeneratorTemplates'
+l = new _B.Logger 'urequire/ModuleGeneratorTemplates'
 
 pathRelative = require('../paths/pathRelative')
 Template = require './Template'
@@ -183,7 +183,7 @@ class ModuleGeneratorTemplates extends Template
 
 ### Debug information ###
 
-#if l.debugLevel > 90
+#if l.deb 90
 #  YADC = require('YouAreDaChef').YouAreDaChef
 #
 #  (YADC ModuleGeneratorTemplates)

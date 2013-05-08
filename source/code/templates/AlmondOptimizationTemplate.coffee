@@ -1,5 +1,5 @@
 _B = require 'uberscore'
-l = new _B.Logger 'AlmondOptimizationTemplates'
+l = new _B.Logger 'urequire/AlmondOptimizationTemplates'
 
 Template = require './Template'
 

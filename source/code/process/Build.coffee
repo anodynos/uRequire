@@ -3,7 +3,7 @@ _fs = require 'fs'
 _wrench = require 'wrench'
 _B = require 'uberscore'
 
-l = new _B.Logger 'Build'
+l = new _B.Logger 'urequire/Build'
 
 # uRequire
 upath = require '../paths/upath'
@@ -18,7 +18,7 @@ class Build
   constructor: ->@_constructor.apply @, arguments
 
   _constructor: (buildCfg)->
-    _.extend @, _B.deepCloneDefaults buildCfg, uRequireConfigMasterDefaults.build
+    _.extend @, buildCfg
 
     @out = Build.outputModuleToFile unless @out #todo: check 'out' - what's out there ?
 
@@ -82,7 +82,7 @@ class Build
       throw err
 
 
-if _B.Logger.debugLevel > 90
+if l.deb 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Build)

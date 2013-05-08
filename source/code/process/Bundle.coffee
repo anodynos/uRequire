@@ -5,7 +5,7 @@ _fs = require 'fs'
 _wrench = require 'wrench'
 _B = require 'uberscore'
 
-l = new _B.Logger 'Bundle'
+l = new _B.Logger 'urequire/Bundle'
 
 # uRequire
 upath = require '../paths/upath'
@@ -28,7 +28,7 @@ class Bundle extends BundleBase
 
   constructor:-> @_constructor.apply @, arguments
   _constructor: (bundleCfg)->
-    _.extend @, _B.deepCloneDefaults bundleCfg, uRequireConfigMasterDefaults.bundle #todo: do we need this here ?
+    _.extend @, bundleCfg
 
     @reporter = new DependenciesReporter()
 
@@ -289,7 +289,7 @@ class Bundle extends BundleBase
 
           optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
           name: 'almond'
-        rjsConfig.logLevel = 0 if _B.Logger.debugLevel >= 90
+        rjsConfig.logLevel = 0 if l.deb 90
 
         # actually combine (r.js optimize)
         l.verbose "Optimize with r.js with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
@@ -316,7 +316,7 @@ class Bundle extends BundleBase
               """
 
             # delete outputPath, used as temp directory with individual AMD files
-            if _B.Logger.debugLevel < 50
+            if not l.deb 50
               l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
               _wrench.rmdirSyncRecursive build.outputPath
             else
@@ -405,7 +405,7 @@ class Bundle extends BundleBase
     depsVars
 
 
-if _B.Logger.debugLevel > 90
+if l.deb > 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)

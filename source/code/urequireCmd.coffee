@@ -4,7 +4,7 @@ _wrench = require "wrench"
 _B = require 'uberscore'
 
 _B.Logger::VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat
-l = new _B.Logger 'urequireCMD'
+l = new _B.Logger 'urequire/urequireCMD'
 
 urequireCommander = require 'commander'
 upath = require './paths/upath'
@@ -48,7 +48,7 @@ for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combined']
 urequireCommander
   .command('config <configFiles...>')
   .action (cfgFiles)->
-    config.configFiles = toArray cfgFiles
+    config.derive = toArray cfgFiles
 
 urequireCommander.on '--help', ->
   l.log """
@@ -116,6 +116,10 @@ if _.isEmpty config
   """
   l.log "uRequire version #{l.VERSION}"
 else
+  if config.debugLevel?
+    _B.Logger.setDebugLevel config.debugLevel, 'urequire'
+    l.debug 0, "Setting cmd _B.Logger.setDebugLevel(#{config.debugLevel}, 'urequire')"
+
   if config.verbose
     l.verbose 'uRequireCmd called with cmdConfig=\n', config
 
@@ -126,5 +130,5 @@ else
       l.err "uRequireCmd done(), with errors!"
       process.exit 1
 
-  bb = new (require './urequire').BundleBuilder config
+  bb = new (require './urequire').BundleBuilder [config]
   bb.buildBundle()

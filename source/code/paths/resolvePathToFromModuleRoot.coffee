@@ -1,4 +1,6 @@
-#todo: add tests
+# todo: (3, 4, 2) add docs & perhaps simplify/remove/generalize ?
+# todo: add tests
+
 resolvePathToFromModuleRoot = (moduleName, pathFromModuleRoot)->
   pathRelative = require './pathRelative'
   _path = require 'path'

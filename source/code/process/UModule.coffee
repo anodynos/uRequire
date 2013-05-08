@@ -1,7 +1,7 @@
 _ = require 'lodash'
 _B = require 'uberscore'
 
-l = new _B.Logger 'UModule'
+l = new _B.Logger 'urequire/UModule'
 
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
@@ -151,11 +151,9 @@ class UModule
             varNames = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
             l.debug("""
               #{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
-              An attempt to infer varNames from bundle:
-              """, varNames) if l.deb 40
+              An attempt to infer varNames from bundle: """, varNames) if l.deb 40
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
-            console.log 'bundleExports=', bundleExports
             err = uRequire: """
               Error converting bundle named '#{@bundle.bundleName}' in '#{@bundle.bundlePath}'.
 
@@ -282,7 +280,7 @@ class UModule
   }, fltr: (v)->not _.isUndefined v
 
 ### Debug information ###
-if _B.Logger.debugLevel >= 90
+if l.deb >= 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(UModule)
