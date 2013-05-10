@@ -21,27 +21,32 @@ class BundleBuilder
 
   constructor: (@configs, deriveLoader)->
 
-    userCfg = blendConfigs configs, deriveLoader
+    configs.push uRequireConfigMasterDefaults # add as the last one - the defaults on which we lay our more specifics
+    finalCfg = blendConfigs configs, deriveLoader
 
     # we now have our 'final' USER config
-    @bundleCfg = userCfg.bundle
-    @buildCfg = userCfg.build
-    @buildCfg.done = configs[0]?.done or -> # @todo: remove / test user configable
+    @bundleCfg = finalCfg.bundle
+    @buildCfg = finalCfg.build
+    @buildCfg.done = configs[0]?.done or ->l.log 'where s my done1?' # @todo: remove / test user configable
 
     # verbose / debug anyone ?
     if @buildCfg.debugLevel?
       _B.Logger.setDebugLevel @buildCfg.debugLevel, 'urequire'
       l.debug 0, "Setting userCfg _B.Logger.setDebugLevel(#{@buildCfg.debugLevel}, 'urequire')"
 
-
     if not @buildCfg.verbose
       if @buildCfg.debugLevel >= 50
         l.warn 'Enabling verbose, because debugLevel >= 50'
       else
-        _B.Logger::verbose = ->
+        _B.Logger::verbose = -> #todo: travesty! 'verbose' whould be like debugLevel ?
 
-    l.debug("user @bundleCfg :\n", @bundleCfg) if l.deb 30
-    l.debug("user @buildCfg :\n", @buildCfg) if l.deb 30
+    # display userCfgs, WITHOUT applying master defaults
+    if l.deb 40
+      l.debug 40, "user config :\n",
+        blendConfigs(configs[0..configs.length-2], deriveLoader)
+
+    # display full cfgs, having applied master defaults.
+    l.debug("final config :\n", finalCfg) if l.deb 20
 
     ### Lets check & fix different formats or quit if we have anomalies ###
     # Why these here instead of top ? # Cause We need to have _B.Logging.debugLevel ready BEFORE YADC debug check
@@ -49,27 +54,13 @@ class BundleBuilder
     @Bundle = require './Bundle'
     @Build = require './Build'
 
-    if @isCheckAndFixPaths() and @isCheckAndFixTemplate()
-
-      finalCfg = blendConfigs [userCfg, uRequireConfigMasterDefaults], deriveLoader
-
-      # Create our 2 main config objects : 'bundleCfg' & 'buildCfg'
-      @bundleCfg = finalCfg.bundle
-      @buildCfg = finalCfg.build
-      @buildCfg.done = configs[0]?.done or -> # @todo: remove / test user configable
-
-      # display full cfgs, after applied master defaults.
-      l.debug("final @bundleCfg :\n", @bundleCfg) if l.deb 20
-      l.debug("final @buildCfg :\n", @buildCfg) if l.deb 20
-
+    if @isCheckAndFixPaths() and @isCheckTemplate()
       # Create the implementation instance from these configs @todo: refactor / redesign this / better practice ?
       @bundle = new @Bundle @bundleCfg
       @build = new @Build @buildCfg
 
-
     else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
-      l.debug(0, "@bundleCfg :\n", @bundleCfg)
-      l.debug(0, "@buildCfg :\n", @buildCfg)
+      l.debug(0, "Something went wrong - final cfg :\n", finalCfg)
       @buildCfg.done false
 
   buildBundle: ->
@@ -86,15 +77,8 @@ class BundleBuilder
   #    onFilesChange: (filesChanged)->
   #      bundle.loadModules filesChanged #:[]<String>
 
-  # fix & check if template is Ok.
-  # @todo: make this a blender
-  isCheckAndFixTemplate: ->
-    if not @buildCfg.template
-      @buildCfg.template = {name: 'UMD'} # default
-
-    if _.isString @buildCfg.template
-      @buildCfg.template = {name: @buildCfg.template} # default
-
+  # check if template is Ok - @todo: embed checks in blenders ?
+  isCheckTemplate: ->
     if @buildCfg.template.name not in @Build.templates
       l.err """
         Quitting build, invalid template '#{@buildCfg.template.name}' specified.

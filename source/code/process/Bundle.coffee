@@ -258,7 +258,7 @@ class Bundle extends BundleBase
 
         almondTemplates = new AlmondOptimizationTemplate {
           globalDepsVars
-          noWeb:@dependencies.noWeb
+          noWeb: @dependencies.noWeb
           @main
         }
 
@@ -405,7 +405,7 @@ class Bundle extends BundleBase
     depsVars
 
 
-if l.deb > 90
+if l.deb 90
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(Bundle)

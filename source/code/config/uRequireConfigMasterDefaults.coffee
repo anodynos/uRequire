@@ -54,7 +54,7 @@ uRequireConfig = # Command line options overide these.
     # If ommited, it is implied by config's position
     #
     # @example './source/code'
-    bundlePath: ''
+    bundlePath: undefined
 
     ###
     Files that match these Agreements* are completelly IGNORED
@@ -192,7 +192,7 @@ uRequireConfig = # Command line options overide these.
     #todo: if ommited, requirejs.buildjs.baseUrl is used ?
     @example 'build/code'
     ###
-    outputPath: ''
+    outputPath: undefined
 
     ###
     Output on the same directory as bundlePath.
