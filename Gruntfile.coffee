@@ -28,11 +28,7 @@ gruntFunction = (grunt) ->
       mdVersion: "# uRequire v<%= pkg.version %>"
       usrBinEnvNode: "#!/usr/bin/env node"
 
-    options:
-      sourceDir:     sourceDir
-      buildDir:      buildDir
-      sourceSpecDir: sourceSpecDir
-      buildSpecDir:  buildSpecDir
+    options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
     shell:
       coffee:

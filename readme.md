@@ -1,15 +1,15 @@
-# uRequire v0.3.0alpha
+# uRequire v0.3.0beta
 
 **Write *modular Javascript code* once, run everywhere** using [UMD](https://github.com/umdjs/umd) based module translation/conversion that targets Web [(AMD/RequireJS)](http://requirejs.org/) & nodejs/commonjs module systems.
 
 ___________________________________________________________________________
-## Breaking news for v0.3.0 alpha
+## Breaking news for v0.3.0 beta
 
 This documentation is from older versions v0.1.x / 0.2.x.
 
 _Skip below, if you're after general information._
 
-Everything mentioned here works the same, but current version 0.3 (still in alpha) brings many great features, NOT yet documented :
+Everything mentioned here works the same, but current version 0.3 (currently in beta) brings many great features, NOT yet documented :
 
 ### Universal **Combined** Module optimization for Web, AMD & nodejs!
 
@@ -57,8 +57,9 @@ Most times, uRequire can discover the variable names, if its 'define'd even once
 
 ### **uRequire config** A completely new 'bundle' & 'build' hierarchical configuration scheme.
 
-The 'configs'/'configFiles' feature, where a hierarchical/inheritance chain of *uRequire config* files is used to allow a fine-grained definition of the bundle & build information.
-It is very flexible:
+The 'derive' feature ('config' action in urequireCMD), where a hierarchical/inheritance chain of *uRequire config* files is used to allow a fine-grained definition of the bundle & build information.
+
+It is extremelly versatile:
   - it understands keys both in the 'root' of your config or in 'bundle'/'build' hashes
   - it provides shortcuts, to convert simple declarations to more complex ones.
 
@@ -71,10 +72,10 @@ It is very flexible:
 
 For details/glimpse check [github.com/anodynos/uBerscore](https://github.com/anodynos/uBerscore) project :
 
-* Have a glance at the code structure 'uberscore.coffee', dont pay any attention on what each sub-module does.
+* Just have a glance at the code structure 'uberscore.coffee', u dont have know what each sub-module does.
 * See `examples/uBerscoreExample_XXX.html` and `spec/specRunnerXXX.html` for how each build is used.
 * Check `source/code/uRequireConfig.coffee` & `source/code/uRequireConfig_UMDBuild.json` to see how easilt you can define `bundle`s and `build`s.
-* In `Gruntfile.coffee` check the `urequire:xxx` & `shell:urequireXXX` tasks to see some examples
+* In `Gruntfile.coffee` check the `urequire:xxx` tasks to see some documented examples
 * For more config documentation (still not-stable & incomplete!) check `source/code/config/uRequireConfigMasterDefaults.coffee`.
 
 ___________________________________________________________________________

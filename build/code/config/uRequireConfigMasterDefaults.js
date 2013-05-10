@@ -4,6 +4,14 @@ var uRequireConfig, _;
 _ = require('lodash');
 
 module.exports = uRequireConfig = {
+  /*
+  
+  All bundle related information is nested in the keys bellow
+  
+  Note: user configs (especially simple ones) can safelly ommit 'bundle' hash (as well as 'build' below)
+  and put keys belonging ot it directly on the 'root' of their object.
+  */
+
   bundle: {
     /*
     Name of the bundle, eg 'MyLibrary'
@@ -23,11 +31,13 @@ module.exports = uRequireConfig = {
 
     bundleName: void 0,
     /*
-    The "main" / "index" module file of your bundle.
+    The "main" / "index" module file of your bundle, used only when 'combined' template is used.
+    
+    @optional
     
     * Used as 'name' / 'include' on RequireJS build.js.
       It should be the 'entry' point module of your bundle, where all dependencies are `require`'d.
-      r.js recursivelly adds them the combined file.
+      r.js recursivelly adds them to the 'combined' optimized file.
     
     * It is also used to as the initiation `require` on your combined bundle.
       It is the module just kicks off the app and/or requires all your other library modules.
@@ -36,14 +46,14 @@ module.exports = uRequireConfig = {
     */
 
     main: void 0,
-    bundlePath: '',
+    bundlePath: void 0,
     /*
     Files that match these Agreements* are completelly IGNORED
     
     @default: [], no file is ignored.
     
     @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Fucntion(item).
+          Aggreement is a String, a RegExp or a Function(item).
     
     @example
     [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
@@ -115,7 +125,6 @@ module.exports = uRequireConfig = {
         knockout: ["ko", 'Knockout']
       },
       /*
-      depe
       { dependency: varName(s) *}
           or
       ['dep1', 'dep2'] (with discovered or ../variableNames names
@@ -127,7 +136,7 @@ module.exports = uRequireConfig = {
         'jquery': ["$", "jQuery"]
         'models/PersonModel': ['persons', 'personsModel']
       }
-      @todo: rename to exports.bundle | bundleGlobals | sometheing else?
+      @todo: rename to exports.bundle | bundleGlobals | something else?
       */
 
       bundleExports: {},
@@ -166,7 +175,7 @@ module.exports = uRequireConfig = {
     @example 'build/code'
     */
 
-    outputPath: '',
+    outputPath: void 0,
     /*
     Output on the same directory as bundlePath.
     
@@ -209,8 +218,18 @@ module.exports = uRequireConfig = {
     verbose: false,
     debugLevel: 0,
     "continue": false,
-    uglify: false
+    optimize: false
   },
+  /*
+    Other draft/ideas
+    - modules to exclude their need from either AMD/UMD or combine and allow them to be either
+      - accessed through global object, eg 'window'
+      - loaded through RequireJs/AMD if it available
+      - Loaded through nodejs require()
+      - other ?
+    With some smart code tranformation they can be turned into promises :-)
+  */
+
   /*
   Runtime settings - these are used only when executing on nodejs.
   They are written out as a "uRequire.config.js" module used at runtime on the nodejs side.

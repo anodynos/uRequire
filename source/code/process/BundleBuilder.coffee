@@ -70,14 +70,14 @@ class BundleBuilder
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
 
-  # @todo:6,6 watch build's folder & rebuild
+  # @todo:(6,6,5) watch build's folder & rebuild
   # @watchDirectory @cfg.bundle.bundlePath
   #  register something to watch events
   #  watchDirectory:->
   #    onFilesChange: (filesChanged)->
   #      bundle.loadModules filesChanged #:[]<String>
 
-  # check if template is Ok - @todo: embed checks in blenders ?
+  # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->
     if @buildCfg.template.name not in @Build.templates
       l.err """

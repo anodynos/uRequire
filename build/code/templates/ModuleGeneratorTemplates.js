@@ -7,7 +7,7 @@ _ = require('lodash');
 
 _B = require('uberscore');
 
-l = new _B.Logger('ModuleGeneratorTemplates');
+l = new _B.Logger('urequire/ModuleGeneratorTemplates');
 
 pathRelative = require('../paths/pathRelative');
 

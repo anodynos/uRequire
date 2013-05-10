@@ -15,7 +15,14 @@ module.exports =
 
 uRequireConfig = # Command line options overide these.
 
-  #All bundle information is nested bellow
+  ###
+
+  All bundle related information is nested in the keys bellow
+
+  Note: user configs (especially simple ones) can safelly ommit 'bundle' hash (as well as 'build' below)
+  and put keys belonging ot it directly on the 'root' of their object.
+
+  ###
   bundle:
 
     ###
@@ -37,11 +44,13 @@ uRequireConfig = # Command line options overide these.
     bundleName: undefined
 
     ###
-    The "main" / "index" module file of your bundle.
+    The "main" / "index" module file of your bundle, used only when 'combined' template is used.
+
+    @optional
 
     * Used as 'name' / 'include' on RequireJS build.js.
       It should be the 'entry' point module of your bundle, where all dependencies are `require`'d.
-      r.js recursivelly adds them the combined file.
+      r.js recursivelly adds them to the 'combined' optimized file.
 
     * It is also used to as the initiation `require` on your combined bundle.
       It is the module just kicks off the app and/or requires all your other library modules.
@@ -62,7 +71,7 @@ uRequireConfig = # Command line options overide these.
     @default: [], no file is ignored.
 
     @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Fucntion(item).
+          Aggreement is a String, a RegExp or a Function(item).
 
     @example
     [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
@@ -174,6 +183,8 @@ uRequireConfig = # Command line options overide these.
 
 
 
+
+
   ###
 
     Build : Defines the conversion, such as *where* and *what* to output
@@ -212,22 +223,31 @@ uRequireConfig = # Command line options overide these.
 #       # combined options: use a 'Universal' build, based on almond that works as standalone <script>, as AMD dependency and on node!
 #       # @todo:3 implement other methods ? 'simple AMD build"
 #      'combined':
-
+#
 #          # @default 'almond' - only one for now
 #          method: 'almond'
 #
-           # Code to be injected before the factory = {....} definition - eg variables available throughout your module
+#           Code to be injected before the factory = {....} definition - eg variables available throughout your module
 #          inject: "var VERSION = '0.0.8'; //injected by grunt:concat"
-
+#
 #          ###
-#          Array of globals that will be inlined (instead of creating a getGlobal_xxx).
+#          Array of dependencies (globals?) that will be inlined (instead of creating a getGlobal_xxx).
+#          The default is that all bundle non-ignored
+#
 #          * 'true' means all (global) libs are inlined.
 #          * String and []<String> are deps that will be inlined
-#          @example depsInline: ['backbone', 'lodash']
-#          @@default undefined/false : 'All globals are replaced with a "getGlobal_#{globalName}"'
+#
+#          @example depsInline: ['backbone', 'lodash'] # inline these deps
+#
+#          @default undefined/false : 'All globals are replaced with a "getGlobal_#{globalName}"'
+#
+#          @issues: where do we find the source, eg 'lodash.js' ? We need bower integration!
 #          @todo:4 NOT IMPLEMENTED
 #          ###
 #          depsInline: false
+#
+#
+#          depsTo
 
     # Watch for changes in bundle files and reprocess/re output those changed files
     # @todo: NOT IMPLEMENTED.
@@ -271,9 +291,27 @@ uRequireConfig = # Command line options overide these.
     # @todo: NOT IMPLEMENTED
     continue: false
 
-    # Pass these options on uglify js
-    # @todo: NOT IMPLEMENTED
-    uglify: false
+    # @options
+    #   false: no optimization (r.js build.js optimize: 'none')
+    #   true: uses sane defaults to minify (passed to r.js)
+    #   Object
+    #   With
+    #
+    # @todo: PARTIALLY IMPLEMENTED - Only working for combined
+    # @todo: allow all options r.js style (https://github.com/jrburke/r.js/blob/master/build/example.build.js #L138)
+    optimize: false
+
+
+  ###
+    Other draft/ideas
+    - modules to exclude their need from either AMD/UMD or combine and allow them to be either
+      - accessed through global object, eg 'window'
+      - loaded through RequireJs/AMD if it available
+      - Loaded through nodejs require()
+      - other ?
+    With some smart code tranformation they can be turned into promises :-)
+  ###
+
 
   ###
   Runtime settings - these are used only when executing on nodejs.

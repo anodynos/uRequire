@@ -9,7 +9,7 @@ _wrench = require('wrench');
 
 _B = require('uberscore');
 
-l = new _B.Logger('Build');
+l = new _B.Logger('urequire/Build');
 
 upath = require('../paths/upath');
 
@@ -49,7 +49,7 @@ module.exports = Build = (function() {
   Build.prototype._constructor = function(buildCfg) {
     var idp;
 
-    _.extend(this, _B.deepCloneDefaults(buildCfg, uRequireConfigMasterDefaults.build));
+    _.extend(this, buildCfg);
     if (!this.out) {
       this.out = Build.outputModuleToFile;
     }
@@ -123,7 +123,7 @@ module.exports = Build = (function() {
 
 }).call(this);
 
-if (_B.Logger.debugLevel > 90) {
+if (l.deb(90)) {
   YADC = require('YouAreDaChef').YouAreDaChef;
   YADC(Build).before(/_constructor/, function(match, buildCfg) {
     return l.debug("Before '" + match + "' with buildCfg = \n", _.omit(buildCfg, []));

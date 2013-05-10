@@ -14,7 +14,7 @@ _wrench = require('wrench');
 
 _B = require('uberscore');
 
-l = new _B.Logger('Bundle');
+l = new _B.Logger('urequire/Bundle');
 
 upath = require('../paths/upath');
 
@@ -71,7 +71,7 @@ Bundle = (function(_super) {
   }
 
   Bundle.prototype._constructor = function(bundleCfg) {
-    _.extend(this, _B.deepCloneDefaults(bundleCfg, uRequireConfigMasterDefaults.bundle));
+    _.extend(this, bundleCfg);
     this.reporter = new DependenciesReporter();
     this.uModules = {};
     return this.loadModules();
@@ -326,7 +326,7 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.combine = function(build) {
-    var almondTemplates, err, fileName, genCode, globalDepsVars, mainModuleCandidate, rjsConfig, _i, _len, _ref1, _ref2,
+    var almondTemplates, err, fileName, genCode, globalDepsVars, mainModuleCandidate, optimize, optimizeMethod, optimizers, rjsConfig, _i, _len, _ref1, _ref2,
       _this = this;
 
     this.build = build;
@@ -350,8 +350,9 @@ Bundle = (function(_super) {
           return false;
         });
         if (this.main) {
-          l.warn("combine() note: 'bundle.main', your *entry-point module* was missing from bundle config(s).\nIt's defaulting to '" + (upath.trimExt(this.main)) + "', from existing '" + this.bundlePath + "/" + this.main + "' module in your bundlePath.");
+          this.mainExt = this.main;
           this.main = upath.trimExt(this.main);
+          l.warn("combine() note: 'bundle.main', your *entry-point module* was missing from bundle config(s).\nIt's defaulting to " + (this.main === this.bundleName ? 'bundle.bundleName = ' : '') + "'" + this.main + "', as uRequire found an existing '" + this.bundlePath + "/" + this.mainExt + "' module in your bundlePath.");
         }
       }
     }
@@ -396,10 +397,35 @@ Bundle = (function(_super) {
           include: [this.main],
           deps: this.dependencies.noWeb,
           out: this.build.combinedFile,
-          optimize: "none",
-          name: 'almond'
+          name: 'almond',
+          optimize: "none"
         };
-        if (_B.Logger.debugLevel >= 90) {
+        if (optimize = this.build.optimize) {
+          optimizers = ['uglify2', 'uglify'];
+          if (optimize === true) {
+            optimizeMethod = optimizers[0];
+          } else {
+            if (_.isObject(optimize)) {
+              optimizeMethod = _.find(optimizers, function(v) {
+                return __indexOf.call(_.keys(optimize), v) >= 0;
+              });
+            } else {
+              if (_.isString(optimize)) {
+                optimizeMethod = _.find(optimizers, function(v) {
+                  return v === optimize;
+                });
+              }
+            }
+          }
+          if (optimizeMethod) {
+            rjsConfig.optimize = optimizeMethod;
+            rjsConfig[optimizeMethod] = optimize[optimizeMethod];
+          } else {
+            l.err("Quitting - unknown optimize method:", optimize);
+            build.done(false);
+          }
+        }
+        if (l.deb(90)) {
           rjsConfig.logLevel = 0;
         }
         l.verbose("Optimize with r.js with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap']));
@@ -414,9 +440,9 @@ Bundle = (function(_super) {
               depType: 'global'
             });
             if (!_.isEmpty(globalDepsVars)) {
-              l.log("Global bindinds: make sure the following global dependencies", globalDepsVars, "are available when combined script '" + build.combinedFile + "' is running on:\n\n  a) nodejs: they should exist as a local `nodes_modules`.\n\n  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)\n\n  c) Web/Script: the binded variables (eg '_' or '$')\n     must be a globally loaded (i.e `window.$`) BEFORE loading '" + build.combinedFile + "'");
+              l.log("Global bindinds: make sure the following global dependencies:\n", globalDepsVars, "\n\nare available when combined script '" + build.combinedFile + "' is running on:\n\na) nodejs: they should exist as a local `nodes_modules`.\n\nb) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)\n\nc) Web/Script: the binded variables (eg '_' or '$')\n   must be a globally loaded (i.e `window.$`) BEFORE loading '" + build.combinedFile + "'");
             }
-            if (_B.Logger.debugLevel < 50) {
+            if (!l.deb(50)) {
               l.debug(40, "Deleting temporary directory '" + build.outputPath + "'.");
               _wrench.rmdirSyncRecursive(build.outputPath);
             } else {
@@ -513,7 +539,7 @@ Bundle = (function(_super) {
 
 }).call(this, BundleBase);
 
-if (_B.Logger.debugLevel > 90) {
+if (l.deb(90)) {
   YADC = require('YouAreDaChef').YouAreDaChef;
   YADC(Bundle).before(/_constructor/, function(match, bundleCfg) {
     return l.debug("Before '" + match + "' with bundleCfg = \n", _.omit(bundleCfg, []));

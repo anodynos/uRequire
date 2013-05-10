@@ -2,10 +2,12 @@ Using todo: UEG scheme - check `todo-notes.md`
 
 ## NodeRequirer loading
 - (7 5 2) - NodeRequirer should not missinform on exceptions - test with deliberate errors
+  DONE
 
 ## uRequire.config
 
 - (8 5 3) Proper recursive reading / fixation of config files
+  DONE with uberscore Blender, version > 0.3aplha25
 
 - (7 8 2)
    Which files to / not-to copy.

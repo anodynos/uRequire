@@ -19,7 +19,7 @@ Dependency = require('./Dependency');
 
 _B = require('uberscore');
 
-l = new _B.Logger('NodeRequirer', 0);
+l = new _B.Logger('urequire/NodeRequirer', 0);
 
 BundleBase = require('./process/BundleBase');
 

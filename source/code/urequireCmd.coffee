@@ -12,7 +12,8 @@ Build = require './process/Build'
 
 
 # helpers
-toArray = (val)-> val.split(',')
+toArray = (val)->
+  _.map val.split(','), (v)-> if _.isString(v) then v.trim() else v
 
 config = {}
 
@@ -29,8 +30,8 @@ urequireCommander
   .option('-s, --scanAllow', "By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).", undefined)
   .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.', undefined)
   .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
+  .option('-O, --optimize', 'Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.', undefined)
   .option('-C, --continue', 'NOT IMPLEMENTED Dont bail out while processing (mainly on module processing errors)', undefined)
-  .option('-u, --uglify', 'NOT IMPLEMENTED. Pass through uglify before saving.', undefined)
   .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', undefined)
   .option('-i, --include', "NOT IMPLEMENTED. Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
@@ -53,14 +54,15 @@ urequireCommander
 urequireCommander.on '--help', ->
   l.log """
   Examples:
-                                                                  \u001b[32m
-    $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle   \u001b[0m
-                    or                                            \u001b[32m
-    $ urequire AMD path/to/moduleBundle -f                        \u001b[0m
-                    or                                            \u001b[32m
-    $ urequire config path/to/configFile.json,anotherConfig.js    \u001b[0m
+                                                                                    \u001b[32m
+    $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle                     \u001b[0m
+                    or                                                              \u001b[32m
+    $ urequire AMD path/to/moduleBundle -f                                          \u001b[0m
+                    or                                                              \u001b[32m
+    $ urequire config path/to/configFile.json,anotherConfig.js,masterConfig.coffee -30 \u001b[0m
 
-  *Note: Command line values have precedence over configFiles; values on configFiles on the left have precedence over those on the right (deeply traversing).*
+  *Notes: Command line values have precedence over configFiles;
+          Values on configFiles on the left have precedence over those on the right (deeply traversing).*
 
   Module files in your bundle can conform to the *standard AMD* format: \u001b[36m
       // standard AMD module format - unnamed or named (not recommended by AMD)
@@ -107,6 +109,7 @@ CMDOPTIONS = _.map(urequireCommander.options, (o)-> o.long.slice 2)
 # overwrite anything on config's root by cmdConfig - BundleBuilder handles the rest
 _.extend config, _.pick(urequireCommander, CMDOPTIONS)
 delete config.version
+l.log config
 
 if _.isEmpty config
   l.err """

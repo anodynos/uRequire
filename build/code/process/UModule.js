@@ -6,7 +6,7 @@ _ = require('lodash');
 
 _B = require('uberscore');
 
-l = new _B.Logger('UModule');
+l = new _B.Logger('urequire/UModule');
 
 upath = require('../paths/upath');
 
@@ -253,11 +253,10 @@ module.exports = UModule = (function() {
               depName: depName
             })[depName];
             if (l.deb(40)) {
-              l.debug("" + this.modulePath + ": dependency '" + depName + "' had no corresponding parameters/variable names to bind with.\nAn attempt to infer varNames from bundle:", varNames);
+              l.debug("" + this.modulePath + ": dependency '" + depName + "' had no corresponding parameters/variable names to bind with.\nAn attempt to infer varNames from bundle: ", varNames);
             }
           }
           if (_.isEmpty(varNames)) {
-            console.log('bundleExports=', bundleExports);
             err = {
               uRequire: "Error converting bundle named '" + this.bundle.bundleName + "' in '" + this.bundle.bundlePath + "'.\n\nNo variable names can be identified for bundleExports dependency '" + depName + "'.\n\nThese variable names are used to :\n  - inject the dependency into each module\n  - grab the dependency from the global object, when running as <script>.\n\nRemedy:\n\nYou should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a\n  ```\n    bundleExports: {\n      '" + depName + "': 'VARIABLE_IT_BINDS_WITH',\n      ...\n      jquery: ['$', 'jQuery'],\n      backbone: ['Backbone']\n    }\n  ```\ninstead of the simpler\n  ```\n    bundleExports: [ '" + depName + "', 'jquery', 'backbone' ]\n  ```\n\nAlternativelly, pick one medicine :\n  - define at least one module that has this dependency + variable binding, using AMD instead of commonJs format, and uRequire will find it!\n  - declare it in the above format, but in `bundle.dependencies.variableNames` and uRequre will pick it from there!\n  - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)"
             };
@@ -413,7 +412,7 @@ module.exports = UModule = (function() {
 */
 
 
-if (_B.Logger.debugLevel >= 90) {
+if (l.deb >= 90) {
   YADC = require('YouAreDaChef').YouAreDaChef;
   YADC(UModule).before(/_constructor/, function(match, bundle, filename) {
     return l.debug("Before '" + match + "' with filename = '" + filename + "'");

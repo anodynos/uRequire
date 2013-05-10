@@ -286,9 +286,28 @@ class Bundle extends BundleBase
     #        @outputToFile text, @combinedFile
     #        if _fs.existsSync @combinedFile
     #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
-
-          optimize: "none" #  uglify: {beautify: true, no_mangle: true} ,
           name: 'almond'
+          optimize: "none"
+
+        # 'optimize' ? in 3 different ways
+        if optimize = @build.optimize # @todo: allow full r.js style optimize / uglify / uglify2
+          optimizers = ['uglify2', 'uglify']
+          if optimize is true
+            optimizeMethod = optimizers[0] # enable 'uglify2' for true
+          else
+            if _.isObject optimize # eg {optimize:uglify2:{...uglify2 options...}}
+              optimizeMethod = _.find optimizers, (v)-> v in _.keys optimize
+            else
+              if _.isString optimize
+                optimizeMethod = _.find optimizers, (v)-> v is optimize
+
+          if optimizeMethod
+            rjsConfig.optimize = optimizeMethod
+            rjsConfig[optimizeMethod] = optimize[optimizeMethod]
+          else
+            l.err "Quitting - unknown optimize method:", optimize
+            build.done false
+
         rjsConfig.logLevel = 0 if l.deb 90
 
         # actually combine (r.js optimize)

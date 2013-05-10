@@ -7,7 +7,7 @@ _fs = require('fs');
 
 _B = require('uberscore');
 
-l = new _B.Logger('NodeRequirer');
+l = new _B.Logger('urequire/NodeRequirer');
 
 upath = require('../paths/upath');
 
