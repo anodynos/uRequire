@@ -311,8 +311,8 @@ class Bundle extends BundleBase
         rjsConfig.logLevel = 0 if l.deb 90
 
         # actually combine (r.js optimize)
-        l.verbose "Optimize with r.js with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
-        @requirejs.optimize _.clone(rjsConfig), (buildResponse)->
+        l.verbose "Optimize with r.js (ver. #{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
+        @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
           l.verbose 'r.js buildResponse = ', buildResponse
 
   #      if true

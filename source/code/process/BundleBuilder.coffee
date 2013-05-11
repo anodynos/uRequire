@@ -60,7 +60,6 @@ class BundleBuilder
       @build = new @Build @buildCfg
 
     else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
-      l.debug(0, "Something went wrong - final cfg :\n", finalCfg)
       @buildCfg.done false
 
   buildBundle: ->

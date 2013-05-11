@@ -1,18 +1,14 @@
-_fs = require 'fs'
-_ = require 'lodash'
-_B = require 'uberscore'
+# requires grunt 0.4.x
+sourceDir     = "source/code"
+buildDir      = "build/code"
+sourceSpecDir = "source/spec"
+buildSpecDir  = "build/spec"
 
 gruntFunction = (grunt) ->
-
-  sourceDir     = "source/code"
-  buildDir      = "build/code"
-  sourceSpecDir = "source/spec"
-  buildSpecDir  = "build/spec"
-
-  pkg = JSON.parse _fs.readFileSync './package.json', 'utf-8'
+  _ = grunt.util._
 
   gruntConfig =
-    pkg: "<json:package.json>"
+    pkg: grunt.file.readJSON('package.json')
 
     meta:
       banner: """
@@ -22,11 +18,11 @@ gruntFunction = (grunt) ->
       * <%= pkg.repository.url %>
       * Copyright(c) <%= grunt.template.today(\"yyyy\") %> <%= pkg.author.name %> (<%= pkg.author.email %> )
       * Licensed <%= pkg.licenses[0].type %> <%= pkg.licenses[0].url %>
-      */
+      */\n
       """
-      varVersion: "var VERSION = '<%= pkg.version %>'; //injected by grunt:concat"
-      mdVersion: "# uRequire v<%= pkg.version %>"
-      usrBinEnvNode: "#!/usr/bin/env node"
+      varVERSION: "var VERSION = '<%= pkg.version %>'; //injected by grunt:concat\n"
+      mdVersion: "# uRequire v<%= pkg.version %>\n"
+      usrBinEnvNode: "#!/usr/bin/env node\n"
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
@@ -44,38 +40,34 @@ gruntFunction = (grunt) ->
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
 
       doc:
-        command: "codo source/code --title 'uRequire #{pkg.version} API documentation' --cautious"
+        command: "codo source/code --title 'uRequire <%= pkg.version %> API documentation' --cautious"
 
-      _options: # subtasks inherit _options but can override them
+      options: # subtasks inherit options but can override them
+        verbose: true
         failOnError: true
         stdout: true
         stderr: true
 
     copy:
       specResources:
-        options: flatten: false
-        files:  #copy all ["source/**/*.html", "...txt" ]
-          "<%= options.buildSpecDir %>/":
-            ("#{sourceSpecDir}/**/#{ext}" for ext in [ "*.html", "*.js", "*.txt", "*.json" ])
+        files: [ #what a travestry.. why, oh why grunt 0.4 ?
+          expand: true
+          cwd: "#{sourceSpecDir}/"
+          src: ["*.json"]
+          dest: "#{buildSpecDir}/"
+          filter: 'isFile'
+        ]
 
     concat:
       bin:
-        src: [
-          '<banner:meta.usrBinEnvNode>'
-          '<banner>'
-          '<banner:meta.varVersion>'  # add a runtime l.VERSION to _B.Logger's prototype
-          '<%= options.buildDir %>/urequireCmd.js'
-        ]
-        dest:'<%= options.buildDir %>/urequireCmd.js'
+        options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
+        src: ['<%= options.buildDir %>/urequireCmd.js' ]
+        dest: '<%= options.buildDir %>/urequireCmd.js'
 
       VERSIONurequire:                # add a runtime l.VERSION to _B.Logger's prototype
-        src: [
-          '<banner>'
-          '<banner:meta.varVersion>'
-          '<%= options.buildDir %>/urequire.js'
-        ]
-        dest:'<%= options.buildDir %>/urequire.js'
-
+        options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
+        src: [ '<%= options.buildDir %>/urequire.js']
+        dest:  '<%= options.buildDir %>/urequire.js'
 
     clean:
       build: [
@@ -84,36 +76,36 @@ gruntFunction = (grunt) ->
       ]
 
   ### shortcuts generation ###
+  splitTasks = (tasks)-> if !_.isString tasks then tasks else (_.filter tasks.split(' '), (v)-> v)
 
-  # shortcut to all "shell:cmd"
-  grunt.registerTask cmd, "shell:#{cmd}" for cmd of gruntConfig.shell
+  grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
 
-  # generic shortcuts
-  grunt.registerTask shortCut, tasks for shortCut, tasks of _B.go {
-     # basic commands
+  grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
      "default": "clean build test"
      "build":   "shell:coffee concat"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
-      # generic shortcuts
-     "cf":      "shell:coffee" # there's a 'coffee' task already!
-     "cfw":     "coffeeWatch"
+     # some shortcuts
+     "cf":      "shell:coffee"
+     "cfw":     "shell:coffeeWatch"
+
+     # generic shortcuts
      "cl":      "clean"
-
      "b":       "build"
+     "d":       "deploy"
+     "m":       "mocha"
      "t":       "test"
-  }, fltr: (v)-> !!v #bangbang forces boolean value
 
-  # IDE shortcuts
-  grunt.registerTask shortCut, tasks for shortCut, tasks of {
-    "alt-c": "cp"
-    "alt-b": "b"
-    "alt-t": "t"
+     # IDE shortcuts
+     "alt-c": "cp"
+     "alt-b": "b"
+     "alt-d": "d"
+     "alt-t": "t"
   }
 
   grunt.initConfig gruntConfig
   grunt.loadNpmTasks 'grunt-contrib'
-  grunt.loadNpmTasks 'grunt-shell' #https://npmjs.org/package/grunt-shell
+  grunt.loadNpmTasks 'grunt-shell'
 
   null
 

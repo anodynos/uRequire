@@ -54,15 +54,15 @@ urequireCommander
 urequireCommander.on '--help', ->
   l.log """
   Examples:
-                                                                                    \u001b[32m
-    $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle                     \u001b[0m
-                    or                                                              \u001b[32m
-    $ urequire AMD path/to/moduleBundle -f                                          \u001b[0m
-                    or                                                              \u001b[32m
-    $ urequire config path/to/configFile.json,anotherConfig.js,masterConfig.coffee -30 \u001b[0m
+                                                                                         \u001b[32m
+    $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle                          \u001b[0m
+                    or                                                                   \u001b[32m
+    $ urequire AMD path/to/moduleBundle -f                                               \u001b[0m
+                    or                                                                   \u001b[32m
+    $ urequire config path/to/configFile.json,anotherConfig.js,masterConfig.coffee -d 30 \u001b[0m
 
   *Notes: Command line values have precedence over configFiles;
-          Values on configFiles on the left have precedence over those on the right (deeply traversing).*
+          Values on config files on the left have precedence over those on the right (deeply traversing).*
 
   Module files in your bundle can conform to the *standard AMD* format: \u001b[36m
       // standard AMD module format - unnamed or named (not recommended by AMD)
