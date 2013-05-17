@@ -224,6 +224,7 @@ class NodeRequirer extends BundleBase
           try
             loadedModule = @nodeRequire _modulePath
           catch err
+            err = {name:"`catch err` but err was UNDEFINED!"} if _.isUndefined err
             if err1 is undefined or not _.startsWith(err.toString(), "Error: Cannot find module") # prefer to keep 'generic' errors in err1
               err1 = err
 
@@ -250,6 +251,7 @@ class NodeRequirer extends BundleBase
               try
                 loadedModule = @getRequirejs() _modulePath
               catch err
+                err = {name:"`catch err` but err was UNDEFINED!"} if _.isUndefined err
                 err2 = err
                 l.debug("FAILED: @getRequirejs() '#{_modulePath}' \n err=#{err2}") if l.deb 35
                 _.extend _.last(attempts),
@@ -275,6 +277,7 @@ class NodeRequirer extends BundleBase
           try
             loadedModule = @getRequirejs() _modulePath # pluginName!modulePath
           catch err
+            err = {name:"`catch err` but err was UNDEFINED!"} if _.isUndefined err
             err3 = err
             _.extend _.last(attempts),
               urequireError: "Error loading *plugin* module through RequireJS."
