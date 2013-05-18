@@ -64,7 +64,7 @@ class BundleBuilder
 
   buildBundle: ->
     if not (!@build or !@bundle)
-      @bundle.buildChangedModules @build
+      l.log '@bundle.buildChangedModules @build'
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
@@ -127,7 +127,7 @@ module.exports = BundleBuilder
 
 ### Debug information ###
 
-if l.deb > 10 or true
+if l.deb > 10 #or true
   YADC = require('YouAreDaChef').YouAreDaChef
 
   YADC(BundleBuilder)

@@ -91,6 +91,10 @@ uRequireConfig = # Command line options overide these.
     ###
     processModules: [/./]
 
+
+    filenames: []
+
+
     ###
     Filesname (that are not modules), to copy to output dir.
 

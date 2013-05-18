@@ -141,7 +141,7 @@ class UModule
     if @isConvertible
       l.debug("Converting module '#{@modulePath}'") if l.deb 30
 
-      # inject Dependencies information to arrayDeps, nodeDeps & parameters
+      # inject bundleExports Dependencies information to arrayDeps, nodeDeps & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.bundleExports)
         l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports) if l.deb 30
 

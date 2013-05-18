@@ -18,6 +18,8 @@ UModule = require './UModule'
 Build = require './Build'
 BundleBase = require './BundleBase'
 
+grunt = require 'grunt'
+
 
 ###
 
@@ -31,12 +33,14 @@ class Bundle extends BundleBase
     _.extend @, bundleCfg
 
     @reporter = new DependenciesReporter()
-
     @uModules = {}
-    @loadModules()
 
-    ### handle bundle.bundleName & bundle.main ###
-    #@bundleName or= @main # @todo:4 where else should this default to, if not @main ?
+    @filenames = grunt.file.expand {
+                    cwd: @bundlePath
+                  },
+                  @filenames
+    l.log '@filenames =', @filenames
+    @loadModules()
 
 
   @staticProperty requirejs: get:=> require 'requirejs'
@@ -48,7 +52,7 @@ class Bundle extends BundleBase
   ###
   for getFilesFactory, filesFilter of {
 
-    filenames: (mfn)-> not _B.inAgreements mfn, @ignore # get all non-ignored files
+    #filenames: (mfn)-> not _B.inAgreements mfn, @ignore # get all non-ignored files
 
     moduleFilenames: (mfn)-> # get only modules
        not _B.inAgreements(mfn, @ignore) and
@@ -68,7 +72,7 @@ class Bundle extends BundleBase
         get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
           existingFiles = (@["_#{getFilesFactory}"] or= [])
           try
-             files =  getFiles @bundlePath, _.bind filesFilter, @
+            files = getFiles @bundlePath, _.bind filesFilter, @
           catch err
             err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
             l.err err.uRequire
@@ -90,10 +94,9 @@ class Bundle extends BundleBase
 
 
   ###
-    Processes each module, as instructed by `watcher` in a [] paramor read file system (@moduleFilenames)
-    @param @build - see `config/uRequireConfigMasterDefaults.coffee`
+    Processes each module, as instructed by `watcher` in a [] param or read file system (@moduleFilenames)
     @param String or []<String> with filenames to process.
-      @default read files from filesystem (property @moduleFilenames)
+    @default read files from filesystem (property @moduleFilenames)
   ###
   loadModules: (moduleFilenames = @processModuleFilenames)->
     for moduleFN in _B.arrayize moduleFilenames
@@ -151,11 +154,8 @@ class Bundle extends BundleBase
     if not _.isEmpty(report)
       l.log 'Report for this `build`:\n', report
 
-    if @build.template.name is 'combined'
-      if haveChanges
-        @combine @build
-      else
-        @build.done true
+    if (@build.template.name is 'combined') and haveChanges
+      @combine @build
     else
       @build.done true
 
@@ -164,7 +164,7 @@ class Bundle extends BundleBase
         text: "requirejs_plugins/text"
         json: "requirejs_plugins/json"
 
-  copyAlmondJs:->
+  copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
       Build.copyFileSync "#{__dirname}/../../../node_modules/almond/almond.js", "#{@build.outputPath}/almond.js"
     catch err
