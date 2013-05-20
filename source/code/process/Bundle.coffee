@@ -17,9 +17,7 @@ DependenciesReporter = require './../DependenciesReporter'
 UModule = require './UModule'
 Build = require './Build'
 BundleBase = require './BundleBase'
-
-grunt = require 'grunt'
-
+globExpand = require 'node-glob-expand'
 
 ###
 
@@ -35,7 +33,7 @@ class Bundle extends BundleBase
     @reporter = new DependenciesReporter()
     @uModules = {}
 
-    @filenames = grunt.file.expand {
+    @filenames = globExpand {
                     cwd: @bundlePath
                   },
                   @filenames

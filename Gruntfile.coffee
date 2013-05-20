@@ -21,7 +21,7 @@ gruntFunction = (grunt) ->
       */\n
       """
       varVERSION: "var VERSION = '<%= pkg.version %>'; //injected by grunt:concat\n"
-      mdVersion: "# uRequire v<%= pkg.version %>\n"
+      mdVersion: "# <%= pkg.name %> v<%= pkg.version %>\n"
       usrBinEnvNode: "#!/usr/bin/env node\n"
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
@@ -40,7 +40,7 @@ gruntFunction = (grunt) ->
         command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
 
       doc:
-        command: "codo source/code --title 'uRequire <%= pkg.version %> API documentation' --cautious"
+        command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
 
       options: # subtasks inherit options but can override them
         verbose: true
@@ -50,12 +50,11 @@ gruntFunction = (grunt) ->
 
     copy:
       specResources:
-        files: [ #what a travestry.. why, oh why grunt 0.4 ?
+        files: [
           expand: true
           cwd: "#{sourceSpecDir}/"
           src: ["*.json"]
           dest: "#{buildSpecDir}/"
-          filter: 'isFile'
         ]
 
     concat:
