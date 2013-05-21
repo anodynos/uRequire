@@ -4,8 +4,10 @@ _.mixin (require 'underscore.string').exports()
 _fs = require 'fs'
 _wrench = require 'wrench'
 _B = require 'uberscore'
-
 l = new _B.Logger 'urequire/Bundle'
+
+globExpand = require 'node-glob-expand'
+l.log globExpand {cwd: '../../DRAFT'}, '*.*', /myFile2.txt/
 
 # uRequire
 upath = require '../paths/upath'
@@ -17,7 +19,7 @@ DependenciesReporter = require './../DependenciesReporter'
 UModule = require './UModule'
 Build = require './Build'
 BundleBase = require './BundleBase'
-globExpand = require 'node-glob-expand'
+
 
 ###
 

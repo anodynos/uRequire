@@ -33,6 +33,7 @@ moveKeysBlender = new _B.DeepCloneBlender [
   bundle: '|': -> _B.Blender.NEXT
   build: '|': -> _B.Blender.NEXT
 
+  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
 ]
 
 # bundleBlender

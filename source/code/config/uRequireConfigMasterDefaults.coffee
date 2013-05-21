@@ -15,6 +15,11 @@ module.exports =
 
 uRequireConfig = # Command line options overide these.
 
+  compilers:
+    'js|javascript': (source)-> source
+
+    'coffee|litcoffee|coffee.md': (source)->
+      (require 'coffee-script').compile source, bare:true
   ###
 
   All bundle related information is nested in the keys bellow
@@ -65,18 +70,18 @@ uRequireConfig = # Command line options overide these.
     # @example './source/code'
     bundlePath: undefined
 
-    ###
-    Files that match these Agreements* are completelly IGNORED
-
-    @default: [], no file is ignored.
-
-    @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Function(item).
-
-    @example
-    [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
-    ###
-    ignore: []
+#    ###
+#    Files that match these Agreements* are completelly IGNORED
+#
+#    @default: [], no file is ignored.
+#
+#    @type Agreement || []<Agreement>
+#          Aggreement is a String, a RegExp or a Function(item).
+#
+#    @example
+#    [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
+#    ###
+#    ignore: []
 
     ###
     Modules to process, WITH extension. @todo: use without extension ?
