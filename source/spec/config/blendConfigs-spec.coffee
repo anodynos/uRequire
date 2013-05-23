@@ -6,7 +6,7 @@ _ = require 'lodash'
 
 blendConfigs = require '../../code/config/blendConfigs'
 uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDefaults'
-{moveKeysBlender, templateBlender, arrayizeUniquePusher, dependenciesBindingsBlender, bundleBlender} = blendConfigs
+{moveKeysBlender, templateBlender, arrayizeUniquePusher, dependenciesBindingsBlender, bundleBuildBlender} = blendConfigs
 
 describe 'blendConfigs & its Blenders', ->
   describe 'moveKeysBlender', ->

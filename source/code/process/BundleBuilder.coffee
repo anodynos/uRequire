@@ -64,7 +64,14 @@ class BundleBuilder
 
   buildBundle: ->
     if not (!@build or !@bundle)
-      l.log '@bundle.buildChangedModules @build'
+      @bundle.buildChangedModules @build
+#      setTimeout(
+#        ->
+#          @bundle.loadModule ['uberscore.coffee']
+      @bundle.buildChangedModules @build
+
+#        , 5000
+#      )
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false

@@ -15,11 +15,6 @@ module.exports =
 
 uRequireConfig = # Command line options overide these.
 
-  compilers:
-    'js|javascript': (source)-> source
-
-    'coffee|litcoffee|coffee.md': (source)->
-      (require 'coffee-script').compile source, bare:true
   ###
 
   All bundle related information is nested in the keys bellow
@@ -69,19 +64,6 @@ uRequireConfig = # Command line options overide these.
     #
     # @example './source/code'
     bundlePath: undefined
-
-#    ###
-#    Files that match these Agreements* are completelly IGNORED
-#
-#    @default: [], no file is ignored.
-#
-#    @type Agreement || []<Agreement>
-#          Aggreement is a String, a RegExp or a Function(item).
-#
-#    @example
-#    [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
-#    ###
-#    ignore: []
 
     ###
     Modules to process, WITH extension. @todo: use without extension ?
@@ -189,6 +171,13 @@ uRequireConfig = # Command line options overide these.
       #@todo: Not implemented
       replaceTo:
         lodash: ['underscore']
+
+    compilers:
+
+      'js|javascript': (source)-> source
+
+      'coffee|litcoffee|coffee.md': (source)->
+        (require 'coffee-script').compile source, bare:true
 
 
 
@@ -309,7 +298,6 @@ uRequireConfig = # Command line options overide these.
     # @todo: PARTIALLY IMPLEMENTED - Only working for combined
     # @todo: allow all options r.js style (https://github.com/jrburke/r.js/blob/master/build/example.build.js #L138)
     optimize: false
-
 
   ###
     Other draft/ideas

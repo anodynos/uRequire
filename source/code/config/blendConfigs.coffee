@@ -14,55 +14,63 @@ uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 #
 # NOTE: it simply ignores unknown keys (i.e keys not in uRequireConfigMasterDefaults .build or .bundle)
 #       including 'derive'
+functionCopyBB =
+  order:['src']
+  'Function': (prop, src)-> src[prop] #just copy function ref
+
 moveKeysBlender = new _B.DeepCloneBlender [
-  order: ['path']
-  '*': '|':
-    do (partsKeys = {
-      bundle: _.keys uRequireConfigMasterDefaults.bundle # eg ['bundlePath', 'dependencies', ...]
-      build: _.keys uRequireConfigMasterDefaults.build   # eg ['outputPath', 'template', ...]
-    })->
-      (prop, src, dst, bl)->
-        for confPart in ['bundle', 'build'] # or better _.keys partsKeys
-          if prop in partsKeys[confPart]
-            _B.setValueAtPath bl.dstRoot, "/#{confPart}/#{prop}", src[prop], true
-            break
+  functionCopyBB,
+  {
+    order: ['path']
+    '*': '|':
+      do (partsKeys = {
+        bundle: _.keys uRequireConfigMasterDefaults.bundle # eg ['bundlePath', 'dependencies', ...]
+        build: _.keys uRequireConfigMasterDefaults.build   # eg ['outputPath', 'template', ...]
+      })->
+        (prop, src, dst, bl)->
+          for confPart in ['bundle', 'build'] # or better _.keys partsKeys
+            if prop in partsKeys[confPart]
+              _B.setValueAtPath bl.dstRoot, "/#{confPart}/#{prop}", src[prop], true
+              break
 
-        _B.Blender.SKIP # no assign
+          _B.Blender.SKIP # no assign
 
-  # just deepDefault our 'legitimate' parts
-  bundle: '|': -> _B.Blender.NEXT
-  build: '|': -> _B.Blender.NEXT
-
-  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
+    # just deepDefault our 'legitimate' parts
+    bundle: '|': -> _B.Blender.NEXT
+    build: '|': -> _B.Blender.NEXT
+  }
+#  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
 ]
 
-# bundleBlender
+# bundleBuildBlender
 #
 # The top level Blender, it uses 'path' to make decisions on how to blend `bundle`.
 #
 # It extends DeepCloneBlender, so if there's no path match,
 # it works like _.clone (deeply).
-bundleBlender = new _B.DeepCloneBlender [
-  order: ['path', 'src']
+bundleBuildBlender = new _B.DeepCloneBlender [
+  functionCopyBB,
+  {
+    order: ['path', 'src']
 
-  'bundle:dependencies':
+    'bundle:dependencies':
 
-      noWeb: '|': '*': (prop, src, dst)->
-        arrayizeUniquePusher.blend dst[prop], src[prop]
+        noWeb: '|': '*': (prop, src, dst)->
+          arrayizeUniquePusher.blend dst[prop], src[prop]
 
-      bundleExports: '|': '*': (prop, src, dst)->
-        dependenciesBindingsBlender.blend dst[prop], src[prop]
+        bundleExports: '|': '*': (prop, src, dst)->
+          dependenciesBindingsBlender.blend dst[prop], src[prop]
 
-      variableNames: '|': '*': (prop, src, dst)->
-        dependenciesBindingsBlender.blend dst[prop], src[prop]
+        variableNames: '|': '*': (prop, src, dst)->
+          dependenciesBindingsBlender.blend dst[prop], src[prop]
 
-      _knownVariableNames: '|': '*': (prop, src, dst)->
-        dependenciesBindingsBlender.blend dst[prop], src[prop]
+        _knownVariableNames: '|': '*': (prop, src, dst)->
+          dependenciesBindingsBlender.blend dst[prop], src[prop]
 
-  build:
-    template: '|': '*': (prop, src, dst)->
-      templateBlender.blend dst[prop], src[prop]
-
+    build:
+      template: '|': '*': (prop, src, dst)->
+        templateBlender.blend dst[prop], src[prop]
+  }
 ]
 
 
@@ -206,10 +214,10 @@ _blendDerivedConfigs = (cfgFinal, cfgsArray, deriveLoader)->
     # blend this cfg into cfgFinal using the top level blender
     # first moveKeys for each config for configsArray items
     # @todo: (2, 7, 5) rewrite more functional, decoration/declarative/flow style ?
-    bundleBlender.blend cfgFinal, moveKeysBlender.blend cfg
+    bundleBuildBlender.blend cfgFinal, moveKeysBlender.blend cfg
   null
 
 module.exports = blendConfigs
 
 # expose blender instances to module.exports/blendConfigs, just for testing
-_.extend blendConfigs, {moveKeysBlender, templateBlender, arrayizeUniquePusher, dependenciesBindingsBlender, bundleBlender}
+_.extend blendConfigs, {moveKeysBlender, templateBlender, arrayizeUniquePusher, dependenciesBindingsBlender, bundleBuildBlender}

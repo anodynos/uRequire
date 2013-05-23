@@ -7,6 +7,7 @@ upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
+fs = require 'fs'
 
 module.exports =
 
@@ -17,52 +18,45 @@ class UModule
 
   ###
   @param {Object} bundle The Bundle where this UModule belongs
-  @param {String} filename of module, eg 'models/PersonModel.coffee'
-  @param {String} sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
+  @param {String} filename of module, bundleRelative eg 'models/PersonModel.coffee'
   ###
-  _constructor: (@bundle, @filename, @sourceCode)->
-    # set '@sourceCode; triggers everything
+  _constructor: (@bundle, @filename)-> #, @sourceCode)->
+    @compiler = getCompiler @bundle, @filename
+    @refresh()
 
-  ### @return {String} the filename extension of this module, eg `.js` or `.coffee`###
-  @property extname: get:-> upath.extname @filename
+  getCompiler = (bundle, filename)->
+    for extensions, compiler of bundle.compilers
+      if filename.match compiler.regExp
+        return compiler #todo: return multiple compilers (all those matching regexp)
 
-  ### @return {String} filename, as read from filesystem (i.e bundleRelative) without extension eg `models/PersonModel` ###
-  @property modulePath: get:-> upath.trimExt @filename
+  @property extname: get:-> upath.extname @filename  # original extension, eg `.js` or `.coffee`
+  @property modulePath: get:-> upath.trimExt @filename   # filename (bundleRelative) without extension eg `models/PersonModel`
+  @property fullModulePath: get: -> "#{@bundle.bundlePath}/#{@filename}" # full filename on OS filesystem, eg `/my/module.js`
 
   ###
-    Module sourceCode, AS IS (might be coffee, coco, livescript, typescript etc)
+    Check if sourceCode (AS IS eg coffee, coco, livescript etc) has changed
+    and compile it to sourceCodeJS; then check if sourceCodeJS has changed and extract module info.
 
-    Everytime it is set, if its new sourceCode it adjusts moduleInfo, resetting all deps.
-
-    It does not actually convert, as it waits for instructions from the bundle
-    But the module is ready to provide & alter deps information (eg add some injected Dependencies)
+    It does not actually convert to any template, as it waits for instructions from the bundle
+    But the module providesdeps information (eg to inject Dependencies etc)
   ###
-  @property sourceCode:
-    enumerable: false
-    get: -> @_sourceCode
-    set: (src)->
-      if src isnt @_sourceCode
-        @_sourceCode = src
-        @_sourceCodeJs = false # mark for compilation to Js might be needed
-        @adjustModuleInfo()
+  refresh: ->
+    try
+      if @sourceCode isnt sourceCode = fs.readFileSync @fullModulePath, 'utf-8'
+        @sourceCode = sourceCode
 
-  ### Module source code, compiled to JavaScript if it aint already so ###
-  @property sourceCodeJs: get: ->
-    if not @_sourceCodeJs
-      if @extname is '.js'
-        @_sourceCodeJs = @sourceCode
-      else # compile to coffee, iced, coco etc
-        if @extname is '.coffee'
-          l.debug("Compiling coffeescript '#{@filename}'") if l.deb 90
-          cs = require 'coffee-script'
-          try
-            @_sourceCodeJs = cs.compile @sourceCode, bare:true
-          catch err
-            err.uRequire = "Coffeescript compilation error:\n"
-            l.err err.uRequire, err
-            throw err
+        if @sourceCodeJs isnt sourceCodeJs = @compiler @sourceCode
+          @sourceCodeJs = sourceCodeJs
+          @adjustModuleInfo()
+          @hasChanged = true
 
-    return @_sourceCodeJs
+    catch err
+      err.uRequire = "Error in file: #{@filename}"
+      l.err err.uRequire, err
+      @hasErrors = true
+      throw err
+
+    @hasErrors = false
 
   ###
   Extract AMD/module information for this module.

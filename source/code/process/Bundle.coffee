@@ -5,13 +5,11 @@ _fs = require 'fs'
 _wrench = require 'wrench'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/Bundle'
-
-globExpand = require 'node-glob-expand'
-l.log globExpand {cwd: '../../DRAFT'}, '*.*', /myFile2.txt/
+globExpand = require 'glob-expand'
 
 # uRequire
 upath = require '../paths/upath'
-getFiles = require "./../utils/getFiles"
+#getFiles = require "./../utils/getFiles"
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 Dependency = require '../Dependency'
@@ -33,15 +31,18 @@ class Bundle extends BundleBase
     _.extend @, bundleCfg
 
     @reporter = new DependenciesReporter()
+
+    @_knownModules = []
+    # create & attach a RegExp to each compiler (and extensions 'js|javascript' for reference')
+    for extensions, compiler of @compilers
+      compiler.regExp = new RegExp ".*\.(#{extensions.replace /\./g, '\\.'})$", 'i'
+      compiler.extensions = extensions
+      @_knownModules.push compiler.regExp
+
+    @filenames = globExpand { cwd: @bundlePath}, @filenames
+
     @uModules = {}
-
-    @filenames = globExpand {
-                    cwd: @bundlePath
-                  },
-                  @filenames
-    l.log '@filenames =', @filenames
     @loadModules()
-
 
   @staticProperty requirejs: get:=> require 'requirejs'
 
@@ -52,19 +53,14 @@ class Bundle extends BundleBase
   ###
   for getFilesFactory, filesFilter of {
 
-    #filenames: (mfn)-> not _B.inAgreements mfn, @ignore # get all non-ignored files
-
     moduleFilenames: (mfn)-> # get only modules
-       not _B.inAgreements(mfn, @ignore) and
         _B.inAgreements(mfn, @_knownModules)
 
     processModuleFilenames: (mfn)->
       _B.inAgreements(mfn, @_knownModules) and
-      (not _B.inAgreements mfn, @ignore) and
       (_B.inAgreements(mfn, @processModules) or _.isEmpty @processModules)
 
     copyNonModulesFilenames: (mfn)->
-       not _B.inAgreements(mfn, @ignore) and
        not _B.inAgreements(mfn, @_knownModules) and
        _B.inAgreements(mfn, @copyNonModules)
   }
@@ -72,7 +68,8 @@ class Bundle extends BundleBase
         get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
           existingFiles = (@["_#{getFilesFactory}"] or= [])
           try
-            files = getFiles @bundlePath, _.bind filesFilter, @
+#            files = getFiles @bundlePath, _.bind filesFilter, @
+            files = _.filter @filenames, _.bind filesFilter, @
           catch err
             err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
             l.err err.uRequire
@@ -100,30 +97,28 @@ class Bundle extends BundleBase
   ###
   loadModules: (moduleFilenames = @processModuleFilenames)->
     for moduleFN in _B.arrayize moduleFilenames
-      fullModulePath = "#{@bundlePath}/#{moduleFN}"
       try
-        moduleSource = _fs.readFileSync fullModulePath, 'utf-8'
-
-        # check exists & source up to date
-        if @uModules[moduleFN]
-          if uM.sourceCode isnt moduleSource
-            delete @uModule[moduleFN]
-
         if not @uModules[moduleFN]
-          @uModules[moduleFN] = new UModule @, moduleFN, moduleSource
+          @uModules[moduleFN] = new UModule @, moduleFN
+        else
+          @uModules[moduleFN].refresh()
       catch err
         l.debug(80, err)
-        if not _fs.existsSync fullModulePath  # remove it, if missing from filesystem
-          l.log "Missing file '#{fullModulePath}', removing module '#{moduleFN}'"
+        if not _fs.existsSync moduleFN  # remove it, if missing from filesystem
+          l.log "Missing file '#{moduleFN}', removing module.'"
           delete @uModules[moduleFN] if @uModules[moduleFN]
         else
-          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{fullModulePath}', for module '#{moduleFN}'."
+          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{@fullModulePath}', for module '#{moduleFN}'."
           l.err err.uRequire
           throw err
 
   ###
   @build / convert all uModules that have changed since last @build
   ###
+#  buildChangedModules: (@build)->
+#    l.log '@moduleFilenames =', @moduleFilenames
+#    l.log '@processModuleFilenames =', @processModuleFilenames
+
   buildChangedModules: (@build)->
 
     # first, decide where to output when combining
@@ -140,7 +135,7 @@ class Bundle extends BundleBase
     haveChanges = false
 
     for mfn, uModule of @uModules
-      if not uModule.convertedJs # it has changed, then conversion is needed :-)
+      if uModule.hasChanged and not uModule.hasErrors# it has changed, then conversion is needed :-)
         haveChanges = true
 
         # @todo: reset reporter!
@@ -201,6 +196,7 @@ class Bundle extends BundleBase
 
   ###
   combine: (@build)->
+    l.debug 30, 'combine: optimizing with r.js'
 
     if not @main # set to bundleName, or index.js, main.js @todo: & other sensible defaults ?
       for mainModuleCandidate in [@bundleName, 'index', 'main'] when mainModuleCandidate and not @main
@@ -423,15 +419,15 @@ class Bundle extends BundleBase
 
     depsVars
 
-
-if l.deb 90
-  YADC = require('YouAreDaChef').YouAreDaChef
-
-  YADC(Bundle)
-    .before /_constructor/, (match, bundleCfg)->
-      l.debug("Before '#{match}' with bundleCfg = \n", _.omit(bundleCfg, []))
-    .before /combine/, (match)->
-      l.debug('combine: optimizing with r.js')
+#
+#if l.deb 90
+#  YADC = require('YouAreDaChef').YouAreDaChef
+#
+#  YADC(Bundle)
+#    .before /_constructor/, (match, bundleCfg)->
+#      l.debug("Before '#{match}' with bundleCfg = \n", _.omit(bundleCfg, []))
+#    .before /combine/, (match)->
+#      l.debug('combine: optimizing with r.js')
 
 module.exports = Bundle
 
