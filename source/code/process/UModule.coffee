@@ -6,57 +6,32 @@ l = new _B.Logger 'urequire/UModule'
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
+UResource = require './UResource'
 Dependency = require "../Dependency"
 fs = require 'fs'
 
-module.exports =
 
-class UModule
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
-  Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-  constructor:->@_constructor.apply @, arguments
+# Represents a Javascript module
+class UModule extends UResource
 
-  ###
-  @param {Object} bundle The Bundle where this UModule belongs
-  @param {String} filename of module, bundleRelative eg 'models/PersonModel.coffee'
-  ###
-  _constructor: (@bundle, @filename)-> #, @sourceCode)->
-    @compiler = getCompiler @bundle, @filename
-    @refresh()
-
-  getCompiler = (bundle, filename)->
-    for extensions, compiler of bundle.compilers
-      if filename.match compiler.regExp
-        return compiler #todo: return multiple compilers (all those matching regexp)
-
-  @property extname: get:-> upath.extname @filename  # original extension, eg `.js` or `.coffee`
-  @property modulePath: get:-> upath.trimExt @filename   # filename (bundleRelative) without extension eg `models/PersonModel`
-  @property fullModulePath: get: -> "#{@bundle.bundlePath}/#{@filename}" # full filename on OS filesystem, eg `/my/module.js`
+  @property modulePath: get:-> upath.trimExt @filename  # filename (bundleRelative) without extension eg `models/PersonModel`
 
   ###
-    Check if sourceCode (AS IS eg coffee, coco, livescript etc) has changed
-    and compile it to sourceCodeJS; then check if sourceCodeJS has changed and extract module info.
+    Check if `super` in UResource has spotted changes and thus has a possibly changed @converted (javascript code)
+    & call `@adjustModuleInfo()` if so.
 
     It does not actually convert to any template, as it waits for instructions from the bundle
-    But the module providesdeps information (eg to inject Dependencies etc)
+
+    But the module can provide deps information (eg to inject Dependencies etc)
   ###
   refresh: ->
-    try
-      if @sourceCode isnt sourceCode = fs.readFileSync @fullModulePath, 'utf-8'
-        @sourceCode = sourceCode
+    if super
+      if @sourceCodeJs isnt @converted
+        @sourceCodeJs = @converted
+        @adjustModuleInfo()
+        return @hasChanged = true
 
-        if @sourceCodeJs isnt sourceCodeJs = @compiler @sourceCode
-          @sourceCodeJs = sourceCodeJs
-          @adjustModuleInfo()
-          @hasChanged = true
-
-    catch err
-      err.uRequire = "Error in file: #{@filename}"
-      l.err err.uRequire, err
-      @hasErrors = true
-      throw err
-
-    @hasErrors = false
+    return @hasChanged = false
 
   ###
   Extract AMD/module information for this module.
@@ -228,6 +203,7 @@ class UModule
   Note: currently, only AMD-modules provide us with the variable-binding of dependencies!
 
   @param {Object} q optional query with two optional fields : depType & depName
+
   @return {Object}
       {
         jquery: ['$', 'jQuery']
@@ -262,24 +238,27 @@ class UModule
       @factoryBody
 
       rootExports: do ()=>
-                    result = if @build.noRootExports
-                      undefined
-                    else
-                      if @rootExports then @rootExports else @rootExport # backwards compatible with rootExport :-)
-                    if result
-                      _B.arrayize result
+        result = if @build.noRootExports
+          undefined
+        else
+          if @rootExports then @rootExports else @rootExport # backwards compatible with rootExport :-)
+        if result
+          _B.arrayize result
 
 
       noConflict: if @build.noRootExports then undefined else @noConflict
   }, fltr: (v)->not _.isUndefined v
 
+
+module.exports = UModule
+
 ### Debug information ###
-if l.deb >= 90
-  YADC = require('YouAreDaChef').YouAreDaChef
-
-  YADC(UModule)
-    .before /_constructor/, (match, bundle, filename)->
-      l.debug("Before '#{match}' with filename = '#{filename}'")
-
-
+#if l.deb >= 90
+#  YADC = require('YouAreDaChef').YouAreDaChef
+#
+#  YADC(UModule)
+#    .before /_constructor/, (match, bundle, filename)->
+#      l.debug("Before '#{match}' with filename = '#{filename}'")
+#
+#
 

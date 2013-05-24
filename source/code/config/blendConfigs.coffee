@@ -53,8 +53,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
   {
     order: ['path', 'src']
 
-    'bundle:dependencies':
-
+    bundle:
+      dependencies:
         noWeb: '|': '*': (prop, src, dst)->
           arrayizeUniquePusher.blend dst[prop], src[prop]
 
@@ -66,6 +66,9 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
         _knownVariableNames: '|': '*': (prop, src, dst)->
           dependenciesBindingsBlender.blend dst[prop], src[prop]
+
+      resources: '|' : '*': (prop, src, dst)->
+        arrayizeUniquePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
 
     build:
       template: '|': '*': (prop, src, dst)->
@@ -166,6 +169,66 @@ arrayizeUniquePusher = new _B.DeepCloneBlender [
       #_B.Blender.SKIP # no need to assign, we mutated dst[prop] #todo: needed or not ?
 ]
 
+#convert an array of resources, each of which might be an array it self
+#to an array of 'proper' resources
+# For example
+#    [
+#      [
+#        '*#Name of a non-module(#), non-terminal resource (*)'
+#        [
+#          '**/*.someext'
+#        ]
+#        ->
+#      ]
+
+#    ]
+# to
+#    [
+#      {
+#        name: 'Name of a non-module(#), non-terminal resource (*)'
+#        isModule: false
+#        isTerminal: false
+#        filespecs: '**/*.someext'
+#        convert: ->
+#      }
+#    ]
+resourcesBlender = new _B.DeepCloneBlender [
+  order:['path', 'src']
+
+  '*': '|' :
+    '[]': (prop, src)->
+      converter = src[prop]
+
+      isModule = true #default
+      isTerminal = true #default
+
+      name = converter[0]
+      while name[0] in ['#', '*']
+        switch name[0]
+          when '#' then isModule = false
+          when '*' then isTerminal = false
+        name = name[1..]
+
+      filespecs = converter[1]
+      convert = converter[2]
+
+      {name, isModule, isTerminal, filespecs, convert}
+
+    '{}': (prop, src)->
+      while src[prop].name[0] in ['#', '*']
+        switch src[prop].name[0]
+          when '#' then src[prop].isModule ?= false
+          when '*' then src[prop].isTerminal ?= false
+        src[prop].name = src[prop].name[1..]
+
+      # defaults
+      src[prop].isModule ?= true
+      src[prop].isTerminal ?= true
+
+      src[prop]
+
+]
+
 
 #create a finalCfg object & a default deriveLoader
 # and call the recursive _blendDerivedConfigs
@@ -220,4 +283,12 @@ _blendDerivedConfigs = (cfgFinal, cfgsArray, deriveLoader)->
 module.exports = blendConfigs
 
 # expose blender instances to module.exports/blendConfigs, just for testing
-_.extend blendConfigs, {moveKeysBlender, templateBlender, arrayizeUniquePusher, dependenciesBindingsBlender, bundleBuildBlender}
+_.extend blendConfigs, {
+  moveKeysBlender
+  templateBlender
+  resourcesBlender
+  arrayizeUniquePusher
+  dependenciesBindingsBlender
+  bundleBuildBlender
+}
+

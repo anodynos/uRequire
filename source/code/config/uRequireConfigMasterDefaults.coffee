@@ -79,7 +79,7 @@ uRequireConfig = # Command line options overide these.
     processModules: [/./]
 
 
-    filenames: []
+#    filenames: []
 
 
     ###
@@ -99,9 +99,41 @@ uRequireConfig = # Command line options overide these.
     ###
       Modules lie in this
     ###
-    _knownModules: [
-        /.*\.(coffee)$/i, # @todo: #/.*\.(coffee|iced|coco)$/i
-        /.*\.(js|javascript)$/i
+#    _knownModules: [
+#        /.*\.(coffee)$/i, # @todo: #/.*\.(coffee|iced|coco)$/i
+#        /.*\.(js|javascript)$/i
+#    ]
+#
+#    compilers:
+#      'js|javascript': (source)-> source
+#      'coffee|litcoffee|coffee.md': (source)->
+#        (require 'coffee-script').compile source, bare:true
+
+    resources: [
+
+      { # the 'proper' way of declaring a resource (converter)
+        name: 'Javascript'
+
+        filters: [
+            '**/*.js'              # minimatch string
+            /.*\.(javascript)$/i   # or a custom RegExp
+        ]
+
+        convert: (source, filename)-> source # javascript needs no compilation - just return source as is
+      }
+
+      [ # the alternative (& easier) way of declaring a Converter
+        'Coffeescript'                    # name at pos 0
+
+        [                                 # filters at pos 1
+          '**/*.coffee'
+          /.*\.(coffee\.md|litcoffee)$/i
+        ]
+
+        (source, filename)->              # convert function at pos 2
+          (require 'coffee-script').compile source, bare:true
+      ]
+
     ]
 
 
@@ -171,14 +203,6 @@ uRequireConfig = # Command line options overide these.
       #@todo: Not implemented
       replaceTo:
         lodash: ['underscore']
-
-    compilers:
-
-      'js|javascript': (source)-> source
-
-      'coffee|litcoffee|coffee.md': (source)->
-        (require 'coffee-script').compile source, bare:true
-
 
 
 

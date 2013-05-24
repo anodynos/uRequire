@@ -42,6 +42,8 @@ gruntFunction = (grunt) ->
       doc:
         command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
 
+      # chmod +x urequireCmd.js
+
       options: # subtasks inherit options but can override them
         verbose: true
         failOnError: true
@@ -80,7 +82,7 @@ gruntFunction = (grunt) ->
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
 
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-     "default": "clean build test"
+     "default": "build test"
      "build":   "shell:coffee concat"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 

@@ -140,8 +140,6 @@ describe "Dependency - resolving many", ->
     notFoundInBundle = ( d.toString() for d in deps when d.isNotFoundInBundle() )
     webRootMap = ( d.toString() for d in deps when d.isWebRootMap() )
 
-    console.log '\n', {bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}
-
     expect({bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}).to.deep.equal
       bundleRelative: [ # @todo: with .js removed or not ?
         'underscore'                 # global lib

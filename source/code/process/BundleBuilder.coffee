@@ -56,8 +56,12 @@ class BundleBuilder
 
     if @isCheckAndFixPaths() and @isCheckTemplate()
       # Create the implementation instance from these configs @todo: refactor / redesign this / better practice ?
-      @bundle = new @Bundle @bundleCfg
-      @build = new @Build @buildCfg
+      try
+        @bundle = new @Bundle @bundleCfg
+        @build = new @Build @buildCfg
+      catch err
+        l.err err
+        throw err
 
     else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
       @buildCfg.done false
@@ -65,13 +69,6 @@ class BundleBuilder
   buildBundle: ->
     if not (!@build or !@bundle)
       @bundle.buildChangedModules @build
-#      setTimeout(
-#        ->
-#          @bundle.loadModule ['uberscore.coffee']
-      @bundle.buildChangedModules @build
-
-#        , 5000
-#      )
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false

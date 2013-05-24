@@ -6,6 +6,7 @@ _wrench = require 'wrench'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/Bundle'
 globExpand = require 'glob-expand'
+minimatch = require 'minimatch'
 
 # uRequire
 upath = require '../paths/upath'
@@ -29,20 +30,10 @@ class Bundle extends BundleBase
   constructor:-> @_constructor.apply @, arguments
   _constructor: (bundleCfg)->
     _.extend @, bundleCfg
-
     @reporter = new DependenciesReporter()
-
-    @_knownModules = []
-    # create & attach a RegExp to each compiler (and extensions 'js|javascript' for reference')
-    for extensions, compiler of @compilers
-      compiler.regExp = new RegExp ".*\.(#{extensions.replace /\./g, '\\.'})$", 'i'
-      compiler.extensions = extensions
-      @_knownModules.push compiler.regExp
-
     @filenames = globExpand { cwd: @bundlePath}, @filenames
-
-    @uModules = {}
-    @loadModules()
+    @uResources = {}
+    @loadResources()
 
   @staticProperty requirejs: get:=> require 'requirejs'
 
@@ -54,28 +45,25 @@ class Bundle extends BundleBase
   for getFilesFactory, filesFilter of {
 
     moduleFilenames: (mfn)-> # get only modules
-        _B.inAgreements(mfn, @_knownModules)
+      @uResources[mfn] instanceof UModule
+#        _B.inAgreements(mfn, @_knownModules)
 
-    processModuleFilenames: (mfn)->
-      _B.inAgreements(mfn, @_knownModules) and
-      (_B.inAgreements(mfn, @processModules) or _.isEmpty @processModules)
+#    processModuleFilenames: (mfn)->
+#      _B.inAgreements(mfn, @_knownModules) and
+#      (_B.inAgreements(mfn, @processModules) or _.isEmpty @processModules)
 
-    copyNonModulesFilenames: (mfn)->
-       not _B.inAgreements(mfn, @_knownModules) and
-       _B.inAgreements(mfn, @copyNonModules)
+    copyNonResourcesFilenames: (mfn)-> not @uResources[mfn]
+
+#       not _B.inAgreements(mfn, @_knownModules) and
+#       _B.inAgreements(mfn, @copyNonModules)
   }
       Bundle.property _B.okv {}, getFilesFactory,
         get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
           existingFiles = (@["_#{getFilesFactory}"] or= [])
-          try
-#            files = getFiles @bundlePath, _.bind filesFilter, @
-            files = _.filter @filenames, _.bind filesFilter, @
-          catch err
-            err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong reading from '#{@bundlePath}'."
-            l.err err.uRequire
-            throw err
 
+          files = _.filter @filenames, _.bind filesFilter, @
           newFiles = _.difference files, existingFiles
+
           if not _.isEmpty newFiles
             l.verbose "New #{getFilesFactory} :\n", newFiles
             existingFiles.push file for file in newFiles
@@ -89,28 +77,60 @@ class Bundle extends BundleBase
           files
         @
 
+  fileInSpecs = (file, filespecs)-> #todo: (3 6 4) convert to proper In/in agreement
+    agrees = false
+    for agreement in _B.arrayize filespecs
+      if _.isString agreement
+        agrees =
+          if agreement[0] is '!'
+            if minimatch file, agreement.slice(1) then false else agrees # falsify if minimatches, leave as is otherwise
+          else
+            agrees = agrees || minimatch file, agreement                 # if true leave it, otherwise try to truthify with minimatch
+      else
+        if _.isRegExp agreement
+          agrees = agrees || file.match agreement
+        else
+          if _.isFunction agreement
+            agrees = agreement file
+
+    agrees
+
 
   ###
-    Processes each module, as instructed by `watcher` in a [] param or read file system (@moduleFilenames)
+    Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
+
     @param String or []<String> with filenames to process.
-    @default read files from filesystem (property @moduleFilenames)
+      @default read ALL files from filesystem (property @filenames)
   ###
-  loadModules: (moduleFilenames = @processModuleFilenames)->
-    for moduleFN in _B.arrayize moduleFilenames
-      try
-        if not @uModules[moduleFN]
-          @uModules[moduleFN] = new UModule @, moduleFN
-        else
-          @uModules[moduleFN].refresh()
-      catch err
-        l.debug(80, err)
-        if not _fs.existsSync moduleFN  # remove it, if missing from filesystem
-          l.log "Missing file '#{moduleFN}', removing module.'"
-          delete @uModules[moduleFN] if @uModules[moduleFN]
-        else
-          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{@fullModulePath}', for module '#{moduleFN}'."
-          l.err err.uRequire
-          throw err
+  loadResources: (filenames = @filenames)->
+    for filename in _B.arrayize filenames
+      if not @uResources[filename] #create uResource (eg UModule) for 1st time
+        resourceClass = UModule # default
+        matchedConverters = []
+        for resourceConverter in @resources
+          if fileInSpecs filename, resourceConverter.filespecs
+            matchedConverters.push resourceConverter
+            if resourceConverter.isModule is false
+              resourceClass = UResource
+            if resourceConverter.isTerminal
+              break
+
+        if not _.isEmpty matchedConverters
+          @uResources[filename] = new resourceClass @, filename, matchedConverters
+        # else we have no resources matched, its a file we dont know of
+
+      else  #refresh existing resource
+        @uResources[filename].refresh()
+
+#      catch err
+#        l.debug(80, err)
+#        if not _fs.existsSync moduleFN  # remove it, if missing from filesystem
+#          l.log "Missing file '#{moduleFN}', removing module.'"
+#          delete @uResources[moduleFN] if @uResources[moduleFN]
+#        else
+#          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{@fullModulePath}', for module '#{moduleFN}'."
+#          l.err err.uRequire
+#          throw err
 
   ###
   @build / convert all uModules that have changed since last @build
@@ -130,12 +150,14 @@ class Bundle extends BundleBase
                 ' and @build.outputPath = ', @build.outputPath
         ) if l.deb 30
 
-    @copyNonModuleFiles() #@todo:5 unless bundle or @build says no
+#    @copyNonModuleFiles() #@todo:5 unless bundle or @build says no
+    @copyNonResourcesFilenames
 
     haveChanges = false
-
-    for mfn, uModule of @uModules
-      if uModule.hasChanged and not uModule.hasErrors# it has changed, then conversion is needed :-)
+    for mfn, uModule of @uResources when uModule instanceof UModule
+      l.log '???? build changed module', uModule.modulePath, uModule.hasChanged, uModule.hasErrors
+      if uModule.hasChanged and not uModule.hasErrors # it has changed, then conversion is needed :-)
+        l.log 'Yes, build changed module', mfn
         haveChanges = true
 
         # @todo: reset reporter!
@@ -171,7 +193,7 @@ class Bundle extends BundleBase
       throw err
 
   copyNonModuleFiles: ->
-    cnmf = @copyNonModulesFilenames
+    cnmf = @copyNonResourcesFilenames
     if not _.isEmpty cnmf
       l.verbose "Copying non-module/excluded files : \n", cnmf
       for fn in cnmf
@@ -190,7 +212,7 @@ class Bundle extends BundleBase
                           "#{@build.outputPath}#{depName}" #to
 
   deleteModules: (modules)-> #todo: implement it
-    l.debug("delete #{@uModules[m]}" for m in modules if @uModules[m]) if l.deb 30
+    l.debug("delete #{@uResources[m]}" for m in modules if @uResources[m]) if l.deb 30
 
   ###
 
@@ -390,7 +412,7 @@ class Bundle extends BundleBase
         dv.push v for v in vars when v not in dv
 
     # gather depsVars from all loaded uModules
-    for uMK, uModule of @uModules
+    for uMK, uModule of @uResources
       gatherDepsVars uModule.getDepsVars q
 
     # pick from @dependencies.variableNames only for existing deps, that have no vars info discovered yet
