@@ -24,12 +24,14 @@ resources =  [
       '!**/*.amd.coffee'
     ]
     (source)-> source
+    (filename)-> filename.replace '.coffee', '.js' # dummy filename converter
   ]
 
   [
     'Streamline' # a title of the resource
     '**/*._*'
     (source)-> source
+    (filename)-> filename.replace '._js', '.js' # dummy filename converter
   ]
 
   {
@@ -43,6 +45,13 @@ resources =  [
     '**/*.ext'
     (source)-> source
   ]
+
+  {
+    name: '#IamAModule' #a module (although starting with '#')
+    isModule: true      # this is respected over starting with '#'
+    filespecs: '**/*.module'
+    convert: ->
+  }
 ]
 
 expectedResources = [
@@ -56,6 +65,7 @@ expectedResources = [
        '!**/*.amd.coffee'
      ]
     convert: resources[0][2]
+    convertFn: resources[0][3]
   }
 
   {
@@ -64,6 +74,7 @@ expectedResources = [
     isTerminal: true
     filespecs: '**/*._*'
     convert: resources[1][2]
+    convertFn: resources[1][3]
   }
 
   {
@@ -72,6 +83,7 @@ expectedResources = [
     isTerminal: true
     filespecs: '**/*.nonmodule'
     convert: resources[2].convert
+    #convertFn: undefined # not added as undefined in objs
   }
 
   {
@@ -80,7 +92,17 @@ expectedResources = [
     isTerminal: false
     filespecs: '**/*.ext'
     convert: resources[3][2]
+    convertFn: resources[3][3]
   }
+
+  {
+    name: 'IamAModule'
+    isModule: true
+    isTerminal: true
+    filespecs: '**/*.module'
+    convert: resources[4].convert
+  }
+
 ]
 
 describe 'blendConfigs & its Blenders', ->
@@ -400,8 +422,8 @@ describe 'blendConfigs & its Blenders', ->
       configsClone = _.clone configs, true
       blended = blendConfigs(configs)
 
-#      it "blending doesn't mutate source configs:", ->
-##        expect(configs).to.deep.equal configsClone #this doesnt work - why chai (doesnt like Function)?
+      it "blending doesn't mutate source configs:", ->
+        expect(configs).to.deep.equal configsClone #this doesnt work - why chai (doesnt like Function)?
 #        expect(_.isEqual configs, configsClone).to.be.true
 
       it "correctly derives from many & nested user configs:", ->

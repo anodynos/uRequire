@@ -26,7 +26,7 @@ class UModule extends UResource
   ###
   refresh: ->
     if super
-      if @sourceCodeJs isnt @converted
+      if @sourceCodeJs isnt @converted #as produced by UResource
         @sourceCodeJs = @converted
         @adjustModuleInfo()
         return @hasChanged = true
@@ -42,7 +42,6 @@ class UModule extends UResource
     # reset info holders
 #    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
     @isConvertible = false
-    @convertedJs = ''
 
     moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     @moduleInfo = moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
@@ -162,9 +161,9 @@ class UModule extends UResource
                 @arrayDeps.push d
                 @nodeDeps.push d
                 @parameters.push varName
-                l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 50
+                l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 70
               else
-                l.debug("#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") if l.deb 10
+                l.debug("#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") if l.deb 50
 
       # @todo:3 also add rootExports ?
 
@@ -187,11 +186,10 @@ class UModule extends UResource
               @nodeDeps.push reqDep if @build?.allNodeRequires
 
       moduleTemplate = new ModuleGeneratorTemplates ti = @templateInfo
-      l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}', templateInfo = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
 
-      @convertedJs = moduleTemplate[@build.template.name]() # @todo: pass template, not its name
-    else
-      @convertedJs = @sourceCodeJs
+      l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
+                , "templateInfo = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
+      @converted = moduleTemplate[@build.template.name]() # @todo: pass template, not its name
 
     @
 

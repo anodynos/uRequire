@@ -197,35 +197,35 @@ resourcesBlender = new _B.DeepCloneBlender [
 
   '*': '|' :
     '[]': (prop, src)->
-      converter = src[prop]
-
-      isModule = true #default
-      isTerminal = true #default
-
-      name = converter[0]
+      resource = src[prop]
+      name = resource[0]
       while name[0] in ['#', '*']
         switch name[0]
           when '#' then isModule = false
           when '*' then isTerminal = false
-        name = name[1..]
+        name = name[1..] # remove 1st char
 
-      filespecs = converter[1]
-      convert = converter[2]
+      isModule ?= true #default
+      isTerminal ?= true #default
+      filespecs = resource[1]
+      convert = resource[2]
+      convertFn = resource[3]
 
-      {name, isModule, isTerminal, filespecs, convert}
+      {name, isModule, isTerminal, filespecs, convert, convertFn}
 
     '{}': (prop, src)->
-      while src[prop].name[0] in ['#', '*']
-        switch src[prop].name[0]
-          when '#' then src[prop].isModule ?= false
-          when '*' then src[prop].isTerminal ?= false
-        src[prop].name = src[prop].name[1..]
+      resource = _.clone src[prop], true
+      while resource.name[0] in ['#', '*']
+        switch resource.name[0]
+          when '#' then resource.isModule ?= false
+          when '*' then resource.isTerminal ?= false
+        resource.name = resource.name[1..] # remove 1st char
 
       # defaults
-      src[prop].isModule ?= true
-      src[prop].isTerminal ?= true
+      resource.isModule ?= true
+      resource.isTerminal ?= true
 
-      src[prop]
+      resource
 
 ]
 

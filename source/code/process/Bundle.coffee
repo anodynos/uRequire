@@ -31,55 +31,16 @@ class Bundle extends BundleBase
   _constructor: (bundleCfg)->
     _.extend @, bundleCfg
     @reporter = new DependenciesReporter()
-    @filenames = globExpand { cwd: @bundlePath}, @filenames
-    @uResources = {}
+    @filenames = globExpand {cwd: @bundlePath}, @filespecs #our initial filenames
+    @files = {}  # all bundle files are in this map
+    @files[filename] = {} for filename in @filenames #initialized to an empty hash
     @loadResources()
 
   @staticProperty requirejs: get:=> require 'requirejs'
 
-  ###
-  Read / refresh all files in directory.
-  Not run everytime there is a file added/removed, unless we need to:
-  Runs initially and in unkonwn -watch / refresh situations (@todo:NOT IMPLEMENTED)
-  ###
-  for getFilesFactory, filesFilter of {
-
-    moduleFilenames: (mfn)-> # get only modules
-      @uResources[mfn] instanceof UModule
-#        _B.inAgreements(mfn, @_knownModules)
-
-#    processModuleFilenames: (mfn)->
-#      _B.inAgreements(mfn, @_knownModules) and
-#      (_B.inAgreements(mfn, @processModules) or _.isEmpty @processModules)
-
-    copyNonResourcesFilenames: (mfn)-> not @uResources[mfn]
-
-#       not _B.inAgreements(mfn, @_knownModules) and
-#       _B.inAgreements(mfn, @copyNonModules)
-  }
-      Bundle.property _B.okv {}, getFilesFactory,
-        get: do(getFilesFactory, filesFilter)-> -> #return a function with these fixed
-          existingFiles = (@["_#{getFilesFactory}"] or= [])
-
-          files = _.filter @filenames, _.bind filesFilter, @
-          newFiles = _.difference files, existingFiles
-
-          if not _.isEmpty newFiles
-            l.verbose "New #{getFilesFactory} :\n", newFiles
-            existingFiles.push file for file in newFiles
-
-          deletedFiles = _.difference existingFiles, files
-          if not _.isEmpty deletedFiles
-            l.verbose "Deleted #{getFilesFactory} :\n", deletedFiles
-            @deleteModules deletedFiles
-            @["_#{getFilesFactory}"] = files
-
-          files
-        @
-
-  fileInSpecs = (file, filespecs)-> #todo: (3 6 4) convert to proper In/in agreement
+  isFileInSpecs = (file, filespecs)-> #todo: (3 6 4) convert to proper In/in agreement
     agrees = false
-    for agreement in _B.arrayize filespecs
+    for agreement in _B.arrayize filespecs #go throug all (no bailout when true) cause we have '!*glob*'
       if _.isString agreement
         agrees =
           if agreement[0] is '!'
@@ -95,45 +56,52 @@ class Bundle extends BundleBase
 
     agrees
 
-
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
 
-    @param String or []<String> with filenames to process.
+    @param []<String> with filenames to process.
       @default read ALL files from filesystem (property @filenames)
   ###
   loadResources: (filenames = @filenames)->
-    for filename in _B.arrayize filenames
-      if not @uResources[filename] #create uResource (eg UModule) for 1st time
-        resourceClass = UModule # default
-        matchedConverters = []
-        for resourceConverter in @resources
-          if fileInSpecs filename, resourceConverter.filespecs
-            matchedConverters.push resourceConverter
-            if resourceConverter.isModule is false
-              resourceClass = UResource
-            if resourceConverter.isTerminal
-              break
+    if filenames isnt @filenames # perhaps new files - add 'em to @files
+      for fn in filenames when not @files[fn]
+        @files[fn] = {}
 
-        if not _.isEmpty matchedConverters
-          @uResources[filename] = new resourceClass @, filename, matchedConverters
-        # else we have no resources matched, its a file we dont know of
+    for filename in filenames
+      try
+        if _.isEmpty @files[filename] # possibly create a uResource (eg UModule) for 1st time
+          resourceClass = UModule     # default
+          matchedConverters = []
+          for resourceConverter in @resources
+            if isFileInSpecs filename, resourceConverter.filespecs
+              matchedConverters.push resourceConverter
+              if resourceConverter.isModule is false
+                resourceClass = UResource
+              if resourceConverter.isTerminal
+                break
 
-      else  #refresh existing resource
-        @uResources[filename].refresh()
+          if not _.isEmpty matchedConverters
+            @files[filename] = new resourceClass @, filename, matchedConverters
+          # else we have no resources matched, its a file we dont know of
 
-#      catch err
-#        l.debug(80, err)
-#        if not _fs.existsSync moduleFN  # remove it, if missing from filesystem
-#          l.log "Missing file '#{moduleFN}', removing module.'"
-#          delete @uResources[moduleFN] if @uResources[moduleFN]
-#        else
-#          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{@fullModulePath}', for module '#{moduleFN}'."
-#          l.err err.uRequire
-#          throw err
+        else  #refresh existing resource
+          @files[filename].refresh()
+
+      catch err
+        l.debug(80, err)
+        if not _fs.existsSync filename  # remove it, if missing from filesystem
+          l.log "Missing file '#{filename}', removing resource file."
+          delete @files[filename]
+        else
+          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{filename}'."
+          l.err err.uRequire
+          throw err
+
+      finally #keep filenames in sync
+        @filenames = _.keys @files
 
   ###
-  @build / convert all uModules that have changed since last @build
+  @build / convert all resources that have changed since last @build
   ###
 #  buildChangedModules: (@build)->
 #    l.log '@moduleFilenames =', @moduleFilenames
@@ -150,21 +118,19 @@ class Bundle extends BundleBase
                 ' and @build.outputPath = ', @build.outputPath
         ) if l.deb 30
 
-#    @copyNonModuleFiles() #@todo:5 unless bundle or @build says no
-    @copyNonResourcesFilenames
+    @copyNonResourceFiles()
 
     haveChanges = false
-    for mfn, uModule of @uResources when uModule instanceof UModule
-      l.log '???? build changed module', uModule.modulePath, uModule.hasChanged, uModule.hasErrors
-      if uModule.hasChanged and not uModule.hasErrors # it has changed, then conversion is needed :-)
-        l.log 'Yes, build changed module', mfn
+    for filename, resource of @files  #when resource instanceof UModule
+      if resource.hasChanged and not resource.hasErrors # it has changed, then conversion is needed :-)
+        l.debug 50, "Building changed resource '#{@filename}'"
         haveChanges = true
 
         # @todo: reset reporter!
-        uModule.convert @build
+        resource.convert @build
 
         if _.isFunction @build.out
-          @build.out uModule.modulePath, uModule.convertedJs
+          @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
           # @todo:5 else if String, output to this file ?
 
     report = @reporter.getReport @build.interestingDepTypes
@@ -192,12 +158,15 @@ class Bundle extends BundleBase
       l.err err.uRequire
       throw err
 
-  copyNonModuleFiles: ->
-    cnmf = @copyNonResourcesFilenames
-    if not _.isEmpty cnmf
-      l.verbose "Copying non-module/excluded files : \n", cnmf
-      for fn in cnmf
-        Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
+  copyNonResourceFiles: ->
+    if not _.isEmpty @copyNonResources
+      # get all filenames from @files that have an empty {}
+      nonResourceFilenames = _.filter _.keys(@files), (fn)=> _.isEmpty @files[fn]
+      if not _.isEmpty nonResourceFilenames 
+        l.verbose "Copying non-resources files"
+        for fn in nonResourceFilenames
+          if isFileInSpecs fn, @copyNonResources
+            Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
 
   ###
    Copy all bundle's webMap dependencies to outputPath
@@ -211,9 +180,6 @@ class Bundle extends BundleBase
         Build.copyFileSync  "#{@webRoot}#{depName}", #from
                           "#{@build.outputPath}#{depName}" #to
 
-  deleteModules: (modules)-> #todo: implement it
-    l.debug("delete #{@uResources[m]}" for m in modules if @uResources[m]) if l.deb 30
-
   ###
 
   ###
@@ -221,20 +187,15 @@ class Bundle extends BundleBase
     l.debug 30, 'combine: optimizing with r.js'
 
     if not @main # set to bundleName, or index.js, main.js @todo: & other sensible defaults ?
-      for mainModuleCandidate in [@bundleName, 'index', 'main'] when mainModuleCandidate and not @main
-        @main = _.find @moduleFilenames, (mf)->
-            for ext in Build.moduleExtensions
-              if mf is mainModuleCandidate + ".#{ext}"
-                return true
-            false
+      for mainModuleCandidate in [@bundleName, 'index', 'main'] when mainModuleCandidate and not mainModule
+        mainModule = _.find @files, (resource)-> resource.modulePath is mainModuleCandidate
 
-        if @main
-          @mainExt = @main
-          @main = upath.trimExt @main
+        if mainModule
+          @main = mainModule.modulePath
           l.warn """
            combine() note: 'bundle.main', your *entry-point module* was missing from bundle config(s).
            It's defaulting to #{if @main is @bundleName then 'bundle.bundleName = ' else ''
-           }'#{@main}', as uRequire found an existing '#{@bundlePath}/#{@mainExt}' module in your bundlePath.
+           }'#{@main}', as uRequire found an existing '#{@bundlePath}/#{mainModule.filename}' module in your bundlePath.
           """
 
     if not @main
@@ -411,9 +372,9 @@ class Bundle extends BundleBase
         dv = (depsVars[dep] or= [])
         dv.push v for v in vars when v not in dv
 
-    # gather depsVars from all loaded uModules
-    for uMK, uModule of @uResources
-      gatherDepsVars uModule.getDepsVars q
+    # gather depsVars from all loaded resources
+    for uMK, resource of @files when resource instanceof UModule
+      gatherDepsVars resource.getDepsVars q
 
     # pick from @dependencies.variableNames only for existing deps, that have no vars info discovered yet
     # todo: remove from here / refactor
@@ -452,6 +413,4 @@ class Bundle extends BundleBase
 #      l.debug('combine: optimizing with r.js')
 
 module.exports = Bundle
-
-
 

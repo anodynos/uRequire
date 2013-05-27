@@ -115,13 +115,13 @@ class BundleBuilder
         if not @buildCfg.outputPath
           l.err """
             Quitting build, no --outputPath specified.
-            Use -f *with caution* to overwrite sources."""
+            Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath)."""
           return false
         else
           if @buildCfg.outputPath is @bundleCfg.bundlePath # @todo: check normalized ?
             l.err """
               Quitting build, outputPath === bundlePath.
-              Use -f *with caution* to overwrite sources (no need to specify --outputPath).
+              Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath).
               """
             return false
 

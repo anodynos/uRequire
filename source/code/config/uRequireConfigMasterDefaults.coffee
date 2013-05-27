@@ -65,73 +65,48 @@ uRequireConfig = # Command line options overide these.
     # @example './source/code'
     bundlePath: undefined
 
-    ###
-    Modules to process, WITH extension. @todo: use without extension ?
 
-    @default [/./], all modules are processed
+    # Filespecs, of files that are not matched as resources/modules, to be copied to outputPath.
+    #
+    # @type filespecs - see filespecs
+    #
+    # @default [/./], ie. all non-module files are copied
+    #
+    # @example ['**/recources/*.*', '!dummy.json', /\.someExtension$/i ]
+    copyNonResources: [/./]
 
-    @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Fucntion(item).
-
-
-    @example ['module1.js', 'myLibs/mylib1.js']
-    ###
-    processModules: [/./]
-
-
-#    filenames: []
-
-
-    ###
-    Filesname (that are not modules), to copy to output dir.
-
-    @default
-
-    @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Fucntion(item).
-
-    @default [/./], ie. all non-module files are copied
-
-    @example ['module1.js', 'myLibs/mylib1.js']
-    ###
-    copyNonModules: [/./]
-
-    ###
-      Modules lie in this
-    ###
-#    _knownModules: [
-#        /.*\.(coffee)$/i, # @todo: #/.*\.(coffee|iced|coco)$/i
-#        /.*\.(js|javascript)$/i
-#    ]
-#
-#    compilers:
-#      'js|javascript': (source)-> source
-#      'coffee|litcoffee|coffee.md': (source)->
-#        (require 'coffee-script').compile source, bare:true
+    filespecs: ['**/*.*']
 
     resources: [
 
       { # the 'proper' way of declaring a resource (converter)
         name: 'Javascript'
 
-        filters: [
+        filespecs: [
             '**/*.js'              # minimatch string
             /.*\.(javascript)$/i   # or a custom RegExp
         ]
 
         convert: (source, filename)-> source # javascript needs no compilation - just return source as is
+
+        convertFn: (filename)->             # convert .js | .javascript to .js
+          (require '../paths/upath').changeExt filename, 'js'
       }
 
       [ # the alternative (& easier) way of declaring a Converter
         'Coffeescript'                    # name at pos 0
 
-        [                                 # filters at pos 1
+        [                                 # filespecs at pos 1
           '**/*.coffee'
           /.*\.(coffee\.md|litcoffee)$/i
         ]
 
         (source, filename)->              # convert function at pos 2
           (require 'coffee-script').compile source, bare:true
+
+        (filename)->                      # convertFn function at pos 3
+          ext = filename.replace /.*\.(coffee\.md|litcoffee|coffee)$/i, "$1" # retrieve matched extension, eg 'coffee.md'
+          filename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
       ]
 
     ]

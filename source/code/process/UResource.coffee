@@ -1,17 +1,13 @@
 _ = require 'lodash'
 _B = require 'uberscore'
 
-l = new _B.Logger 'urequire/UModule'
+l = new _B.Logger 'urequire/UResource'
 
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
 fs = require 'fs'
-
-file = 'myfile.txt.md'
-l.log upath.extname file
-l.log upath.trimExt file
 
 ###
   Represents any textual resource (including but not limited to js-convertable code).
@@ -43,9 +39,19 @@ class UResource
     try
       if @source isnt source = fs.readFileSync @fullPath, 'utf-8'
         @source = @converted = source
-        for converter in @converters when _.isFunction converter.convert
-          l.debug "Converting '#{@filename}' with '#{converter.name}'" if l.deb 50
-          @converted = converter.convert @converted, @filename
+        @convertedFilename = @filename
+        for converter in @converters
+          if _.isFunction converter.convert
+            l.debug "Converting '#{@convertedFilename}' with '#{converter.name}'..." if l.deb 60
+            @converted = converter.convert @converted, @convertedFilename
+
+          switch _B.type converter.convertFn
+            when 'Function'
+              @convertedFilename = converter.convertFn @convertedFilename
+            when 'String'
+              @convertedFilename = upath.changeExt @convertedFilename, converter.convertFn
+
+          l.debug "...resource.convertedFilename is '#{@convertedFilename}'" if l.deb 85
 
         @hasErrors = false
         return @hasChanged = true
