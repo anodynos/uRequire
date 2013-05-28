@@ -41,7 +41,6 @@ class UModule extends UResource
   adjustModuleInfo: ->
     # reset info holders
 #    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
-    @isConvertible = false
 
     moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     @moduleInfo = moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
@@ -59,7 +58,9 @@ class UModule extends UResource
 
       if _.isEmpty @moduleInfo.arrayDependencies
         @moduleInfo.parameters = []
-      else # remove *reduntant parameters* (those in excess of the arrayDeps), requireJS doesn't like them if require is 1st param!
+      else
+        # remove *reduntant parameters* (those in excess of the arrayDeps):
+        # useless & also requireJS doesn't like them if require is 1st param!
         @moduleInfo.parameters = @moduleInfo.parameters[0..@moduleInfo.arrayDependencies.length-1]
 
       # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require'
@@ -89,7 +90,7 @@ class UModule extends UResource
 
             deps
       # replace 'require()' calls using requireReplacements
-      @moduleInfo.factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
+      @factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
       # add remaining dependencies (eg 'untrustedRequireDependencies') to DependenciesReport
       if @bundle.reporter
@@ -99,19 +100,20 @@ class UModule extends UResource
       # our final 'templateInfo' information follows
       @parameters = _.clone @moduleInfo.parameters
       @nodeDeps = _.clone @arrayDeps
+      {@moduleName, @moduleType, @modulePath, @rootExports, @noConflict} = @moduleInfo
 
-      _.defaults @, @moduleInfo
-      @
+      null
+
   ###
   Actually converts the module to the target @build options.
   ###
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
-      l.debug("Converting module '#{@modulePath}'") if l.deb 30
+      l.debug("Converting module '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
 
       # inject bundleExports Dependencies information to arrayDeps, nodeDeps & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.bundleExports)
-        l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports) if l.deb 30
+        l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports) if l.deb 80
 
         for depName, varNames of bundleExports
           if _.isEmpty varNames
@@ -119,7 +121,7 @@ class UModule extends UResource
             varNames = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
             l.debug("""
               #{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
-              An attempt to infer varNames from bundle: """, varNames) if l.deb 40
+              An attempt to infer varNamfrom bundle: """, varNames) if l.deb 40
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
             err = uRequire: """
@@ -155,15 +157,20 @@ class UModule extends UResource
             l.err err.uRequire
             throw err
           else
+            # @todo: (5 3 4) Make sure arrays are at the same index,
+            # and adjust them so deps & params correspond to each other!
+            if (lenDiff = @arrayDeps.length - @parameters.length) > 0
+              @parameters.push "__dummyParam#{paramIndex}" for paramIndex in [1..lenDiff]
+
             for varName in varNames # add for all corresponding vars
               if not (varName in @parameters)
                 d = new Dependency depName, @filename, @bundle.filenames #its cheap!
                 @arrayDeps.push d
                 @nodeDeps.push d
                 @parameters.push varName
-                l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 70
+                l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 99
               else
-                l.debug("#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") if l.deb 50
+                l.debug("#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") if l.deb 90
 
       # @todo:3 also add rootExports ?
 
@@ -185,15 +192,26 @@ class UModule extends UResource
               @arrayDeps.push reqDep
               @nodeDeps.push reqDep if @build?.allNodeRequires
 
-      moduleTemplate = new ModuleGeneratorTemplates ti = @templateInfo
+      @webRootMap = @bundle.webRootMap || '.'
+      @arrayDependencies = (d.name() for d in @arrayDeps)
+      @nodeDependencies = (d.name() for d in @nodeDeps)
+
+      if @build.noRootExports #@todo: so lame, deleting! stuff, because @build wants to ? Perhaps use a templateInfo as a uModule wrapper
+        delete @noConflict
+        delete @rootExports
+      else
+        @rootExports = _B.arrayize @rootExports
+
+      # `this` uModule, stands also for templateInfo :-)
+      @moduleTemplate = new ModuleGeneratorTemplates @ #todo: (1 3 1) retain the same @moduleTemplate {} (we need to refresh headers etc in template)
 
       l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
-                , "templateInfo = \n", _.omit(ti, ['factoryBody', 'webRootMap', ])
-      @converted = moduleTemplate[@build.template.name]() # @todo: pass template, not its name
+                , "module info = \n", _.pick @, [
+                    'moduleName', 'moduleType', 'modulePath', 'arrayDependencies', 'nodeDependencies',
+                    'parameters', 'webRootMap', 'rootExports']
 
+      @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
     @
-
-
 
   ###
   Returns all deps in this module along with their corresponding parameters (variable names)
@@ -224,28 +242,7 @@ class UModule extends UResource
       depsVars
     else {}
 
-  ### for reference (we could have passed UModule instance it self :-) ###
-  @property templateInfo: get: -> _B.go {
-      @moduleName
-      @moduleType
-      @modulePath
-      webRootMap: @bundle.webRootMap || '.'
-      arrayDependencies: (d.name() for d in @arrayDeps)
-      nodeDependencies: (d.name() for d in @nodeDeps)
-      @parameters
-      @factoryBody
 
-      rootExports: do ()=>
-        result = if @build.noRootExports
-          undefined
-        else
-          if @rootExports then @rootExports else @rootExport # backwards compatible with rootExport :-)
-        if result
-          _B.arrayize result
-
-
-      noConflict: if @build.noRootExports then undefined else @noConflict
-  }, fltr: (v)->not _.isUndefined v
 
 
 module.exports = UModule

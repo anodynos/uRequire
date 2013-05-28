@@ -5,11 +5,11 @@
 #   *  if on node, write to a .json or .js file
 #   *  return as UMD/AMD/nodejs module otherwise
 
-#_fs =  require 'fs'
+#fs =  require 'fs'
 _= require 'lodash'
 #_B = require 'uberscore'
 
-#rJSON = (file)-> JSON.parse _fs.readFileSync file, 'utf-8'
+#rJSON = (file)-> JSON.parse fs.readFileSync file, 'utf-8'
 
 module.exports =
 
@@ -234,6 +234,7 @@ uRequireConfig = # Command line options overide these.
 #          * 'true' means all (global) libs are inlined.
 #          * String and []<String> are deps that will be inlined
 #
+#          @example depsInline: ['backbone', 'lodash'] # inline these deps
 #          @example depsInline: ['backbone', 'lodash'] # inline these deps
 #
 #          @default undefined/false : 'All globals are replaced with a "getGlobal_#{globalName}"'

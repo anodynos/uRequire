@@ -36,8 +36,18 @@ class UResource
     @return true if there was a change (and convertions took place), false otherwise
   ###
   refresh: ->
+    source = undefined
     try
-      if @source isnt source = fs.readFileSync @fullPath, 'utf-8'
+      source = fs.readFileSync @fullPath, 'utf-8'
+    catch err
+      err.uRequire = "Error reading file '#{@fullPath}'."
+      l.err err.uRequire, err
+      @hasErrors = true
+      throw err
+
+    try
+      if source and (@source isnt source)
+        # go through all converters, converting source & filename in turn
         @source = @converted = source
         @convertedFilename = @filename
         for converter in @converters
@@ -51,14 +61,15 @@ class UResource
             when 'String'
               @convertedFilename = upath.changeExt @convertedFilename, converter.convertFn
 
-          l.debug "...resource.convertedFilename is '#{@convertedFilename}'" if l.deb 85
+          l.debug "...resource.convertedFilename is '#{@convertedFilename}'" if l.deb 95
 
         @hasErrors = false
         return @hasChanged = true
       else
         return @hasChanged = false
+
     catch err
-      err.uRequire = "Error converting '#{@filename}' with converter '#{converter.name}'."
+      err.uRequire = "Error converting '#{@filename}' with converter '#{converter?.name}'."
       l.err err.uRequire, err
       @hasErrors = true
       throw err

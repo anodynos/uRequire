@@ -1,7 +1,7 @@
 {
  "name": "urequire",
  "description": "Javascript Module converter: write modular code once, convert to UMD and run/test on AMD (browser/requirejs) & nodejs.",
- "version": "0.3.1alpha0",
+ "version": "0.4.0alpha1",
  "homepage": "https://github.com/anodynos/urequire",
  "author": {
   "name": "Agelos Pikoulas",
@@ -45,6 +45,7 @@
   "butter-require": "0.0.x",
   "coffee-script": "~1.6.2",
   "commander": "1.1.x",
+  "glob-expand": "0.0.2",
   "lodash": "*",
   "requirejs": "~2.1.0",
   "uberscore": "0.0.8",

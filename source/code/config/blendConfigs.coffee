@@ -1,5 +1,5 @@
 _ = require 'lodash'
-_fs = require 'fs'
+fs = require 'fs'
 _B = require 'uberscore'
 require('butter-require')() # no need to store it somewhere
 l = new _B.Logger 'urequire/blendConfigs'
@@ -192,6 +192,7 @@ arrayizeUniquePusher = new _B.DeepCloneBlender [
 #        convert: ->
 #      }
 #    ]
+
 resourcesBlender = new _B.DeepCloneBlender [
   order:['path', 'src']
 
@@ -213,6 +214,8 @@ resourcesBlender = new _B.DeepCloneBlender [
 
       {name, isModule, isTerminal, filespecs, convert, convertFn}
 
+    # also combine incomplete Object
+    # @todo: 4 3 2 - Combine [] & {} into one
     '{}': (prop, src)->
       resource = _.clone src[prop], true
       while resource.name[0] in ['#', '*']
@@ -242,7 +245,7 @@ blendConfigs = (configsArray, deriveLoader)->
       (derive)-> #default deriveLoader
         if _.isString derive
           l.verbose "Loading config file: '#{derive}'"
-          if cfgObject = require _fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
+          if cfgObject = require fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
             return cfgObject
         else
           if _.isObject derive

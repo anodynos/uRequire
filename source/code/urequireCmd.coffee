@@ -1,6 +1,6 @@
 _ = require 'lodash'
-_fs = require 'fs'
-_wrench = require "wrench"
+fs = require 'fs'
+wrench = require "wrench"
 _B = require 'uberscore'
 
 _B.Logger::VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat

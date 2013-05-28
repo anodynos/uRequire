@@ -1,5 +1,6 @@
 _ = require 'lodash'
-_fs = require 'fs'
+_ = require 'lodash'
+fs = require 'fs'
 _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/BundleBuilder'
@@ -7,9 +8,7 @@ l = new _B.Logger 'urequire/BundleBuilder'
 # urequire
 upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
-
 blendConfigs = require '../config/blendConfigs'
-_Bs = require '../utils/uBerscoreShortcuts'
 
 ###
   Load config :
@@ -68,7 +67,7 @@ class BundleBuilder
 
   buildBundle: ->
     if not (!@build or !@bundle)
-      @bundle.buildChangedModules @build
+      @bundle.buildChangedResources @build
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false

@@ -1,8 +1,8 @@
 # external
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
-_fs = require 'fs'
-_wrench = require 'wrench'
+fs = require 'fs'
+wrench = require 'wrench'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/Bundle'
 globExpand = require 'glob-expand'
@@ -10,7 +10,6 @@ minimatch = require 'minimatch'
 
 # uRequire
 upath = require '../paths/upath'
-#getFiles = require "./../utils/getFiles"
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 Dependency = require '../Dependency'
@@ -18,7 +17,6 @@ DependenciesReporter = require './../DependenciesReporter'
 UModule = require './UModule'
 Build = require './Build'
 BundleBase = require './BundleBase'
-
 
 ###
 
@@ -70,6 +68,9 @@ class Bundle extends BundleBase
     for filename in filenames
       try
         if _.isEmpty @files[filename] # possibly create a uResource (eg UModule) for 1st time
+          l.debug "New resource: '#{filename}'" if l.deb 80
+
+          #create a new UResource / UModule, adding all matched converters
           resourceClass = UModule     # default
           matchedConverters = []
           for resourceConverter in @resources
@@ -84,18 +85,20 @@ class Bundle extends BundleBase
             @files[filename] = new resourceClass @, filename, matchedConverters
           # else we have no resources matched, its a file we dont know of
 
-        else  #refresh existing resource
+        else
+          l.debug "Refreshing existing resource: '#{filename}'" if l.deb 80
           @files[filename].refresh()
 
       catch err
         l.debug(80, err)
-        if not _fs.existsSync filename  # remove it, if missing from filesystem
+        if not fs.existsSync @files[filename].fullPath  # remove it, if missing from filesystem
           l.log "Missing file '#{filename}', removing resource file."
           delete @files[filename]
         else
           err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{filename}'."
           l.err err.uRequire
-          throw err
+          if filenames is @filenames
+            throw err #otherwise we are in 'watch' mode
 
       finally #keep filenames in sync
         @filenames = _.keys @files
@@ -103,12 +106,11 @@ class Bundle extends BundleBase
   ###
   @build / convert all resources that have changed since last @build
   ###
-#  buildChangedModules: (@build)->
+#  buildChangedResources: (@build)->
 #    l.log '@moduleFilenames =', @moduleFilenames
 #    l.log '@processModuleFilenames =', @processModuleFilenames
 
-  buildChangedModules: (@build)->
-
+  buildChangedResources: (@build)->
     # first, decide where to output when combining
     if @build.template.name is 'combined'
       if not @build.combinedFile # change @build's paths
@@ -120,68 +122,37 @@ class Bundle extends BundleBase
 
     @copyNonResourceFiles()
 
-    haveChanges = false
+    changedCount = 0; errorCount = 0
     for filename, resource of @files  #when resource instanceof UModule
-      if resource.hasChanged and not resource.hasErrors # it has changed, then conversion is needed :-)
-        l.debug 50, "Building changed resource '#{@filename}'"
-        haveChanges = true
-
-        # @todo: reset reporter!
-        resource.convert @build
-
-        if _.isFunction @build.out
-          @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
-          # @todo:5 else if String, output to this file ?
+      if resource.hasChanged # it has changed, conversion needed
+        changedCount++
+        if resource.hasErrors
+          errorCount++
+        else
+          l.debug 50, "Building changed resource '#{filename}'"
+          resource.convert @build
+          if _.isFunction @build.out # @todo:5 else if String, output to this file ?
+            @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
+          resource.hasChanged = false
 
     report = @reporter.getReport @build.interestingDepTypes
     if not _.isEmpty(report)
-      l.log 'Report for this `build`:\n', report
+      l.verbose 'Report for this `build`:\n', report
+      @reporter = new DependenciesReporter()
 
-    if (@build.template.name is 'combined') and haveChanges
+    if changedCount > 0
+      if errorCount is 0
+        l.verbose "#{changedCount} changed files in this build."
+      else
+        l.warn "#{changedCount} changed files & #{changedCount} with errors in this build."
+      
+    if (@build.template.name is 'combined') and changedCount
       @combine @build
     else
       @build.done true
 
-  getRequireJSConfig: ()-> #@todo:(7 5 2) remove & fix this!
-      paths:
-        text: "requirejs_plugins/text"
-        json: "requirejs_plugins/json"
-
-  copyAlmondJs: ->
-    try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
-      Build.copyFileSync "#{__dirname}/../../../node_modules/almond/almond.js", "#{@build.outputPath}/almond.js"
-    catch err
-      err.uRequire = """
-        uRequire: error copying almond.js from uRequire's installation node_modules - is it installed ?
-        Tried: '#{__dirname}/../../../node_modules/almond/almond.js'
-      """
-      l.err err.uRequire
-      throw err
-
-  copyNonResourceFiles: ->
-    if not _.isEmpty @copyNonResources
-      # get all filenames from @files that have an empty {}
-      nonResourceFilenames = _.filter _.keys(@files), (fn)=> _.isEmpty @files[fn]
-      if not _.isEmpty nonResourceFilenames 
-        l.verbose "Copying non-resources files"
-        for fn in nonResourceFilenames
-          if isFileInSpecs fn, @copyNonResources
-            Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
 
   ###
-   Copy all bundle's webMap dependencies to outputPath
-   @todo: should copy dep.plugin & dep.resourceName separatelly
-  ###
-  copyWebMapDeps: ->
-    webRootDeps = _.keys @getDepsVars(depType: Dependency.TYPES.webRootMap)
-    if not _.isEmpty webRootDeps
-      l.verbose "Copying webRoot deps :\n", webRootDeps
-      for depName in webRootDeps
-        Build.copyFileSync  "#{@webRoot}#{depName}", #from
-                          "#{@build.outputPath}#{depName}" #to
-
-  ###
-
   ###
   combine: (@build)->
     l.debug 30, 'combine: optimizing with r.js'
@@ -248,7 +219,7 @@ class Bundle extends BundleBase
         @copyWebMapDeps()
 
         try #delete old combinedFile
-          _fs.unlinkSync @build.combinedFile
+          fs.unlinkSync @build.combinedFile
         catch err
 
         rjsConfig =
@@ -263,7 +234,7 @@ class Bundle extends BundleBase
     #        #todo: @build.out it!
     #        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
     #        @outputToFile text, @combinedFile
-    #        if _fs.existsSync @combinedFile
+    #        if fs.existsSync @combinedFile
     #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
           name: 'almond'
           optimize: "none"
@@ -290,14 +261,18 @@ class Bundle extends BundleBase
         rjsConfig.logLevel = 0 if l.deb 90
 
         # actually combine (r.js optimize)
-        l.verbose "Optimize with r.js (ver. #{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
-        @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
-          l.verbose 'r.js buildResponse = ', buildResponse
+        l.verbose "Optimize with r.js (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
+        try
+          @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
+            l.verbose 'r.js buildResponse = ', buildResponse
+        catch err
+          err.uRequire = "Error optimizing with r.js (v#{@requirejs.version})"
+          l.err err
 
   #      if true
         setTimeout  (=>
           l.debug(60, 'Checking r.js output file...')
-          if _fs.existsSync build.combinedFile
+          if fs.existsSync build.combinedFile
             l.log "Combined file '#{build.combinedFile}' written successfully."
 
             globalDepsVars = @getDepsVars depType:'global'
@@ -316,7 +291,7 @@ class Bundle extends BundleBase
             # delete outputPath, used as temp directory with individual AMD files
             if not l.deb 50
               l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
-              _wrench.rmdirSyncRecursive build.outputPath
+              wrench.rmdirSyncRecursive build.outputPath
             else
               l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50.")
             build.done true
@@ -344,6 +319,44 @@ class Bundle extends BundleBase
 
             build.done false
         ), 100
+
+  getRequireJSConfig: ()-> #@todo:(7 5 2) remove & fix this!
+      paths:
+        text: "requirejs_plugins/text"
+        json: "requirejs_plugins/json"
+
+  copyAlmondJs: ->
+    try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
+      Build.copyFileSync "#{__dirname}/../../../node_modules/almond/almond.js", "#{@build.outputPath}/almond.js"
+    catch err
+      err.uRequire = """
+        uRequire: error copying almond.js from uRequire's installation node_modules - is it installed ?
+        Tried: '#{__dirname}/../../../node_modules/almond/almond.js'
+      """
+      l.err err.uRequire
+      throw err
+
+  copyNonResourceFiles: ->
+    if not _.isEmpty @copyNonResources
+      # get all filenames from @files that have an empty {}
+      nonResourceFilenames = _.filter _.keys(@files), (fn)=> _.isEmpty @files[fn]
+      if not _.isEmpty nonResourceFilenames
+        l.verbose "Copying non-resources files"
+        for fn in nonResourceFilenames
+          if isFileInSpecs fn, @copyNonResources
+            Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
+
+  ###
+   Copy all bundle's webMap dependencies to outputPath
+   @todo: should copy dep.plugin & dep.resourceName separatelly
+  ###
+  copyWebMapDeps: ->
+    webRootDeps = _.keys @getDepsVars(depType: Dependency.TYPES.webRootMap)
+    if not _.isEmpty webRootDeps
+      l.verbose "Copying webRoot deps :\n", webRootDeps
+      for depName in webRootDeps
+        Build.copyFileSync  "#{@webRoot}#{depName}", #from
+                          "#{@build.outputPath}#{depName}" #to
 
 
 

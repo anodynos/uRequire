@@ -5,7 +5,7 @@ assert = chai.assert
 expect = chai.expect
 
 _ = require 'lodash'
-_fs = require('fs')
+fs = require('fs')
 upath = require '../code/paths/upath'
 
 NR = require "../code/NodeRequirer"
@@ -25,7 +25,7 @@ dirname = upath.dirname "#{__dirname}/#{moduleNameBR}"
 webRootMap = '../fakeWebRoot/mapping/'
 
 # load & parse requirejs.config.json, *existing along spec dir!*
-rjsconf = JSON.parse _fs.readFileSync "#{__dirname}/requirejs.config.json", 'utf-8'
+rjsconf = JSON.parse fs.readFileSync "#{__dirname}/requirejs.config.json", 'utf-8'
 
 nr = new NR moduleNameBR, module, dirname, webRootMap
 

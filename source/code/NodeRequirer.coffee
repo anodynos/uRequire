@@ -1,6 +1,6 @@
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
-_fs = require 'fs'
+fs = require 'fs'
 
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'

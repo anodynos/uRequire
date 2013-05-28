@@ -1,5 +1,5 @@
 _ = require 'lodash'
-_fs = require 'fs'
+fs = require 'fs'
 _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/NodeRequirer'

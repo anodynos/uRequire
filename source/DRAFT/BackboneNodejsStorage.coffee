@@ -26,7 +26,7 @@ class NodejsFsStorage
   # Save the current state of the **Store** to *nodejsFsStorage*.
   save: (model)->
     _wrench.mkdirSyncRecursive path.dirname "#{options.writePath}/#{model.get('filename')}"
-    _fs.writeFileSync "#{options.writePath}/#{model.get('filename')}", model.get 'content', 'utf-8'
+    fs.writeFileSync "#{options.writePath}/#{model.get('filename')}", model.get 'content', 'utf-8'
 
   # Add a model, giving it a (hopefully)-unique GUID, if it doesn't already
   # have an id of it's own.
@@ -51,7 +51,7 @@ class NodejsFsStorage
   # Retrieve a model from `this.data` by id.
   find: (model) ->
     @jsonData @nodejsFsStorage().getItem(@currentPath + "-" + model.id)
-    #_fs.readFileSync fullModulePath, 'utf-8'
+    #fs.readFileSync fullModulePath, 'utf-8'
 
 
   # Return the array of all models currently in storage.
