@@ -27,6 +27,7 @@ BundleBase = require './BundleBase'
 ###
 
 ###
+DEB_LEVEL_NO_DELETE_COMBINE_DIR = 50
 class Bundle extends BundleBase
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
@@ -113,9 +114,10 @@ class Bundle extends BundleBase
         else
           l.err uerr = "Something wrong while loading/refreshing/processing '#{filename}'."
           uerr = new UError uerr, nested:err
-          if @build.continue
-            l.err "Continuing from error due to @build.continue - not throwing:\n", uerr
-          else throw uerr
+          if @build.continue or @build.watch
+            l.warn "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
+          else
+            l.log uerr; throw uerr
 
     @filenames = _.keys @files
 
@@ -124,20 +126,37 @@ class Bundle extends BundleBase
   ###
   buildChangedResources: (@build, filenames=@filenames)->
 
-    @loadOrRefreshResources filenames
-
-    # decide where to output when combining
+    # some intricacies when combining
     if @build.template.name is 'combined'
-      if not @build.combinedFile # change @build's paths
+
+      # where to output AMD-like templates & where the combined file
+      if not @build.combinedFile
+        # its 1st time we run - fix this
         @build.combinedFile = upath.changeExt @build.outputPath, '.js'
         @build.outputPath = "#{@build.combinedFile}__temp"
         l.debug("Setting @build.combinedFile =", @build.outputPath,
-                ' and @build.outputPath = ', @build.outputPath
-        ) if l.deb 30
+                ' and @build.outputPath = ', @build.outputPath) if l.deb 30
+
+      # before any individual filenames can be combined (now this is kinda lame bu very usefull)
+      if @build.watch and                                 # If in watch mode
+         (not @watchHasFullBuild) and                     # and havent fully build once (to have our __temp dir)
+         (filenames isnt @filenames)                  # and a partial build is asked
+#         (not l.deb DEB_LEVEL_NO_DELETE_COMBINE_DIR)      # and aren't debuging high
+            filenames = @filenames                        # make sure we have a full build
+            l.warn """
+               'combined' template : performing a full build 1st time on *watch* (to get our __temp directory)
+               Note: when you quit 'watch'-ing, you have to delete '#{@build.outputPath}' you self!
+             """
+            resource.reset() for fn, resource of @files
+            @watchHasFullBuild = true                     # and note it
+
+
+    # now load/refresh some filenames or all @filenames
+    @loadOrRefreshResources filenames
 
     @copyNonResourceFiles()
 
-    changedCount = 0; errorCount = 0
+    @changedCount = 0; @errorCount = 0
     for filename, resource of @files when \
         (filenames is @filenames) or (filename in filenames)
 
@@ -149,23 +168,27 @@ class Bundle extends BundleBase
         if _.isFunction @build.out # @todo:5 else if String, output to this file ?
           @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
         resource.hasChanged = false
-        changedCount++
+        @changedCount++
 
-      errorCount++ if resource.hasErrors
+      @errorCount++ if resource.hasErrors
 
     report = @reporter.getReport @build.interestingDepTypes
     if not _.isEmpty(report)
       l.verbose 'Report for this `build`:\n', report
       @reporter = new DependenciesReporter()
 
-    l.verbose "#{changedCount} changed resources were built."
-    l.err "#{errorCount} resources with errors in this build." if errorCount > 0
-      
-    if (@build.template.name is 'combined') and changedCount
-      @combine @build
+    l.verbose "#{@changedCount} changed resources were built."
+    l.err "#{@errorCount} resources with errors in this build." if @errorCount > 0
+
+    # 'combined' or done()
+    if (@build.template.name is 'combined')
+      if @changedCount > 0
+        @combine @build
+      else
+        l.debug 30, "Not executing 'combined' building, cause there are no changes built."
+        @build.done true
     else
       @build.done true
-
 
   ###
   ###
@@ -190,6 +213,7 @@ class Bundle extends BundleBase
         No module found either as bundleName = '#{@bundleName}', nor as ['index', 'main'].
       """
       @build.done false
+      return
 
     else
       globalDepsVars = @getDepsVars {depType: Dependency.TYPES.global}
@@ -218,6 +242,7 @@ class Bundle extends BundleBase
             - RTFM & let us know if still no remedy!
         """
         @build.done false
+        return
 
       else
 
@@ -266,12 +291,11 @@ class Bundle extends BundleBase
               if _.isString optimize
                 optimizeMethod = _.find optimizers, (v)-> v is optimize
 
-          if optimizeMethod
+          if not optimizeMethod
+            l.err "Unknown optimize method '#{optimize}' - using 'uglify2' as default"
+            optimizeMethod = optimizers[0]
             rjsConfig.optimize = optimizeMethod
             rjsConfig[optimizeMethod] = optimize[optimizeMethod]
-          else
-            l.err "Quitting - unknown optimize method:", optimize
-            build.done false
 
         rjsConfig.logLevel = 0 if l.deb 90
 
@@ -288,11 +312,13 @@ class Bundle extends BundleBase
         setTimeout  (=>
           l.debug(60, 'Checking r.js output file...')
           if fs.existsSync build.combinedFile
-            l.log "Combined file '#{build.combinedFile}' written successfully."
+            l.verbose "Combined file '#{build.combinedFile}' written successfully."
 
             globalDepsVars = @getDepsVars depType:'global'
             if not _.isEmpty globalDepsVars
-              l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars, """\n
+              if (not build.watch and not build.verbose) or l.deb 20
+                l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars,
+                  """\n
                   are available when combined script '#{build.combinedFile}' is running on:
 
                   a) nodejs: they should exist as a local `nodes_modules`.
@@ -301,14 +327,14 @@ class Bundle extends BundleBase
 
                   c) Web/Script: the binded variables (eg '_' or '$')
                      must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
-              """
+                  """
 
             # delete outputPath, used as temp directory with individual AMD files
-            if not l.deb 50
+            if not (l.deb(DEB_LEVEL_NO_DELETE_COMBINE_DIR) or build.watch)
               l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
               wrench.rmdirSyncRecursive build.outputPath
             else
-              l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to debugLevel >= 50.")
+              l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to build.watch || debugLevel >= #{DEB_LEVEL_NO_DELETE_COMBINE_DIR}.")
             build.done true
           else
             l.err """

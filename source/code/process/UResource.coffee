@@ -81,6 +81,8 @@ class UResource extends BundleFile
         l.err uerr = "Error converting '#{@filename}' with converter '#{converter?.name}'."
         throw new UError uerr, nested:err
 
+  reset:-> super; delete @source; delete @converted
+
 module.exports = UResource
 
 ### Debug information ###

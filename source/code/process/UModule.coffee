@@ -27,14 +27,16 @@ class UModule extends UResource
   ###
   refresh: ->
     if super
-      if @sourceCodeJs isnt @converted #as produced by UResource
+      if @sourceCodeJs isnt @converted # @converted is produced by UResource's refresh
         @sourceCodeJs = @converted
         @adjustModuleInfo()
         return @hasChanged = true
       else
-        l.debug "No changes in sourceCodeJs of module '#{@filename}' " if l.deb 90
+        l.debug "No changes in sourceCodeJs of module '#{@convertedFilename}' " if l.deb 90
 
     return @hasChanged = false # leaving @hasChanged as is
+
+  reset:-> super; delete @sourceCodeJs
 
   ###
   Extract AMD/module information for this module.
