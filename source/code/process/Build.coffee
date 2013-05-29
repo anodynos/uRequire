@@ -9,6 +9,7 @@ l = new _B.Logger 'urequire/Build'
 upath = require '../paths/upath'
 DependenciesReporter = require './../DependenciesReporter'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
+UError = require '../utils/UError'
 
 module.exports =
 
@@ -44,9 +45,8 @@ class Build
       if @watch #if debug
         l.verbose "Written file '#{outputFilename}'"
     catch err
-      err.uRequire = "uRequire: error outputToFile '#{outputFilename}'"
-      l.err err.uRequire
-      throw err
+      l.err uerr = "outputToFile '#{outputFilename}'"
+      throw new UError uerr, nested:err
 
   # copyFile helper (missing from fs & wrench)
   # @todo: improve (based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/)
@@ -71,9 +71,8 @@ class Build
       fs.closeSync(fdr)
       fs.closeSync(fdw)
     catch err
-      err.uRequire = "uRequire: error copyFileSync from '#{srcFile}' to '#{destFile}'"
-      l.err err.uRequire
-#      throw err
+      l.err uerr = "copyFileSync from '#{srcFile}' to '#{destFile}'"
+      throw new UError uerr, nested:err
 
 
 #if l.deb 90

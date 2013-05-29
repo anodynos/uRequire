@@ -1,8 +1,5 @@
 module.exports =
   class Template
-    Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
-    Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-    constructor: ->@_constructor.apply @, arguments
 
     # Create the tamplate for "Immediate Function Invocation", i.e :
     #   Declare a Function, given its codeBody, and invoke it with given param + value pairs
@@ -10,10 +7,10 @@ module.exports =
     # @param {String} codeBody the code to invoke with IFI
     # @param {String...} paramValuePairs pairs of param + value with which to invoke
     # @example
-    #   _functionIFI "var a = root;", "root", "window"
-    #     ---> (function (root) {
-    #            var a = root;;
-    #           })()
+    #   _functionIFI 'var a = root;', 'root', 'window', '$', 'jQuery'
+    #     ---> (function (root, $) {
+    #            var a = root;
+    #           })(window, jQuery)
     _functionIFI: (codeBody, paramValuePairs...)-> """
       (function (#{(param for param, i in paramValuePairs when i%2 is 0).join(',')}) {
         #{codeBody}

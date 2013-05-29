@@ -6,11 +6,10 @@ Template = require './Template'
 module.exports =
 
 class AlmondOptimizationTemplates extends Template
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
-  Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-  constructor:->@_constructor.apply @, arguments
+  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
+  Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p ;null
 
-  _constructor: (@ti)->
+  constructor: (@ti)->
 
   @property wrap: get:->
     start: """

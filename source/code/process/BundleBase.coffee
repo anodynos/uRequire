@@ -7,6 +7,7 @@ l = new _B.Logger 'urequire/NodeRequirer'
 upath = require '../paths/upath'
 pathRelative = require '../paths/pathRelative'
 Dependency = require '../Dependency'
+UError = require '../utils/UError' #todo: use this instead!
 
 ###
 Common functionality used at build time (Bundle) or runtime (NodeRequirer)

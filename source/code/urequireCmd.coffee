@@ -133,5 +133,5 @@ else
       l.err "uRequireCmd done(), with errors!"
       process.exit 1
 
-  bb = new (require './urequire').BundleBuilder [config]
-  bb.buildBundle()
+  bundleBuilder = new (require './urequire').BundleBuilder [config]
+  bundleBuilder.buildBundle()

@@ -17,14 +17,14 @@ class JSManipulator
     try
       @AST = parser.parse @js
     catch err
-      err.urequireError = """
+      l.err uerr = """
         uRequire : error parsing javascript source.
         Make sure uRequire is using Uglify 1.x, (and NOT 2.x).
         Otherwise, check you Javascript source!
         Error=\n
       """
-      l.err err.urequireError, err
-      throw err
+      throw new UError uerr, nested:err
+
 
   toCode: (astCode = @AST) ->
     proc.gen_code astCode, beautify: @options.beautify

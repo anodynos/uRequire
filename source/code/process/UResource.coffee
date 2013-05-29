@@ -1,78 +1,85 @@
+# externals
 _ = require 'lodash'
+fs = require 'fs'
 _B = require 'uberscore'
-
 l = new _B.Logger 'urequire/UResource'
 
+# uRequire
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
-fs = require 'fs'
+BundleFile = require './BundleFile'
+UError = require '../utils/UError'
+
 
 ###
-  Represents any textual resource (including but not limited to js-convertable code).
-  Each time it `@refresh()`es, if source in file is changed,
-  its passed through all @converters and stores result as @converted
+  Represents any *textual* resource (including but not limited to js-convertable code).
+
+  Each time it `@refresh()`es,
+    if `@source` (content) in file is changed, its passed through all @converters:
+    - stores .convert(@source) result as @converted
+    - stores .convertFn(@filname) result as @convertedFilename
 ###
-class UResource
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
-  Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
+class UResource extends BundleFile
 
   ###
   @param {Object} bundle The Bundle where this URersource belongs
-  @param {String} filename of module, bundleRelative eg 'models/PersonModel.coffee'
+  @param {String} filename, bundleRelative eg 'models/PersonModel.coffee'
   @param {Array<?>} converters The converters (bundle.resources) that matched this filename & are used in turn to convert, each time we `refresh()`
   ###
   constructor: (@bundle, @filename, @converters)->
-    @refresh()
-
-  @property extname: get: -> upath.extname @filename                # original extension, eg `.js` or `.coffee`
-  @property fullPath: get: -> "#{@bundle.bundlePath}/#{@filename}" # full filename on OS filesystem, eg `myproject/mybundle/mymodule.js`
 
   ###
     Check if source (AS IS eg js, coffee, LESS etc) has changed
     and convert it passing throught all @converters
 
-    @return true if there was a change (and convertions took place), false otherwise
+    @return true if there was a change (and convertions took place) and note as @hasChanged
+            false otherwise
   ###
   refresh: ->
-    source = undefined
-    try
-      source = fs.readFileSync @fullPath, 'utf-8'
-    catch err
-      err.uRequire = "Error reading file '#{@fullPath}'."
-      l.err err.uRequire, err
-      @hasErrors = true
-      throw err
+    if not super
+      return false # no change in parent, why should I change ?
 
-    try
-      if source and (@source isnt source)
-        # go through all converters, converting source & filename in turn
-        @source = @converted = source
-        @convertedFilename = @filename
-        for converter in @converters
-          if _.isFunction converter.convert
-            l.debug "Converting '#{@convertedFilename}' with '#{converter.name}'..." if l.deb 60
-            @converted = converter.convert @converted, @convertedFilename
+    else #refresh only if parent says so
+      source = undefined
+      try
+        source = fs.readFileSync @fullPath, 'utf-8'
+      catch err
+        @hasErrors = true
+        l.err uerr = "Error reading file '#{@fullPath}'"
+        throw new UError uerr, nested:err
 
-          switch _B.type converter.convertFn
-            when 'Function'
-              @convertedFilename = converter.convertFn @convertedFilename
-            when 'String'
-              @convertedFilename = upath.changeExt @convertedFilename, converter.convertFn
+      try
+        if source and (@source isnt source)
+          # go through all converters, converting source & filename in turn
+          @source = @converted = source
+          @convertedFilename = @filename
+          for converter in @converters
+            # convert source, or better the previous @converted from convert()
+            if _.isFunction converter.convert
+              l.debug "Converting '#{@convertedFilename}' with '#{converter.name}'..." if l.deb 60
+              @converted = converter.convert @converted, @convertedFilename
 
-          l.debug "...resource.convertedFilename is '#{@convertedFilename}'" if l.deb 95
+            #convert Filename
+            switch _B.type converter.convertFn
+              when 'Function'
+                @convertedFilename = converter.convertFn @convertedFilename
+              when 'String'
+                @convertedFilename = upath.changeExt @convertedFilename, converter.convertFn
 
-        @hasErrors = false
-        return @hasChanged = true
-      else
-        return @hasChanged = false
+            l.debug "...resource.convertedFilename is '#{@convertedFilename}'" if l.deb 95
 
-    catch err
-      err.uRequire = "Error converting '#{@filename}' with converter '#{converter?.name}'."
-      l.err err.uRequire, err
-      @hasErrors = true
-      throw err
+          @hasErrors = false
+          return @hasChanged = true
+        else
+          l.debug "No changes in source of resource '#{@filename}' " if l.deb 90
+          return @hasChanged = false
+
+      catch err
+        @hasErrors = true
+        l.err uerr = "Error converting '#{@filename}' with converter '#{converter?.name}'."
+        throw new UError uerr, nested:err
 
 module.exports = UResource
 

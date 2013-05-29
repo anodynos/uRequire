@@ -1,15 +1,16 @@
+# externals
 _ = require 'lodash'
 _B = require 'uberscore'
-
 l = new _B.Logger 'urequire/UModule'
+fs = require 'fs'
 
+# uRequire
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 UResource = require './UResource'
 Dependency = require "../Dependency"
-fs = require 'fs'
-
+UError = require '../utils/UError'
 
 # Represents a Javascript module
 class UModule extends UResource
@@ -30,8 +31,10 @@ class UModule extends UResource
         @sourceCodeJs = @converted
         @adjustModuleInfo()
         return @hasChanged = true
+      else
+        l.debug "No changes in sourceCodeJs of module '#{@filename}' " if l.deb 90
 
-    return @hasChanged = false
+    return @hasChanged = false # leaving @hasChanged as is
 
   ###
   Extract AMD/module information for this module.
@@ -41,6 +44,7 @@ class UModule extends UResource
   adjustModuleInfo: ->
     # reset info holders
 #    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
+    l.debug "adjustModuleInfo for '#{@convertedFilename}'" if l.deb 70
 
     moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     @moduleInfo = moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
@@ -98,9 +102,12 @@ class UModule extends UResource
           @bundle.reporter.addReportData repData, @modulePath
 
       # our final 'templateInfo' information follows
+      #clone these cause we're injecting deps in them & keep the original for reference
       @parameters = _.clone @moduleInfo.parameters
       @nodeDeps = _.clone @arrayDeps
+
       {@moduleName, @moduleType, @modulePath, @rootExports, @noConflict} = @moduleInfo
+      @rootExports = _B.arrayize @rootExports
 
       null
 
@@ -124,7 +131,7 @@ class UModule extends UResource
               An attempt to infer varNamfrom bundle: """, varNames) if l.deb 40
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
-            err = uRequire: """
+            l.err uerr = """
               Error converting bundle named '#{@bundle.bundleName}' in '#{@bundle.bundlePath}'.
 
               No variable names can be identified for bundleExports dependency '#{depName}'.
@@ -154,8 +161,7 @@ class UModule extends UResource
                 - declare it in the above format, but in `bundle.dependencies.variableNames` and uRequre will pick it from there!
                 - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
             """
-            l.err err.uRequire
-            throw err
+            throw new UError uerr
           else
             # @todo: (5 3 4) Make sure arrays are at the same index,
             # and adjust them so deps & params correspond to each other!
@@ -196,11 +202,7 @@ class UModule extends UResource
       @arrayDependencies = (d.name() for d in @arrayDeps)
       @nodeDependencies = (d.name() for d in @nodeDeps)
 
-      if @build.noRootExports #@todo: so lame, deleting! stuff, because @build wants to ? Perhaps use a templateInfo as a uModule wrapper
-        delete @noConflict
-        delete @rootExports
-      else
-        @rootExports = _B.arrayize @rootExports
+      {@noRootExports} = @build
 
       # `this` uModule, stands also for templateInfo :-)
       @moduleTemplate = new ModuleGeneratorTemplates @ #todo: (1 3 1) retain the same @moduleTemplate {} (we need to refresh headers etc in template)
@@ -211,6 +213,7 @@ class UModule extends UResource
                     'parameters', 'webRootMap', 'rootExports']
 
       @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+      delete @noRootExports
     @
 
   ###

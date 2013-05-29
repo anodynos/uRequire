@@ -9,6 +9,7 @@ l = new _B.Logger 'urequire/BundleBuilder'
 upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 blendConfigs = require '../config/blendConfigs'
+UError = require '../utils/UError'
 
 ###
   Load config :
@@ -59,15 +60,15 @@ class BundleBuilder
         @bundle = new @Bundle @bundleCfg
         @build = new @Build @buildCfg
       catch err
-        l.err err
-        throw err
+        l.err uerr = "Initializing @bundle or @build"
+        throw new UError uerr, nested:err
 
     else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
       @buildCfg.done false
 
-  buildBundle: ->
+  buildBundle: (filenames)->
     if not (!@build or !@bundle)
-      @bundle.buildChangedResources @build
+      @bundle.buildChangedResources @build, filenames
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
@@ -130,9 +131,9 @@ module.exports = BundleBuilder
 
 ### Debug information ###
 
-if l.deb > 10 #or true
-  YADC = require('YouAreDaChef').YouAreDaChef
-
-  YADC(BundleBuilder)
-    .before /_constructor/, (match, config)->
-      l.debug(1, "Before '#{match}' with config = ", config)
+#if l.deb > 10 #or true
+#  YADC = require('YouAreDaChef').YouAreDaChef
+#
+#  YADC(BundleBuilder)
+#    .before /_constructor/, (match, config)->
+#      l.debug(1, "Before '#{match}' with config = ", config)

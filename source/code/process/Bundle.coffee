@@ -1,4 +1,4 @@
-# external
+# externals
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
@@ -14,7 +14,13 @@ uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 Dependency = require '../Dependency'
 DependenciesReporter = require './../DependenciesReporter'
+UError = require '../utils/UError'
+
+#our file types
+BundleFile = require './BundleFile'
+UResource = require './UResource'
 UModule = require './UModule'
+
 Build = require './Build'
 BundleBase = require './BundleBase'
 
@@ -31,8 +37,7 @@ class Bundle extends BundleBase
     @reporter = new DependenciesReporter()
     @filenames = globExpand {cwd: @bundlePath}, @filespecs #our initial filenames
     @files = {}  # all bundle files are in this map
-    @files[filename] = {} for filename in @filenames #initialized to an empty hash
-    @loadResources()
+#    @files[filename] = {} for filename in @filenames #initialized to an unknown placeholder
 
   @staticProperty requirejs: get:=> require 'requirejs'
 
@@ -57,61 +62,71 @@ class Bundle extends BundleBase
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
 
+    If a filename is new, create a new BundleFile (or more interestingly a UResource or UModule)
+
+    In any case, refresh() each one, either new or existing
+
     @param []<String> with filenames to process.
       @default read ALL files from filesystem (property @filenames)
   ###
-  loadResources: (filenames = @filenames)->
-    if filenames isnt @filenames # perhaps new files - add 'em to @files
-      for fn in filenames when not @files[fn]
-        @files[fn] = {}
+  loadOrRefreshResources: (filenames = @filenames)->
 
+    # if we have new files, add 'em to @files
+#    if filenames isnt @filenames
+#      for filename in filenames when not @files[filename]
+#        l.debug "New bundle file: '#{filename}'" if l.deb 80
+#        @files[filename] = new BundleFile @, filename
+
+    # check which filenames match resource converters
+    # and instantiate them as UResource or UModule
     for filename in filenames
+      if not @files[filename] # a new filename
+
+        # check if we create a uResource (eg UModule) - if we have some matchedConverters
+        matchedConverters = []; resourceClass = UModule # default
+        # add all matched converters (until a terminal converter found)
+        for resourceConverter in @resources
+          if isFileInSpecs filename, resourceConverter.filespecs
+            matchedConverters.push resourceConverter
+            if resourceConverter.isModule is false
+              resourceClass = UResource
+            if resourceConverter.isTerminal
+              break
+
+        if not _.isEmpty matchedConverters # its a convertible resource
+          l.debug "New #{resourceClass.name}: '#{filename}'" if l.deb 80
+          @files[filename] = new resourceClass @, filename, matchedConverters
+
+        else  # no resourceConverters matched, its just a bundle file
+          l.debug "New bundle file (no resource/module): '#{filename}'" if l.deb 80
+          @files[filename] = new BundleFile @, filename
+
+      else
+        l.debug "Refreshing existing resource: '#{filename}'" if l.deb 80
+
       try
-        if _.isEmpty @files[filename] # possibly create a uResource (eg UModule) for 1st time
-          l.debug "New resource: '#{filename}'" if l.deb 80
-
-          #create a new UResource / UModule, adding all matched converters
-          resourceClass = UModule     # default
-          matchedConverters = []
-          for resourceConverter in @resources
-            if isFileInSpecs filename, resourceConverter.filespecs
-              matchedConverters.push resourceConverter
-              if resourceConverter.isModule is false
-                resourceClass = UResource
-              if resourceConverter.isTerminal
-                break
-
-          if not _.isEmpty matchedConverters
-            @files[filename] = new resourceClass @, filename, matchedConverters
-          # else we have no resources matched, its a file we dont know of
-
-        else
-          l.debug "Refreshing existing resource: '#{filename}'" if l.deb 80
-          @files[filename].refresh()
-
+        @files[filename].refresh() # compilations / conversions happen here
       catch err
-        l.debug(80, err)
         if not fs.existsSync @files[filename].fullPath  # remove it, if missing from filesystem
-          l.log "Missing file '#{filename}', removing resource file."
+          l.verbose "Missing file '#{@files[filename].fullPath}', removing resource file."
           delete @files[filename]
         else
-          err.uRequire = "*uRequire #{l.VERSION}*: Something went wrong while processing '#{filename}'."
-          l.err err.uRequire
-          if filenames is @filenames
-            throw err #otherwise we are in 'watch' mode
+          l.err uerr = "Something wrong while loading/refreshing/processing '#{filename}'."
+          uerr = new UError uerr, nested:err
+          if @build.continue
+            l.err "Continuing from error due to @build.continue - not throwing:\n", uerr
+          else throw uerr
 
-      finally #keep filenames in sync
-        @filenames = _.keys @files
+    @filenames = _.keys @files
 
   ###
-  @build / convert all resources that have changed since last @build
+    build / convert all resources that have changed since last
   ###
-#  buildChangedResources: (@build)->
-#    l.log '@moduleFilenames =', @moduleFilenames
-#    l.log '@processModuleFilenames =', @processModuleFilenames
+  buildChangedResources: (@build, filenames=@filenames)->
 
-  buildChangedResources: (@build)->
-    # first, decide where to output when combining
+    @loadOrRefreshResources filenames
+
+    # decide where to output when combining
     if @build.template.name is 'combined'
       if not @build.combinedFile # change @build's paths
         @build.combinedFile = upath.changeExt @build.outputPath, '.js'
@@ -123,28 +138,28 @@ class Bundle extends BundleBase
     @copyNonResourceFiles()
 
     changedCount = 0; errorCount = 0
-    for filename, resource of @files  #when resource instanceof UModule
+    for filename, resource of @files when \
+        (filenames is @filenames) or (filename in filenames)
+
       if resource.hasChanged # it has changed, conversion needed
-        changedCount++
-        if resource.hasErrors
-          errorCount++
-        else
-          l.debug 50, "Building changed resource '#{filename}'"
+        if resource instanceof UModule
+          l.debug 60, "Converting changed module '#{filename}'"
           resource.convert @build
-          if _.isFunction @build.out # @todo:5 else if String, output to this file ?
-            @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
-          resource.hasChanged = false
+
+        if _.isFunction @build.out # @todo:5 else if String, output to this file ?
+          @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
+        resource.hasChanged = false
+        changedCount++
+
+      errorCount++ if resource.hasErrors
 
     report = @reporter.getReport @build.interestingDepTypes
     if not _.isEmpty(report)
       l.verbose 'Report for this `build`:\n', report
       @reporter = new DependenciesReporter()
 
-    if changedCount > 0
-      if errorCount is 0
-        l.verbose "#{changedCount} changed files in this build."
-      else
-        l.warn "#{changedCount} changed files & #{changedCount} with errors in this build."
+    l.verbose "#{changedCount} changed resources were built."
+    l.err "#{errorCount} resources with errors in this build." if errorCount > 0
       
     if (@build.template.name is 'combined') and changedCount
       @combine @build
@@ -327,24 +342,32 @@ class Bundle extends BundleBase
 
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
-      Build.copyFileSync "#{__dirname}/../../../node_modules/almond/almond.js", "#{@build.outputPath}/almond.js"
+      Build.copyFileSync(
+        "#{__dirname}/../../../node_modules/almond/almond.js" # from
+        "#{@build.outputPath}/almond.js"                      # to
+      )
     catch err
-      err.uRequire = """
+      l.err uerr = """
         uRequire: error copying almond.js from uRequire's installation node_modules - is it installed ?
         Tried: '#{__dirname}/../../../node_modules/almond/almond.js'
       """
-      l.err err.uRequire
-      throw err
+      uerr = new UError uerr, nested:err
+      if @build.continue
+        l.err "Continuing from error due to @build.continue - not throwing:\n", uerr
+      else throw uerr
 
   copyNonResourceFiles: ->
     if not _.isEmpty @copyNonResources
-      # get all filenames from @files that have an empty {}
-      nonResourceFilenames = _.filter _.keys(@files), (fn)=> _.isEmpty @files[fn]
+      # filenames from @files that arent `UResource`s (i.e are plain `BundleFile`s)
+      nonResourceFilenames =
+        _.filter @filenames, (fn)=> not (@files[fn] instanceof UResource)
+
       if not _.isEmpty nonResourceFilenames
-        l.verbose "Copying non-resources files"
+        l.verbose "Copying #{nonResourceFilenames.length} non-resources files..."
         for fn in nonResourceFilenames
           if isFileInSpecs fn, @copyNonResources
-            Build.copyFileSync "#{@bundlePath}/#{fn}", "#{@build.outputPath}/#{fn}"
+            Build.copyFileSync "#{@bundlePath}/#{fn}",        #from
+                               "#{@build.outputPath}/#{fn}"   #to
 
   ###
    Copy all bundle's webMap dependencies to outputPath
@@ -355,8 +378,8 @@ class Bundle extends BundleBase
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
-        Build.copyFileSync  "#{@webRoot}#{depName}", #from
-                          "#{@build.outputPath}#{depName}" #to
+        Build.copyFileSync  "#{@webRoot}#{depName}",         #from
+                            "#{@build.outputPath}#{depName}" #to
 
 
 
