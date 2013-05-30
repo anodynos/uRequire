@@ -122,13 +122,17 @@ uRequireConfig = # Command line options overide these.
 
         [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez at pos 1
 
-        (source, filename)->              # convert function at pos 2
+        (source, srcFilename)->              # convert function at pos 2
           (require 'coffee-script').compile source, bare:true
 
-        (filename)->                      # dstFilename function at pos 3
-          ext = filename.replace /.*\.(coffee\.md|litcoffee|coffee)$/i, "$1" # retrieve matched extension, eg 'coffee.md'
-          filename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
+        (srcFilename)->                      # dstFilename function at pos 3
+          ext = srcFilename.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1" # retrieve matched extension, eg 'coffee.md'
+          srcFilename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
       ]
+
+      [ 'LiveScript', [ '**/*.ls']
+        (source)-> (require 'LiveScript').compile source, bare:true
+        (srcFilename)-> srcFilename.replace /(.*)\.ls$/, '$1.js' ]
 
     ]
 

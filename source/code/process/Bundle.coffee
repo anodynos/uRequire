@@ -72,17 +72,12 @@ class Bundle extends BundleBase
   ###
   loadOrRefreshResources: (filenames = @filenames)->
 
-    # if we have new files, add 'em to @files
-#    if filenames isnt @filenames
-#      for filename in filenames when not @files[filename]
-#        l.debug "New bundle file: '#{filename}'" if l.deb 80
-#        @files[filename] = new BundleFile @, filename
-
     # check which filenames match resource converters
     # and instantiate them as UResource or UModule
     for filename in filenames
+      isNew = false
       if not @files[filename] # a new filename
-
+        isNew = true
         # check if we create a uResource (eg UModule) - if we have some matchedConverters
         matchedConverters = []; resourceClass = UModule # default
         # add all matched converters (until a terminal converter found)
@@ -94,19 +89,31 @@ class Bundle extends BundleBase
             if resourceConverter.isTerminal
               break
 
-        if not _.isEmpty matchedConverters # its a convertible resource
-          l.debug "New #{resourceClass.name}: '#{filename}'" if l.deb 80
-          @files[filename] = new resourceClass @, filename, matchedConverters
+        if _.isEmpty matchedConverters # no resourceConverters matched,
+          resourceClass = BundleFile  # its just a bundle file
+          # else its a convertible UResource or UModule
 
-        else  # no resourceConverters matched, its just a bundle file
-          l.debug "New bundle file (no resource/module): '#{filename}'" if l.deb 80
-          @files[filename] = new BundleFile @, filename
+        l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
+        @files[filename] = new resourceClass @, filename, matchedConverters
 
       else
         l.debug "Refreshing existing resource: '#{filename}'" if l.deb 80
 
       try
         @files[filename].refresh() # compilations / conversions happen here
+
+        if isNew # check there is no same dstFilename
+          if sameDstFile = (
+            _.find @files, (f)=>
+                f.dstFilename is @files[filename].dstFilename and
+                f isnt @files[filename]
+          )
+            l.err uerr = """
+              Same dstFilename '#{sameDstFile.dstFilename}' for '#{@files[filename].filename}' & '#{sameDstFile.filename}'
+            """
+            @files[filename].hasErrors = true
+            throw new UError uerr
+
       catch err
         if not fs.existsSync @files[filename].srcFilepath  # remove it, if missing from filesystem
           l.verbose """
