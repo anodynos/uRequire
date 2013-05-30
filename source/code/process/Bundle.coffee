@@ -71,6 +71,11 @@ class Bundle extends BundleBase
       @default read ALL files from filesystem (property @filenames)
   ###
   loadOrRefreshResources: (filenames = @filenames)->
+    l.verbose """\n
+    #####################################################################
+    loadOrRefreshResources: filenames.length = #{filenames.length}
+    #####################################################################
+    """
 
     # check which filenames match resource converters
     # and instantiate them as UResource or UModule
@@ -132,11 +137,17 @@ class Bundle extends BundleBase
             l.log uerr; throw uerr
 
     @filenames = _.keys @files
+    @dstFilenames = _.map @files, (file)-> file.dstFilename
 
   ###
     build / convert all resources that have changed since last
   ###
   buildChangedResources: (@build, filenames=@filenames)->
+    l.verbose """\n
+    #####################################################################
+    buildChangedResources: filenames.length = #{filenames.length}
+    #####################################################################
+    """
 
     # some intricacies when combining
     if @build.template.name is 'combined'
@@ -168,13 +179,17 @@ class Bundle extends BundleBase
 
     @copyNonResourceFiles()
 
+    l.verbose """\n
+    #####################################################################
+    Converting changed modules with template '#{@build.template.name}'
+    #####################################################################
+    """
     @changedCount = 0; @errorCount = 0
     for filename, resource of @files when \
         (filenames is @filenames) or (filename in filenames)
 
       if resource.hasChanged # it has changed, conversion needed
         if resource instanceof UModule
-          l.debug 60, "Converting changed module '#{filename}'"
           resource.convert @build
 
         if _.isFunction @build.out # @todo:5 else if String, output to this file ?
@@ -186,7 +201,7 @@ class Bundle extends BundleBase
 
     report = @reporter.getReport @build.interestingDepTypes
     if not _.isEmpty(report)
-      l.verbose 'Report for this `build`:\n', report
+      l.warn 'Report for this `build`:\n', report
       @reporter = new DependenciesReporter()
 
     l.verbose "#{@changedCount} changed resources were built."
@@ -205,7 +220,11 @@ class Bundle extends BundleBase
   ###
   ###
   combine: (@build)->
-    l.debug 30, 'combine: optimizing with r.js'
+    l.verbose """\n
+    #####################################################################
+    combine: optimizing with r.js
+    #####################################################################
+    """
 
     if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ?
       for mainCand in [@name, 'index', 'main'] when mainCand and not mainModule
@@ -402,7 +421,11 @@ class Bundle extends BundleBase
       _.filter @filenames, (fn)=> not (@files[fn] instanceof UResource)
 
     if not _.isEmpty nonResourceFilenames
-      l.verbose "Copying #{nonResourceFilenames.length} non-resources files..."
+      l.verbose """\n
+      #####################################################################
+      Copying #{nonResourceFilenames.length} non-resources files..."
+      #####################################################################
+      """
       for fn in nonResourceFilenames
         if isFileInSpecs fn, @copy
           Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath

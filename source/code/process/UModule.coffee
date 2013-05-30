@@ -49,8 +49,8 @@ class UModule extends UResource
 #    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
     l.debug "adjustModuleInfo for '#{@dstFilename}'" if l.deb 70
 
-    moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
-    @moduleInfo = moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
+    @moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
+    @moduleInfo = @moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
 
     if _.isEmpty @moduleInfo
       l.warn "Not AMD/nodejs module '#{@filename}', copying as-is."
@@ -74,8 +74,6 @@ class UModule extends UResource
       for pd in [@moduleInfo.parameters, @moduleInfo.arrayDependencies]
         pd.shift() if pd[0] is 'require'
 
-      requireReplacements = {} # final replacements for all require() calls.
-
       # Go throught all original deps & resolve their fileRelative counterpart.
       [ @arrayDeps  # Store resolvedDeps as res'DepType'
         @requireDeps
@@ -84,27 +82,17 @@ class UModule extends UResource
            @moduleInfo.requireDependencies
            @moduleInfo.asyncDependencies
           ]
-            deps = []
             for strDep in (strDepsArray || [])
-              deps.push dep = new Dependency strDep, @filename, @bundle.filenames
-              requireReplacements[strDep] = dep.name()
+              new Dependency strDep, @filename, @bundle
 
-              # add some reporting
-              if @bundle.reporter
-                @bundle.reporter.addReportData _B.okv({}, # build a `{'global':'lodash':['_']}`
-                  dep.type, [dep.name()]
-                ), @modulePath
-
-            deps
-      # replace 'require()' calls using requireReplacements
-      @factoryBody = moduleManipulator.getFactoryWithReplacedRequires requireReplacements
 
       # add remaining dependencies (eg 'untrustedRequireDependencies') to DependenciesReport
       if @bundle.reporter
         for repData in [ (_.pick @moduleInfo, @bundle.reporter.reportedDepTypes) ]
           @bundle.reporter.addReportData repData, @modulePath
 
-      # our final 'templateInfo' information follows
+      # setup some 'templateInfo' information
+
       #clone these cause we're injecting deps in them & keep the original for reference
       @parameters = _.clone @moduleInfo.parameters
       @nodeDeps = _.clone @arrayDeps
@@ -171,7 +159,7 @@ class UModule extends UResource
 
             for varName in depsVars # add for all corresponding vars
               if not (varName in @parameters)
-                d = new Dependency depName, @filename, @bundle.filenames #its cheap!
+                d = new Dependency depName, @filename, @bundle #its cheap!
                 @arrayDeps.push d
                 @nodeDeps.push d
                 @parameters.push varName
@@ -203,8 +191,23 @@ class UModule extends UResource
       @arrayDependencies = (d.name() for d in @arrayDeps)
       @nodeDependencies = (d.name() for d in @nodeDeps)
 
-      {@noRootExports} = @build
+      # Now we have all our Dependenecies & bundle properly initialized
+      # we create some final info for our module
+      requireReplacements = {} # final replacements for all require() calls.
+      for dep in _.flatten [ @arrayDeps, @requireDeps, @asyncDeps ]
+        # a) populate requireReplacements (what goes into 'require()' calls)
+        requireReplacements[dep.dep] = dep.name() # @todo:dep.dep is a lame name
 
+        # Report each Dependency (if interesting) eg. infrom us "Bundle-looking dependencies not found in bundle"
+        if @bundle.reporter
+          @bundle.reporter.addReportData _B.okv({}, # build a `{'global':'lodash':['_']}`
+            dep.type, [dep.name()]
+          ), @modulePath
+
+      # replace 'require()' calls using requireReplacements
+      @factoryBody = @moduleManipulator.getFactoryWithReplacedRequires requireReplacements
+
+      {@noRootExports} = @build
       # `this` uModule, stands also for templateInfo :-)
       @moduleTemplate = new ModuleGeneratorTemplates @ #todo: (1 3 1) retain the same @moduleTemplate {} (we need to refresh headers etc in template)
 
@@ -214,6 +217,7 @@ class UModule extends UResource
                     'parameters', 'webRootMap', 'rootExports']
 
       @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+
       delete @noRootExports
     @
 

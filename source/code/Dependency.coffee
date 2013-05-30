@@ -1,10 +1,14 @@
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
+_B = require 'uberscore'
+l = new _B.Logger 'urequire/Dependency'
 
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 
-
+# @todo: doc it
+# @todo: make all functions property getters
+# @todo: tidy up - simplify
 class Dependency
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
@@ -17,7 +21,8 @@ class Dependency
     @param {Array<String>} The files in the bundle (bundleRelative).
                            Used to calculate whether 'myDep' isFound, isGlobal etc.
   ###
-  _constructor: (@dep, @inModuleName='', @bundleFiles=[])->
+  _constructor: (@dep, @inModuleName='', @bundle)->
+    
     @dep = @dep.replace /\\/g, '/'
 
     indexOfSep = @dep.indexOf '!'
@@ -129,11 +134,10 @@ class Dependency
   isNotFoundInBundle: ()-> @isBundleBoundary() and not (@isFound() or @isGlobal())
 
   isFound: ()->
-    knownExtensions = ['.js', '.coffee'] # @todo: retrieve this info from elsewhere (eg Bundle ?)
-    for ke in knownExtensions
-      if (@_bundleRelative() + ke) in @bundleFiles
-        return true
-
-    return false
+    if @bundle?.dstFilenames
+      upath.defaultExt(@_bundleRelative(), '.js') in @bundle.dstFilenames #todo: check with "less -> css", 'teacup -> HTML'
+    else
+#      l.err "Dependenency '#{@dep}' queried for 'isFound', but no @bundle?.dstFilenames exists"
+      false # @todo: turn to optimistic
 
 module.exports = Dependency
