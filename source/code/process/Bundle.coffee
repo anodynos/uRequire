@@ -36,15 +36,15 @@ class Bundle extends BundleBase
   _constructor: (bundleCfg)->
     _.extend @, bundleCfg
     @reporter = new DependenciesReporter()
-    @filenames = globExpand {cwd: @bundlePath}, @filespecs #our initial filenames
+    @filenames = globExpand {cwd: @path}, @filez #our initial filenames
     @files = {}  # all bundle files are in this map
 #    @files[filename] = {} for filename in @filenames #initialized to an unknown placeholder
 
   @staticProperty requirejs: get:=> require 'requirejs'
 
-  isFileInSpecs = (file, filespecs)-> #todo: (3 6 4) convert to proper In/in agreement
+  isFileInSpecs = (file, filez)-> #todo: (3 6 4) convert to proper In/in agreement
     agrees = false
-    for agreement in _B.arrayize filespecs #go throug all (no bailout when true) cause we have '!*glob*'
+    for agreement in _B.arrayize filez #go throug all (no bailout when true) cause we have '!*glob*'
       if _.isString agreement
         agrees =
           if agreement[0] is '!'
@@ -87,7 +87,7 @@ class Bundle extends BundleBase
         matchedConverters = []; resourceClass = UModule # default
         # add all matched converters (until a terminal converter found)
         for resourceConverter in @resources
-          if isFileInSpecs filename, resourceConverter.filespecs
+          if isFileInSpecs filename, resourceConverter.filez
             matchedConverters.push resourceConverter
             if resourceConverter.isModule is false
               resourceClass = UResource
@@ -200,22 +200,22 @@ class Bundle extends BundleBase
   combine: (@build)->
     l.debug 30, 'combine: optimizing with r.js'
 
-    if not @main # set to bundleName, or index.js, main.js @todo: & other sensible defaults ?
-      for mainCand in [@bundleName, 'index', 'main'] when mainCand and not mainModule
+    if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ?
+      for mainCand in [@name, 'index', 'main'] when mainCand and not mainModule
         mainModule = _.find @files, (resource)-> resource.modulePath is mainCand          
           
         if mainModule
           @main = mainModule.modulePath
           l.warn """
            combine() note: 'bundle.main', your *entry-point module* was missing from bundle config(s).
-           It's defaulting to #{if @main is @bundleName then 'bundle.bundleName = ' else ''
-           }'#{@main}', as uRequire found an existing '#{@bundlePath}/#{mainModule.filename}' module in your bundlePath.
+           It's defaulting to #{if @main is @name then 'bundle.name = ' else ''
+           }'#{@main}', as uRequire found an existing '#{@path}/#{mainModule.filename}' module in your path.
           """
 
     if not @main
       l.err """
         Quiting cause 'bundle.main' is missing (after so much effort).
-        No module found either as bundleName = '#{@bundleName}', nor as ['index', 'main'].
+        No module found either as name = '#{@name}', nor as ['index', 'main'].
       """
       @build.done false
       return
@@ -348,9 +348,9 @@ class Bundle extends BundleBase
 
             Some remedy:
 
-             a) Is your *bundle.main = '#{@main}'* or *bundle.bundleName = '#{@bundleName}'* properly defined ?
-                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.
-                - 'bundleName' is what 'main' defaults to, if its a module.
+             a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
+                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
+                - 'name' is what 'main' defaults to, if its a module.
 
              b) Perhaps you have a missing dependcency ?
                 r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
@@ -388,19 +388,17 @@ class Bundle extends BundleBase
         l.err "Continuing from error due to @build.continue - not throwing:\n", uerr
       else throw uerr
 
+  # All @files (i.e bundle.filez) that ARE NOT `UResource`s and below (i.e are plain `BundleFile`s)
+  # are copied to build.outputPath.
   copyNonResourceFiles: ->
-    if not _.isEmpty @copyNonResources
-      # filenames from @files that arent `UResource`s (i.e are plain `BundleFile`s)
-      nonResourceFilenames =
-        _.filter @filenames, (fn)=> not (@files[fn] instanceof UResource)
+    if not _.isEmpty @copy then nonResourceFilenames = #save time
+      _.filter @filenames, (fn)=> not (@files[fn] instanceof UResource)
 
-      if not _.isEmpty nonResourceFilenames
-        l.verbose "Copying #{nonResourceFilenames.length} non-resources files..."
-        for fn in nonResourceFilenames
-          if isFileInSpecs fn, @copyNonResources
-#            Build.copyFileSync "#{@bundlePath}/#{fn}",        #from
-#                               "#{@build.outputPath}/#{fn}"   #to
-            Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath
+    if not _.isEmpty nonResourceFilenames
+      l.verbose "Copying #{nonResourceFilenames.length} non-resources files..."
+      for fn in nonResourceFilenames
+        if isFileInSpecs fn, @copy
+          Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath
 
   ###
    Copy all bundle's webMap dependencies to outputPath

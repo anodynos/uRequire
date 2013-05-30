@@ -19,7 +19,7 @@ config = {}
 
 urequireCommander
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
-#  .usage('<templateName> <bundlePath> [options]')
+#  .usage('<templateName> <path> [options]')
   .version(l.VERSION) # 'var version = xxx' written by grunt's banner
   .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
@@ -33,18 +33,18 @@ urequireCommander
   .option('-O, --optimize', 'Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.', undefined)
   .option('-C, --continue', 'Dont bail out while processing (module processing/conversion errors)', undefined)
   .option('-w, --watch', 'NOT IMPLEMENTED (in CLI - use grunt-urequire & grunt`s watch). Watch for changes in bundle files and reprocess those changed files.', undefined)
-  .option('-i, --filespecs', "NOT IMPLEMENTED (in CLI - use a config file or grunt-urequire). Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
+  .option('-i, --filez', "NOT IMPLEMENTED (in CLI - use a config file or grunt-urequire). Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
 
 for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combined']
   do (tmplt)->
     urequireCommander
-      .command("#{tmplt} <bundlePath>")
-      .description("Converts all modules in <bundlePath> using '#{tmplt}' template.")
-      .action (bundlePath)->
+      .command("#{tmplt} <path>")
+      .description("Converts all modules in <path> using '#{tmplt}' template.")
+      .action (path)->
         config.template = tmplt
-        config.bundlePath = bundlePath
+        config.path = path
 
 urequireCommander
   .command('config <configFiles...>')

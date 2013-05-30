@@ -36,7 +36,7 @@ resources =  [
 
   {
     name: '#NonModule' #a non-module (starting with '#')
-    filespecs: '**/*.nonmodule'
+    filez: '**/*.nonmodule'
     convert: ->
   }
 
@@ -49,7 +49,7 @@ resources =  [
   {
     name: '#IamAModule' #a module (although starting with '#')
     isModule: true      # this is respected over starting with '#'
-    filespecs: '**/*.module'
+    filez: '**/*.module'
     convert: ->
   }
 ]
@@ -59,7 +59,7 @@ expectedResources = [
     name: 'Coffeescript'
     isModule: true
     isTerminal: true
-    filespecs: [
+    filez: [
        '**/*.coffee'
        /.*\.(coffee\.md|litcoffee)$/i
        '!**/*.amd.coffee'
@@ -72,7 +72,7 @@ expectedResources = [
     name: 'Streamline'
     isModule: true
     isTerminal: true
-    filespecs: '**/*._*'
+    filez: '**/*._*'
     convert: resources[1][2]
     dstFilename: resources[1][3]
   }
@@ -81,7 +81,7 @@ expectedResources = [
     name: 'NonModule'
     isModule: false
     isTerminal: true
-    filespecs: '**/*.nonmodule'
+    filez: '**/*.nonmodule'
     convert: resources[2].convert
     #dstFilename: undefined # not added as undefined in objs
   }
@@ -90,7 +90,7 @@ expectedResources = [
     name: 'NonModule-NonTerminal resource'
     isModule: false
     isTerminal: false
-    filespecs: '**/*.ext'
+    filez: '**/*.ext'
     convert: resources[3][2]
     dstFilename: resources[3][3]
   }
@@ -99,7 +99,7 @@ expectedResources = [
     name: 'IamAModule'
     isModule: true
     isTerminal: true
-    filespecs: '**/*.module'
+    filez: '**/*.module'
     convert: resources[4].convert
   }
 
@@ -111,11 +111,11 @@ describe 'blendConfigs & its Blenders', ->
     it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where they are on `uRequireConfigMasterDefaults`", ->
       expect(
         moveKeysBlender.blend(
-          bundleName: 'myBundle'
+          name: 'myBundle'
           main: 'myMainLib'
           bundle: # 'bundle' and 'build' hashes have precedence over root items
             main: 'myLib'
-          bundlePath: "/some/path"
+          path: "/some/path"
           webRootMap: "."
           dependencies:
             variableNames: {}
@@ -133,9 +133,9 @@ describe 'blendConfigs & its Blenders', ->
         )
       ).to.deep.equal
           bundle:
-            bundleName: 'myBundle'
+            name: 'myBundle'
             main: 'myLib'
-            bundlePath: "/some/path"
+            path: "/some/path"
             webRootMap: "."
             dependencies:
               variableNames: {}
@@ -174,17 +174,17 @@ describe 'blendConfigs & its Blenders', ->
       expect(
         moveKeysBlender.blend(
           iRReLeVaNt_key_is_Ignored: true
-          bundleName: 'myBundle'
+          name: 'myBundle'
           bundle: # root items have precedence over 'bundle' and 'build' hashes.
             bundle_iRReLeVaNt_key_is_NOT_Ignored: true
-            bundlePath: "/some/path"
+            path: "/some/path"
 
         )
       ).to.deep.equal
           bundle:
             bundle_iRReLeVaNt_key_is_NOT_Ignored: true
-            bundleName: 'myBundle'
-            bundlePath: "/some/path"
+            name: 'myBundle'
+            path: "/some/path"
 
   describe "templateBlender:", ->
 
@@ -371,7 +371,7 @@ describe 'blendConfigs & its Blenders', ->
           template: 'UMD'
         ,
           bundle:
-            bundlePath: "source/code"
+            path: "source/code"
             ignore: [/^draft/]
             dependencies:
               bundleExports:
@@ -385,7 +385,7 @@ describe 'blendConfigs & its Blenders', ->
         ,
           {}
         ,
-          bundlePath: "sourceSpecDir"
+          path: "sourceSpecDir"
           main: 'index'
           resources: resources[2..]
           dependencies:
@@ -430,7 +430,7 @@ describe 'blendConfigs & its Blenders', ->
 #        expect(blended).to.deep.equal #this doesnt work - why chai (doesnt like Function)?
         expect(_.isEqual blended,
           bundle:
-            bundlePath: "source/code"
+            path: "source/code"
             main: "index"
             ignore: [/^draft/]
             resources: expectedResources

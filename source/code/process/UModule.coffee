@@ -135,7 +135,7 @@ class UModule extends UResource
 
           if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
             l.err uerr = """
-              Error converting bundle named '#{@bundle.bundleName}' in '#{@bundle.bundlePath}'.
+              Error converting bundle named '#{@bundle.name}' in '#{@bundle.path}'.
 
               No variable names can be identified for bundleExports dependency '#{depName}'.
 

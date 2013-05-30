@@ -74,7 +74,7 @@ class BundleBuilder
       @buildCfg.done false
 
   # @todo:(6,6,5) watch build's folder & rebuild
-  # @watchDirectory @cfg.bundle.bundlePath
+  # @watchDirectory @cfg.bundle.path
   #  register something to watch events
   #  watchDirectory:->
   #    onFilesChange: (filesChanged)->
@@ -91,24 +91,24 @@ class BundleBuilder
     return true
 
   isCheckAndFixPaths: ->
-    if not @bundleCfg?.bundlePath?
-      # assume bundlePath, from the 1st configFile that came along
+    if not @bundleCfg?.path?
+      # assume path, from the 1st configFile that came along
       if cfgFile = @configs[0]?.derive?[0]
         if dirName = upath.dirname cfgFile
-          l.warn "Assuming bundlePath = '#{dirName}' from 1st configFile: '#{cfgFile}'"
-          @bundleCfg.bundlePath = dirName
+          l.warn "Assuming path = '#{dirName}' from 1st configFile: '#{cfgFile}'"
+          @bundleCfg.path = dirName
           return true
         else
-          l.err "Assuming bundlePath = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
+          l.err "Assuming path = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
           return false
       else
         l.err """
-          Quitting build, no bundlePath specified.
+          Quitting build, no path specified.
           Use -h for help"""
         return false
     else
       if @buildCfg.forceOverwriteSources
-        @buildCfg.outputPath = @bundleCfg.bundlePath
+        @buildCfg.outputPath = @bundleCfg.path
         l.verbose "Forced output to '#{@buildCfg.outputPath}'"
         return true
       else
@@ -118,9 +118,9 @@ class BundleBuilder
             Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath)."""
           return false
         else
-          if @buildCfg.outputPath is @bundleCfg.bundlePath # @todo: check normalized ?
+          if @buildCfg.outputPath is @bundleCfg.path # @todo: check normalized ?
             l.err """
-              Quitting build, outputPath === bundlePath.
+              Quitting build, outputPath === path.
               Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath).
               """
             return false

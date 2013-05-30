@@ -20,8 +20,8 @@ class BundleBase
   @property
     webRoot:
       get: -> upath.normalize "#{
-        if @webRootMap[0] is '.' # hardwired as path from bundlePath
-          @bundlePath + '/' + @webRootMap
+        if @webRootMap[0] is '.' # hardwired as path from path
+          @path + '/' + @webRootMap
         else
           @webRootMap # an OS file system dir, as-is
         }"
@@ -32,7 +32,7 @@ class BundleBase
 
   `resolvePaths` is respecting:
        - The `Dependency`'s own semantics, eg `webRootMap` if `dep` is relative to web root (i.e starts with `\`) and similarly for isRelative etc. See <code>Dependency</code>
-       - `@relativeTo` param, which defaults to the module file calling `require` (ie. @dirname), but can be anything eg. @bundlePath.
+       - `@relativeTo` param, which defaults to the module file calling `require` (ie. @dirname), but can be anything eg. @path.
        - `requirejs` config, if it exists in this instance of BundleBase / NodeRequirer
 
   @param {Dependency} dep The Dependency instance whose paths we are resolving.
@@ -59,13 +59,13 @@ class BundleBase
             paths = [ paths ] #else _.isString(paths)
 
           for path in paths # add them all
-            addit @bundlePath + (depName.replace pathStart, path)
+            addit @path + (depName.replace pathStart, path)
         else
           if dep.isRelative()  # relative to bundle eg 'a/b/c',
-            addit @bundlePath + depName
+            addit @path + depName
           else # a single pathpart, like 'underscore' or 'myLib'
             addit depName     # global eg 'underscore' (most likely)
-            addit @bundlePath + depName  # or bundleRelative (unlikely)
+            addit @path + depName  # or bundleRelative (unlikely)
 
     return resPaths
 

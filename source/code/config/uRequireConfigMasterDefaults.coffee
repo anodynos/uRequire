@@ -30,7 +30,7 @@ uRequireConfig = # Command line options overide these.
 
     @optional
 
-    `bundleName` its self can be derived from:
+    `name` its self can be derived from:
       - if using grunt, it defaults to the multi-task @target (eg {urequire: 'MyBundlename': {bundle : {}, build:{} }}
 
       @todo:
@@ -38,10 +38,10 @@ uRequireConfig = # Command line options overide these.
         - filename part, if 'combined' is used eg if its 'abcProject/abc.js', then 'abc'
         - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
 
-    @note: `bundleName` & is the (1st) default for 'main'
+    @note: `name` & is the (1st) default for 'main'
 
     ###
-    bundleName: undefined
+    name: undefined
 
     ###
     The "main" / "index" module file of your bundle, used only when 'combined' template is used.
@@ -55,7 +55,7 @@ uRequireConfig = # Command line options overide these.
     * It is also used to as the initiation `require` on your combined bundle.
       It is the module just kicks off the app and/or requires all your other library modules.
 
-    * Defaults to 'bundleName', 'index', 'main' etc, the first one that is found in uModules.
+    * Defaults to 'name', 'index', 'main' etc, the first one that is found in uModules.
     ###
     main: undefined
 
@@ -63,27 +63,48 @@ uRequireConfig = # Command line options overide these.
     # If ommited, it is implied by config's position
     #
     # @example './source/code'
-    bundlePath: undefined
+    path: undefined
 
-
-    # Filespecs, of files that are not matched as resources/modules, to be copied to outputPath.
+    # filename specifications (or simply filenames), that within contains *all* the files within your bundle.
     #
-    # @type filespecs - see filespecs
+    # Expressed in either grunt's expand minimatch format (and its negative cousin), or sRegExp`s
+    #
+    # Each file is considered to be either
+    # * A BundleFile
+    # * A Resource
+    # * A Module
     #
     # @default [/./], ie. all non-module files are copied
     #
-    # @example ['**/recources/*.*', '!dummy.json', /\.someExtension$/i ]
-    copyNonResources: [/./]
+    # @example bundle: {filez: ['**/recources/*.*', '!dummy.json', /\.someExtension$/i ]}
+    #
+    # @derive: when you derive, all your source items (derived objects) are
+    #          appended to the ones higher up @todo: doc it
+    filez: ['**/*.*']
 
-    filespecs: ['**/*.*']
 
+    # ## copy all non-resource bundle files to outputPath
+    #
+    # filename specifications (or simply filenames), considered as part of your bundle
+    # that are copied to outputPath ONLY if not matched as resources/modules.
+    #
+    # @example bundle: {copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]}
+    #
+    # @type filez specs - see filez above
+    #
+    # @default [], ie. no non-module files are copied - U can use /./ for all
+    #
+    # @derive when you derive, all your source items are ...@todo: doc it
+    copy: []
+
+    #todo : doc it - the most important!
     resources: [
 
       { # the 'proper' way of declaring a resource (converter)
         name: 'Javascript'
 
         # minimatch string (ala grunt's 'file' expand) or a RegExp
-        filespecs: [ '**/*.js', /.*\.(javascript)$/i ]
+        filez: [ '**/*.js', /.*\.(javascript)$/i ]
 
         convert: (source, filename)-> source # javascript needs no compilation - just return source as is
 
@@ -94,7 +115,7 @@ uRequireConfig = # Command line options overide these.
       [ # the alternative (& easier) way of declaring a Converter
         'Coffeescript'                    # name at pos 0
 
-        [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filespecs at pos 1
+        [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez at pos 1
 
         (source, filename)->              # convert function at pos 2
           (require 'coffee-script').compile source, bare:true
@@ -198,7 +219,7 @@ uRequireConfig = # Command line options overide these.
     outputPath: undefined
 
     ###
-    Output on the same directory as bundlePath.
+    Output on the same directory as path.
 
     Useful if your sources are not `real sources` eg. you use coffeescript :-).
     WARNING: -f ignores --outputPath
@@ -364,5 +385,5 @@ uRequireConfig = # Command line options overide these.
       #  uglify: {beautify: true, no_mangle: true} ,
 #
 #      ### BELOW HERE NOT USED - comments ###
-#      baseUrl: "use uRequire.bundlePath instead" ?
+#      baseUrl: "use uRequire.path instead" ?
 #      appDir:  "use uRequire.appDir instead"

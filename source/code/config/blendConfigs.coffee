@@ -24,7 +24,7 @@ moveKeysBlender = new _B.DeepCloneBlender [
     order: ['path']
     '*': '|':
       do (partsKeys = {
-        bundle: _.keys uRequireConfigMasterDefaults.bundle # eg ['bundlePath', 'dependencies', ...]
+        bundle: _.keys uRequireConfigMasterDefaults.bundle # eg ['path', 'dependencies', ...]
         build: _.keys uRequireConfigMasterDefaults.build   # eg ['outputPath', 'template', ...]
       })->
         (prop, src, dst, bl)->
@@ -188,7 +188,7 @@ arrayizeUniquePusher = new _B.DeepCloneBlender [
 #        name: 'Name of a non-module(#), non-terminal resource (*)'
 #        isModule: false
 #        isTerminal: false
-#        filespecs: '**/*.someext'
+#        filez: '**/*.someext'
 #        convert: ->
 #      }
 #    ]
@@ -208,11 +208,11 @@ resourcesBlender = new _B.DeepCloneBlender [
 
       isModule ?= true #default
       isTerminal ?= true #default
-      filespecs = resource[1]
+      filez = resource[1]
       convert = resource[2]
       dstFilename = resource[3]
 
-      {name, isModule, isTerminal, filespecs, convert, dstFilename}
+      {name, isModule, isTerminal, filez, convert, dstFilename}
 
     # also combine incomplete Object
     # @todo: 4 3 2 - Combine [] & {} into one

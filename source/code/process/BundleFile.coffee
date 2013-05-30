@@ -22,8 +22,8 @@ class BundleFile
 
   # alias to source @filename
   @property srcFilename: get: -> @filename
-  # source filename with bundlePath, eg `myproject/mybundle/mymodule.js`
-  @property srcFilepath: get: -> upath.join @bundle.bundlePath, @filename
+  # source filename with path, eg `myproject/mybundle/mymodule.js`
+  @property srcFilepath: get: -> upath.join @bundle.path, @filename
 
   # @dstFilename exists after each refresh/conversion
   # destination filename with build.outputPath, eg `myBuildProject/mybundle/mymodule.js`
