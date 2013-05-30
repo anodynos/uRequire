@@ -108,8 +108,13 @@ class Bundle extends BundleBase
       try
         @files[filename].refresh() # compilations / conversions happen here
       catch err
-        if not fs.existsSync @files[filename].fullPath  # remove it, if missing from filesystem
-          l.verbose "Missing file '#{@files[filename].fullPath}', removing resource file."
+        if not fs.existsSync @files[filename].srcFilepath  # remove it, if missing from filesystem
+          l.verbose """
+            Missing file '#{@files[filename].srcFilepath}'.
+              Deleting destination file '#{@files[filename].dstFilepath}'.
+              Removing bundle resource  '#{filename}'."""
+
+          fs.unlinkSync @files[filename].dstFilepath
           delete @files[filename]
         else
           l.err uerr = "Something wrong while loading/refreshing/processing '#{filename}'."
@@ -166,7 +171,7 @@ class Bundle extends BundleBase
           resource.convert @build
 
         if _.isFunction @build.out # @todo:5 else if String, output to this file ?
-          @build.out upath.join(@build.outputPath, resource.convertedFilename), resource.converted
+          @build.out resource.dstFilepath, resource.converted
         resource.hasChanged = false
         @changedCount++
 
@@ -186,9 +191,9 @@ class Bundle extends BundleBase
         @combine @build
       else
         l.debug 30, "Not executing 'combined' building, cause there are no changes built."
-        @build.done true
+        @build.done @errorCount is 0
     else
-      @build.done true
+      @build.done @errorCount is 0
 
   ###
   ###
@@ -196,9 +201,9 @@ class Bundle extends BundleBase
     l.debug 30, 'combine: optimizing with r.js'
 
     if not @main # set to bundleName, or index.js, main.js @todo: & other sensible defaults ?
-      for mainModuleCandidate in [@bundleName, 'index', 'main'] when mainModuleCandidate and not mainModule
-        mainModule = _.find @files, (resource)-> resource.modulePath is mainModuleCandidate
-
+      for mainCand in [@bundleName, 'index', 'main'] when mainCand and not mainModule
+        mainModule = _.find @files, (resource)-> resource.modulePath is mainCand          
+          
         if mainModule
           @main = mainModule.modulePath
           l.warn """
@@ -220,7 +225,7 @@ class Bundle extends BundleBase
       # check we have a global dependency without a variable binding & quit!
       if _.any(globalDepsVars, (v,k)-> _.isEmpty v)
         l.err """
-          Quiting cause some global dependencies are missing a variable binding:
+          Some global dependencies are missing a variable binding:
 
           #{l.prettify _B.go globalDepsVars, fltr: (v)->_.isEmpty v}
 
@@ -241,125 +246,126 @@ class Bundle extends BundleBase
             - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
             - RTFM & let us know if still no remedy!
         """
-        @build.done false
-        return
+        @errorCount++ #lame - make it count the real errors !
+        if not (@build.watch or @build.continue)
+          @build.done false
+          return
 
-      else
+      almondTemplates = new AlmondOptimizationTemplate {
+        globalDepsVars
+        noWeb: @dependencies.noWeb
+        @main
+      }
 
-        almondTemplates = new AlmondOptimizationTemplate {
-          globalDepsVars
-          noWeb: @dependencies.noWeb
-          @main
-        }
+      for depfilename, genCode of almondTemplates.dependencyFiles
+        Build.outputToFile upath.join(@build.outputPath, depfilename+'.js'), genCode
 
-        for fileName, genCode of almondTemplates.dependencyFiles
-          Build.outputToFile "#{@build.outputPath}/#{fileName}.js", genCode
+      @copyAlmondJs()
+      @copyWebMapDeps()
 
-        @copyAlmondJs()
-        @copyWebMapDeps()
+      try #delete old combinedFile
+        fs.unlinkSync @build.combinedFile
+      catch err
 
-        try #delete old combinedFile
-          fs.unlinkSync @build.combinedFile
-        catch err
+      rjsConfig =
+        paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
 
-        rjsConfig =
-          paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
+        wrap: almondTemplates.wrap
+        baseUrl: @build.outputPath
+        include: [@main]
+        deps: @dependencies.noWeb # we include the 'fake' AMD files 'getNoWebDep_XXX'
+        out: @build.combinedFile
+  #      out: (text)=>
+  #        #todo: @build.out it!
+  #        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
+  #        @outputToFile text, @combinedFile
+  #        if fs.existsSync @combinedFile
+  #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
+        name: 'almond'
+        optimize: "none"
 
-          wrap: almondTemplates.wrap
-          baseUrl: @build.outputPath
-          include: [@main]
-          deps: @dependencies.noWeb # we include the 'fake' AMD files 'getNoWebDep_XXX'
-          out: @build.combinedFile
-    #      out: (text)=>
-    #        #todo: @build.out it!
-    #        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
-    #        @outputToFile text, @combinedFile
-    #        if fs.existsSync @combinedFile
-    #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
-          name: 'almond'
-          optimize: "none"
-
-        # 'optimize' ? in 3 different ways
-        if optimize = @build.optimize # @todo: allow full r.js style optimize / uglify / uglify2
-          optimizers = ['uglify2', 'uglify']
-          if optimize is true
-            optimizeMethod = optimizers[0] # enable 'uglify2' for true
+      # 'optimize' ? in 3 different ways
+      if optimize = @build.optimize # @todo: allow full r.js style optimize / uglify / uglify2
+        optimizers = ['uglify2', 'uglify']
+        if optimize is true
+          optimizeMethod = optimizers[0] # enable 'uglify2' for true
+        else
+          if _.isObject optimize # eg optimize: { uglify2: {...uglify2 options...}}
+            optimizeMethod = _.find optimizers, (v)-> v in _.keys optimize
           else
-            if _.isObject optimize # eg {optimize:uglify2:{...uglify2 options...}}
-              optimizeMethod = _.find optimizers, (v)-> v in _.keys optimize
-            else
-              if _.isString optimize
-                optimizeMethod = _.find optimizers, (v)-> v is optimize
+            if _.isString optimize
+              optimizeMethod = _.find optimizers, (v)-> v is optimize
 
-          if not optimizeMethod
-            l.err "Unknown optimize method '#{optimize}' - using 'uglify2' as default"
-            optimizeMethod = optimizers[0]
-            rjsConfig.optimize = optimizeMethod
-            rjsConfig[optimizeMethod] = optimize[optimizeMethod]
+        if not optimizeMethod # should hold the name eg 'uglify2'
+          l.err "Unknown optimize method '#{optimize}' - using 'uglify2' as default"
+          optimizeMethod = optimizers[0]
 
-        rjsConfig.logLevel = 0 if l.deb 90
+        rjsConfig.optimize = optimizeMethod
+        rjsConfig[optimizeMethod] = optimize[optimizeMethod] #set optimize options, eg  { uglify2: {...uglify2 options...}}
 
-        # actually combine (r.js optimize)
-        l.verbose "Optimize with r.js (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
-        try
-          @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
-            l.verbose 'r.js buildResponse = ', buildResponse
-        catch err
-          err.uRequire = "Error optimizing with r.js (v#{@requirejs.version})"
-          l.err err
+      rjsConfig.logLevel = 0 if l.deb 90
 
-  #      if true
-        setTimeout  (=>
-          l.debug(60, 'Checking r.js output file...')
-          if fs.existsSync build.combinedFile
-            l.verbose "Combined file '#{build.combinedFile}' written successfully."
+      # actually combine (r.js optimize)
+      l.verbose "Optimize with r.js (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
+      try
+        @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
+          l.verbose 'r.js buildResponse = ', buildResponse
+      catch err
+        err.uRequire = "Error optimizing with r.js (v#{@requirejs.version})"
+        l.err err
 
-            globalDepsVars = @getDepsVars depType:'global'
-            if not _.isEmpty globalDepsVars
-              if (not build.watch and not build.verbose) or l.deb 20
-                l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars,
-                  """\n
-                  are available when combined script '#{build.combinedFile}' is running on:
+#      if true
+      setTimeout  (=>
+        l.debug(60, 'Checking r.js output file...')
+        if fs.existsSync build.combinedFile
+          l.verbose "Combined file '#{build.combinedFile}' written successfully."
 
-                  a) nodejs: they should exist as a local `nodes_modules`.
+          globalDepsVars = @getDepsVars depType:'global'
+          if not _.isEmpty globalDepsVars
+            if (not build.watch and not build.verbose) or l.deb 20
+              l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars,
+                """\n
+                are available when combined script '#{build.combinedFile}' is running on:
 
-                  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)
+                a) nodejs: they should exist as a local `nodes_modules`.
 
-                  c) Web/Script: the binded variables (eg '_' or '$')
-                     must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
-                  """
+                b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)
 
-            # delete outputPath, used as temp directory with individual AMD files
-            if not (l.deb(DEB_LEVEL_NO_DELETE_COMBINE_DIR) or build.watch)
-              l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
-              wrench.rmdirSyncRecursive build.outputPath
-            else
-              l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to build.watch || debugLevel >= #{DEB_LEVEL_NO_DELETE_COMBINE_DIR}.")
-            build.done true
+                c) Web/Script: the binded variables (eg '_' or '$')
+                   must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
+                """
+
+          # delete outputPath, used as temp directory with individual AMD files
+          if not (l.deb(DEB_LEVEL_NO_DELETE_COMBINE_DIR) or build.watch)
+            l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
+            wrench.rmdirSyncRecursive build.outputPath
           else
-            l.err """
-            Combined file '#{build.combinedFile}' NOT written."
+            l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to build.watch || debugLevel >= #{DEB_LEVEL_NO_DELETE_COMBINE_DIR}.")
+          build.done @errorCount is 0
+        else
+          l.err """
+          Combined file '#{build.combinedFile}' NOT written."
 
-              Some remedy:
+            Some remedy:
 
-               a) Is your *bundle.main = '#{@main}'* or *bundle.bundleName = '#{@bundleName}'* properly defined ?
-                  - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.
-                  - 'bundleName' is what 'main' defaults to, if its a module.
+             a) Is your *bundle.main = '#{@main}'* or *bundle.bundleName = '#{@bundleName}'* properly defined ?
+                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'bundleName'.
+                - 'bundleName' is what 'main' defaults to, if its a module.
 
-               b) Perhaps you have a missing dependcency ?
-                  r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+             b) Perhaps you have a missing dependcency ?
+                r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
 
-               c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
-                  *Note this prevents uRequire from finishing properly / printing this message!*
+             c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
+                *Note this prevents uRequire from finishing properly / printing this message!*
 
-               Note that you can check the AMD-ish files used in temporary directory '#{build.outputPath}'.
+             Note that you can check the AMD-ish files used in temporary directory '#{build.outputPath}'.
 
-               More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+             More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
 
-            """, rjsConfig
+          """, rjsConfig
 
-            build.done false
-        ), 100
+          build.done false
+      ), 100
 
   getRequireJSConfig: ()-> #@todo:(7 5 2) remove & fix this!
       paths:
@@ -370,7 +376,7 @@ class Bundle extends BundleBase
     try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
       Build.copyFileSync(
         "#{__dirname}/../../../node_modules/almond/almond.js" # from
-        "#{@build.outputPath}/almond.js"                      # to
+        upath.join(@build.outputPath, 'almond.js')            # to
       )
     catch err
       l.err uerr = """
@@ -392,11 +398,13 @@ class Bundle extends BundleBase
         l.verbose "Copying #{nonResourceFilenames.length} non-resources files..."
         for fn in nonResourceFilenames
           if isFileInSpecs fn, @copyNonResources
-            Build.copyFileSync "#{@bundlePath}/#{fn}",        #from
-                               "#{@build.outputPath}/#{fn}"   #to
+#            Build.copyFileSync "#{@bundlePath}/#{fn}",        #from
+#                               "#{@build.outputPath}/#{fn}"   #to
+            Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath
 
   ###
    Copy all bundle's webMap dependencies to outputPath
+   @todo: use path.join
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
   copyWebMapDeps: ->
@@ -404,9 +412,9 @@ class Bundle extends BundleBase
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
-        Build.copyFileSync  "#{@webRoot}#{depName}",         #from
-                            "#{@build.outputPath}#{depName}" #to
-
+#        Build.copyFileSync  "#{@webRoot}#{depName}",         #from
+#                            "#{@build.outputPath}#{depName}" #to
+        l.err "NOT IMPLEMENTED: Build.copyFileSync  #{@webRoot}#{depName}, #{@build.outputPath}#{depName}"
 
 
   ###

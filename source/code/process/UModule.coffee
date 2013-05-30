@@ -14,6 +14,7 @@ UError = require '../utils/UError'
 
 # Represents a Javascript module
 class UModule extends UResource
+  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
 
   @property modulePath: get:-> upath.trimExt @filename  # filename (bundleRelative) without extension eg `models/PersonModel`
 
@@ -32,7 +33,7 @@ class UModule extends UResource
         @adjustModuleInfo()
         return @hasChanged = true
       else
-        l.debug "No changes in sourceCodeJs of module '#{@convertedFilename}' " if l.deb 90
+        l.debug "No changes in sourceCodeJs of module '#{@dstFilename}' " if l.deb 90
 
     return @hasChanged = false # leaving @hasChanged as is
 
@@ -46,7 +47,7 @@ class UModule extends UResource
   adjustModuleInfo: ->
     # reset info holders
 #    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
-    l.debug "adjustModuleInfo for '#{@convertedFilename}'" if l.deb 70
+    l.debug "adjustModuleInfo for '#{@dstFilename}'" if l.deb 70
 
     moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     @moduleInfo = moduleManipulator.extractModuleInfo() # keeping original @moduleInfo

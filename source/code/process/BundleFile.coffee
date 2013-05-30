@@ -4,6 +4,7 @@ upath = require '../paths/upath'
   A dummy/base class, representing any file in the bundle
 ###
 class BundleFile
+  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
 
   ###
     @param {Object} bundle The Bundle where this BundleFile belongs
@@ -11,11 +12,21 @@ class BundleFile
   ###
   constructor: (@bundle, @filename)->
 
-  refresh:->true #perhaps we could check for filesystem timestamp etc
+  refresh:->
+    @dstFilename = @srcFilename
+    true #perhaps we could check for filesystem timestamp etc
 
   reset:-> @hasChanged = true
 
   @property extname: get: -> upath.extname @filename                # original extension, eg `.js` or `.coffee`
-  @property fullPath: get: -> "#{@bundle.bundlePath}/#{@filename}" # full filename on OS filesystem, eg `myproject/mybundle/mymodule.js`
+
+  # alias to source @filename
+  @property srcFilename: get: -> @filename
+  # source filename with bundlePath, eg `myproject/mybundle/mymodule.js`
+  @property srcFilepath: get: -> upath.join @bundle.bundlePath, @filename
+
+  # @dstFilename exists after each refresh/conversion
+  # destination filename with build.outputPath, eg `myBuildProject/mybundle/mymodule.js`
+  @property dstFilepath: get:-> if @bundle.build then upath.join @bundle.build.outputPath, @dstFilename
 
 module.exports = BundleFile

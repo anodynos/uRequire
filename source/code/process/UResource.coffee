@@ -19,9 +19,10 @@ UError = require '../utils/UError'
   Each time it `@refresh()`es,
     if `@source` (content) in file is changed, its passed through all @converters:
     - stores .convert(@source) result as @converted
-    - stores .convertFn(@filname) result as @convertedFilename
+    - stores .dstFilename(@filname) result as @dstFilename
 ###
 class UResource extends BundleFile
+  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
 
   ###
   @param {Object} bundle The Bundle where this URersource belongs
@@ -44,31 +45,31 @@ class UResource extends BundleFile
     else #refresh only if parent says so
       source = undefined
       try
-        source = fs.readFileSync @fullPath, 'utf-8'
+        source = fs.readFileSync @srcFilepath, 'utf-8'
       catch err
         @hasErrors = true
-        l.err uerr = "Error reading file '#{@fullPath}'"
+        l.err uerr = "Error reading file '#{@srcFilepath}'"
         throw new UError uerr, nested:err
 
       try
         if source and (@source isnt source)
           # go through all converters, converting source & filename in turn
           @source = @converted = source
-          @convertedFilename = @filename
+          @dstFilename = @filename
           for converter in @converters
             # convert source, or better the previous @converted from convert()
             if _.isFunction converter.convert
-              l.debug "Converting '#{@convertedFilename}' with '#{converter.name}'..." if l.deb 60
-              @converted = converter.convert @converted, @convertedFilename
+              l.debug "Converting '#{@dstFilename}' with '#{converter.name}'..." if l.deb 60
+              @converted = converter.convert @converted, @dstFilename
 
             #convert Filename
-            switch _B.type converter.convertFn
+            switch _B.type converter.dstFilename
               when 'Function'
-                @convertedFilename = converter.convertFn @convertedFilename
+                @dstFilename = converter.dstFilename @dstFilename
               when 'String'
-                @convertedFilename = upath.changeExt @convertedFilename, converter.convertFn
+                @dstFilename = upath.changeExt @dstFilename, converter.dstFilename
 
-            l.debug "...resource.convertedFilename is '#{@convertedFilename}'" if l.deb 95
+            l.debug "...resource.dstFilename is '#{@dstFilename}'" if l.deb 95
 
           @hasErrors = false
           return @hasChanged = true

@@ -210,9 +210,9 @@ resourcesBlender = new _B.DeepCloneBlender [
       isTerminal ?= true #default
       filespecs = resource[1]
       convert = resource[2]
-      convertFn = resource[3]
+      dstFilename = resource[3]
 
-      {name, isModule, isTerminal, filespecs, convert, convertFn}
+      {name, isModule, isTerminal, filespecs, convert, dstFilename}
 
     # also combine incomplete Object
     # @todo: 4 3 2 - Combine [] & {} into one

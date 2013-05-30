@@ -82,29 +82,24 @@ uRequireConfig = # Command line options overide these.
       { # the 'proper' way of declaring a resource (converter)
         name: 'Javascript'
 
-        filespecs: [
-            '**/*.js'              # minimatch string
-            /.*\.(javascript)$/i   # or a custom RegExp
-        ]
+        # minimatch string (ala grunt's 'file' expand) or a RegExp
+        filespecs: [ '**/*.js', /.*\.(javascript)$/i ]
 
         convert: (source, filename)-> source # javascript needs no compilation - just return source as is
 
-        convertFn: (filename)->             # convert .js | .javascript to .js
+        dstFilename: (filename)->             # convert .js | .javascript to .js
           (require '../paths/upath').changeExt filename, 'js'
       }
 
       [ # the alternative (& easier) way of declaring a Converter
         'Coffeescript'                    # name at pos 0
 
-        [                                 # filespecs at pos 1
-          '**/*.coffee'
-          /.*\.(coffee\.md|litcoffee)$/i
-        ]
+        [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filespecs at pos 1
 
         (source, filename)->              # convert function at pos 2
           (require 'coffee-script').compile source, bare:true
 
-        (filename)->                      # convertFn function at pos 3
+        (filename)->                      # dstFilename function at pos 3
           ext = filename.replace /.*\.(coffee\.md|litcoffee|coffee)$/i, "$1" # retrieve matched extension, eg 'coffee.md'
           filename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
       ]

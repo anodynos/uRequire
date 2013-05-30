@@ -65,7 +65,7 @@ expectedResources = [
        '!**/*.amd.coffee'
      ]
     convert: resources[0][2]
-    convertFn: resources[0][3]
+    dstFilename: resources[0][3]
   }
 
   {
@@ -74,7 +74,7 @@ expectedResources = [
     isTerminal: true
     filespecs: '**/*._*'
     convert: resources[1][2]
-    convertFn: resources[1][3]
+    dstFilename: resources[1][3]
   }
 
   {
@@ -83,7 +83,7 @@ expectedResources = [
     isTerminal: true
     filespecs: '**/*.nonmodule'
     convert: resources[2].convert
-    #convertFn: undefined # not added as undefined in objs
+    #dstFilename: undefined # not added as undefined in objs
   }
 
   {
@@ -92,7 +92,7 @@ expectedResources = [
     isTerminal: false
     filespecs: '**/*.ext'
     convert: resources[3][2]
-    convertFn: resources[3][3]
+    dstFilename: resources[3][3]
   }
 
   {
