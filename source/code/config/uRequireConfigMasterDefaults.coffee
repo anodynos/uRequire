@@ -150,11 +150,11 @@ uRequireConfig = # Command line options overide these.
 
       Also you can add a different var name that should be globally looked up.
       ###
-      variableNames: {}
+      depsVars: {}
 
-      # Some known variableNames, have them as backup!
+      # Some known depsVars, have them as backup!
       # todo: provide some 'common ones' that are 'strandard'
-      _knownVariableNames:
+      _knownDepsVars:
         chai: 'chai'
         mocha: 'mocha'
         lodash: "_"
@@ -166,7 +166,7 @@ uRequireConfig = # Command line options overide these.
       ###
       { dependency: varName(s) *}
           or
-      ['dep1', 'dep2'] (with discovered or ../variableNames names
+      ['dep1', 'dep2'] (with discovered or ../depsVars names
 
       Each dep will be available in the *whole bundle* under varName(s)
 

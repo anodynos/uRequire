@@ -118,7 +118,7 @@ describe 'blendConfigs & its Blenders', ->
           path: "/some/path"
           webRootMap: "."
           dependencies:
-            variableNames: {}
+            depsVars: {}
             bundleExports: {}
 
           outputPath: ""
@@ -138,7 +138,7 @@ describe 'blendConfigs & its Blenders', ->
             path: "/some/path"
             webRootMap: "."
             dependencies:
-              variableNames: {}
+              depsVars: {}
               bundleExports: {}
 
           build:
@@ -389,7 +389,7 @@ describe 'blendConfigs & its Blenders', ->
           main: 'index'
           resources: resources[2..]
           dependencies:
-            variableNames:
+            depsVars:
               uberscore: '_B'
 
             bundleExports:
@@ -441,7 +441,7 @@ describe 'blendConfigs & its Blenders', ->
                 chai: ['chai']
                 uberscore: ['_B']
                 lodash: ['_']
-              variableNames:
+              depsVars:
                 uberscore: ['_B']
           build:
             verbose: true

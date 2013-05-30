@@ -61,10 +61,10 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         bundleExports: '|': '*': (prop, src, dst)->
           dependenciesBindingsBlender.blend dst[prop], src[prop]
 
-        variableNames: '|': '*': (prop, src, dst)->
+        depsVars: '|': '*': (prop, src, dst)->
           dependenciesBindingsBlender.blend dst[prop], src[prop]
 
-        _knownVariableNames: '|': '*': (prop, src, dst)->
+        _knownDepsVars: '|': '*': (prop, src, dst)->
           dependenciesBindingsBlender.blend dst[prop], src[prop]
 
       resources: '|' : '*': (prop, src, dst)->

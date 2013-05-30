@@ -234,9 +234,9 @@ class Bundle extends BundleBase
 
           Remedy:
 
-          You should add it at uRequireConfig 'bundle.dependencies.variableNames' as:
+          You should add it at uRequireConfig 'bundle.dependencies.depsVars' as:
             ```
-              variableNames: {
+              depsVars: {
                 'myDep1': 'VARIABLE_IT_BINDS_WITH',
                 'myDep2': ['VARIABLE_IT_BINDS_WITH', 'ANOTHER VARIABLE_IT_BINDS_WITH']
               }
@@ -420,11 +420,11 @@ class Bundle extends BundleBase
 
   The information is gathered from all modules and joined together.
 
-  Also it uses bundle.dependencies.variableNames, if some dep has no corresponding vars [].
+  Also it uses bundle.dependencies.depsVars, if some dep has no corresponding vars [].
 
   @param {Object} q optional query with two optional fields : depType & depName
 
-  @return {dependencies.variableNames} `dependency: ['var1', 'var2']` eg
+  @return {dependencies.depsVars} `dependency: ['var1', 'var2']` eg
               {
                   'underscore': '_'
                   'jquery': ["$", "jQuery"]
@@ -444,28 +444,28 @@ class Bundle extends BundleBase
     for uMK, resource of @files when resource instanceof UModule
       gatherDepsVars resource.getDepsVars q
 
-    # pick from @dependencies.variableNames only for existing deps, that have no vars info discovered yet
+    # pick from @dependencies.depsVars only for existing deps, that have no vars info discovered yet
     # todo: remove from here / refactor
-    if @dependencies?.variableNames
-      vn = _B.go @dependencies.variableNames,
+    if @dependencies?.depsVars
+      vn = _B.go @dependencies.depsVars,
                  fltr:(v,k)=>
                     (depsVars[k] isnt undefined) and
                     _.isEmpty(depsVars[k]) and
                     not (k in @dependencies?.noWeb)
       if not _.isEmpty vn
-        l.warn "\n Picked from `@dependencies.variableNames` for some deps with missing dep-variable bindings: \n", vn
+        l.warn "\n Picked from `@dependencies.depsVars` for some deps with missing dep-variable bindings: \n", vn
         gatherDepsVars vn
 
-    # 'urequireCfg.bundle.dependencies._knownVariableNames' contain known ones
+    # 'urequireCfg.bundle.dependencies._knownDepsVars' contain known ones
     #   eg `jquery:['$'], lodash:['_']` etc
     # todo: remove from here / refactor
-    vn = _B.go @dependencies._knownVariableNames,
+    vn = _B.go @dependencies._knownDepsVars,
                fltr:(v,k)=>
                   (depsVars[k] isnt undefined) and
                   _.isEmpty(depsVars[k]) and
                   not (k in @dependencies?.noWeb)
     if not _.isEmpty vn
-      l.warn "\n Picked from `@dependencies._knownVariableNames` for some deps with missing dep-variable bindings: \n", vn
+      l.warn "\n Picked from `@dependencies._knownDepsVars` for some deps with missing dep-variable bindings: \n", vn
       gatherDepsVars vn
 
     depsVars

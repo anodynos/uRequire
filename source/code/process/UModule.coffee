@@ -161,7 +161,7 @@ class UModule extends UResource
 
               Alternativelly, pick one medicine :
                 - define at least one module that has this dependency + variable binding, using AMD instead of commonJs format, and uRequire will find it!
-                - declare it in the above format, but in `bundle.dependencies.variableNames` and uRequre will pick it from there!
+                - declare it in the above format, but in `bundle.dependencies.depsVars` and uRequre will pick it from there!
                 - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
             """
             throw new UError uerr
