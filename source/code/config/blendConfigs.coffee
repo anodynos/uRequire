@@ -58,8 +58,11 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         noWeb: '|': '*': (prop, src, dst)->
           arrayizeUniquePusher.blend dst[prop], src[prop]
 
-        bundleExports: '|': '*': (prop, src, dst)->
-          dependenciesBindingsBlender.blend dst[prop], src[prop]
+        exports:
+          bundle: '|': '*': (prop, src, dst)->
+            dependenciesBindingsBlender.blend dst[prop], src[prop]
+
+          #root: NOT IMPLEMENTED
 
         depsVars: '|': '*': (prop, src, dst)->
           dependenciesBindingsBlender.blend dst[prop], src[prop]
@@ -94,21 +97,18 @@ The resulting array of bindings for each 'variable' is blended via arrayizeUniqu
 to the existing? corresponding array on the destination
 ###
 dependenciesBindingsBlender = new _B.DeepCloneBlender [
-  order: ['src']
+  order: ['src']                                                     # our src[prop] (i.e. depsVars eg exports.bundle) is either a:
 
-  # our src[prop] (i.e. variableBindings eg bundleExports) is a String eg 'lodash'. Return an {'lodash':[]}
-  'String': (prop, src, dst)->
-    arrayizeUniquePusher.blend dst[prop], _B.okv({}, src[prop], [])
+  'String': (prop, src, dst)->                                       # * String eg  'lodash'.
+    arrayizeUniquePusher.blend dst[prop], _B.okv({}, src[prop], [])  #   convert to {'lodash':[]}
 
-  #  our src[prop] (i.e. variableBindings eg bundleExports) is an Array, eg `['lodash', 'jquery']`
-  'Array': (prop, src, dst)->
+  'Array': (prop, src, dst)->                                        # * Array, eg  `['lodash', 'jquery']`
     varBindings = {}
-    _B.go src[prop], grab: (v)-> varBindings[v] or= [] #    convert to    `{lodash:[], jquery:[]}`
+    _B.go src[prop], grab: (v)-> varBindings[v] or= []               #   convert to `{lodash:[], jquery:[]}`
     arrayizeUniquePusher.blend dst[prop], varBindings
 
-  # our src[prop] (i.e. variableBindings eg bundleExports) is a Object eg {'lodash': ???, ...}
-  'Object': (prop, src, dst)->
-    arrayizeUniquePusher.blend dst[prop], src[prop]
+  'Object': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}
+    arrayizeUniquePusher.blend dst[prop], src[prop]                  #   convert to    `{lodash:['???'], ...}`
 ]
 
 deepCloneBlender = new _B.DeepCloneBlender

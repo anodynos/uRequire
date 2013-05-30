@@ -118,7 +118,7 @@ class BundleBuilder
             Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath)."""
           return false
         else
-          if @buildCfg.outputPath is @bundleCfg.path # @todo: check normalized ?
+          if upath.normalize(@buildCfg.outputPath) is upath.normalize(@bundleCfg.path)
             l.err """
               Quitting build, outputPath === path.
               Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath).

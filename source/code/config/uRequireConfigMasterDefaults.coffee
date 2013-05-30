@@ -65,14 +65,20 @@ uRequireConfig = # Command line options overide these.
     # @example './source/code'
     path: undefined
 
-    # filename specifications (or simply filenames), that within contains *all* the files within your bundle.
+
+    # All your files in you bundle are specified here.
     #
-    # Expressed in either grunt's expand minimatch format (and its negative cousin), or sRegExp`s
+    # Each file is considered to be either:
+    # * BundleFile
+
+    # * Resource - any textual resource that we want to convert to something else: eg .coffee->.js, or .less or .css
     #
-    # Each file is considered to be either
-    # * A BundleFile
-    # * A Resource
-    # * A Module
+    # * Module - A Resource that is also a Module whose Dependencies we monitor and converted through some template.
+    # how these are matched, @see bundle: resources
+    #
+    # @type
+    #   filename specifications (or simply filenames), that within contains *all* the files within your bundle.
+    #   Expressed in either grunt's expand minimatch format (and its negative cousin), or sRegExp`s
     #
     # @default [/./], ie. all non-module files are copied
     #
@@ -82,15 +88,14 @@ uRequireConfig = # Command line options overide these.
     #          appended to the ones higher up @todo: doc it
     filez: ['**/*.*']
 
+    # (binary) copy of all non-resource bundle files to outputPath - just a convenience
 
-    # ## copy all non-resource bundle files to outputPath
-    #
+    # @type filez specs - see filez above
     # filename specifications (or simply filenames), considered as part of your bundle
     # that are copied to outputPath ONLY if not matched as resources/modules.
     #
     # @example bundle: {copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]}
     #
-    # @type filez specs - see filez above
     #
     # @default [], ie. no non-module files are copied - U can use /./ for all
     #
@@ -136,6 +141,7 @@ uRequireConfig = # Command line options overide these.
     ###
     webRootMap: '.'
 
+    # Anytihing related to dependenecies is listed here.
     dependencies:
 
       ###
@@ -163,21 +169,35 @@ uRequireConfig = # Command line options overide these.
         backbone: "Backbone"
         knockout: ["ko", 'Knockout']
 
-      ###
-      { dependency: varName(s) *}
-          or
-      ['dep1', 'dep2'] (with discovered or ../depsVars names
+      exports:
 
-      Each dep will be available in the *whole bundle* under varName(s)
+        ###
+        { dependency: varName(s) *}
+            or
+        ['dep1', 'dep2'] (with discovered or ../depsVars names)
 
-      @example {
-        'underscore': '_'
-        'jquery': ["$", "jQuery"]
-        'models/PersonModel': ['persons', 'personsModel']
-      }
-      @todo: rename to exports.bundle | bundleGlobals | something else?
-      ###
-      bundleExports: {}
+        Each dep will be available in the *whole bundle* under varName(s) - they are global to your bundle.
+
+        @example {
+          'underscore': '_'
+          'jquery': ["$", "jQuery"]
+          'models/PersonModel': ['persons', 'personsModel']
+        }
+        ###
+        bundle: {}
+
+        ###
+        Each dep listed will be available GLOBALY under varName(s) - @note: works in browser only - attaching to `window`.
+
+        @example {
+          'models/PersonModel': ['persons', 'personsModel']
+        }
+
+            is like having a `{rootExports: ['persons', 'personsModel']} in 'models/PersonModel' module.
+        @todo: NOT IMPLEMENTED - use module `{rootExports: [...]} format.
+        ###
+        root:{}
+
 
       ###
         Dont include those dependencies on the AMD dependency array.
@@ -264,18 +284,14 @@ uRequireConfig = # Command line options overide these.
 #          depsTo
 
     # Watch for changes in bundle files and reprocess/re output those changed files
-    # @todo: NOT IMPLEMENTED.
-    # @todo: it should not write combined file if errors occur
+    # @todo: NOT IMPLEMENTED - but it works fine with `grunt-urequire >=0.4.3` & `grunt-contrib-watch`
     watch: false
 
     ###
-    ignore exports
-    # @todo: NOT IMPLEMENTED.
+      Ignore all rootExports {& noConflict()} defined in all modules (eg `{rootExports: ['persons', 'personsModel']}` )
+      (But not those of `dependencies: exports: root`, when implemented:)
     ###
     noRootExports: false
-
-    # @todo: NOT IMPLEMENTED.
-    noBundleExports: false
 
     ###
     *Web/AMD side only option* :
@@ -379,8 +395,6 @@ uRequireConfig = # Command line options overide these.
       # that loads the globalDependency from `window` on web or from a simple `require`.
       paths:
         lodash: "../../libs/lodash.min"
-
-      optimize: "none"
 
       #  uglify: {beautify: true, no_mangle: true} ,
 #

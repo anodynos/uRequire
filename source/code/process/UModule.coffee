@@ -121,23 +121,21 @@ class UModule extends UResource
     if @isConvertible
       l.debug("Converting module '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
 
-      # inject bundleExports Dependencies information to arrayDeps, nodeDeps & parameters
-      if not _.isEmpty (bundleExports = @bundle?.dependencies?.bundleExports)
-        l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.bundleExports) if l.deb 80
+      # inject exports.bundle Dependencies information to arrayDeps, nodeDeps & parameters
+      if not _.isEmpty (bundleExports = @bundle?.dependencies?.exports?.bundle)
+        l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.exports.bundle) if l.deb 80
 
-        for depName, varNames of bundleExports
-          if _.isEmpty varNames
-            # attempt to read from bundle & store found varNames at @bundle.dependencies.bundleExports
-            varNames = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
-            l.debug("""
-              #{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
-              An attempt to infer varNamfrom bundle: """, varNames) if l.deb 40
+        for depName, depsVars of bundleExports
+          if _.isEmpty depsVars
+            # attempt to read from bundle & store found depsVars at @bundle.dependencies.exports.bundle
+            depsVars = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
 
-          if _.isEmpty varNames # still empty, throw error. #todo: bail out on globals with no vars ??
+            l.debug("""#{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
+                       An attempt to infer depsVars from bundle: """, depsVars) if l.deb 40
+
+          if _.isEmpty depsVars # still empty, throw error. #todo: bail out on globals with no vars ??
             l.err uerr = """
-              Error converting bundle named '#{@bundle.name}' in '#{@bundle.path}'.
-
-              No variable names can be identified for bundleExports dependency '#{depName}'.
+              No variable names can be identified for `dependencies: exports: bundle` dependency '#{depName}'.
 
               These variable names are used to :
                 - inject the dependency into each module
@@ -145,10 +143,10 @@ class UModule extends UResource
 
               Remedy:
 
-              You should add it at uRequireConfig 'bundle.dependencies.bundleExports' as a
+              You should add it at uRequireConfig 'bundle.dependencies.exports.bundle' as a
                 ```
-                  bundleExports: {
-                    '#{depName}': 'VARIABLE_IT_BINDS_WITH',
+                  dependencies: exports: bundle: {
+                    '#{depName}': 'VARIABLE(S)_IT_BINDS_WITH',
                     ...
                     jquery: ['$', 'jQuery'],
                     backbone: ['Backbone']
@@ -156,7 +154,7 @@ class UModule extends UResource
                 ```
               instead of the simpler
                 ```
-                  bundleExports: [ '#{depName}', 'jquery', 'backbone' ]
+                  dependencies: exports: bundle: [ '#{depName}', 'jquery', 'backbone' ]
                 ```
 
               Alternativelly, pick one medicine :
@@ -171,7 +169,7 @@ class UModule extends UResource
             if (lenDiff = @arrayDeps.length - @parameters.length) > 0
               @parameters.push "__dummyParam#{paramIndex}" for paramIndex in [1..lenDiff]
 
-            for varName in varNames # add for all corresponding vars
+            for varName in depsVars # add for all corresponding vars
               if not (varName in @parameters)
                 d = new Dependency depName, @filename, @bundle.filenames #its cheap!
                 @arrayDeps.push d

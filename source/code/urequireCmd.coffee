@@ -32,7 +32,7 @@ urequireCommander
   .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
   .option('-O, --optimize', 'Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.', undefined)
   .option('-C, --continue', 'Dont bail out while processing (module processing/conversion errors)', undefined)
-  .option('-w, --watch', 'NOT IMPLEMENTED (in CLI - use grunt-urequire & grunt`s watch). Watch for changes in bundle files and reprocess those changed files.', undefined)
+  .option('-w, --watch', 'NOT IMPLEMENTED (in CLI - use grunt-urequire & grunt-contrib-watch). Watch for changes in bundle files and reprocess those changed files.', undefined)
   .option('-i, --filez', "NOT IMPLEMENTED (in CLI - use a config file or grunt-urequire). Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
@@ -74,7 +74,7 @@ urequireCommander.on '--help', ->
       ...
       module.exports = {my: 'module'} \u001b[0m
 
-  Finally, a 'relaxed' format can be used (combination of AMD+commonJs), along with asynch requires, requirejs plugins, rootExports + noConflict boilerplate, bundleExports and much more - see the docs. \u001b[36m
+  Finally, a 'relaxed' format can be used (combination of AMD+commonJs), along with asynch requires, requirejs plugins, rootExports + noConflict boilerplate, exports.bundle and much more - see the docs. \u001b[36m
       // uRequire 'relaxed' modules format
     - define(['dep1', 'dep2'], function(dep1, dep2) {
         ...

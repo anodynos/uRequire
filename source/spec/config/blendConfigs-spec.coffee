@@ -119,7 +119,7 @@ describe 'blendConfigs & its Blenders', ->
           webRootMap: "."
           dependencies:
             depsVars: {}
-            bundleExports: {}
+            exports: bundle: {}
 
           outputPath: ""
           forceOverwriteSources: false
@@ -139,7 +139,7 @@ describe 'blendConfigs & its Blenders', ->
             webRootMap: "."
             dependencies:
               depsVars: {}
-              bundleExports: {}
+              exports: bundle: {}
 
           build:
             outputPath: ""
@@ -326,45 +326,45 @@ describe 'blendConfigs & its Blenders', ->
         ).to.deep.equal
           bundle: dependencies: noWeb: ['noWebForMe']
 
-      it "bundleExports String depBindings is turned to {dep:[]}", ->
+      it "exports.bundle String depBindings is turned to {dep:[]}", ->
         expect(
-          blendConfigs [ dependencies: bundleExports: 'lodash']
+          blendConfigs [ dependencies: exports: bundle: 'lodash']
         ).to.deep.equal
-          bundle: dependencies: bundleExports: 'lodash': []
+          bundle: dependencies: exports: bundle: 'lodash': []
 
-      it "bundleExports Array<String> depBindings is turned to {dep1:[], dep2:[]}", ->
+      it "exports: bundle Array<String> depBindings is turned to {dep1:[], dep2:[]}", ->
         expect(
-          a = blendConfigs [ dependencies: bundleExports: ['lodash', 'jquery']]
+          a = blendConfigs [ dependencies: exports: bundle: ['lodash', 'jquery']]
         ).to.deep.equal
-          bundle: dependencies: bundleExports:
+          bundle: dependencies: exports: bundle:
             'lodash': []
             'jquery': []
 
 
-      it "bundleExports {} - depBindings is `arrayize`d", ->
+      it "exports: bundle {} - depBindings is `arrayize`d", ->
         expect(
-          a = blendConfigs [ dependencies: bundleExports: {'lodash': '_'} ]
+          a = blendConfigs [ dependencies: exports: bundle: {'lodash': '_'} ]
         ).to.deep.equal
-          bundle: dependencies: bundleExports: {'lodash': ['_']}
+          bundle: dependencies: exports: bundle: {'lodash': ['_']}
 
 
-      it "bundleExports {} - depBinding reseting its array", ->
+      it "exports: bundle {} - depBinding reseting its array", ->
         expect(
           blendConfigs [
             {}
-            {dependencies: bundleExports: {'uberscore': [[null], '_B']}}
+            {dependencies: exports: bundle: {'uberscore': [[null], '_B']}}
             {}
-            {dependencies: bundleExports: {'uberscore': ['uberscore', 'uuuuB']}}
+            {dependencies: exports: bundle: {'uberscore': ['uberscore', 'uuuuB']}}
           ]
         ).to.deep.equal
-          bundle: dependencies: bundleExports: {'uberscore': ['_B']}
+          bundle: dependencies: exports: bundle: {'uberscore': ['_B']}
 
     describe "Nested & derived configs:", ->
       configs = [
           {}
         ,
           dependencies:
-            bundleExports:
+            exports: bundle:
               lodash: "_"
 
           outputPath: "build/code"
@@ -374,7 +374,7 @@ describe 'blendConfigs & its Blenders', ->
             path: "source/code"
             ignore: [/^draft/]
             dependencies:
-              bundleExports:
+              exports: bundle:
                 uberscore: [[null], '_B'] #reseting existing (derived/inherited) array, allowing only '_B'
               noWeb: "noWebForMe"
 
@@ -392,7 +392,7 @@ describe 'blendConfigs & its Blenders', ->
             depsVars:
               uberscore: '_B'
 
-            bundleExports:
+            exports: bundle:
               chai: 'chai'
               uberscore: ['uberscore', 'B', 'B_']
               'spec-data': 'data'
@@ -403,7 +403,7 @@ describe 'blendConfigs & its Blenders', ->
           derive: [
               dependencies:
                 noWeb: "noWebInDerive1"
-                bundleExports: 'spec-data': 'dataInDerive1'
+                exports: bundle: 'spec-data': 'dataInDerive1'
             ,
               derive:
                 derive:
@@ -414,7 +414,7 @@ describe 'blendConfigs & its Blenders', ->
                       dummyOption: 'dummy'
               dependencies:
                 noWeb: "noWebInDerive2"
-                bundleExports: 'spec-data': 'dataInDerive2'
+                exports: bundle: 'spec-data': 'dataInDerive2'
               verbose: false
           ]
       ]
@@ -436,7 +436,7 @@ describe 'blendConfigs & its Blenders', ->
             resources: expectedResources
             dependencies:
               noWeb: ['noWebInDerive2', 'noWebInDerive1', 'noWebForMe']
-              bundleExports:
+              exports: bundle:
                 'spec-data': ['dataInDerive2', 'dataInDerive1', 'data' ]
                 chai: ['chai']
                 uberscore: ['_B']
