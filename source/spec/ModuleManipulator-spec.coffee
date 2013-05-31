@@ -21,7 +21,7 @@ describe "ModuleManipulator", ->
     mi = (new ModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
       moduleType: 'nodejs'
-      requireDependencies: [ 'something' ]
+      requireDeps: [ 'something' ]
 
   it "should identify a UMD module", ->
     js = """
@@ -50,7 +50,7 @@ describe "ModuleManipulator", ->
     """
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
-      arrayDependencies: [ 'underscore', 'depdir1/dep1' ]
+      arrayDeps: [ 'underscore', 'depdir1/dep1' ]
       moduleType: 'AMD'
       amdCall: 'define'
       parameters: [ '_', 'dep1' ]
@@ -102,7 +102,7 @@ describe "ModuleManipulator", ->
     expect(mi).to.deep.equal
       rootExports: 'myLib'
       moduleName: 'myModule'
-      arrayDependencies: [ 'underscore', 'depdir1/dep1' ]
+      arrayDeps: [ 'underscore', 'depdir1/dep1' ]
       moduleType: 'AMD'
       amdCall: 'define'
       parameters: [ '_', 'dep1' ]
@@ -129,7 +129,7 @@ describe "ModuleManipulator", ->
          require('myOtherRequire');
         }
         console.log("main-requiring starting....");
-        var crap = require("crap" + i); // untrustedRequireDependencies
+        var crap = require("crap" + i); // untrustedRequireDeps
 
         require(['asyncDep1', 'asyncDep2'], function(asyncDep1, asyncDep2) {
           if (require('underscore')) {
@@ -150,10 +150,10 @@ describe "ModuleManipulator", ->
       moduleName: 'myModule'
       moduleType: 'AMD'
       amdCall: 'define'
-      arrayDependencies: [ 'require', 'underscore', 'depdir1/dep1' ]
+      arrayDeps: [ 'require', 'underscore', 'depdir1/dep1' ]
       parameters: [ 'require', '_', 'dep1' ]
       factoryBody: '_=require("underscore");var i=1;var r=require("someRequire");if(require==="require"){for(i=1;i<100;i++){require("myOtherRequire")}require("myOtherRequire")}console.log("main-requiring starting....");var crap=require("crap"+i);require(["asyncDep1","asyncDep2"],function(asyncDep1,asyncDep2){if(require("underscore")){require(["asyncDepOk","async"+crap2],function(asyncDepOk,asyncCrap2){return asyncDepOk+asyncCrap2})}return asyncDep1+asyncDep2});return{require:require("finalRequire")}'
-      requireDependencies: [ 'someRequire', 'myOtherRequire', 'finalRequire' ]
-      untrustedRequireDependencies: [ '"crap"+i' ]
-      asyncDependencies: [ 'asyncDep1', 'asyncDep2', 'asyncDepOk' ]
-      untrustedAsyncDependencies: [ '"async"+crap2' ]
+      requireDeps: [ 'someRequire', 'myOtherRequire', 'finalRequire' ]
+      untrustedRequireDeps: [ '"crap"+i' ]
+      asyncDeps: [ 'asyncDep1', 'asyncDep2', 'asyncDepOk' ]
+      untrustedAsyncDeps: [ '"async"+crap2' ]

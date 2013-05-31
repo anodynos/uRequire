@@ -212,7 +212,7 @@ class NodeRequirer extends BundleBase
       else
         # load a simple node or UMD module.
         if dep.pluginName in [undefined, 'node'] # plugin 'node' is dummy: just signals a require effective only
-                                                 # on node execution, hence ommited from arrayDeps.
+                                                 # on node execution, hence ommited from arrayDependencies.
           l.debug("@nodeRequire '#{_modulePath}'") if l.deb 95
           attempts.push # @todo: (7 2 1) store @module.require.paths
               modulePath: _modulePath

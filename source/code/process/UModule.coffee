@@ -56,37 +56,37 @@ class UModule extends UResource
       l.warn "Not AMD/nodejs module '#{@filename}', copying as-is."
     else if @moduleInfo.moduleType is 'UMD'
         l.warn "Already UMD module '#{@filename}', copying as-is."
-    else if @moduleInfo.untrustedArrayDependencies
-        l.err "Module '#{@filename}', has untrusted deps #{d for d in @moduleInfo.untrustedArrayDependencies}: copying as-is."
+    else if @moduleInfo.untrustedArrayDeps
+        l.err "Module '#{@filename}', has untrusted deps #{d for d in @moduleInfo.untrustedArrayDeps}: copying as-is."
     else
       @isConvertible = true
       @moduleInfo.parameters or= []        #default
-      @moduleInfo.arrayDependencies or= [] #default
+      @moduleInfo.arrayDeps or= [] #default
 
-      if _.isEmpty @moduleInfo.arrayDependencies
+      if _.isEmpty @moduleInfo.arrayDeps
         @moduleInfo.parameters = []
       else
-        # remove *reduntant parameters* (those in excess of the arrayDeps):
+        # remove *reduntant parameters* (those in excess of the arrayDependencies):
         # useless & also requireJS doesn't like them if require is 1st param!
-        @moduleInfo.parameters = @moduleInfo.parameters[0..@moduleInfo.arrayDependencies.length-1]
+        @moduleInfo.parameters = @moduleInfo.parameters[0..@moduleInfo.arrayDeps.length-1]
 
       # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require'
-      for pd in [@moduleInfo.parameters, @moduleInfo.arrayDependencies]
+      for pd in [@moduleInfo.parameters, @moduleInfo.arrayDeps]
         pd.shift() if pd[0] is 'require'
 
       # Go throught all original deps & resolve their fileRelative counterpart.
-      [ @arrayDeps  # Store resolvedDeps as res'DepType'
-        @requireDeps
-        @asyncDeps ] = for strDepsArray in [ # @todo:2 why do we need to replaceAsynchRequires ?
-           @moduleInfo.arrayDependencies
-           @moduleInfo.requireDependencies
-           @moduleInfo.asyncDependencies
+      [ @arrayDependencies  # Store resolvedDeps as res'DepType'
+        @requireDependencies
+        @asyncDependencies ] = for strDepsArray in [ # @todo:2 why do we need to replaceAsynchRequires ?
+           @moduleInfo.arrayDeps
+           @moduleInfo.requireDeps
+           @moduleInfo.asyncDeps
           ]
             for strDep in (strDepsArray || [])
               new Dependency strDep, @filename, @bundle
 
 
-      # add remaining dependencies (eg 'untrustedRequireDependencies') to DependenciesReport
+      # add remaining dependencies (eg 'untrustedRequireDeps') to DependenciesReport
       if @bundle.reporter
         for repData in [ (_.pick @moduleInfo, @bundle.reporter.reportedDepTypes) ]
           @bundle.reporter.addReportData repData, @modulePath
@@ -95,7 +95,7 @@ class UModule extends UResource
 
       #clone these cause we're injecting deps in them & keep the original for reference
       @parameters = _.clone @moduleInfo.parameters
-      @nodeDeps = _.clone @arrayDeps
+      @nodeDependencies = _.clone @arrayDependencies
 
       {@moduleName, @moduleType, @modulePath, @rootExports, @noConflict} = @moduleInfo
       @rootExports = _B.arrayize @rootExports
@@ -109,7 +109,7 @@ class UModule extends UResource
     if @isConvertible
       l.debug("Converting module '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
 
-      # inject exports.bundle Dependencies information to arrayDeps, nodeDeps & parameters
+      # inject exports.bundle Dependencies information to arrayDependencies, nodeDependencies & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.exports?.bundle)
         l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.exports.bundle) if l.deb 80
 
@@ -154,14 +154,14 @@ class UModule extends UResource
           else
             # @todo: (5 3 4) Make sure arrays are at the same index,
             # and adjust them so deps & params correspond to each other!
-            if (lenDiff = @arrayDeps.length - @parameters.length) > 0
+            if (lenDiff = @arrayDependencies.length - @parameters.length) > 0
               @parameters.push "__dummyParam#{paramIndex}" for paramIndex in [1..lenDiff]
 
             for varName in depsVars # add for all corresponding vars
               if not (varName in @parameters)
                 d = new Dependency depName, @filename, @bundle #its cheap!
-                @arrayDeps.push d
-                @nodeDeps.push d
+                @arrayDependencies.push d
+                @nodeDependencies.push d
                 @parameters.push varName
                 l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 99
               else
@@ -170,7 +170,7 @@ class UModule extends UResource
       # @todo:3 also add rootExports ?
 
       # Add all `require('dep')` calls
-      # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDependencies).
+      # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDeps).
       # see https://github.com/jrburke/requirejs/issues/467
       #
       # So load ALL require('dep') fileRelative deps have to be added to the arrayDepsendencies on AMD.
@@ -179,22 +179,22 @@ class UModule extends UResource
       # (# RequireJs disables runtime scan if even one dep exists in []).
       #
       # We allow them only if `--scanAllow` or if we have a `rootExports`
-      if not (_.isEmpty(@arrayDeps) and @build?.scanAllow and not @moduleInfo.rootExports)
-        for reqDep in @requireDeps
-          if reqDep.pluginName isnt 'node' and                # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDeps!
-            not (_.any @arrayDeps, (dep)->dep.isEqual reqDep) and # not already there
+      if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @moduleInfo.rootExports)
+        for reqDep in @requireDependencies
+          if reqDep.pluginName isnt 'node' and                # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDependencies!
+            not (_.any @arrayDependencies, (dep)->dep.isEqual reqDep) and # not already there
             not (reqDep.name() in (@bundle.dependencies?.noWeb or []))
-              @arrayDeps.push reqDep
-              @nodeDeps.push reqDep if @build?.allNodeRequires
+              @arrayDependencies.push reqDep
+              @nodeDependencies.push reqDep if @build?.allNodeRequires
 
       @webRootMap = @bundle.webRootMap || '.'
-      @arrayDependencies = (d.name() for d in @arrayDeps)
-      @nodeDependencies = (d.name() for d in @nodeDeps)
+      @arrayDeps = (d.name() for d in @arrayDependencies)
+      @nodeDeps = (d.name() for d in @nodeDependencies)
 
       # Now we have all our Dependenecies & bundle properly initialized
       # we create some final info for our module
       requireReplacements = {} # final replacements for all require() calls.
-      for dep in _.flatten [ @arrayDeps, @requireDeps, @asyncDeps ]
+      for dep in _.flatten [ @arrayDependencies, @requireDependencies, @asyncDependencies ]
         # a) populate requireReplacements (what goes into 'require()' calls)
         requireReplacements[dep.dep] = dep.name() # @todo:dep.dep is a lame name
 
@@ -213,7 +213,7 @@ class UModule extends UResource
 
       l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
                 , "module info = \n", _.pick @, [
-                    'moduleName', 'moduleType', 'modulePath', 'arrayDependencies', 'nodeDependencies',
+                    'moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps',
                     'parameters', 'webRootMap', 'rootExports']
 
       @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
@@ -238,7 +238,7 @@ class UModule extends UResource
   getDepsVars: (q={})->
     depsVars = {}
     if @isConvertible
-      for dep, idx in @arrayDeps when (
+      for dep, idx in @arrayDependencies when (
         ((not q.depType) or (q.depType is dep.type)) and
         ((not q.depName) or (dep.isEqual q.depName))
       )

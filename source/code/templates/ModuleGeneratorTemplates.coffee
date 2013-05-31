@@ -14,8 +14,8 @@ Template = require './Template'
 #     moduleName: the moduleName, if it exists.
 #     moduleType: type of the original module : 'nodejs' or 'AMD'
 #     #type: 'define' or 'require': NOT USED
-#     arrayDependencies: Array of deps, as delcared in AMD, filerelative (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
-#     nodeDependencies: Array for file-relative dependencies, as required by node (eg '../PersonView')
+#     arrayDeps: Array of deps, as delcared in AMD, filerelative (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
+#     nodeDeps: Array for file-relative dependencies, as required by node (eg '../PersonView')
 #     parameters: Array of parameter names, as declared on the original AMD.
 #     rootExports: Array with names 'root' variable(s) to export on the browser side (or false/undefined)
 #     noConflict: if true, inject a noConflict() method on this module, that reclaims all rootExports to their original value and returns this module.
@@ -49,10 +49,10 @@ class ModuleGeneratorTemplates extends Template
       (", #{par}" for par in @ti.parameters).join ''}
     """
 
-    ### @property arrayDependencies of define [], eg "['require', 'lodash', 'PersonModel']" ###
+    ### @property arrayDeps of define [], eg "['require', 'lodash', 'PersonModel']" ###
     arrayDependenciesPrint: get:-> """
       #{
-        if _.isEmpty @ti.arrayDependencies
+        if _.isEmpty @ti.arrayDeps
           "" #keep empty [] not existent, enabling requirejs scan
         else
           if @ti.moduleType is 'nodejs'
@@ -60,9 +60,9 @@ class ModuleGeneratorTemplates extends Template
           else
             "['require'"
       }#{
-        (", '#{dep}'" for dep in @ti.arrayDependencies).join('')
+        (", '#{dep}'" for dep in @ti.arrayDeps).join('')
       }#{
-        if _.isEmpty @ti.arrayDependencies then '' else '], '
+        if _.isEmpty @ti.arrayDeps then '' else '], '
       }
       """
 
@@ -114,7 +114,7 @@ class ModuleGeneratorTemplates extends Template
             var nr = new (require('urequire').NodeRequirer) ('#{@ti.modulePath}', module, __dirname, '#{@ti.webRootMap}');
             module.exports = factory(nr.require#{
               if (@ti.moduleType is 'nodejs') then ', exports, module' else ''}#{
-              (", nr.require('#{nDep}')" for nDep in @ti.nodeDependencies).join('')});
+              (", nr.require('#{nDep}')" for nDep in @ti.nodeDeps).join('')});
           } else if (typeof define === 'function' && define.amd) {
               define(#{@moduleNamePrint}#{@arrayDependenciesPrint}#{
                 if (_.isEmpty @ti.rootExports) or @ti.noRootExports
@@ -171,7 +171,7 @@ class ModuleGeneratorTemplates extends Template
       #{@header}#{
         if @ti.parameters.length > 0 then "\nvar " else ''}#{
         ("#{if pi is 0 then '' else '    '}#{
-          param} = require('#{@ti.nodeDependencies[pi]}')" for param, pi in @ti.parameters).join(',\n')
+          param} = require('#{@ti.nodeDeps[pi]}')" for param, pi in @ti.parameters).join(',\n')
       };
 
       #{@runTimeDiscovery}

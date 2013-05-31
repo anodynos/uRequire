@@ -12,7 +12,6 @@ pathRelative = require './paths/pathRelative'
 class Dependency
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-  constructor:-> @_constructor.apply @, arguments
 
   ###
     @param {String} dep The dependency name, i.e 'uberscore' or '../mylibs/dep'
@@ -21,7 +20,7 @@ class Dependency
     @param {Array<String>} The files in the bundle (bundleRelative).
                            Used to calculate whether 'myDep' isFound, isGlobal etc.
   ###
-  _constructor: (@dep, @inModuleName='', @bundle)->
+  constructor: (@dep, @inModuleName='', @bundle)->
     
     @dep = @dep.replace /\\/g, '/'
 
@@ -136,8 +135,8 @@ class Dependency
   isFound: ()->
     if @bundle?.dstFilenames
       upath.defaultExt(@_bundleRelative(), '.js') in @bundle.dstFilenames #todo: check with "less -> css", 'teacup -> HTML'
-    else
-#      l.err "Dependenency '#{@dep}' queried for 'isFound', but no @bundle?.dstFilenames exists"
-      false # @todo: turn to optimistic
+#    else
+##      l.err "Dependenency '#{@dep}' queried for 'isFound', but no @bundle?.dstFilenames exists"
+#      undefined # @todo: turn to optimistic
 
 module.exports = Dependency

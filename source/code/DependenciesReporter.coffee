@@ -16,10 +16,10 @@ class DependenciesReporter
   dependencyTypesMessages =
 
     ### 'problematic' ones ###
-    untrustedRequireDependencies:
+    untrustedRequireDeps:
       header: "\u001b[31m Untrusted require('') dependencies found:"
       footer: "They are IGNORED. If evaluated name of the require() isnt in dependency array [..] before require() call, your app WILL HALT and WILL NOT WORK on the web-side (but should be OK on node).\u001b[0m"
-    untrustedAsyncDependencies:
+    untrustedAsyncDeps:
       header: "\u001b[31m Untrusted async require(['']) dependencies found:"
       footer: "They are IGNORED. If evaluated name of the require([..]) isnt found, you'll get an http error on web, or exception 'module not found' on node.).\u001b[0m"
 
@@ -97,12 +97,12 @@ module.exports = DependenciesReporter
 #rep = new DependenciesReporter()
 #
 #rep.addReportData {
-#    untrustedAsyncDependencies: [ "data + '/messages/hello'", "data + '/messages/bye'" ],
+#    untrustedAsyncDeps: [ "data + '/messages/hello'", "data + '/messages/bye'" ],
 #    notFoundInBundle: ['data/missingLib.js']
 #    parameters: [],
-#    requireDependencies: [],
+#    requireDeps: [],
 #    wrongDependencies: [ 'require(msgLib)' ],
-#    nodeDependencies: [ '../data/messages/hello', '../data/messages/bye' ],
+#    nodeDeps: [ '../data/messages/hello', '../data/messages/bye' ],
 #    webRootMap: '..'
 #  }
 #  , 'some/Module'

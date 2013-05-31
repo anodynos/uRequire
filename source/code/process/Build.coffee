@@ -27,7 +27,7 @@ class Build
       if @verbose
         DependenciesReporter::reportedDepTypes
       else
-        idp = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
+        idp = ['notFoundInBundle', 'untrustedRequireDeps', 'untrustedAsyncDeps']
         if @template.name is 'combined'
           idp.push 'global'
         idp
