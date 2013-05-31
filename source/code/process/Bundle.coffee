@@ -74,8 +74,7 @@ class Bundle extends BundleBase
     l.verbose """\n
     #####################################################################
     loadOrRefreshResources: filenames.length = #{filenames.length}
-    #####################################################################
-    """
+    #####################################################################"""
 
     # check which filenames match resource converters
     # and instantiate them as UResource or UModule
@@ -146,8 +145,7 @@ class Bundle extends BundleBase
     l.verbose """\n
     #####################################################################
     buildChangedResources: filenames.length = #{filenames.length}
-    #####################################################################
-    """
+    #####################################################################"""
 
     # some intricacies when combining
     if @build.template.name is 'combined'
@@ -182,8 +180,8 @@ class Bundle extends BundleBase
     l.verbose """\n
     #####################################################################
     Converting changed modules with template '#{@build.template.name}'
-    #####################################################################
-    """
+    #####################################################################"""
+
     @changedCount = 0; @errorCount = 0
     for filename, resource of @files when \
         (filenames is @filenames) or (filename in filenames)
@@ -223,8 +221,7 @@ class Bundle extends BundleBase
     l.verbose """\n
     #####################################################################
     combine: optimizing with r.js
-    #####################################################################
-    """
+    #####################################################################"""
 
     if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ?
       for mainCand in [@name, 'index', 'main'] when mainCand and not mainModule
@@ -308,26 +305,11 @@ class Bundle extends BundleBase
   #        if fs.existsSync @combinedFile
   #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
         name: 'almond'
-        optimize: "none"
 
-      # 'optimize' ? in 3 different ways
-      if optimize = @build.optimize # @todo: allow full r.js style optimize / uglify / uglify2
-        optimizers = ['uglify2', 'uglify']
-        if optimize is true
-          optimizeMethod = optimizers[0] # enable 'uglify2' for true
-        else
-          if _.isObject optimize # eg optimize: { uglify2: {...uglify2 options...}}
-            optimizeMethod = _.find optimizers, (v)-> v in _.keys optimize
-          else
-            if _.isString optimize
-              optimizeMethod = _.find optimizers, (v)-> v is optimize
-
-        if not optimizeMethod # should hold the name eg 'uglify2'
-          l.err "Unknown optimize method '#{optimize}' - using 'uglify2' as default"
-          optimizeMethod = optimizers[0]
-
-        rjsConfig.optimize = optimizeMethod
-        rjsConfig[optimizeMethod] = optimize[optimizeMethod] #set optimize options, eg  { uglify2: {...uglify2 options...}}
+      if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
+        rjsConfig[@build.optimize] = @build[@build.optimize] # copy { uglify2: {...uglify2 options...}}
+      else
+        rjsConfig.optimize = "none"
 
       rjsConfig.logLevel = 0 if l.deb 90
 
@@ -337,6 +319,7 @@ class Bundle extends BundleBase
         @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
           l.verbose 'r.js buildResponse = ', buildResponse
       catch err
+        #doesnt work - requirejs exits process on errors - see https://github.com/jrburke/requirejs/issues/757
         err.uRequire = "Error optimizing with r.js (v#{@requirejs.version})"
         l.err err
 
@@ -424,8 +407,7 @@ class Bundle extends BundleBase
       l.verbose """\n
       #####################################################################
       Copying #{nonResourceFilenames.length} non-resources files..."
-      #####################################################################
-      """
+      #####################################################################"""
       for fn in nonResourceFilenames
         if isFileInSpecs fn, @copy
           Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath

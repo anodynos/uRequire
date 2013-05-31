@@ -48,6 +48,8 @@ moveKeysBlender = new _B.DeepCloneBlender [
 #
 # It extends DeepCloneBlender, so if there's no path match,
 # it works like _.clone (deeply).
+{_optimizers} = uRequireConfigMasterDefaults.build
+
 bundleBuildBlender = new _B.DeepCloneBlender [
   functionCopyBB,
   {
@@ -76,6 +78,30 @@ bundleBuildBlender = new _B.DeepCloneBlender [
     build:
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
+
+      # 'optimize' ? in 3 different ways
+      # todo: spec it
+      optimize: '|':
+        # enable 'uglify2' for true
+        Boolean: (prop, src, dst)-> _optimizers[0] if src[prop]
+
+        # find if proper optimizer, default 'ulgify2''
+        String: (prop, src, dst)->
+          if not optimizer = (_.find _optimizers, (v)-> v is src[prop])
+            l.err "Unknown optimize '#{src[prop]}' - using 'uglify2' as default"
+            _optimizers[0]
+          else
+            optimizer
+
+        # eg optimize: { uglify2: {...uglify2 options...}}
+        Object: (prop, src, dst)->
+          # find a key that's an optimizer, eg 'uglify2'
+          if not optimizer = (_.find _optimizers, (v)-> v in _.keys src[prop])
+            l.err "Unknown optimize object", src[prop], " - using 'uglify2' as default"
+            _optimizers[0]
+          else 
+            dst[optimizer] = src[prop][optimizer] # if optimizer is 'uglify2', copy { uglify2: {...uglify2 options...}} to dst ('ie build')
+            optimizer
   }
 ]
 

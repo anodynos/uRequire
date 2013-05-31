@@ -7,13 +7,12 @@
 
 #fs =  require 'fs'
 _= require 'lodash'
-#_B = require 'uberscore'
-
-#rJSON = (file)-> JSON.parse fs.readFileSync file, 'utf-8'
+_B = require 'uberscore'
+l = new _B.Logger 'urequire/uRequireConfigMasterDefaults'
 
 module.exports =
 
-uRequireConfig = # Command line options overide these.
+uRequireConfigMasterDefaults = # Command line options overide these.
 
   ###
 
@@ -118,7 +117,7 @@ uRequireConfig = # Command line options overide these.
       }
 
       [ # the alternative (& easier) way of declaring a Converter
-        'Coffeescript'                    # name at pos 0
+        'coffee-script'                    # name at pos 0
 
         [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez at pos 1
 
@@ -130,10 +129,10 @@ uRequireConfig = # Command line options overide these.
           srcFilename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
       ]
 
+      # or in short
       [ 'LiveScript', [ '**/*.ls']
         (source)-> (require 'LiveScript').compile source, bare:true
         (srcFilename)-> srcFilename.replace /(.*)\.ls$/, '$1.js' ]
-
     ]
 
 
@@ -334,6 +333,8 @@ uRequireConfig = # Command line options overide these.
     # @todo: PARTIALLY IMPLEMENTED - Only working for combined
     # @todo: allow all options r.js style (https://github.com/jrburke/r.js/blob/master/build/example.build.js #L138)
     optimize: false
+
+    _optimizers: ['uglify2', 'uglify']
 
   ###
     Other draft/ideas
