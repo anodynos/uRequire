@@ -196,7 +196,7 @@ class UModule extends UResource
       requireReplacements = {} # final replacements for all require() calls.
       for dep in _.flatten [ @arrayDependencies, @requireDependencies, @asyncDependencies ]
         # a) populate requireReplacements (what goes into 'require()' calls)
-        requireReplacements[dep.dep] = dep.name() # @todo:dep.dep is a lame name
+        requireReplacements[dep.depString] = dep.name()
 
         # Report each Dependency (if interesting) eg. infrom us "Bundle-looking dependencies not found in bundle"
         if @bundle.reporter

@@ -239,7 +239,7 @@ class NodeRequirer extends BundleBase
 
             _modulePath = upath.addExt _modulePath, '.js' # make sure we have it WHY ? @todo: Q: can it be if global ?
 
-            if not dep.isGlobal() # globals are loaded by node's require, even from RequireJS ?
+            if not dep.isGlobal # globals are loaded by node's require, even from RequireJS ?
               l.debug("FAILURE caused: @getRequirejs() '#{_modulePath}'") if l.deb 25
               attempts.push
                   modulePath: _modulePath

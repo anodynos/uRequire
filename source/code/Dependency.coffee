@@ -14,24 +14,27 @@ class Dependency
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
 
   ###
-    @param {String} dep The dependency name, i.e 'uberscore' or '../mylibs/dep'
-    @param {String} inModuleName The module name that has this dependency (optional).
-                    Used to calculate relative paths.
-    @param {Array<String>} The files in the bundle (bundleRelative).
-                           Used to calculate whether 'myDep' isFound, isGlobal etc.
-  ###
-  constructor: (@dep, @inModuleName='', @bundle)->
-    
-    @dep = @dep.replace /\\/g, '/'
+    @param {String} depString The original dependency, as passed i.e 'uberscore' or '../mylibs/dep'
 
-    indexOfSep = @dep.indexOf '!'
+    @param {String} moduleString The module (bundle relative) that has this dependency (optional).
+                    Used to calculate relative paths.
+
+    @param {Bundle or {} with dstFilenames: Array<String>}
+        The dstFilenames (bundleRelative) in the bundle are used to
+        calculate whether './../myDep' isFound, which in turn is used by isGlobal etc.
+  ###
+  constructor: (@depString, @moduleString='', @bundle)->
+    
+    depString = depString.replace /\\/g, '/'
+
+    indexOfSep = depString.indexOf '!'
     if indexOfSep > 0
-      @pluginName = @dep[0..indexOfSep-1]
+      @pluginName = depString[0..indexOfSep-1]
 
     @resourceName = if indexOfSep >= 0
-                      @dep[indexOfSep+1..@dep.length-1]
+                      depString[indexOfSep+1..@depString.length-1]
                     else
-                      @dep
+                      depString
 
     # trim & store file extension
     if upath.extname @resourceName
@@ -47,28 +50,28 @@ class Dependency
     #todo: other valid types ?
 
   @property type: get:->
-    if @isGlobal()
+    if @isGlobal
       Dependency.TYPES.global
     else
-      if @isExternal()
+      if @isExternal
         Dependency.TYPES.external
       else
-        if @isNotFoundInBundle()
+        if @isNotFoundInBundle
           Dependency.TYPES.notFoundInBundle
         else  # webRootMap deps, like '/assets/myLib'
-          if @isWebRootMap()
+          if @isWebRootMap
             Dependency.TYPES.webRootMap
           else
             Dependency.TYPES.bundle
 
   name: (options = {})->
-    options.ext ?= if @isExternal() or @isNotFoundInBundle() then true else false
+    options.ext ?= if @isExternal or @isNotFoundInBundle then true else false
     options.plugin ?= true
     options.relativeType ?= 'file'
 
     """
       #{  if options.plugin and @pluginName then @pluginName + '!' else ''
-      }#{ if options.relativeType is 'bundle' then @_bundleRelative() else @_fileRelative() # default = 'file'
+      }#{ if options.relativeType is 'bundle' then @_bundleRelative else @_fileRelative # default = 'file'
       }#{ if options.ext is false or not @extname then '' else @extname }
     """
 
@@ -96,47 +99,51 @@ class Dependency
     return isSameJSFile(dep, @name()) or # plugin: relativeType: 'file', ext:true}
            isSameJSFile(dep, @name relativeType:'bundle') # relativeType:'bundle'
 
-  _bundleRelative: ()->
-    if @isFileRelative() and @isBundleBoundary()
-      upath.normalize "#{upath.dirname @inModuleName}/#{@resourceName}"
-    else
-      @resourceName
-
-  _fileRelative: ()->
-    if @inModuleName and @isFound()
-      pathRelative "$/#{upath.dirname @inModuleName}", "$/#{@_bundleRelative()}", dot4Current:true
-    else
-      @resourceName
-
-  # ###### Where about does this dependency lie ?
-
-  isBundleBoundary: ()->
-    if @isWebRootMap() or (not @inModuleName)
-      false
-    else
-      !!pathRelative "$/#{@inModuleName}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
-
-  isFileRelative: ()-> @resourceName[0] is '.'
-
-  isRelative: ()-> @resourceName.indexOf('/') >= 0 and not @isWebRootMap()
-
-  isWebRootMap: ()-> @resourceName[0] is '/'
-
-  isGlobal: ()->  not @isWebRootMap() and
-                  not @isRelative() and
-                  not @isFound()
-
-  ### external-looking deps, like '../../../some/external/lib' ###
-  isExternal: ()-> not (@isBundleBoundary() or @isWebRootMap())
-
-  ### seem to belong to bundle, but not found, like '../myLib' ###
-  isNotFoundInBundle: ()-> @isBundleBoundary() and not (@isFound() or @isGlobal())
-
-  isFound: ()->
-    if @bundle?.dstFilenames
-      upath.defaultExt(@_bundleRelative(), '.js') in @bundle.dstFilenames #todo: check with "less -> css", 'teacup -> HTML'
-#    else
-##      l.err "Dependenency '#{@dep}' queried for 'isFound', but no @bundle?.dstFilenames exists"
-#      undefined # @todo: turn to optimistic
+  @property
+  
+    _bundleRelative: get:->
+      if @isFileRelative and @isBundleBoundary
+        upath.normalize "#{upath.dirname @moduleString}/#{@resourceName}"
+      else
+        @resourceName
+  
+    _fileRelative: get:->
+      if @moduleString and @isFound
+        pathRelative "$/#{upath.dirname @moduleString}", "$/#{@_bundleRelative}", dot4Current:true
+      else
+        @resourceName
+  
+    # ###### Where about does this dependency lie ?
+  
+    isBundleBoundary: get:->
+      if @isWebRootMap or (not @moduleString)
+        false
+      else
+        !!pathRelative "$/#{@moduleString}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
+  
+    isFileRelative: get:-> @resourceName[0] is '.'
+  
+    isRelative: get:-> @resourceName.indexOf('/') >= 0 and not @isWebRootMap
+  
+    isWebRootMap: get:-> @resourceName[0] is '/'
+  
+    isGlobal: get:->  not @isWebRootMap and
+                    not @isRelative and
+                    not @isFound
+  
+    ### external-looking deps, like '../../../some/external/lib' ###
+    isExternal: get:-> not (@isBundleBoundary or @isWebRootMap)
+  
+      
+  
+    # seem to belong to bundle, eg like myPath/MyLib or ../some/bundle/path
+    # but is both not found like '../myNotFoundLib' 
+    # and it doesn't look like a global eg 'lodash'  
+    isNotFoundInBundle: get:-> @isBundleBoundary and not (@isFound or @isGlobal)
+      
+    isFound: get:-> 
+      if @bundle?.dstFilenames 
+        upath.defaultExt(@_bundleRelative, '.js') in @bundle.dstFilenames
+        #todo: check with "less -> css", 'teacup -> HTML'
 
 module.exports = Dependency

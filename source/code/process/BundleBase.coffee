@@ -46,10 +46,10 @@ class BundleBase
     resPaths = []
     addit = (path)-> resPaths.push upath.normalize path
 
-    if dep.isFileRelative() #relative to requiring file's dir
+    if dep.isFileRelative #relative to requiring file's dir
       addit relativeTo + '/' + depName
     else
-      if dep.isWebRootMap() # web-root path
+      if dep.isWebRootMap # web-root path
         addit @webRoot + depName
       else # requireJS baseUrl/Paths
         pathStart = depName.split('/')[0]
@@ -61,7 +61,7 @@ class BundleBase
           for path in paths # add them all
             addit @path + (depName.replace pathStart, path)
         else
-          if dep.isRelative()  # relative to bundle eg 'a/b/c',
+          if dep.isRelative  # relative to bundle eg 'a/b/c',
             addit @path + depName
           else # a single pathpart, like 'underscore' or 'myLib'
             addit depName     # global eg 'underscore' (most likely)
