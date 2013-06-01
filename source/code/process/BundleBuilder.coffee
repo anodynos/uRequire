@@ -38,7 +38,9 @@ class BundleBuilder
       if @buildCfg.debugLevel >= 50
         l.warn 'Enabling verbose, because debugLevel >= 50'
       else
-        _B.Logger::verbose = -> #todo: travesty! 'verbose' whould be like debugLevel ?
+        _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
+
+    l.verbose 'uRequire v'+l.VERSION + ' initializing...'
 
     # display userCfgs, WITHOUT applying master defaults
     if l.deb 40
@@ -74,11 +76,12 @@ class BundleBuilder
       @buildCfg.done false
 
   # @todo:(6,6,5) watch build's folder & rebuild
-  # @watchDirectory @cfg.bundle.path
+  #  @watchDirectory @cfg.bundle.path
+  #
   #  register something to watch events
   #  watchDirectory:->
-  #    onFilesChange: (filesChanged)->
-  #      bundle.loadModules filesChanged #:[]<String>
+  #    onFilesChange: (filesChanged)=>
+  #      @buildBundle filesChanged #:[]<String>
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->

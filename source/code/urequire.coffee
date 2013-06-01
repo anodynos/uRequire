@@ -4,6 +4,8 @@ class Urequire
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p ;null
 
+  VERSION: if VERSION? then VERSION else '{NO_VERSION}'
+
   @property
     # our main "processor"
     BundleBuilder: get:-> require "./process/BundleBuilder"

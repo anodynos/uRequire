@@ -45,7 +45,7 @@ class Build
       if @watch #if debug
         l.verbose "Written file '#{outputFilename}'"
     catch err
-      l.err uerr = "outputToFile '#{outputFilename}'"
+      l.err uerr = "Can't outputToFile '#{outputFilename}'"
       throw new UError uerr, nested:err
 
   # copyFile helper (missing from fs & wrench)

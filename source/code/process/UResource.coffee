@@ -29,7 +29,7 @@ class UResource extends BundleFile
   @param {String} filename, bundleRelative eg 'models/PersonModel.coffee'
   @param {Array<?>} converters The converters (bundle.resources) that matched this filename & are used in turn to convert, each time we `refresh()`
   ###
-  constructor: (@bundle, @filename, @converters)->
+  constructor: (@bundle, @filename, @converters)-> super
 
   ###
     Check if source (AS IS eg js, coffee, LESS etc) has changed
@@ -48,8 +48,7 @@ class UResource extends BundleFile
         source = fs.readFileSync @srcFilepath, 'utf-8'
       catch err
         @hasErrors = true
-        l.err uerr = "Error reading file '#{@srcFilepath}'"
-        throw new UError uerr, nested:err
+        throw new UError "Error reading file '#{@srcFilepath}'", nested:err
 
       try
         if source and (@source isnt source)

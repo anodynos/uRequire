@@ -27,7 +27,7 @@ BundleBase = require './BundleBase'
 ###
 
 ###
-DEB_LEVEL_NO_DELETE_COMBINE_DIR = 50
+debugLevelSkipTempDeletion = 50
 class Bundle extends BundleBase
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
@@ -68,13 +68,12 @@ class Bundle extends BundleBase
     In any case, refresh() each one, either new or existing
 
     @param []<String> with filenames to process.
-      @default read ALL files from filesystem (property @filenames)
+      @default ALL files from filesystem (property @filenames)
   ###
   loadOrRefreshResources: (filenames = @filenames)->
-    l.verbose """\n
-    #####################################################################
-    loadOrRefreshResources: filenames.length = #{filenames.length}
-    #####################################################################"""
+    l.debug """\n#####################################################################
+                 loadOrRefreshResources: filenames.length = #{filenames.length}
+                 #####################################################################""" if l.deb 30
 
     # check which filenames match resource converters
     # and instantiate them as UResource or UModule
@@ -120,20 +119,23 @@ class Bundle extends BundleBase
 
       catch err
         if not fs.existsSync @files[filename].srcFilepath  # remove it, if missing from filesystem
-          l.verbose """
-            Missing file '#{@files[filename].srcFilepath}'.
-              Deleting destination file '#{@files[filename].dstFilepath}'.
-              Removing bundle resource  '#{filename}'."""
+          l.verbose "Missing file: ", @files[filename].srcFilepath,
+                    "\n  Removing bundle resource: ", filename,
+                    "\n  Deleting build in outputPath: #{@files[filename].dstFilepath}" if @files[filename].converted
 
-          fs.unlinkSync @files[filename].dstFilepath
+          if @files[filename].converted
+            try
+              fs.unlinkSync @files[filename].dstFilepath
+            catch err
+              l.err "Cant delete destination file '#{@files[filename].dstFilepath}'."
           delete @files[filename]
+
         else
           l.err uerr = "Something wrong while loading/refreshing/processing '#{filename}'."
           uerr = new UError uerr, nested:err
-          if @build.continue or @build.watch
-            l.warn "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
-          else
-            l.log uerr; throw uerr
+          if not (@build.continue or @build.watch) then l.log uerr; throw uerr
+          else l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
+
 
     @filenames = _.keys @files
     @dstFilenames = _.map @files, (file)-> file.dstFilename
@@ -142,75 +144,105 @@ class Bundle extends BundleBase
     build / convert all resources that have changed since last
   ###
   buildChangedResources: (@build, filenames=@filenames)->
-    l.verbose """\n
-    #####################################################################
-    buildChangedResources: filenames.length = #{filenames.length}
-    #####################################################################"""
-
-    # some intricacies when combining
-    if @build.template.name is 'combined'
-
-      # where to output AMD-like templates & where the combined file
-      if not @build.combinedFile
-        # its 1st time we run - fix this
-        @build.combinedFile = upath.changeExt @build.outputPath, '.js'
-        @build.outputPath = "#{@build.combinedFile}__temp"
-        l.debug("Setting @build.combinedFile =", @build.outputPath,
-                ' and @build.outputPath = ', @build.outputPath) if l.deb 30
-
-      # before any individual filenames can be combined (now this is kinda lame bu very usefull)
-      if @build.watch and                                 # If in watch mode
-         (not @watchHasFullBuild) and                     # and havent fully build once (to have our __temp dir)
-         (filenames isnt @filenames)                  # and a partial build is asked
-#         (not l.deb DEB_LEVEL_NO_DELETE_COMBINE_DIR)      # and aren't debuging high
-            filenames = @filenames                        # make sure we have a full build
-            l.warn """
-               'combined' template : performing a full build 1st time on *watch* (to get our __temp directory)
-               Note: when you quit 'watch'-ing, you have to delete '#{@build.outputPath}' you self!
-             """
-            resource.reset() for fn, resource of @files
-            @watchHasFullBuild = true                     # and note it
-
-
-    # now load/refresh some filenames or all @filenames
-    @loadOrRefreshResources filenames
-
-    @copyNonResourceFiles()
-
-    l.verbose """\n
-    #####################################################################
-    Converting changed modules with template '#{@build.template.name}'
-    #####################################################################"""
+    l.debug """\n#####################################################################
+                 buildChangedResources: filenames.length = #{filenames.length}
+                 #####################################################################""" if l.deb 30
 
     @changedCount = 0; @errorCount = 0
-    for filename, resource of @files when \
-        (filenames is @filenames) or (filename in filenames)
 
-      if resource.hasChanged # it has changed, conversion needed
-        if resource instanceof UModule
-          resource.convert @build
+    # filter filenames not passing through bundle.filez
+    if filenames isnt @filenames # only for 'watched' filenames
+      bundleFilenames = _.filter filenames, (f)=> isFileInSpecs f, @filez
 
-        if _.isFunction @build.out # @todo:5 else if String, output to this file ?
-          @build.out resource.dstFilepath, resource.converted
-        resource.hasChanged = false
-        @changedCount++
+      if diff = filenames.length - bundleFilenames.length
+        l.verbose "Ignored #{diff} non bundle.filez"
+        filenames = bundleFilenames
 
-      @errorCount++ if resource.hasErrors
+    if filenames.length > 0
 
-    report = @reporter.getReport @build.interestingDepTypes
-    if not _.isEmpty(report)
-      l.warn 'Report for this `build`:\n', report
-      @reporter = new DependenciesReporter()
+      # check for main on 'combined'
+      if @build.template.name is 'combined'
+        # where to output AMD-like templates & where the combined file
+        if not @build.combinedFile
+          # its 1st time we run - fix this
+          @build.combinedFile = upath.changeExt @build.outputPath, '.js'
+          @build.outputPath = "#{@build.combinedFile}__temp"
+          l.debug("Setting @build.combinedFile =", @build.outputPath,
+                  ' and @build.outputPath = ', @build.outputPath) if l.deb 30
 
-    l.verbose "#{@changedCount} changed resources were built."
-    l.err "#{@errorCount} resources with errors in this build." if @errorCount > 0
+
+      if filenames is @filenames # a full build
+        @hasFullBuild = true     # note it
+      else 
+        # partial build - Warn and perhaps force a full build...
+        # @todo: (3 3 2) add more cases
+        if not @hasFullBuild
+          forceFullBuild = false
+          partialWarns = ["Partial build, without a previous full build."]
+
+          # last chance to skip forcing full build (high debug mode)
+          if fs.existsSync(@build.outputPath) and
+            (l.deb(debugLevelSkipTempDeletion) || @build.watch) # just warn!
+              partialWarns.push w for w in [
+                "\nNOT PERFORMING a full build cause fs.exists :", @build.outputPath
+                "\nand @build.watch or debugLevel >=", debugLevelSkipTempDeletion
+              ]
+          else
+            if @build.template.name is 'combined'
+              partialWarns.push w for w in [
+                 "on 'combined' template.",
+                 "\nForcing a full build of all module to __temp directory: ", @build.outputPath]
+              forceFullBuild = true
+
+          if forceFullBuild
+            partialWarns.push "\nNote: when you quit 'watch'-ing, you have to delete ...__temp your self!"
+            filenames = @filenames              # full build, all files
+            debugLevelSkipTempDeletion = 0      # dont delete ___temp
+            @hasFullBuild = true                # note it
+            resource.reset() for fn, resource of @files
+          else
+            partialWarns.push "\nNote: other modules info not available - falsy errors possible (eg `dependencies not found`)."
+
+          l.warn.apply l, partialWarns
+
+
+      # now load/refresh some filenames (or all @filenames)
+      @loadOrRefreshResources filenames
+
+      @copyNonResourceFiles() # @todo: only when changed (timestamp/size etc)!
+
+      l.debug """\n#####################################################################
+                   Converting changed modules with template '#{@build.template.name}'
+                   #####################################################################""" if l.deb 30
+
+      for filename, resource of @files when \
+          (filenames is @filenames) or (filename in filenames)
+
+        if resource.hasChanged # it has changed, conversion needed
+          if resource instanceof UModule
+            resource.convert @build
+
+          if _.isFunction @build.out # @todo:5 else if String, output to this file ?
+            @build.out resource.dstFilepath, resource.converted
+          resource.hasChanged = false
+          @changedCount++
+
+        @errorCount++ if resource.hasErrors
+
+      report = @reporter.getReport @build.interestingDepTypes
+      if not _.isEmpty(report)
+        l.warn 'Report for this `build`:\n', report
+        @reporter = new DependenciesReporter()
+
+      l.verbose "#{@changedCount} changed resources were built."
+      l.err "#{@errorCount} resources with errors in this build." if @errorCount > 0
 
     # 'combined' or done()
     if (@build.template.name is 'combined')
       if @changedCount > 0
-        @combine @build
+        @combine @build # @todo: allow throwing errors for better done() handling
       else
-        l.debug 30, "Not executing 'combined' building, cause there are no changes built."
+        l.debug 30, "Not executing *'combined' template optimizing with r.js*: there are no build changes."
         @build.done @errorCount is 0
     else
       @build.done @errorCount is 0
@@ -218,12 +250,11 @@ class Bundle extends BundleBase
   ###
   ###
   combine: (@build)->
-    l.verbose """\n
-    #####################################################################
-    combine: optimizing with r.js
-    #####################################################################"""
+    l.debug """\n#####################################################################
+                 'combined' template: optimizing with r.js
+                 #####################################################################""" if l.deb 30
 
-    if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ?
+    if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ? NOTE: modules have to be refreshed 1st!
       for mainCand in [@name, 'index', 'main'] when mainCand and not mainModule
         mainModule = _.find @files, (resource)-> resource.modulePath is mainCand          
           
@@ -244,8 +275,8 @@ class Bundle extends BundleBase
       return
 
     else
+      # check no global dependency without a variable binding - quit otherwise
       globalDepsVars = @getDepsVars {depType: Dependency.TYPES.global}
-      # check we have a global dependency without a variable binding & quit!
       if _.any(globalDepsVars, (v,k)-> _.isEmpty v)
         l.err """
           Some global dependencies are missing a variable binding:
@@ -273,6 +304,8 @@ class Bundle extends BundleBase
         if not (@build.watch or @build.continue)
           @build.done false
           return
+        else
+          l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
       almondTemplates = new AlmondOptimizationTemplate {
         globalDepsVars
@@ -317,7 +350,7 @@ class Bundle extends BundleBase
       l.verbose "Optimize with r.js (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
       try
         @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
-          l.verbose 'r.js buildResponse = ', buildResponse
+          l.verbose '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse
       catch err
         #doesnt work - requirejs exits process on errors - see https://github.com/jrburke/requirejs/issues/757
         err.uRequire = "Error optimizing with r.js (v#{@requirejs.version})"
@@ -345,11 +378,11 @@ class Bundle extends BundleBase
                 """
 
           # delete outputPath, used as temp directory with individual AMD files
-          if not (l.deb(DEB_LEVEL_NO_DELETE_COMBINE_DIR) or build.watch)
+          if not (l.deb(debugLevelSkipTempDeletion) or build.watch)
             l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
             wrench.rmdirSyncRecursive build.outputPath
           else
-            l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to build.watch || debugLevel >= #{DEB_LEVEL_NO_DELETE_COMBINE_DIR}.")
+            l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
           build.done @errorCount is 0
         else
           l.err """
@@ -376,10 +409,11 @@ class Bundle extends BundleBase
           build.done false
       ), 100
 
-  getRequireJSConfig: ()-> #@todo:(7 5 2) remove & fix this!
+  getRequireJSConfig: -> #@todo:(7 5 2) HOW LAME - remove & fix this!
       paths:
         text: "requirejs_plugins/text"
         json: "requirejs_plugins/json"
+
 
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
@@ -393,24 +427,25 @@ class Bundle extends BundleBase
         Tried: '#{__dirname}/../../../node_modules/almond/almond.js'
       """
       uerr = new UError uerr, nested:err
-      if @build.continue
-        l.err "Continuing from error due to @build.continue - not throwing:\n", uerr
-      else throw uerr
+      if not (@build.continue or @build.watch) then throw uerr
+      else l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
   # All @files (i.e bundle.filez) that ARE NOT `UResource`s and below (i.e are plain `BundleFile`s)
   # are copied to build.outputPath.
   copyNonResourceFiles: ->
-    if not _.isEmpty @copy then nonResourceFilenames = #save time
-      _.filter @filenames, (fn)=> not (@files[fn] instanceof UResource)
+    if not _.isEmpty @copy then copyNonResFilenames = #save time
+      _.filter @filenames, (fn)=>
+        not (@files[fn] instanceof UResource) and (isFileInSpecs fn, @copy)
 
-    if not _.isEmpty nonResourceFilenames
-      l.verbose """\n
-      #####################################################################
-      Copying #{nonResourceFilenames.length} non-resources files..."
-      #####################################################################"""
-      for fn in nonResourceFilenames
-        if isFileInSpecs fn, @copy
+    if not _.isEmpty copyNonResFilenames
+      l.debug """\n#####################################################################
+                   Copying #{copyNonResFilenames.length} non-resources files..."
+                   #####################################################################""" if l.deb 30
+      for fn in copyNonResFilenames
+        try
           Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath
+        catch err
+          if not (@build.continue or @build.watch) then throw err
 
   ###
    Copy all bundle's webMap dependencies to outputPath

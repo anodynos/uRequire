@@ -1,4 +1,5 @@
 # todo: (3, 4, 2) add docs & perhaps simplify/remove/generalize ?
+#                 It can probably be substituted with function composition of node's 'path'
 # todo: add tests
 
 resolvePathToFromModuleRoot = (moduleName, pathFromModuleRoot)->

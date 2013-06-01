@@ -291,8 +291,13 @@ uRequireConfigMasterDefaults = # Command line options overide these.
     watch: false
 
     ###
-      Ignore all rootExports {& noConflict()} defined in all modules (eg `{rootExports: ['persons', 'personsModel']}` )
-      (But not those of `dependencies: exports: root`, when implemented:)
+      When true, it ignores all rootExports {& noConflict()} defined in all module files eg
+        `{rootExports: ['persons', 'personsModel']}`
+
+      'true' doens not ignore those of `dependencies: exports: root`, @todo: when `exports.root` is implemented :-
+      * use 'bundle' to ignore those defined in `bundle.exports.root` config @todo: NOT IMPLEMENTED
+      * use 'all' to ignore all root exports @todo: NOT IMPLEMENTED
+
     ###
     noRootExports: false
 
