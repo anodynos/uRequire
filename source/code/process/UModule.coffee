@@ -35,7 +35,7 @@ class UModule extends UResource
       else
         l.debug "No changes in sourceCodeJs of module '#{@dstFilename}' " if l.deb 90
 
-    return @hasChanged = false # leaving @hasChanged as is
+    return @hasChanged = false # only when written
 
   reset:-> super; delete @sourceCodeJs
 

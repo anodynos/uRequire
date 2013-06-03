@@ -260,6 +260,10 @@ uRequireConfigMasterDefaults = # Command line options overide these.
 #       # @todo:3 implement other methods ? 'simple AMD build"
 #      'combined':
 #
+#          # build even if no modules changes (just resources)
+#          noModulesBuild: false:
+#
+#
 #          # @default 'almond' - only one for now
 #          method: 'almond'
 #
