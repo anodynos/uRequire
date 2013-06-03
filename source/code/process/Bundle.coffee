@@ -24,10 +24,12 @@ UModule = require './UModule'
 Build = require './Build'
 BundleBase = require './BundleBase'
 
-###
+
+debugLevelSkipTempDeletion = 50
 
 ###
-debugLevelSkipTempDeletion = 50
+  @todo: doc it!
+###
 class Bundle extends BundleBase
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
   Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
@@ -41,6 +43,12 @@ class Bundle extends BundleBase
 #    @files[filename] = {} for filename in @filenames #initialized to an unknown placeholder
 
   @staticProperty requirejs: get:=> require 'requirejs'
+
+  @property
+#    uModules: get:-> _.filter @files, (file)-> file instanceof UModule
+#    uResources: get:-> _.filter @files, (file)-> file instanceof UResource
+    uModules: get:-> _.pick @files, (file)-> file instanceof UModule
+    uResources: get:-> _.pick @files, (file)-> file instanceof UResource
 
   isFileInSpecs = (file, filez)-> #todo: (3 6 4) convert to proper In/in agreement
     agrees = false
@@ -167,10 +175,13 @@ class Bundle extends BundleBase
       #####################################################################""" if l.deb 30
     @changed = bundlefiles:0, resources: 0, modules: 0, errors: 0 #reset all change counters
 
+    @isPartialBuild = filenames isnt @filenames
+
     @reporter = new DependenciesReporter() #each build has a new reporter
 
-    # filter filenames not passing through bundle.filez
-    if filenames isnt @filenames # only for 'partial' & 'watched' filenames
+    # for 'partial' i.e 'watched' filenames
+    if @isPartialBuild
+      # filter filenames not passing through bundle.filez
       bundleFilenames = _.filter filenames, (f)=> isFileInSpecs f, @filez
       if diff = filenames.length - bundleFilenames.length
         l.verbose "Ignored #{diff} non bundle.filez"
@@ -185,10 +196,8 @@ class Bundle extends BundleBase
         l.debug("Setting @build.combinedFile =", @build.combinedFile,
                 '\n  and @build.outputPath = ', @build.outputPath) if l.deb 30
 
-
       # now load/refresh some filenames (or all @filenames)
       if @loadOrRefreshResources(filenames) > 0 # returns @changed.bundlefiles
-
         if @changed.modules
           l.debug """
             #####################################
@@ -196,12 +205,11 @@ class Bundle extends BundleBase
             #####################################################################""" if l.deb 30
           for filename in filenames
             if resource = @files[filename] # exists when refreshed, but not deleted
-              if resource.hasChanged # it has changed, conversion needed
-                if resource instanceof UModule
-                  resource.convert @build
-        
-        if filenames is @filenames # a full build
-          @hasFullBuild = true     # note it
+              if resource.hasChanged and (resource instanceof UModule) # it has changed, conversion needed
+                resource.convert @build
+
+        if not @isPartialBuild
+          @hasFullBuild = true # note it's having a full build
         else
           # partial build - Warn and perhaps force a full build... # @todo: (3 3 2) add more cases
           if (not @hasFullBuild) and @changed.resources
@@ -235,7 +243,7 @@ class Bundle extends BundleBase
               @buildChangedResources @build, globExpand({cwd: @path}, @filez) # call self, with all filesystem @filenames
               return # dont run again!
             else
-              partialWarns.push """
+              partialWarns.push """\n
                 Note: other modules info not available: falsy errors possible, including :
                   * `Bundle-looking dependencies not found in bundle`
                   * requirejs.optmize crashing, not finding some global var etc.
@@ -245,7 +253,7 @@ class Bundle extends BundleBase
 
         @saveChangedResources()
 
-      copied = @copyNonResourceFiles()
+      copied = @copyNonResourceFiles filenames
 
       # some build reporting
       report = @reporter.getReport @build.interestingDepTypes
@@ -270,18 +278,18 @@ class Bundle extends BundleBase
         #####################################
         Saving changed resource files
         #####################################################################""" if l.deb 30
-      for fn, resource of @files when resource.hasChanged and (resource instanceof UResource)
+      for fn, resource of @uResources when resource.hasChanged
         if _.isFunction @build.out # @todo:5 else if String, output to this file ?
           @build.out resource.dstFilepath, resource.converted
         resource.hasChanged = false
 
   # All @files (i.e bundle.filez) that ARE NOT `UResource`s and below (i.e are plain `BundleFile`s)
   # are copied to build.outputPath.
-  copyNonResourceFiles: ->
+  copyNonResourceFiles: (filenames=@filenames)->
     if @changed.bundlefiles # need if ?
 
       if not _.isEmpty @copy then copyNonResFilenames = #save time
-        _.filter @filenames, (fn)=>
+        _.filter filenames, (fn)=>
           not (@files[fn] instanceof UResource) and
           @files[fn].hasChanged and # @todo: 5 2 1 only really changed (BundleFile reads timestamp/size etc)!
           (isFileInSpecs fn, @copy)
@@ -525,7 +533,7 @@ class Bundle extends BundleBase
         dv.push v for v in vars when v not in dv
 
     # gather depsVars from all loaded resources
-    for uMK, resource of @files when resource instanceof UModule
+    for uMK, resource of @uModules
       gatherDepsVars resource.getDepsVars q
 
     # pick from @dependencies.depsVars only for existing deps, that have no vars info discovered yet
