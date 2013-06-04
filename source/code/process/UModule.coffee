@@ -85,14 +85,12 @@ class UModule extends UResource
             for strDep in (strDepsArray || [])
               new Dependency strDep, @filename, @bundle
 
-
       # add remaining dependencies (eg 'untrustedRequireDeps') to DependenciesReport
       if @bundle.reporter
         for repData in [ (_.pick @moduleInfo, @bundle.reporter.reportedDepTypes) ]
           @bundle.reporter.addReportData repData, @modulePath
 
       # setup some 'templateInfo' information
-
       #clone these cause we're injecting deps in them & keep the original for reference
       @parameters = _.clone @moduleInfo.parameters
       @nodeDependencies = _.clone @arrayDependencies
@@ -249,9 +247,6 @@ class UModule extends UResource
 
       depsVars
     else {}
-
-
-
 
 module.exports = UModule
 

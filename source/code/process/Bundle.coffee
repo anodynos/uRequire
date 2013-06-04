@@ -83,7 +83,7 @@ class Bundle extends BundleBase
       #####################################
       loadOrRefreshResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
-    updateChanged = =>
+    updateChanged = => # @todo: refactor this
       @changed.bundlefiles++ #
       @changed.resources++ if bundlefile instanceof UResource
       @changed.modules++ if bundlefile instanceof UModule
@@ -137,9 +137,10 @@ class Bundle extends BundleBase
       catch err
         if not fs.existsSync bundlefile.srcFilepath  # remove it, if missing from filesystem
 
-          l.verbose "Missing file: ", bundlefile.srcFilepath,
-                    "\n  Removing bundle file: ", filename,
-                    "\n  Deleting build in outputPath: #{bundlefile.dstFilepath}" if bundlefile.dstExists
+          delMsgs = ["Missing file: ", bundlefile.srcFilepath,
+                    "\n  Removing bundle file: ", filename]
+          delMsgs.push "\n  Deleting build in outputPath: #{bundlefile.dstFilepath}" if bundlefile.dstExists
+          l.verbose.apply l, delMsgs
 
           if bundlefile.dstExists
             try
@@ -202,9 +203,9 @@ class Bundle extends BundleBase
             Converting changed modules with template '#{@build.template.name}'
             #####################################################################""" if l.deb 30
           for filename in filenames
-            if resource = @files[filename] # exists when refreshed, but not deleted
-              if resource.hasChanged and (resource instanceof UModule) # it has changed, conversion needed
-                resource.convert @build
+            if uModule = @files[filename] # exists when refreshed, but not deleted
+              if uModule.hasChanged and (uModule instanceof UModule) # it has changed, conversion needed
+                uModule.convert @build
 
         if not @isPartialBuild
           @hasFullBuild = true # note it's having a full build
@@ -231,7 +232,7 @@ class Bundle extends BundleBase
             if forceFullBuild
               filenames = @filenames              # full build, all files
               @hasFullBuild = true                # note it
-              resource.reset() for fn, resource of @files
+              file.reset() for fn, file of @files
               if @build.watch
                 partialWarns.push "\nNote on watch: NOT DELETING ...__temp - when you quit 'watch'-ing, delete it your self!"
                 debugLevelSkipTempDeletion = 0      # dont delete ___temp
@@ -316,7 +317,7 @@ class Bundle extends BundleBase
 
     if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ? NOTE: modules have to be refreshed 1st!
       for mainCand in [@name, 'index', 'main'] when mainCand and not mainModule
-        mainModule = _.find @files, (resource)-> resource.modulePath is mainCand          
+        mainModule = _.find @uModules, (m)-> m.modulePath is mainCand
           
         if mainModule
           @main = mainModule.modulePath
@@ -516,7 +517,7 @@ class Bundle extends BundleBase
 
   @return {dependencies.depsVars} `dependency: ['var1', 'var2']` eg
               {
-                  'underscore': '_'
+                  'underscore': ['_']
                   'jquery': ["$", "jQuery"]
                   'models/PersonModel': ['persons', 'personsModel']
               }
@@ -531,32 +532,26 @@ class Bundle extends BundleBase
         dv.push v for v in vars when v not in dv
 
     # gather depsVars from all loaded resources
-    for uMK, resource of @uModules
-      gatherDepsVars resource.getDepsVars q
+    gatherDepsVars uModule.getDepsVars q for uMK, uModule of @uModules
 
-    # pick from @dependencies.depsVars only for existing deps, that have no vars info discovered yet
-    # todo: remove from here / refactor
-    if @dependencies?.depsVars
-      vn = _B.go @dependencies.depsVars,
-                 fltr:(v,k)=>
-                    (depsVars[k] isnt undefined) and
-                    _.isEmpty(depsVars[k]) and
-                    not (k in @dependencies?.noWeb)
-      if not _.isEmpty vn
-        l.warn "\n Picked from `@dependencies.depsVars` for some deps with missing dep-variable bindings: \n", vn
-        gatherDepsVars vn
+    # given a DepsVars object, it picks for existing depsVars,
+    # that have no vars associated with them (yet).
+    getMissingDeps = (fromDepsVars)=>
+      _B.go fromDepsVars,
+         fltr: (v,k)=>
+            (depsVars[k] isnt undefined) and      # we have this dep
+            _.isEmpty(depsVars[k]) and            # no vars associated with this dep
+            k not in (@dependencies.noWeb or [])  # exclude those in noWeb
 
-    # 'urequireCfg.bundle.dependencies._knownDepsVars' contain known ones
-    #   eg `jquery:['$'], lodash:['_']` etc
-    # todo: remove from here / refactor
-    vn = _B.go @dependencies._knownDepsVars,
-               fltr:(v,k)=>
-                  (depsVars[k] isnt undefined) and
-                  _.isEmpty(depsVars[k]) and
-                  not (k in @dependencies?.noWeb)
-    if not _.isEmpty vn
-      l.warn "\n Picked from `@dependencies._knownDepsVars` for some deps with missing dep-variable bindings: \n", vn
-      gatherDepsVars vn
+    # picking from @bundle.dependencies. [depsVars, _KnownDepsVars, ... ] etc
+    for dependenciesDepsVarsPath in _.map(
+          ['depsVars', '_knownDepsVars',
+          'exports.bundle', 'exports.root'], (v)-> 'dependencies.' + v)
+      dependenciesDepsVars = _B.getValueAtPath @, dependenciesDepsVarsPath, {separator:'.'}
+
+      if not _.isEmpty vn = getMissingDeps dependenciesDepsVars
+        l.warn "\n Picked from `@#{dependenciesDepsVarsPath}` for some deps with missing dep-variable bindings: \n", dependenciesDepsVars
+        gatherDepsVars dependenciesDepsVars
 
     depsVars
 
