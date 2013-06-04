@@ -107,7 +107,7 @@ class UModule extends UResource
   ###
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
-      l.debug("Converting module '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
+      l.debug("Preparing conversion of '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
 
       # inject exports.bundle Dependencies information to arrayDependencies, nodeDependencies & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.exports?.bundle)
@@ -212,9 +212,9 @@ class UModule extends UResource
       @moduleTemplate = new ModuleGeneratorTemplates @ #todo: (1 3 1) retain the same @moduleTemplate {} (we need to refresh headers etc in template)
 
       l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
-                , "module info = \n", _.pick @, [
-                    'moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps',
-                    'parameters', 'webRootMap', 'rootExports']
+      l.debug "module info = \n", _.pick @, [
+          'moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps',
+          'parameters', 'webRootMap', 'rootExports'] if l.deb 70
 
       @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
 

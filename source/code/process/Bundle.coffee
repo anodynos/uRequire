@@ -45,8 +45,6 @@ class Bundle extends BundleBase
   @staticProperty requirejs: get:=> require 'requirejs'
 
   @property
-#    uModules: get:-> _.filter @files, (file)-> file instanceof UModule
-#    uResources: get:-> _.filter @files, (file)-> file instanceof UResource
     uModules: get:-> _.pick @files, (file)-> file instanceof UModule
     uResources: get:-> _.pick @files, (file)-> file instanceof UResource
 
@@ -151,7 +149,7 @@ class Bundle extends BundleBase
           else
             l.err "No dstFilepath / dstExists for '#{filename}'."
 
-          updateChanged()
+          #updateChanged()
           delete @files[filename]
 
         else
@@ -291,7 +289,7 @@ class Bundle extends BundleBase
       if not _.isEmpty @copy then copyNonResFilenames = #save time
         _.filter filenames, (fn)=>
           not (@files[fn] instanceof UResource) and
-          @files[fn].hasChanged and # @todo: 5 2 1 only really changed (BundleFile reads timestamp/size etc)!
+          @files[fn]?.hasChanged and # @todo: 5 2 1 only really changed (BundleFile reads timestamp/size etc)!
           (isFileInSpecs fn, @copy)
 
       if not _.isEmpty copyNonResFilenames

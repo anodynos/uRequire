@@ -43,9 +43,8 @@ class BundleBuilder
     l.verbose 'uRequire v'+l.VERSION + ' initializing...'
 
     # display userCfgs, WITHOUT applying master defaults
-    if l.deb 40
-      l.debug 40, "user config :\n",
-        blendConfigs(configs[0..configs.length-2], deriveLoader)
+    l.debug("user config :\n",
+      blendConfigs(configs[0..configs.length-2], deriveLoader)) if l.deb 40
 
     # display full cfgs, having applied master defaults.
     l.debug("final config :\n", finalCfg) if l.deb 20
@@ -75,13 +74,48 @@ class BundleBuilder
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
 
-  # @todo:(6,6,5) watch build's folder & rebuild
-  #  @watchDirectory @cfg.bundle.path
-  #
-  #  register something to watch events
-  #  watchDirectory:->
-  #    onFilesChange: (filesChanged)=>
-  #      @buildBundle filesChanged #:[]<String>
+
+  watch: ->
+    bundleBuilder = this
+    watchFiles = []; watchDirs = []
+    gaze = require 'gaze'
+    path = require 'path'
+    fs = require 'fs'
+
+#    #@todo build this according to watch.filez || bundle.filez
+#    watchedFiles =  _.map bundleBuilder.bundle.filenames, (file)->
+#      path.join bundleBuilder.bundle.path, file
+#    watchedFiles.unshift bundleBuilder.bundle.path + '/**/*.*' # all dirs
+    gaze bundleBuilder.bundle.path + '/**/*.*', (err, watcher)->
+      l.log 'Watching started...'
+      watcher.on 'all', (event, filepath)->
+        if event isnt 'deleted'
+          try
+            filepathStat = fs.statSync filepath # i.e '/mnt/dir/mybundle/myfile.js'
+          catch err
+
+        filepath = path.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
+
+        if filepathStat?.isDirectory()
+          l.log "Adding '#{filepath}' as new watch directory is NOT SUPPORTED yet."
+#          _.delay addDirs, 500 if _.isEmpty watchDirs
+#          watchDirs.push filepath + '/**/*.*'
+        else
+          l.log "Watch file '#{filepath}' has #{event}."
+          _.delay runBuildBundle, 500 if _.isEmpty watchFiles
+          watchFiles.push path.relative bundleBuilder.bundle.path, filepath
+
+      addDirs = ()->
+        watcher.add dir for dir in watchDirs # gaze crashes on 'watcher.add'
+        watchDirs = []
+
+      runBuildBundle = ->
+        if not _.isEmpty watchFiles
+          bundleBuilder.buildBundle watchFiles
+          watchFiles = []
+        else
+          l.warn 'EMPTY watchFiles = ', watchFiles
+        l.log 'Watching again...'
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->
