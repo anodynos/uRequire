@@ -24,6 +24,7 @@ UModule = require './UModule'
 Build = require './Build'
 BundleBase = require './BundleBase'
 
+isFileInSpecs = require '../utils/isFileInSpecs'
 
 debugLevelSkipTempDeletion = 50
 
@@ -38,33 +39,18 @@ class Bundle extends BundleBase
   _constructor: (bundleCfg)->
     _.extend @, bundleCfg
     @reporter = new DependenciesReporter()
-    @filenames = globExpand {cwd: @path}, @filez #our initial filenames
+    @filenames = @getGlobExpandFilez() #our initial filenames
     @files = {}  # all bundle files are in this map
 #    @files[filename] = {} for filename in @filenames #initialized to an unknown placeholder
+
+  getGlobExpandFilez:->
+    _.filter globExpand({cwd: @path}, '**/*.*'), (f)=> isFileInSpecs f, @filez
 
   @staticProperty requirejs: get:=> require 'requirejs'
 
   @property
     uModules: get:-> _.pick @files, (file)-> file instanceof UModule
     uResources: get:-> _.pick @files, (file)-> file instanceof UResource
-
-  isFileInSpecs = (file, filez)-> #todo: (3 6 4) convert to proper In/in agreement
-    agrees = false
-    for agreement in _B.arrayize filez #go throug all (no bailout when true) cause we have '!*glob*'
-      if _.isString agreement
-        agrees =
-          if agreement[0] is '!'
-            if minimatch file, agreement.slice(1) then false else agrees # falsify if minimatches, leave as is otherwise
-          else
-            agrees = agrees || minimatch file, agreement                 # if true leave it, otherwise try to truthify with minimatch
-      else
-        if _.isRegExp agreement
-          agrees = agrees || file.match agreement
-        else
-          if _.isFunction agreement
-            agrees = agreement file
-
-    agrees
 
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
@@ -139,7 +125,7 @@ class Bundle extends BundleBase
 
           delMsgs = ["Missing file: ", bundlefile.srcFilepath,
                     "\n  Removing bundle file: ", filename]
-          delMsgs.push "\n  Deleting build in outputPath: #{bundlefile.dstFilepath}" if bundlefile.dstExists
+          delMsgs.push "\n  Deleting build in dstPath: #{bundlefile.dstFilepath}" if bundlefile.dstExists
           l.verbose.apply l, delMsgs
 
           if bundlefile.dstExists
@@ -190,10 +176,10 @@ class Bundle extends BundleBase
       # setup 'combinedFile' on 'combined' template
       # (i.e where to output AMD-like templates & where the combined .js file)
       if (@build.template.name is 'combined') and (not @build.combinedFile) # fix 1st time only
-        @build.combinedFile = upath.changeExt @build.outputPath, '.js'
-        @build.outputPath = "#{@build.combinedFile}__temp"
+        @build.combinedFile = upath.changeExt @build.dstPath, '.js'
+        @build.dstPath = "#{@build.combinedFile}__temp"
         l.debug("Setting @build.combinedFile =", @build.combinedFile,
-                '\n  and @build.outputPath = ', @build.outputPath) if l.deb 30
+                '\n  and @build.dstPath = ', @build.dstPath) if l.deb 30
 
       # now load/refresh some filenames (or all @filenames)
       if @loadOrRefreshResources(filenames) > 0 # returns @changed.bundlefiles
@@ -216,17 +202,17 @@ class Bundle extends BundleBase
             partialWarns = ["Partial build, without a previous full build."]
 
             # last chance to skip forcing full build (high debug mode)
-            if fs.existsSync(@build.outputPath) and
+            if fs.existsSync(@build.dstPath) and
               (l.deb(debugLevelSkipTempDeletion) || @build.watch) # just warn!
                 partialWarns.push w for w in [
-                  "\nNOT PERFORMING a full build cause fs.exists(@build.outputPath)", @build.outputPath,
+                  "\nNOT PERFORMING a full build cause fs.exists(@build.dstPath)", @build.dstPath,
                   "\nand (@build.watch or debugLevel >= #{debugLevelSkipTempDeletion} or @build.template.name isnt 'combined')"
                 ]
             else
               if @build.template.name is 'combined'
                 partialWarns.push w for w in [
                    "on 'combined' template.",
-                   "\nForcing a full build of all module to __temp directory: ", @build.outputPath]
+                   "\nForcing a full build of all module to __temp directory: ", @build.dstPath]
                 forceFullBuild = true
 
             if forceFullBuild
@@ -239,7 +225,7 @@ class Bundle extends BundleBase
 
               l.warn.apply l, partialWarns
 
-              @buildChangedResources @build, globExpand({cwd: @path}, @filez) # call self, with all filesystem @filenames
+              @buildChangedResources @build, @getGlobExpandFilez() # call self, with all filesystem @filenames
               return # dont run again!
             else
               partialWarns.push """\n
@@ -283,7 +269,7 @@ class Bundle extends BundleBase
         resource.hasChanged = false
 
   # All @files (i.e bundle.filez) that ARE NOT `UResource`s and below (i.e are plain `BundleFile`s)
-  # are copied to build.outputPath.
+  # are copied to build.dstPath.
   copyNonResourceFiles: (filenames=@filenames)->
     if @changed.bundlefiles # need if ?
 
@@ -375,7 +361,7 @@ class Bundle extends BundleBase
       }
 
       for depfilename, genCode of almondTemplates.dependencyFiles
-        Build.outputToFile upath.join(@build.outputPath, depfilename+'.js'), genCode
+        Build.outputToFile upath.join(@build.dstPath, depfilename+'.js'), genCode
 
       @copyAlmondJs()
       @copyWebMapDeps()
@@ -388,7 +374,7 @@ class Bundle extends BundleBase
         paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
 
         wrap: almondTemplates.wrap
-        baseUrl: @build.outputPath
+        baseUrl: @build.dstPath
         include: [@main]
         deps: @dependencies.noWeb # we include the 'fake' AMD files 'getNoWebDep_XXX'
         out: @build.combinedFile
@@ -438,12 +424,12 @@ class Bundle extends BundleBase
                    must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
                 """
 
-          # delete outputPath, used as temp directory with individual AMD files
+          # delete dstPath, used as temp directory with individual AMD files
           if not (l.deb(debugLevelSkipTempDeletion) or build.watch)
-            l.debug(40, "Deleting temporary directory '#{build.outputPath}'.")
-            wrench.rmdirSyncRecursive build.outputPath
+            l.debug(40, "Deleting temporary directory '#{build.dstPath}'.")
+            wrench.rmdirSyncRecursive build.dstPath
           else
-            l.debug("NOT Deleting temporary directory '#{build.outputPath}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
+            l.debug("NOT Deleting temporary directory '#{build.dstPath}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
           build.done not @changed.errors
         else
           l.err """
@@ -461,7 +447,7 @@ class Bundle extends BundleBase
              c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
                 *Note this prevents uRequire from finishing properly / printing this message!*
 
-             Note that you can check the AMD-ish files used in temporary directory '#{build.outputPath}'.
+             Note that you can check the AMD-ish files used in temporary directory '#{build.dstPath}'.
 
              More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
 
@@ -477,10 +463,10 @@ class Bundle extends BundleBase
 
 
   copyAlmondJs: ->
-    try # copy almond.js from GLOBAL/urequire/node_modules -> outputPath
+    try # copy almond.js from GLOBAL/urequire/node_modules -> dstPath
       Build.copyFileSync(
         "#{__dirname}/../../../node_modules/almond/almond.js" # from
-        upath.join(@build.outputPath, 'almond.js')            # to
+        upath.join(@build.dstPath, 'almond.js')            # to
       )
     catch err
       l.err uerr = """
@@ -492,7 +478,7 @@ class Bundle extends BundleBase
       else l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
   ###
-   Copy all bundle's webMap dependencies to outputPath
+   Copy all bundle's webMap dependencies to dstPath
    @todo: use path.join
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
@@ -502,8 +488,8 @@ class Bundle extends BundleBase
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
 #        Build.copyFileSync  "#{@webRoot}#{depName}",         #from
-#                            "#{@build.outputPath}#{depName}" #to
-        l.err "NOT IMPLEMENTED: Build.copyFileSync  #{@webRoot}#{depName}, #{@build.outputPath}#{depName}"
+#                            "#{@build.dstPath}#{depName}" #to
+        l.err "NOT IMPLEMENTED: Build.copyFileSync  #{@webRoot}#{depName}, #{@build.dstPath}#{depName}"
 
 
   ###

@@ -8,6 +8,7 @@ blendConfigs = require '../../code/config/blendConfigs'
 uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDefaults'
 {
   moveKeysBlender
+  renameKeysBlender
   resourcesBlender
   templateBlender
   arrayizeUniquePusher
@@ -105,6 +106,12 @@ expectedResources = [
 
 ]
 
+describe '`uRequireConfigMasterDefaults` consistency', ->
+  it "No same name keys in bundle & build ", ->
+    expect(_B.isDisjoint _.keys(uRequireConfigMasterDefaults.bundle),
+                         _.keys(uRequireConfigMasterDefaults.build)
+    ).to.be.true
+
 describe 'blendConfigs & its Blenders', ->
 
   describe 'moveKeysBlender', ->
@@ -121,7 +128,7 @@ describe 'blendConfigs & its Blenders', ->
             depsVars: {}
             exports: bundle: {}
 
-          outputPath: ""
+          dstPath: ""
           forceOverwriteSources: false
           template: name: "UMD"
           watch: false
@@ -142,7 +149,7 @@ describe 'blendConfigs & its Blenders', ->
               exports: bundle: {}
 
           build:
-            outputPath: ""
+            dstPath: ""
             forceOverwriteSources: false
             template: name: "UMD"
             watch: false
@@ -160,15 +167,15 @@ describe 'blendConfigs & its Blenders', ->
           bundle: # 'bundle' and 'build' hashes have precedence over root items
             main: 'myLib'
 
-          outputPath: "/some/OTHER/path"
+          dstPath: "/some/OTHER/path"
           build: # 'bundle' and 'build' hashes have precedence over root items
-            outputPath: "/some/path"
+            dstPath: "/some/path"
         )
       ).to.deep.equal
           bundle:
             main: 'myLib'
           build:
-            outputPath: "/some/path"
+            dstPath: "/some/path"
 
     it "ignores root keys deemed irrelevant (not exist on `uRequireConfigMasterDefaults`'s `.build` or `.bundle`.)", ->
       expect(
@@ -186,8 +193,31 @@ describe 'blendConfigs & its Blenders', ->
             name: 'myBundle'
             path: "/some/path"
 
-  describe "templateBlender:", ->
+  describe "renameKeysBlender:", ->
+    it "renames DEPRACATED keys to their new name", ->
 
+      oldCfg =
+        bundle:
+          bundlePath: "source/code"
+          main: "index"
+          filespecs: '*.*'
+          ignore: [/^draft/] # ignore not handled in renameKeysBlender
+          dependencies:
+            bundleExports: {lodash:'_'}
+            _knownVariableNames: {jquery:'$'}
+
+      expect(renameKeysBlender.blend oldCfg).to.be.deep.equal
+        bundle:
+          path: 'source/code'
+          main: 'index'
+          filez: '*.*',
+          ignore: [ /^draft/ ]
+          dependencies:
+            exports: bundle: { lodash: '_' }
+            _knownDepsVars: { jquery: '$'}
+
+
+  describe "templateBlender:", ->
     describe "template is a String:", ->
 
       it "converts to {name:'TheString'} ", ->
@@ -367,7 +397,7 @@ describe 'blendConfigs & its Blenders', ->
             exports: bundle:
               lodash: "_"
 
-          outputPath: "build/code"
+          dstPath: "build/code"
           template: 'UMD'
         ,
           bundle:
@@ -384,19 +414,20 @@ describe 'blendConfigs & its Blenders', ->
             debugLevel: 90
         ,
           {}
-        ,
-          path: "sourceSpecDir"
+        , # DEPRACATED keys
+          bundlePath: "sourceSpecDir"
           main: 'index'
           resources: resources[2..]
           dependencies:
-            depsVars:
+            variableNames:
               uberscore: '_B'
 
-            exports: bundle:
+            bundleExports:
               chai: 'chai'
               uberscore: ['uberscore', 'B', 'B_']
               'spec-data': 'data'
-          outputPath: "some/useless/default/path"
+
+          dstPath: "some/useless/default/path"
         ,
           {}
         ,
@@ -423,16 +454,16 @@ describe 'blendConfigs & its Blenders', ->
       blended = blendConfigs(configs)
 
       it "blending doesn't mutate source configs:", ->
-        expect(configs).to.deep.equal configsClone #this doesnt work - why chai (doesnt like Function)?
-#        expect(_.isEqual configs, configsClone).to.be.true
+        expect(configs).to.deep.equal configsClone
 
       it "correctly derives from many & nested user configs:", ->
-#        expect(blended).to.deep.equal #this doesnt work - why chai (doesnt like Function)?
-        expect(_.isEqual blended,
+        _B.Logger.log blended
+
+        expect(blended).to.be.deep.equal
           bundle:
             path: "source/code"
             main: "index"
-            ignore: [/^draft/]
+            filez: ['!', /^draft/] # from DEPRACATED ignore: [/^draft/]
             resources: expectedResources
             dependencies:
               noWeb: ['noWebInDerive2', 'noWebInDerive1', 'noWebForMe']
@@ -445,8 +476,6 @@ describe 'blendConfigs & its Blenders', ->
                 uberscore: ['_B']
           build:
             verbose: true
-            outputPath: "build/code"
+            dstPath: "build/code"
             debugLevel: 90
             template: name: "UMD"
-        ).to.be.true
-

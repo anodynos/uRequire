@@ -33,7 +33,7 @@ uRequireConfigMasterDefaults = # Command line options overide these.
       - if using grunt, it defaults to the multi-task @target (eg {urequire: 'MyBundlename': {bundle : {}, build:{} }}
 
       @todo:
-      - --outputPath,
+      - --dstPath,
         - filename part, if 'combined' is used eg if its 'abcProject/abc.js', then 'abc'
         - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
 
@@ -87,11 +87,11 @@ uRequireConfigMasterDefaults = # Command line options overide these.
     #          appended to the ones higher up @todo: doc it
     filez: ['**/*.*']
 
-    # (binary) copy of all non-resource bundle files to outputPath - just a convenience
+    # (binary) copy of all non-resource bundle files to dstPath - just a convenience
 
     # @type filez specs - see filez above
     # filename specifications (or simply filenames), considered as part of your bundle
-    # that are copied to outputPath ONLY if not matched as resources/modules.
+    # that are copied to dstPath ONLY if not matched as resources/modules.
     #
     # @example bundle: {copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]}
     #
@@ -239,13 +239,13 @@ uRequireConfigMasterDefaults = # Command line options overide these.
     #todo: if ommited, requirejs.buildjs.baseUrl is used ?
     @example 'build/code'
     ###
-    outputPath: undefined
+    dstPath: undefined
 
     ###
     Output on the same directory as path.
 
     Useful if your sources are not `real sources` eg. you use coffeescript :-).
-    WARNING: -f ignores --outputPath
+    WARNING: -f ignores --dstPath
     ###
     forceOverwriteSources: false
 

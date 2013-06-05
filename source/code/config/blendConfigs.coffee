@@ -25,22 +25,70 @@ moveKeysBlender = new _B.DeepCloneBlender [
     '*': '|':
       do (partsKeys = {
         bundle: _.keys uRequireConfigMasterDefaults.bundle # eg ['path', 'dependencies', ...]
-        build: _.keys uRequireConfigMasterDefaults.build   # eg ['outputPath', 'template', ...]
+        build: _.keys uRequireConfigMasterDefaults.build   # eg ['dstPath', 'template', ...]
       })->
         (prop, src, dst, bl)->
-          for confPart in ['bundle', 'build'] # or better _.keys partsKeys
+          for confPart in _.keys partsKeys # partKeys = ['bundle', 'build'] 
             if prop in partsKeys[confPart]
               _B.setValueAtPath bl.dstRoot, "/#{confPart}/#{prop}", src[prop], true
               break
 
           _B.Blender.SKIP # no assign
 
-    # just deepDefault our 'legitimate' parts
+    # just DeepClone our 'legitimate' parts
     bundle: '|': -> _B.Blender.NEXT
     build: '|': -> _B.Blender.NEXT
   }
 #  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
 ]
+
+# Backwards compatibility:
+# rename DEPRACATED keys to their new ones
+renameKeys =
+  $:
+    bundle:
+       bundlePath: 'path'
+       bundleName: 'name'
+       copyNonResources: 'copy'
+       filespecs: 'filez'
+       dependencies:
+         bundleExports: 'exports.bundle'
+         variableNames: 'depsVars'
+         _knownVariableNames: '_knownDepsVars'
+    build:
+      outputPath: 'dstPath'
+_.extend renameKeys.$, renameKeys.$.bundle # copy $.bundle.* to $.*
+_.extend renameKeys.$, renameKeys.$.build # copy $.build.* to $.*
+
+renameKeysBlender = new _B.DeepDefaultsBlender [
+  functionCopyBB,
+
+  order:['src']
+  '*': (prop, src, dst, bl)->
+    renameTo = _B.getValueAtPath renameKeys, bl.path
+    if  _.isString renameTo
+      l.warn "DEPRACATED key '#{_.last bl.path}' found @ config path '#{bl.path.join '.'}' - rename to '#{renameTo}'"
+      _B.setValueAtPath bl.dstRoot, bl.path.slice(1,-1).join('.')+'.'+renameTo, src[prop], true, '.'
+      return _B.Blender.SKIP
+
+    return _B.Blender.NEXT
+]
+
+addIgnoreToFilezAsExclude = (cfg)->
+  ignore = cfg.bundle?.ignore || cfg.ignore
+
+  if ignore
+    l.warn "DEPRACATED key 'ignore' found @ config - adding them as exclude '!' to 'bundle.filez'"
+    filez = cfg.bundle?.filez || cfg.filez || ['**/*.*']
+    for ignoreSpec in ignore
+      filez.push '!'
+      filez.push ignoreSpec
+    delete cfg.ignore
+    delete cfg.bundle.ignore
+    _B.setValueAtPath cfg, ['bundle', 'filez'], filez, true
+
+  cfg
+
 
 # bundleBuildBlender
 #
@@ -61,19 +109,19 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           arrayizeUniquePusher.blend dst[prop], src[prop]
 
         exports:
-          bundle: '|': '*': (prop, src, dst)->
-            dependenciesBindingsBlender.blend dst[prop], src[prop]
+          bundle: '|': '*': 'dependenciesBindings'
 
           #root: NOT IMPLEMENTED
 
-        depsVars: '|': '*': (prop, src, dst)->
-          dependenciesBindingsBlender.blend dst[prop], src[prop]
+        depsVars: '|': '*': 'dependenciesBindings'
 
-        _knownDepsVars: '|': '*': (prop, src, dst)->
-          dependenciesBindingsBlender.blend dst[prop], src[prop]
+        _knownDepsVars: '|': '*': 'dependenciesBindings'
 
       resources: '|' : '*': (prop, src, dst)->
         arrayizeUniquePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
+
+    dependenciesBindings: (prop, src, dst)->
+      dependenciesBindingsBlender.blend dst[prop], src[prop]
 
     build:
       template: '|': '*': (prop, src, dst)->
@@ -288,7 +336,7 @@ blendConfigs = (configsArray, deriveLoader)->
   finalCfg
 
 # the recursive fn that also considers cfg.derive
-_blendDerivedConfigs = (cfgFinal, cfgsArray, deriveLoader)->
+_blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
   # We always blend in reverse order: start copying all items in the most base config
   # (usually 'uRequireConfigMasterDefaults') and continue overwritting/blending backwards
   # from most general to the more specific. Hence the 1st item in configsArray is blended last.
@@ -301,12 +349,12 @@ _blendDerivedConfigs = (cfgFinal, cfgsArray, deriveLoader)->
       (for drv in _B.arrayize cfg.derive when drv # no nulls/empty strings
         deriveLoader drv)
     if not _.isEmpty derivedObjects
-      _blendDerivedConfigs cfgFinal, derivedObjects, deriveLoader
+      _blendDerivedConfigs cfgDest, derivedObjects, deriveLoader
 
-    # blend this cfg into cfgFinal using the top level blender
+    # blend this cfg into cfgDest using the top level blender
     # first moveKeys for each config for configsArray items
     # @todo: (2, 7, 5) rewrite more functional, decoration/declarative/flow style ?
-    bundleBuildBlender.blend cfgFinal, moveKeysBlender.blend cfg
+    bundleBuildBlender.blend cfgDest, moveKeysBlender.blend addIgnoreToFilezAsExclude renameKeysBlender.blend cfg
   null
 
 module.exports = blendConfigs
@@ -314,6 +362,7 @@ module.exports = blendConfigs
 # expose blender instances to module.exports/blendConfigs, just for testing
 _.extend blendConfigs, {
   moveKeysBlender
+  renameKeysBlender
   templateBlender
   resourcesBlender
   arrayizeUniquePusher

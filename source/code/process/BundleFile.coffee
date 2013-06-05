@@ -45,8 +45,8 @@ class BundleFile
 
     # @dstFilename populated after each refresh/conversion (or a default on constructor)
 
-    # destination filename with build.outputPath, eg `myBuildProject/mybundle/mymodule.js`
-    dstFilepath: get:-> if @bundle.build then upath.join @bundle.build.outputPath, @dstFilename
+    # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
+    dstFilepath: get:-> if @bundle.build then upath.join @bundle.build.dstPath, @dstFilename
 
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
 

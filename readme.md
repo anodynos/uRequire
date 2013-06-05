@@ -496,7 +496,7 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
 
   -V, --version                  output the version number
 
-  -o, --outputPath <outputPath>  Output converted files onto this directory
+  -o, --dstPath <dstPath>  Output converted files onto this directory
 
   -f, --forceOverwriteSources    Overwrite *source* files (-o not needed & ignored). Usefull if your source is not *real source*, eg you use coffeescript
 

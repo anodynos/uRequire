@@ -21,7 +21,7 @@ urequireCommander
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <path> [options]')
   .version(l.VERSION) # 'var version = xxx' written by grunt's banner
-  .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
+  .option('-o, --dstPath <dstPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
   .option('-v, --verbose', 'Print module processing information', undefined)
   .option('-d, --debugLevel <debugLevel>', 'Pring debug information (0-100)', undefined)
@@ -92,7 +92,7 @@ urequireCommander.on '--help', ->
 
   Notes:
     --forceOverwriteSources (-f) is useful if your sources are not `real sources`  eg. you use coffeescript :-).
-      WARNING: -f ignores --outputPath
+      WARNING: -f ignores --dstPath
 
     - Your source can be coffeescript (more will follow) - .coffee files are internally translated to js.
 
@@ -103,7 +103,7 @@ urequireCommander.on '--help', ->
 
 urequireCommander.parse process.argv
 
-#hack to get cmd options only ['verbose', 'scanAllow', 'outputPath', ...] etc
+#hack to get cmd options only ['verbose', 'scanAllow', 'dstPath', ...] etc
 CMDOPTIONS = _.map(urequireCommander.options, (o)-> o.long.slice 2)
 
 # overwrite anything on config's root by cmdConfig - BundleBuilder handles the rest

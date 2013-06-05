@@ -61,7 +61,7 @@ class BundleBuilder
         @bundle = new @Bundle @bundleCfg
         @build = new @Build @buildCfg
       catch err
-        l.err uerr = "Initializing @bundle or @build"
+        l.err uerr = "Initializing @bundle or @build", err
         throw new UError uerr, nested:err
 
     else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
@@ -145,20 +145,20 @@ class BundleBuilder
         return false
     else
       if @buildCfg.forceOverwriteSources
-        @buildCfg.outputPath = @bundleCfg.path
-        l.verbose "Forced output to '#{@buildCfg.outputPath}'"
+        @buildCfg.dstPath = @bundleCfg.path
+        l.verbose "Forced output to '#{@buildCfg.dstPath}'"
         return true
       else
-        if not @buildCfg.outputPath
+        if not @buildCfg.dstPath
           l.err """
-            Quitting build, no --outputPath specified.
-            Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath)."""
+            Quitting build, no --dstPath specified.
+            Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
           return false
         else
-          if upath.normalize(@buildCfg.outputPath) is upath.normalize(@bundleCfg.path)
+          if upath.normalize(@buildCfg.dstPath) is upath.normalize(@bundleCfg.path)
             l.err """
-              Quitting build, outputPath === path.
-              Use -f *with caution* to overwrite sources (no need to specify & ignored --outputPath).
+              Quitting build, dstPath === path.
+              Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
               """
             return false
 
