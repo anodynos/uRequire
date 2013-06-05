@@ -30,7 +30,7 @@ moveKeysBlender = new _B.DeepCloneBlender [
         (prop, src, dst, bl)->
           for confPart in _.keys partsKeys # partKeys = ['bundle', 'build'] 
             if prop in partsKeys[confPart]
-              _B.setValueAtPath bl.dstRoot, "/#{confPart}/#{prop}", src[prop], true
+              _B.setp bl.dstRoot, "/#{confPart}/#{prop}", src[prop], overwrite:true
               break
 
           _B.Blender.SKIP # no assign
@@ -65,10 +65,10 @@ renameKeysBlender = new _B.DeepDefaultsBlender [
 
   order:['src']
   '*': (prop, src, dst, bl)->
-    renameTo = _B.getValueAtPath renameKeys, bl.path
+    renameTo = _B.getp renameKeys, bl.path
     if  _.isString renameTo
       l.warn "DEPRACATED key '#{_.last bl.path}' found @ config path '#{bl.path.join '.'}' - rename to '#{renameTo}'"
-      _B.setValueAtPath bl.dstRoot, bl.path.slice(1,-1).join('.')+'.'+renameTo, src[prop], true, '.'
+      _B.setp bl.dstRoot, bl.path.slice(1,-1).join('.')+'.'+renameTo, src[prop], {overwrite:true, separator:'.'}
       return _B.Blender.SKIP
 
     return _B.Blender.NEXT
@@ -85,7 +85,7 @@ addIgnoreToFilezAsExclude = (cfg)->
       filez.push ignoreSpec
     delete cfg.ignore
     delete cfg.bundle.ignore
-    _B.setValueAtPath cfg, ['bundle', 'filez'], filez, true
+    _B.setp cfg, ['bundle', 'filez'], filez, {overwrite:true}
 
   cfg
 

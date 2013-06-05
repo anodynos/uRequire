@@ -533,7 +533,7 @@ class Bundle extends BundleBase
     for dependenciesDepsVarsPath in _.map(
           ['depsVars', '_knownDepsVars',
           'exports.bundle', 'exports.root'], (v)-> 'dependencies.' + v)
-      dependenciesDepsVars = _B.getValueAtPath @, dependenciesDepsVarsPath, {separator:'.'}
+      dependenciesDepsVars = _B.getp @, dependenciesDepsVarsPath, {separator:'.'}
 
       if not _.isEmpty vn = getMissingDeps dependenciesDepsVars
         l.warn "\n Picked from `@#{dependenciesDepsVarsPath}` for some deps with missing dep-variable bindings: \n", dependenciesDepsVars

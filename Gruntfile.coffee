@@ -27,21 +27,11 @@ gruntFunction = (grunt) ->
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
     shell:
-      coffee:
-        command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
-
-      coffeeSpec:
-        command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
-
-      coffeeWatch:
-        command: "coffee -cbw -o ./build ./source"
-
-      mocha:
-        command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
-
-      doc:
-        command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
-
+      coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
+      coffeeSpec: command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
+      coffeeWatch: command: "coffee -cbw -o ./build ./source"
+      mocha: command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
+      doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
       # chmod +x urequireCmd.js
 
       options: # subtasks inherit options but can override them
@@ -109,11 +99,5 @@ gruntFunction = (grunt) ->
   grunt.loadNpmTasks 'grunt-shell'
 
   null
-
-# debug : call with a dummy 'grunt', that spits params on console.log
-#gruntFunction
-#  initConfig: (cfg)-> console.log 'grunt: initConfig\n', JSON.stringify cfg, null, ' '
-#  loadNpmTasks: (tsk)-> console.log 'grunt: registerTask: ', tsk
-#  registerTask: (shortCut, task)-> console.log 'grunt: registerTask:', shortCut, task
 
 module.exports = gruntFunction

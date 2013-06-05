@@ -457,13 +457,11 @@ describe 'blendConfigs & its Blenders', ->
         expect(configs).to.deep.equal configsClone
 
       it "correctly derives from many & nested user configs:", ->
-        _B.Logger.log blended
-
         expect(blended).to.be.deep.equal
           bundle:
             path: "source/code"
             main: "index"
-            filez: ['!', /^draft/] # from DEPRACATED ignore: [/^draft/]
+            filez: ['**/*.*', '!', /^draft/] # from DEPRACATED ignore: [/^draft/]
             resources: expectedResources
             dependencies:
               noWeb: ['noWebInDerive2', 'noWebInDerive1', 'noWebForMe']
