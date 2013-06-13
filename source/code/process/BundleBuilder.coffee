@@ -1,5 +1,6 @@
 _ = require 'lodash'
-_fs = require 'fs'
+_ = require 'lodash'
+fs = require 'fs'
 _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/BundleBuilder'
@@ -7,9 +8,8 @@ l = new _B.Logger 'urequire/BundleBuilder'
 # urequire
 upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
-
 blendConfigs = require '../config/blendConfigs'
-_Bs = require '../utils/uBerscoreShortcuts'
+UError = require '../utils/UError'
 
 ###
   Load config :
@@ -38,12 +38,13 @@ class BundleBuilder
       if @buildCfg.debugLevel >= 50
         l.warn 'Enabling verbose, because debugLevel >= 50'
       else
-        _B.Logger::verbose = -> #todo: travesty! 'verbose' whould be like debugLevel ?
+        _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
+
+    l.verbose 'uRequire v'+l.VERSION + ' initializing...'
 
     # display userCfgs, WITHOUT applying master defaults
-    if l.deb 40
-      l.debug 40, "user config :\n",
-        blendConfigs(configs[0..configs.length-2], deriveLoader)
+    l.debug("user config :\n",
+      blendConfigs(configs[0..configs.length-2], deriveLoader)) if l.deb 40
 
     # display full cfgs, having applied master defaults.
     l.debug("final config :\n", finalCfg) if l.deb 20
@@ -56,25 +57,65 @@ class BundleBuilder
 
     if @isCheckAndFixPaths() and @isCheckTemplate()
       # Create the implementation instance from these configs @todo: refactor / redesign this / better practice ?
-      @bundle = new @Bundle @bundleCfg
-      @build = new @Build @buildCfg
+      try
+        @bundle = new @Bundle @bundleCfg
+        @build = new @Build @buildCfg
+      catch err
+        l.err uerr = "Initializing @bundle or @build", err
+        throw new UError uerr, nested:err
 
     else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
       @buildCfg.done false
 
-  buildBundle: ->
+  buildBundle: (filenames)->
     if not (!@build or !@bundle)
-      @bundle.buildChangedModules @build
+      @bundle.buildChangedResources @build, filenames
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
 
-  # @todo:(6,6,5) watch build's folder & rebuild
-  # @watchDirectory @cfg.bundle.bundlePath
-  #  register something to watch events
-  #  watchDirectory:->
-  #    onFilesChange: (filesChanged)->
-  #      bundle.loadModules filesChanged #:[]<String>
+
+  watch: ->
+    bundleBuilder = this
+    watchFiles = []; watchDirs = []
+    gaze = require 'gaze'
+    path = require 'path'
+    fs = require 'fs'
+
+#    #@todo build this according to watch.filez || bundle.filez
+#    watchedFiles =  _.map bundleBuilder.bundle.filenames, (file)->
+#      path.join bundleBuilder.bundle.path, file
+#    watchedFiles.unshift bundleBuilder.bundle.path + '/**/*.*' # all dirs
+    gaze bundleBuilder.bundle.path + '/**/*.*', (err, watcher)->
+      l.log 'Watching started...'
+      watcher.on 'all', (event, filepath)->
+        if event isnt 'deleted'
+          try
+            filepathStat = fs.statSync filepath # i.e '/mnt/dir/mybundle/myfile.js'
+          catch err
+
+        filepath = path.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
+
+        if filepathStat?.isDirectory()
+          l.log "Adding '#{filepath}' as new watch directory is NOT SUPPORTED yet."
+#          _.delay addDirs, 500 if _.isEmpty watchDirs
+#          watchDirs.push filepath + '/**/*.*'
+        else
+          l.log "Watch file '#{filepath}' has #{event}."
+          _.delay runBuildBundle, 500 if _.isEmpty watchFiles
+          watchFiles.push path.relative bundleBuilder.bundle.path, filepath
+
+      addDirs = ()->
+        watcher.add dir for dir in watchDirs # gaze crashes on 'watcher.add'
+        watchDirs = []
+
+      runBuildBundle = ->
+        if not _.isEmpty watchFiles
+          bundleBuilder.buildBundle watchFiles
+          watchFiles = []
+        else
+          l.warn 'EMPTY watchFiles = ', watchFiles
+        l.log 'Watching again...'
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->
@@ -87,37 +128,37 @@ class BundleBuilder
     return true
 
   isCheckAndFixPaths: ->
-    if not @bundleCfg?.bundlePath?
-      # assume bundlePath, from the 1st configFile that came along
+    if not @bundleCfg?.path?
+      # assume path, from the 1st configFile that came along
       if cfgFile = @configs[0]?.derive?[0]
         if dirName = upath.dirname cfgFile
-          l.warn "Assuming bundlePath = '#{dirName}' from 1st configFile: '#{cfgFile}'"
-          @bundleCfg.bundlePath = dirName
+          l.warn "Assuming path = '#{dirName}' from 1st configFile: '#{cfgFile}'"
+          @bundleCfg.path = dirName
           return true
         else
-          l.err "Assuming bundlePath = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
+          l.err "Assuming path = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
           return false
       else
         l.err """
-          Quitting build, no bundlePath specified.
+          Quitting build, no path specified.
           Use -h for help"""
         return false
     else
       if @buildCfg.forceOverwriteSources
-        @buildCfg.outputPath = @bundleCfg.bundlePath
-        l.verbose "Forced output to '#{@buildCfg.outputPath}'"
+        @buildCfg.dstPath = @bundleCfg.path
+        l.verbose "Forced output to '#{@buildCfg.dstPath}'"
         return true
       else
-        if not @buildCfg.outputPath
+        if not @buildCfg.dstPath
           l.err """
-            Quitting build, no --outputPath specified.
-            Use -f *with caution* to overwrite sources."""
+            Quitting build, no --dstPath specified.
+            Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
           return false
         else
-          if @buildCfg.outputPath is @bundleCfg.bundlePath # @todo: check normalized ?
+          if upath.normalize(@buildCfg.dstPath) is upath.normalize(@bundleCfg.path)
             l.err """
-              Quitting build, outputPath === bundlePath.
-              Use -f *with caution* to overwrite sources (no need to specify --outputPath).
+              Quitting build, dstPath === path.
+              Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
               """
             return false
 
@@ -127,9 +168,9 @@ module.exports = BundleBuilder
 
 ### Debug information ###
 
-if l.deb > 10 or true
-  YADC = require('YouAreDaChef').YouAreDaChef
-
-  YADC(BundleBuilder)
-    .before /_constructor/, (match, config)->
-      l.debug(1, "Before '#{match}' with config = ", config)
+#if l.deb > 10 #or true
+#  YADC = require('YouAreDaChef').YouAreDaChef
+#
+#  YADC(BundleBuilder)
+#    .before /_constructor/, (match, config)->
+#      l.debug(1, "Before '#{match}' with config = ", config)

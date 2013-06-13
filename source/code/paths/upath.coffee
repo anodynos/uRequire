@@ -51,6 +51,9 @@ module.exports = upath
 #
 #console.log upath.changeExt 'myfile/changedToPDF.txt', 'pdf'
 #console.log upath.changeExt 'myfile/changedToDotPDF.txt', '.pdf'
+#console.log upath.changeExt 'mymodule.coffee.md', '.js' # NOT WORKING
 #
 #console.log upath.addExt 'myfile/addedTxt.txt', 'txt'
 #console.log upath.addExt 'myfile/addedDotTxt.txt', '.txt'
+
+#console.log upath.addExt 'mymodule.coffee.md', 'coffee.md' # NOT WORKING

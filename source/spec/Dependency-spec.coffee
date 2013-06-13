@@ -11,7 +11,7 @@ describe "Dependency", ->
     dep = new Dependency(
       'path/to/module'           # dependency name
       'someRootModule.js'        # the module that has this dependenecy
-      ['path/to/module.coffee']  # module files in bundle
+      dstFilenames: ['path/to/module.js']  # a fake bundle
     )
     expect(dep.name relativeType:'bundle').to.equal 'path/to/module'
     expect(dep.name relativeType:'file').to.equal './path/to/module'
@@ -20,7 +20,7 @@ describe "Dependency", ->
     dep = new Dependency(
       './path/to/module'           # dependency name
       'someRootModule.js'        # the module that has this dependenecy
-      ['path/to/module.coffee']  # module files in bundle
+      dstFilenames: ['path/to/module.js']  # module files in bundle
     )
     expect(dep.name relativeType:'bundle').to.equal 'path/to/module'
     expect(dep.name relativeType:'file').to.equal './path/to/module'
@@ -49,18 +49,20 @@ describe "Dependency", ->
 
   it "uses modyleName & bundleFiles to convert from bundleRelative to fileRelative", ->
     dep = new Dependency(
-      'path/from/bundleroot/to/some/nested/module'           # dependency name
-      'path/from/bundleroot/modyleName.js'                       # the module that has this dependenecy
-      ['path/from/bundleroot/to/some/nested/module.coffee']  # module files in bundle
+      'path/from/bundleroot/to/some/nested/module'            # dependency name
+      'path/from/bundleroot/modyleName.js'                    # the module that has this dependenecy
+      dstFilenames: ['path/from/bundleroot/to/some/nested/module.js']   # module files in bundle
     )
     expect(dep.name relativeType:'bundle').to.equal 'path/from/bundleroot/to/some/nested/module'
     expect(dep.name relativeType:'file').to.equal './to/some/nested/module'
     expect(dep.toString()).to.equal './to/some/nested/module'
 
 describe "Dependency isEquals(),", ->
-  dep1 = new Dependency '../../../rootdir/dep.js', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']
-  dep2 = new Dependency 'rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']
-  dep3 = new Dependency 'node!rootdir/dep', 'path/from/bundleroot/modyleName.js', ['rootdir/dep.js']
+  bundle = dstFilenames: ['rootdir/dep.js']
+
+  dep1 = new Dependency '../../../rootdir/dep.js', 'path/from/bundleroot/modyleName.js', bundle
+  dep2 = new Dependency 'rootdir/dep', 'path/from/bundleroot/modyleName.js', bundle
+  dep3 = new Dependency 'node!rootdir/dep', 'path/from/bundleroot/modyleName.js', bundle
 
   it "With `Dependency` as param", ->
     expect(dep1.isEqual dep2).to.be.true
@@ -98,9 +100,9 @@ describe "Dependency isEquals(),", ->
       expect(dep2.isEqual '../../../rootdir/dep.txt').to.be.false
 
     it " looking for one in an array", ->
-      deps = [dep1, dep2, dep3]
+      dependencies = [dep1, dep2, dep3]
       expect(
-        _.any deps, (dep)-> dep.isEqual 'rootdir/dep.js'
+        _.any dependencies, (dep)-> dep.isEqual 'rootdir/dep.js'
       ).to.be.true
 
 describe "Dependency - resolving many", ->
@@ -109,7 +111,7 @@ describe "Dependency - resolving many", ->
 
     modyleName = 'actions/greet.js'
 
-    bundleFiles = [
+    bundle = dstFilenames: [
        'main.js'
        'actions/greet.js'
        'calc/add.js'
@@ -117,7 +119,7 @@ describe "Dependency - resolving many", ->
        'calc/more/powerof.js'
        'data/numbers.js'
        'data/messages/bye.js'
-       'data/messages/hello.coffee'
+       'data/messages/hello.js'
       ]
 
     strDependencies = [
@@ -129,18 +131,16 @@ describe "Dependency - resolving many", ->
       '/assets/jpuery-max'          # should add to web root
     ]
 
-    deps = []
+    dependencies = []
     for dep in strDependencies
-      deps.push new Dependency dep, modyleName, bundleFiles
+      dependencies.push new Dependency dep, modyleName, bundle
 
-    fileRelative = ( d.name relativeType:'file' for d in deps )
-    bundleRelative = ( d.name relativeType:'bundle' for d in deps)
-    global = ( d.toString() for d in deps when d.isGlobal())
-    external = ( d.toString() for d in deps when d.isExternal())
-    notFoundInBundle = ( d.toString() for d in deps when d.isNotFoundInBundle() )
-    webRootMap = ( d.toString() for d in deps when d.isWebRootMap() )
-
-    console.log '\n', {bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}
+    fileRelative = ( d.name relativeType:'file' for d in dependencies )
+    bundleRelative = ( d.name relativeType:'bundle' for d in dependencies)
+    global = ( d.toString() for d in dependencies when d.isGlobal)
+    external = ( d.toString() for d in dependencies when d.isExternal)
+    notFoundInBundle = ( d.toString() for d in dependencies when d.isNotFoundInBundle )
+    webRootMap = ( d.toString() for d in dependencies when d.isWebRootMap )
 
     expect({bundleRelative, fileRelative, global, external, notFoundInBundle, webRootMap}).to.deep.equal
       bundleRelative: [ # @todo: with .js removed or not ?

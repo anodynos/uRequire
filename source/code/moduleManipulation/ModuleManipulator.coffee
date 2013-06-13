@@ -17,14 +17,14 @@ class JSManipulator
     try
       @AST = parser.parse @js
     catch err
-      err.urequireError = """
+      l.err uerr = """
         uRequire : error parsing javascript source.
         Make sure uRequire is using Uglify 1.x, (and NOT 2.x).
         Otherwise, check you Javascript source!
         Error=\n
       """
-      l.err err.urequireError, err
-      throw err
+      throw new UError uerr, nested:err
+
 
   toCode: (astCode = @AST) ->
     proc.gen_code astCode, beautify: @options.beautify
@@ -131,7 +131,7 @@ class ModuleManipulator extends JSManipulator
             if @options.extractFactory #just save toCode for to-be-replaced-factoryBody
               @moduleInfo.factoryBody = @toCode @AST_FactoryBody
               @moduleInfo.factoryBody = @moduleInfo.factoryBody[1..@moduleInfo.factoryBody.length-2].trim() #drop '{' '}' & trim
-            @_gatherItemsInSegments amdDeps, {'string':'arrayDependencies', '*':'untrustedArrayDependencies'}
+            @_gatherItemsInSegments amdDeps, {'string':'arrayDeps', '*':'untrustedArrayDeps'}
             @moduleInfo.moduleType = 'AMD'
             @moduleInfo.amdCall = c.name # amd call name, ie 'define' or 'require'
             'stop' #kill it, found what we wanted!
@@ -159,14 +159,14 @@ class ModuleManipulator extends JSManipulator
         '_call': (c)->
           if  c.name is 'require'
             if c.args[0][0] is 'array'
-              @_gatherItemsInSegments c.args[0][1], {'string':'asyncDependencies', '*':'untrustedAsyncDependencies'}
+              @_gatherItemsInSegments c.args[0][1], {'string':'asyncDeps', '*':'untrustedAsyncDeps'}
             else # 'string', 'binary' etc
-              @_gatherItemsInSegments c.args, {'string':'requireDependencies', '*':'untrustedRequireDependencies'}
+              @_gatherItemsInSegments c.args, {'string':'requireDeps', '*':'untrustedRequireDeps'}
 
       seekr [ requireCallsSeeker ], @AST_FactoryBody, @readAST, @
-      # some tidying up : keep only 1) unique requireDeps & 2) extra to 'dependencies'
-      if not _.isEmpty @moduleInfo.requireDependencies
-        @moduleInfo.requireDependencies = _.difference (_.uniq @moduleInfo.requireDependencies), @moduleInfo.arrayDependencies
+      # some tidying up : keep only 1) unique requireDependencies & 2) extra to 'dependencies'
+      if not _.isEmpty @moduleInfo.requireDeps
+        @moduleInfo.requireDeps = _.difference (_.uniq @moduleInfo.requireDeps), @moduleInfo.arrayDeps
 
     return @moduleInfo
 
@@ -194,8 +194,6 @@ class ModuleManipulator extends JSManipulator
         fb = fb[1..fb.length-2].trim() #drop '{' '}' & trim
 
       return @moduleInfo.factoryBody = fb
-
-
 
 module.exports = ModuleManipulator
 
@@ -233,12 +231,12 @@ module.exports = ModuleManipulator
 #  return {require: require('finalRequire')};
 #});
 #"""
-#
+
 #theJs = """
 #  var b = require('b/b-lib');
 #  module.exports = {b:'b'}
 #"""
-#
+
 #modMan = new ModuleManipulator theJs, {beautify:false, extractFactory:true}
-#modMan.extractModuleInfo()
-#log modMan.moduleInfo
+#log _.keys modMan.extractModuleInfo()
+

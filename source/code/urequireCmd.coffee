@@ -1,6 +1,6 @@
 _ = require 'lodash'
-_fs = require 'fs'
-_wrench = require "wrench"
+fs = require 'fs'
+wrench = require "wrench"
 _B = require 'uberscore'
 
 _B.Logger::VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat
@@ -19,9 +19,9 @@ config = {}
 
 urequireCommander
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
-#  .usage('<templateName> <bundlePath> [options]')
+#  .usage('<templateName> <path> [options]')
   .version(l.VERSION) # 'var version = xxx' written by grunt's banner
-  .option('-o, --outputPath <outputPath>', 'Output converted files onto this directory')
+  .option('-o, --dstPath <dstPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
   .option('-v, --verbose', 'Print module processing information', undefined)
   .option('-d, --debugLevel <debugLevel>', 'Pring debug information (0-100)', undefined)
@@ -31,20 +31,20 @@ urequireCommander
   .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.', undefined)
   .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
   .option('-O, --optimize', 'Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.', undefined)
-  .option('-C, --continue', 'NOT IMPLEMENTED Dont bail out while processing (mainly on module processing errors)', undefined)
-  .option('-w, --watch', 'NOT IMPLEMENTED. Watch for changes in bundle files and reprocess those changed files.', undefined)
-  .option('-i, --include', "NOT IMPLEMENTED. Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
+  .option('-C, --continue', 'Dont bail out while processing (module processing/conversion errors)', undefined)
+  .option('-w, --watch', "Watch for file changes in `bundle.path` & reprocess them. Note: new dirs are ignored", undefined)
+  .option('-f, --filez', "NOT IMPLEMENTED (in CLI - use a config file or grunt-urequire). Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)
 
 for tmplt in Build.templates #['AMD', 'UMD', 'nodejs', 'combined']
   do (tmplt)->
     urequireCommander
-      .command("#{tmplt} <bundlePath>")
-      .description("Converts all modules in <bundlePath> using '#{tmplt}' template.")
-      .action (bundlePath)->
+      .command("#{tmplt} <path>")
+      .description("Converts all modules in <path> using '#{tmplt}' template.")
+      .action (path)->
         config.template = tmplt
-        config.bundlePath = bundlePath
+        config.path = path
 
 urequireCommander
   .command('config <configFiles...>')
@@ -74,7 +74,7 @@ urequireCommander.on '--help', ->
       ...
       module.exports = {my: 'module'} \u001b[0m
 
-  Finally, a 'relaxed' format can be used (combination of AMD+commonJs), along with asynch requires, requirejs plugins, rootExports + noConflict boilerplate, bundleExports and much more - see the docs. \u001b[36m
+  Finally, a 'relaxed' format can be used (combination of AMD+commonJs), along with asynch requires, requirejs plugins, rootExports + noConflict boilerplate, exports.bundle and much more - see the docs. \u001b[36m
       // uRequire 'relaxed' modules format
     - define(['dep1', 'dep2'], function(dep1, dep2) {
         ...
@@ -92,7 +92,7 @@ urequireCommander.on '--help', ->
 
   Notes:
     --forceOverwriteSources (-f) is useful if your sources are not `real sources`  eg. you use coffeescript :-).
-      WARNING: -f ignores --outputPath
+      WARNING: -f ignores --dstPath
 
     - Your source can be coffeescript (more will follow) - .coffee files are internally translated to js.
 
@@ -103,13 +103,12 @@ urequireCommander.on '--help', ->
 
 urequireCommander.parse process.argv
 
-#hack to get cmd options only ['verbose', 'scanAllow', 'outputPath', ...] etc
+#hack to get cmd options only ['verbose', 'scanAllow', 'dstPath', ...] etc
 CMDOPTIONS = _.map(urequireCommander.options, (o)-> o.long.slice 2)
 
 # overwrite anything on config's root by cmdConfig - BundleBuilder handles the rest
 _.extend config, _.pick(urequireCommander, CMDOPTIONS)
 delete config.version
-l.log config
 
 if _.isEmpty config
   l.err """
@@ -133,5 +132,6 @@ else
       l.err "uRequireCmd done(), with errors!"
       process.exit 1
 
-  bb = new (require './urequire').BundleBuilder [config]
-  bb.buildBundle()
+  bundleBuilder = new (require './urequire').BundleBuilder [config]
+  bundleBuilder.buildBundle()
+  bundleBuilder.watch() if bundleBuilder.build.watch

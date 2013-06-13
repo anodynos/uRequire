@@ -39,15 +39,15 @@ It has no other dependencies, i.e you dont need to have *uRequire* or *RequireJs
 
 Are you still concatenating files ? uRequire your project now!
 
-###  **bundleExports**, a dependencies-injection mechanism:
+###  **exports.bundle**, a dependencies-injection mechanism:
 
-A sexy new feature, `dependencies.bundleExports` allows you to declare bundle-wide *global* dependencies. These are implicitely available in all your modules, without repeating the `require`s.
+A sexy new feature, `dependencies.exports.bundle` allows you to declare bundle-wide *global* dependencies. These are implicitely available in all your modules, without repeating the `require`s.
 
-For example, if you use ['lodash', 'backbone', 'myLib', ...] in all your bundle modules, just use a `dependencies.bundleExports: ['lodash', 'backbone', 'myLib']` and its saving you from having to require 'em in **every module of your bundle**.
+For example, if you use ['lodash', 'backbone', 'myLib', ...] in all your bundle modules, just use a `dependencies.exports.bundle: ['lodash', 'backbone', 'myLib']` and its saving you from having to require 'em in **every module of your bundle**.
 
 If you want to have precise control over the variables that hold you modules, use this format:
 
-    dependencies.bundleExports: {
+    dependencies.exports.bundle: {
         'lodash': '_',
         'backbone': 'Backbone',
         'myLib': ['myLib', 'myLibOtherName']
@@ -496,7 +496,7 @@ Your bundle files are ready to be deployed to Web/RequireJS and to node (by havi
 
   -V, --version                  output the version number
 
-  -o, --outputPath <outputPath>  Output converted files onto this directory
+  -o, --dstPath <dstPath>  Output converted files onto this directory
 
   -f, --forceOverwriteSources    Overwrite *source* files (-o not needed & ignored). Usefull if your source is not *real source*, eg you use coffeescript
 

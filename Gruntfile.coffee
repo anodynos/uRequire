@@ -21,26 +21,18 @@ gruntFunction = (grunt) ->
       */\n
       """
       varVERSION: "var VERSION = '<%= pkg.version %>'; //injected by grunt:concat\n"
-      mdVersion: "# uRequire v<%= pkg.version %>\n"
+      mdVersion: "# <%= pkg.name %> v<%= pkg.version %>\n"
       usrBinEnvNode: "#!/usr/bin/env node\n"
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
     shell:
-      coffee:
-        command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
-
-      coffeeSpec:
-        command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
-
-      coffeeWatch:
-        command: "coffee -cbw -o ./build ./source"
-
-      mocha:
-        command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
-
-      doc:
-        command: "codo source/code --title 'uRequire <%= pkg.version %> API documentation' --cautious"
+      coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
+      coffeeSpec: command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
+      coffeeWatch: command: "coffee -cbw -o ./build ./source"
+      mocha: command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
+      doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
+      # chmod +x urequireCmd.js
 
       options: # subtasks inherit options but can override them
         verbose: true
@@ -50,12 +42,11 @@ gruntFunction = (grunt) ->
 
     copy:
       specResources:
-        files: [ #what a travestry.. why, oh why grunt 0.4 ?
+        files: [
           expand: true
           cwd: "#{sourceSpecDir}/"
           src: ["*.json"]
           dest: "#{buildSpecDir}/"
-          filter: 'isFile'
         ]
 
     concat:
@@ -81,7 +72,7 @@ gruntFunction = (grunt) ->
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
 
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-     "default": "clean build test"
+     "default": "build test"
      "build":   "shell:coffee concat"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
@@ -108,11 +99,5 @@ gruntFunction = (grunt) ->
   grunt.loadNpmTasks 'grunt-shell'
 
   null
-
-# debug : call with a dummy 'grunt', that spits params on console.log
-#gruntFunction
-#  initConfig: (cfg)-> console.log 'grunt: initConfig\n', JSON.stringify cfg, null, ' '
-#  loadNpmTasks: (tsk)-> console.log 'grunt: registerTask: ', tsk
-#  registerTask: (shortCut, task)-> console.log 'grunt: registerTask:', shortCut, task
 
 module.exports = gruntFunction

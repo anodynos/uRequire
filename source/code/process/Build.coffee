@@ -1,6 +1,6 @@
 _ = require 'lodash'
-_fs = require 'fs'
-_wrench = require 'wrench'
+fs = require 'fs'
+wrench = require 'wrench'
 _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/Build'
@@ -9,6 +9,7 @@ l = new _B.Logger 'urequire/Build'
 upath = require '../paths/upath'
 DependenciesReporter = require './../DependenciesReporter'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
+UError = require '../utils/UError'
 
 module.exports =
 
@@ -20,39 +21,32 @@ class Build
   _constructor: (buildCfg)->
     _.extend @, buildCfg
 
-    @out = Build.outputModuleToFile unless @out #todo: check 'out' - what's out there ?
+    @out = Build.outputToFile unless @out #todo: check 'out' - what's out there ?
 
     @interestingDepTypes =
       if @verbose
         DependenciesReporter::reportedDepTypes
       else
-        idp = ['notFoundInBundle', 'untrustedRequireDependencies', 'untrustedAsyncDependencies']
+        idp = ['notFoundInBundle', 'untrustedRequireDeps', 'untrustedAsyncDeps']
         if @template.name is 'combined'
           idp.push 'global'
         idp
 
   @templates = ['UMD', 'AMD', 'nodejs', 'combined']
-  @moduleExtensions = ['js', 'javascript','coffee'] # 'iced', 'coco', 'ts', 'ls'
-
-  #@todo : check @outputPath exists
-  @outputModuleToFile: (modulePath, content)->
-    Build.outputToFile upath.join(@outputPath, "#{modulePath}.js"), content
-
 
   @outputToFile: (outputFilename, content)-> # @todo:1 make private ?
-    l.debug("Writting file ", outputFilename, content.length, ' chars') if l.deb 5
+    l.debug("Writting file '#{outputFilename}'") if l.deb 5
     try
-      if not _fs.existsSync upath.dirname(outputFilename)
+      if not fs.existsSync upath.dirname(outputFilename)
         l.verbose "Creating directory '#{upath.dirname outputFilename}'"
-        _wrench.mkdirSyncRecursive upath.dirname(outputFilename)
+        wrench.mkdirSyncRecursive upath.dirname(outputFilename)
 
-      _fs.writeFileSync outputFilename, content, 'utf-8'
+      fs.writeFileSync outputFilename, content, 'utf-8'
       if @watch #if debug
         l.verbose "Written file '#{outputFilename}'"
     catch err
-      err.uRequire = "uRequire: error outputToFile '#{outputFilename}'"
-      l.err err.uRequire
-      throw err
+      l.err uerr = "Can't outputToFile '#{outputFilename}'"
+      throw new UError uerr, nested:err
 
   # copyFile helper (missing from fs & wrench)
   # @todo: improve (based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/)
@@ -61,30 +55,29 @@ class Build
     try
       BUF_LENGTH = 64*1024
       buff = new Buffer(BUF_LENGTH)
-      fdr = _fs.openSync(srcFile, 'r')
+      fdr = fs.openSync(srcFile, 'r')
 
-      if not (_fs.existsSync upath.dirname(destFile))
+      if not (fs.existsSync upath.dirname(destFile))
         l.verbose "Creating directory #{upath.dirname destFile}"
-        _wrench.mkdirSyncRecursive upath.dirname(destFile)
+        wrench.mkdirSyncRecursive upath.dirname(destFile)
 
-      fdw = _fs.openSync(destFile, 'w')
+      fdw = fs.openSync(destFile, 'w')
       bytesRead = 1
       pos = 0
       while bytesRead > 0
-        bytesRead = _fs.readSync(fdr, buff, 0, BUF_LENGTH, pos)
-        _fs.writeSync(fdw,buff,0,bytesRead)
+        bytesRead = fs.readSync(fdr, buff, 0, BUF_LENGTH, pos)
+        fs.writeSync(fdw,buff,0,bytesRead)
         pos += bytesRead
-      _fs.closeSync(fdr)
-      _fs.closeSync(fdw)
+      fs.closeSync(fdr)
+      fs.closeSync(fdw)
     catch err
-      err.uRequire = "uRequire: error copyFileSync from '#{srcFile}' to '#{destFile}'"
-      l.err err.uRequire
-      throw err
+      l.err uerr = "copyFileSync from '#{srcFile}' to '#{destFile}'"
+      throw new UError uerr, nested:err
 
 
-if l.deb 90
-  YADC = require('YouAreDaChef').YouAreDaChef
-
-  YADC(Build)
-    .before /_constructor/, (match, buildCfg)->
-      l.debug("Before '#{match}' with buildCfg = \n", _.omit(buildCfg, []))
+#if l.deb 90
+#  YADC = require('YouAreDaChef').YouAreDaChef
+#
+#  YADC(Build)
+#    .before /_constructor/, (match, buildCfg)->
+#      l.debug("Before '#{match}' with buildCfg = \n", _.omit(buildCfg, []))

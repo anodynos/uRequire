@@ -5,15 +5,14 @@
 #   *  if on node, write to a .json or .js file
 #   *  return as UMD/AMD/nodejs module otherwise
 
-#_fs =  require 'fs'
+#fs =  require 'fs'
 _= require 'lodash'
-#_B = require 'uberscore'
-
-#rJSON = (file)-> JSON.parse _fs.readFileSync file, 'utf-8'
+_B = require 'uberscore'
+l = new _B.Logger 'urequire/uRequireConfigMasterDefaults'
 
 module.exports =
 
-uRequireConfig = # Command line options overide these.
+uRequireConfigMasterDefaults = # Command line options overide these.
 
   ###
 
@@ -30,18 +29,18 @@ uRequireConfig = # Command line options overide these.
 
     @optional
 
-    `bundleName` its self can be derived from:
+    `name` its self can be derived from:
       - if using grunt, it defaults to the multi-task @target (eg {urequire: 'MyBundlename': {bundle : {}, build:{} }}
 
       @todo:
-      - --outputPath,
+      - --dstPath,
         - filename part, if 'combined' is used eg if its 'abcProject/abc.js', then 'abc'
         - folder name, if other template is used eg 'build/abcProject' gives 'abcProject'
 
-    @note: `bundleName` & is the (1st) default for 'main'
+    @note: `name` & is the (1st) default for 'main'
 
     ###
-    bundleName: undefined
+    name: undefined
 
     ###
     The "main" / "index" module file of your bundle, used only when 'combined' template is used.
@@ -55,7 +54,7 @@ uRequireConfig = # Command line options overide these.
     * It is also used to as the initiation `require` on your combined bundle.
       It is the module just kicks off the app and/or requires all your other library modules.
 
-    * Defaults to 'bundleName', 'index', 'main' etc, the first one that is found in uModules.
+    * Defaults to 'name', 'index', 'main' etc, the first one that is found in uModules.
     ###
     main: undefined
 
@@ -63,54 +62,78 @@ uRequireConfig = # Command line options overide these.
     # If ommited, it is implied by config's position
     #
     # @example './source/code'
-    bundlePath: undefined
-
-    ###
-    Files that match these Agreements* are completelly IGNORED
-
-    @default: [], no file is ignored.
-
-    @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Function(item).
-
-    @example
-    [ "requirejs_plugins/text.js", /^draft/, function(x){return x === 'badApple.js'}]
-    ###
-    ignore: []
-
-    ###
-    Modules to process, WITH extension. @todo: use without extension ?
-
-    @default [/./], all modules are processed
-
-    @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Fucntion(item).
+    path: undefined
 
 
-    @example ['module1.js', 'myLibs/mylib1.js']
-    ###
-    processModules: [/./]
+    # All files in bundle are specified here.
+    #
+    # Each file is considered to be either:
+    # * BundleFile
+    #
+    # * Resource - any textual resource that we want to convert to something else: eg .coffee->.js, or .less or .css
+    #
+    # * Module - A Resource that is also a Module whose Dependencies we monitor and converted through some template.
+    # how these are matched, @see bundle: resources
+    #
+    # @type
+    #   filename specifications (or simply filenames), that within contains *all* the files within your bundle.
+    #   Expressed in either grunt's expand minimatch format (and its negative cousin), or sRegExp`s
+    #
+    # @default [/./], ie. all non-module files are copied
+    #
+    # @example bundle: {filez: ['**/recources/*.*', '!dummy.json', /\.someExtension$/i ]}
+    #
+    # @derive: when you derive, all your source items (derived objects) are
+    #          appended after the ones higher up @todo: doc it
+    filez: ['**/*.*']
 
-    ###
-    Filesname (that are not modules), to copy to output dir.
+    # (binary) copy of all non-resource bundle files to dstPath - just a convenience
 
-    @default
+    # @type filez specs - see filez above
+    # filename specifications (or simply filenames), considered as part of your bundle
+    # that are copied to dstPath ONLY if not matched as resources/modules.
+    #
+    # @example bundle: {copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]}
+    #
+    #
+    # @default [], ie. no non-module files are copied - U can use /./ for all
+    #
+    # @derive when you derive, all your source items are ...@todo: doc it
+    copy: []
 
-    @type Agreement || []<Agreement>
-          Aggreement is a String, a RegExp or a Fucntion(item).
+    #todo : doc it - the most important!
+    resources: [
 
-    @default [/./], ie. all non-module files are copied
+      { # the 'proper' way of declaring a resource (converter)
+        # '*' flag denotes non-terminal
+        name: '*Javascript'
 
-    @example ['module1.js', 'myLibs/mylib1.js']
-    ###
-    copyNonModules: [/./]
+        # minimatch string (ala grunt's 'file' expand) or a RegExp
+        filez: [ '**/*.js', /.*\.(javascript)$/i ]
 
-    ###
-      Modules lie in this
-    ###
-    _knownModules: [
-        /.*\.(coffee)$/i, # @todo: #/.*\.(coffee|iced|coco)$/i
-        /.*\.(js|javascript)$/i
+        convert: (source, filename)-> source # javascript needs no compilation - just return source as is
+
+        dstFilename: (filename)->             # convert .js | .javascript to .js
+          (require '../paths/upath').changeExt filename, 'js'
+      }
+
+      [ # the alternative (& easier) way of declaring a Converter: using an Array
+        '*coffee-script'                                  # name at pos 0
+
+        [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez at pos 1
+
+        (source, srcFilename)->                          # convert function at pos 2
+          (require 'coffee-script').compile source, bare:true
+
+        (srcFilename)->                                  # dstFilename function at pos 3
+          ext = srcFilename.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1" # retrieve matched extension, eg 'coffee.md'
+          srcFilename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
+      ]
+
+      # or in short
+      [ '*LiveScript', [ '**/*.ls']
+        (source)-> (require 'LiveScript').compile source, bare:true
+        (srcFilename)-> srcFilename.replace /(.*)\.ls$/, '$1.js' ]
     ]
 
 
@@ -122,6 +145,7 @@ uRequireConfig = # Command line options overide these.
     ###
     webRootMap: '.'
 
+    # Anytihing related to dependenecies is listed here.
     dependencies:
 
       ###
@@ -136,11 +160,11 @@ uRequireConfig = # Command line options overide these.
 
       Also you can add a different var name that should be globally looked up.
       ###
-      variableNames: {}
+      depsVars: {}
 
-      # Some known variableNames, have them as backup!
+      # Some known depsVars, have them as backup!
       # todo: provide some 'common ones' that are 'strandard'
-      _knownVariableNames:
+      _knownDepsVars:
         chai: 'chai'
         mocha: 'mocha'
         lodash: "_"
@@ -149,29 +173,35 @@ uRequireConfig = # Command line options overide these.
         backbone: "Backbone"
         knockout: ["ko", 'Knockout']
 
-      ###
-      { dependency: varName(s) *}
-          or
-      ['dep1', 'dep2'] (with discovered or ../variableNames names
+      exports:
 
-      Each dep will be available in the *whole bundle* under varName(s)
+        ###
+        { dependency: varName(s) *}
+            or
+        ['dep1', 'dep2'] (with discovered or ../depsVars names)
 
-      @example {
-        'underscore': '_'
-        'jquery': ["$", "jQuery"]
-        'models/PersonModel': ['persons', 'personsModel']
-      }
-      @todo: rename to exports.bundle | bundleGlobals | something else?
-      ###
-      bundleExports: {}
+        Each dep will be available in the *whole bundle* under varName(s) - they are global to your bundle.
 
-      ###
-        Dont include those dependencies on the AMD dependency array.
-        Similar to 'node!dependency', but allows you to author node-compatible scripts, without uRequire conversion.
-        Additionally, global deps are added to 'combined' build properly, so they can be required when running as Web/Script or nodejs
-        # @todo: (8 6 3) Ammend/test for non-globals & doc it better
-      ###
-      noWeb: []
+        @example {
+          'underscore': '_'
+          'jquery': ["$", "jQuery"]
+          'models/PersonModel': ['persons', 'personsModel']
+        }
+        ###
+        bundle: {}
+
+        ###
+        Each dep listed will be available GLOBALY under varName(s) - @note: works in browser only - attaching to `window`.
+
+        @example {
+          'models/PersonModel': ['persons', 'personsModel']
+        }
+
+            is like having a `{rootExports: ['persons', 'personsModel']} in 'models/PersonModel' module.
+        @todo: NOT IMPLEMENTED - use module `{rootExports: [...]} format.
+        ###
+        root:{}
+
 
       ###
         Replace all right hand side dependencies (String value or []<String> values), to the left side (key)
@@ -180,7 +210,6 @@ uRequireConfig = # Command line options overide these.
       #@todo: Not implemented
       replaceTo:
         lodash: ['underscore']
-
 
 
 
@@ -203,13 +232,13 @@ uRequireConfig = # Command line options overide these.
     #todo: if ommited, requirejs.buildjs.baseUrl is used ?
     @example 'build/code'
     ###
-    outputPath: undefined
+    dstPath: undefined
 
     ###
-    Output on the same directory as bundlePath.
+    Output on the same directory as path.
 
     Useful if your sources are not `real sources` eg. you use coffeescript :-).
-    WARNING: -f ignores --outputPath
+    WARNING: -f ignores --dstPath
     ###
     forceOverwriteSources: false
 
@@ -223,6 +252,10 @@ uRequireConfig = # Command line options overide these.
 #       # combined options: use a 'Universal' build, based on almond that works as standalone <script>, as AMD dependency and on node!
 #       # @todo:3 implement other methods ? 'simple AMD build"
 #      'combined':
+#
+#          # build even if no modules changes (just resources)
+#          noModulesBuild: false:
+#
 #
 #          # @default 'almond' - only one for now
 #          method: 'almond'
@@ -238,6 +271,7 @@ uRequireConfig = # Command line options overide these.
 #          * String and []<String> are deps that will be inlined
 #
 #          @example depsInline: ['backbone', 'lodash'] # inline these deps
+#          @example depsInline: ['backbone', 'lodash'] # inline these deps
 #
 #          @default undefined/false : 'All globals are replaced with a "getGlobal_#{globalName}"'
 #
@@ -250,18 +284,19 @@ uRequireConfig = # Command line options overide these.
 #          depsTo
 
     # Watch for changes in bundle files and reprocess/re output those changed files
-    # @todo: NOT IMPLEMENTED.
-    # @todo: it should not write combined file if errors occur
+    # @todo: NOT IMPLEMENTED - but it works fine with `grunt-urequire >=0.4.3` & `grunt-contrib-watch`
     watch: false
 
     ###
-    ignore exports
-    # @todo: NOT IMPLEMENTED.
+      When true, it ignores all rootExports {& noConflict()} defined in all module files eg
+        `{rootExports: ['persons', 'personsModel']}`
+
+      'true' doens not ignore those of `dependencies: exports: root`, @todo: when `exports.root` is implemented :-
+      * use 'bundle' to ignore those defined in `bundle.exports.root` config @todo: NOT IMPLEMENTED
+      * use 'all' to ignore all root exports @todo: NOT IMPLEMENTED
+
     ###
     noRootExports: false
-
-    # @todo: NOT IMPLEMENTED.
-    noBundleExports: false
 
     ###
     *Web/AMD side only option* :
@@ -301,6 +336,7 @@ uRequireConfig = # Command line options overide these.
     # @todo: allow all options r.js style (https://github.com/jrburke/r.js/blob/master/build/example.build.js #L138)
     optimize: false
 
+    _optimizers: ['uglify2', 'uglify']
 
   ###
     Other draft/ideas
@@ -367,10 +403,8 @@ uRequireConfig = # Command line options overide these.
       paths:
         lodash: "../../libs/lodash.min"
 
-      optimize: "none"
-
       #  uglify: {beautify: true, no_mangle: true} ,
 #
 #      ### BELOW HERE NOT USED - comments ###
-#      baseUrl: "use uRequire.bundlePath instead" ?
+#      baseUrl: "use uRequire.path instead" ?
 #      appDir:  "use uRequire.appDir instead"
