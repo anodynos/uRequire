@@ -350,11 +350,6 @@ describe 'blendConfigs & its Blenders', ->
   describe "`blendConfigs`:", ->
 
     describe "`bundle: dependencies`:", ->
-      it "noWeb is `arrayize`d", ->
-        expect(
-          blendConfigs [ dependencies: noWeb: 'noWebForMe' ]
-        ).to.deep.equal
-          bundle: dependencies: noWeb: ['noWebForMe']
 
       it "exports.bundle String depBindings is turned to {dep:[]}", ->
         expect(
@@ -406,7 +401,6 @@ describe 'blendConfigs & its Blenders', ->
             dependencies:
               exports: bundle:
                 uberscore: [[null], '_B'] #reseting existing (derived/inherited) array, allowing only '_B'
-              noWeb: "noWebForMe"
 
           verbose: true
 
@@ -433,7 +427,6 @@ describe 'blendConfigs & its Blenders', ->
         ,
           derive: [
               dependencies:
-                noWeb: "noWebInDerive1"
                 exports: bundle: 'spec-data': 'dataInDerive1'
             ,
               derive:
@@ -444,7 +437,6 @@ describe 'blendConfigs & its Blenders', ->
                       name: 'combined'
                       dummyOption: 'dummy'
               dependencies:
-                noWeb: "noWebInDerive2"
                 exports: bundle: 'spec-data': 'dataInDerive2'
               verbose: false
           ]
@@ -464,7 +456,6 @@ describe 'blendConfigs & its Blenders', ->
             filez: ['**/*.*', '!', /^draft/] # from DEPRACATED ignore: [/^draft/]
             resources: expectedResources
             dependencies:
-              noWeb: ['noWebInDerive2', 'noWebInDerive1', 'noWebForMe']
               exports: bundle:
                 'spec-data': ['dataInDerive2', 'dataInDerive1', 'data' ]
                 chai: ['chai']

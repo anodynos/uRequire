@@ -114,7 +114,7 @@ class UModule extends UResource
         for depName, depsVars of bundleExports
           if _.isEmpty depsVars
             # attempt to read from bundle & store found depsVars at @bundle.dependencies.exports.bundle
-            depsVars = bundleExports[depName] = @bundle.getDepsVars(depName:depName)[depName]
+            depsVars = bundleExports[depName] = @bundle.getDepsVars( (dep)->dep.depName is depName)[depName]
 
             l.debug("""#{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
                        An attempt to infer depsVars from bundle: """, depsVars) if l.deb 40
@@ -179,9 +179,8 @@ class UModule extends UResource
       # We allow them only if `--scanAllow` or if we have a `rootExports`
       if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @moduleInfo.rootExports)
         for reqDep in @requireDependencies
-          if reqDep.pluginName isnt 'node' and                # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDependencies!
-            not (_.any @arrayDependencies, (dep)->dep.isEqual reqDep) and # not already there
-            not (reqDep.name() in (@bundle.dependencies?.noWeb or []))
+          if reqDep.pluginName isnt 'node' and                        # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDependencies!
+            not (_.any @arrayDependencies, (dep)->dep.isEqual reqDep) # and not already there
               @arrayDependencies.push reqDep
               @nodeDependencies.push reqDep if @build?.allNodeRequires
 
@@ -190,11 +189,16 @@ class UModule extends UResource
       @nodeDeps = (d.name() for d in @nodeDependencies)
 
       # Now we have all our Dependenecies & bundle properly initialized
-      # we create some final info for our module
-      requireReplacements = {} # final replacements for all require() calls.
+
+      # populate requireReplacements (what goes into 'require()' calls),
+      # with fileRelative paths that work everywhere & remove 'node' fake pluging
+      requireReplacements = {}
       for dep in _.flatten [ @arrayDependencies, @requireDependencies, @asyncDependencies ]
-        # a) populate requireReplacements (what goes into 'require()' calls)
-        requireReplacements[dep.depString] = dep.name()
+        requireReplacements[dep.depString] =
+          if dep.pluginName is 'node' # remove fake plugin 'node'
+            dep.name(plugin:false)
+          else
+            dep.name()
 
         # Report each Dependency (if interesting) eg. infrom us "Bundle-looking dependencies not found in bundle"
         if @bundle.reporter
@@ -224,7 +228,7 @@ class UModule extends UResource
 
   Note: currently, only AMD-modules provide us with the variable-binding of dependencies!
 
-  @param {Object} q optional query with two optional fields : depType & depName
+  @param {Function} depFltr optional callback filtering dependency. Called with dep as param. Defaults to all-true fltr
 
   @return {Object}
       {
@@ -233,14 +237,16 @@ class UModule extends UResource
         'models/person': ['pm']
       }
   ###
-  getDepsVars: (q={})->
+  getDepsVars: (depFltr=->true)->
     depsVars = {}
     if @isConvertible
-      for dep, idx in @arrayDependencies when (
-        ((not q.depType) or (q.depType is dep.type)) and
-        ((not q.depName) or (dep.isEqual q.depName))
-      )
-          dv = (depsVars[dep.name(relativeType:'bundle')] or= [])
+      for dep, idx in _.flatten [@arrayDependencies, @requireDependencies] when depFltr(dep)
+      #when (
+#        ((not q.depType) or (q.depType is dep.type)) and
+#        ((not q.depName) or (dep.isEqual q.depName)) and
+#        ((not q.pluginName) or (dep.pluginName is q.pluginName))
+#      )
+          dv = (depsVars[dep.name(relativeType:'bundle', plugin:false)] or= [])
           # store the variable(s) associated with dep
           if @parameters[idx] and not (@parameters[idx] in dv )
             dv.push @parameters[idx] # if there is a var, add once

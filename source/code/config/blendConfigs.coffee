@@ -105,8 +105,6 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
     bundle:
       dependencies:
-        noWeb: '|': '*': (prop, src, dst)->
-          arrayizeUniquePusher.blend dst[prop], src[prop]
 
         exports:
           bundle: '|': '*': 'dependenciesBindings'

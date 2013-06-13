@@ -203,14 +203,6 @@ uRequireConfigMasterDefaults = # Command line options overide these.
 
 
       ###
-        Dont include those dependencies on the AMD dependency array.
-        Similar to 'node!dependency', but allows you to author node-compatible scripts, without uRequire conversion.
-        Additionally, global deps are added to 'combined' build properly, so they can be required when running as Web/Script or nodejs
-        # @todo: (8 6 3) Ammend/test for non-globals & doc it better
-      ###
-      noWeb: []
-
-      ###
         Replace all right hand side dependencies (String value or []<String> values), to the left side (key)
         Eg `lodash: ['underscore']` replaces all "underscore" deps to "lodash" in the build files.
       ###

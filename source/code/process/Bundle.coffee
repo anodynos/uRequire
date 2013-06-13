@@ -323,8 +323,11 @@ class Bundle extends BundleBase
 
     else
       # check no global dependency without a variable binding - quit otherwise
-      globalDepsVars = @getDepsVars {depType: Dependency.TYPES.global}
-      if _.any(globalDepsVars, (v,k)-> _.isEmpty v)
+      globalDepsVars = @getDepsVars (dep)->
+        (dep.type is Dependency.TYPES.global) and (dep.pluginName isnt 'node')
+      l.log 'globalDepsVars=', globalDepsVars
+
+      if _.any(globalDepsVars, (v)-> _.isEmpty v) and false
         l.err """
           Some global dependencies are missing a variable binding:
 
@@ -354,9 +357,10 @@ class Bundle extends BundleBase
         else
           l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
+      nodeOnly = _.keys @getDepsVars (dep)->dep.pluginName is 'node'
       almondTemplates = new AlmondOptimizationTemplate {
         globalDepsVars
-        noWeb: @dependencies.noWeb
+        nodeOnly
         @main
       }
 
@@ -376,7 +380,7 @@ class Bundle extends BundleBase
         wrap: almondTemplates.wrap
         baseUrl: @build.dstPath
         include: [@main]
-        deps: @dependencies.noWeb # we include the 'fake' AMD files 'getNoWebDep_XXX'
+        deps: nodeOnly # we include the 'fake' AMD files 'getNodeOnly_XXX'
         out: @build.combinedFile
   #      out: (text)=>
   #        #todo: @build.out it!
@@ -409,7 +413,7 @@ class Bundle extends BundleBase
         if fs.existsSync build.combinedFile
           l.verbose "Combined file '#{build.combinedFile}' written successfully."
 
-          globalDepsVars = @getDepsVars depType:'global'
+          globalDepsVars = @getDepsVars (dep)->dep.depType is 'global'
           if not _.isEmpty globalDepsVars
             if (not build.watch and not build.verbose) or l.deb 30
               l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars,
@@ -483,7 +487,7 @@ class Bundle extends BundleBase
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
   copyWebMapDeps: ->
-    webRootDeps = _.keys @getDepsVars(depType: Dependency.TYPES.webRootMap)
+    webRootDeps = _.keys @getDepsVars (dep)->dep.depType is Dependency.TYPES.webRootMap
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
@@ -497,9 +501,10 @@ class Bundle extends BundleBase
 
   The information is gathered from all modules and joined together.
 
-  Also it uses bundle.dependencies.depsVars, if some dep has no corresponding vars [].
+  Also it uses bundle.dependencies.depsVars, _knownDepsVars, exports.bundle & exports.root
+  to discover var bindings, if some dep has no corresponding vars [].
 
-  @param {Object} q optional query with two optional fields : depType & depName
+  @param {Object} q optional query with 3 optional fields : depType, depName & pluginName
 
   @return {dependencies.depsVars} `dependency: ['var1', 'var2']` eg
               {
@@ -509,7 +514,7 @@ class Bundle extends BundleBase
               }
 
   ###
-  getDepsVars: (q)->
+  getDepsVars: (depFltr)->
     depsVars = {}
 
     gatherDepsVars = (_depsVars)-> # add non-exixsting var to the dep's `vars` array
@@ -518,16 +523,16 @@ class Bundle extends BundleBase
         dv.push v for v in vars when v not in dv
 
     # gather depsVars from all loaded resources
-    gatherDepsVars uModule.getDepsVars q for uMK, uModule of @uModules
+    gatherDepsVars uModule.getDepsVars depFltr for uMK, uModule of @uModules
 
     # given a DepsVars object, it picks for existing depsVars,
     # that have no vars associated with them (yet).
     getMissingDeps = (fromDepsVars)=>
       _B.go fromDepsVars,
          fltr: (v,k)=>
-            (depsVars[k] isnt undefined) and      # we have this dep
-            _.isEmpty(depsVars[k]) and            # no vars associated with this dep
-            k not in (@dependencies.noWeb or [])  # exclude those in noWeb
+            (depsVars[k] isnt undefined) and   # we have this dep
+            _.isEmpty(depsVars[k])             # but no vars associated with this dep
+
 
     # picking from @bundle.dependencies. [depsVars, _KnownDepsVars, ... ] etc
     for dependenciesDepsVarsPath in _.map(
