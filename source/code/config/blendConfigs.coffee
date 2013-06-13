@@ -75,11 +75,11 @@ renameKeysBlender = new _B.DeepDefaultsBlender [
 ]
 
 addIgnoreToFilezAsExclude = (cfg)->
-  ignore = cfg.bundle?.ignore || cfg.ignore
+  ignore = _B.arrayize(cfg.bundle?.ignore || cfg.ignore)
 
-  if ignore
+  if not _.isEmpty ignore
     l.warn "DEPRACATED key 'ignore' found @ config - adding them as exclude '!' to 'bundle.filez'"
-    filez = cfg.bundle?.filez || cfg.filez || ['**/*.*']
+    filez = _B.arrayize(cfg.bundle?.filez || cfg.filez || ['**/*.*'])
     for ignoreSpec in ignore
       filez.push '!'
       filez.push ignoreSpec
@@ -104,19 +104,18 @@ bundleBuildBlender = new _B.DeepCloneBlender [
     order: ['path', 'src']
 
     bundle:
+      filez: '|' : '*': 'pushUnique'
+      resources: '|' : '*': 'pushUnique'
       dependencies:
-
         exports:
           bundle: '|': '*': 'dependenciesBindings'
-
           #root: NOT IMPLEMENTED
-
         depsVars: '|': '*': 'dependenciesBindings'
-
         _knownDepsVars: '|': '*': 'dependenciesBindings'
 
-      resources: '|' : '*': (prop, src, dst)->
-        arrayizeUniquePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
+    # common actions
+    pushUnique: (prop, src, dst)->
+      arrayizeUniquePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
 
     dependenciesBindings: (prop, src, dst)->
       dependenciesBindingsBlender.blend dst[prop], src[prop]

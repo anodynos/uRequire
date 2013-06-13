@@ -391,13 +391,17 @@ describe 'blendConfigs & its Blenders', ->
           dependencies:
             exports: bundle:
               lodash: "_"
-
+          filez: [
+            '**/*.coffee.md'
+            '**/*.ls'
+          ]
           dstPath: "build/code"
           template: 'UMD'
         ,
           bundle:
             path: "source/code"
-            ignore: [/^draft/]
+            filez: ['**/*.litcoffee'] # added at pos 1
+            ignore: [/^draft/]        # negated with '!' and added at pos 2 & 3
             dependencies:
               exports: bundle:
                 uberscore: [[null], '_B'] #reseting existing (derived/inherited) array, allowing only '_B'
@@ -411,6 +415,7 @@ describe 'blendConfigs & its Blenders', ->
         , # DEPRACATED keys
           bundlePath: "sourceSpecDir"
           main: 'index'
+          filez: '**/*.*' # arrayized and added at pos 0
           resources: resources[2..]
           dependencies:
             variableNames:
@@ -453,7 +458,13 @@ describe 'blendConfigs & its Blenders', ->
           bundle:
             path: "source/code"
             main: "index"
-            filez: ['**/*.*', '!', /^draft/] # from DEPRACATED ignore: [/^draft/]
+            filez: [
+              '**/*.*'            # comes from last config with filez
+              '**/*.litcoffee'
+              '!', /^draft/       # comes from DEPRACATED ignore: [/^draft/]
+              '**/*.coffee.md'    # comes from first (highest precedence) config
+              '**/*.ls'           # as above
+            ]
             resources: expectedResources
             dependencies:
               exports: bundle:

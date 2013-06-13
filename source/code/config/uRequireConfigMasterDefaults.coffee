@@ -65,11 +65,11 @@ uRequireConfigMasterDefaults = # Command line options overide these.
     path: undefined
 
 
-    # All your files in you bundle are specified here.
+    # All files in bundle are specified here.
     #
     # Each file is considered to be either:
     # * BundleFile
-
+    #
     # * Resource - any textual resource that we want to convert to something else: eg .coffee->.js, or .less or .css
     #
     # * Module - A Resource that is also a Module whose Dependencies we monitor and converted through some template.
@@ -84,7 +84,7 @@ uRequireConfigMasterDefaults = # Command line options overide these.
     # @example bundle: {filez: ['**/recources/*.*', '!dummy.json', /\.someExtension$/i ]}
     #
     # @derive: when you derive, all your source items (derived objects) are
-    #          appended to the ones higher up @todo: doc it
+    #          appended after the ones higher up @todo: doc it
     filez: ['**/*.*']
 
     # (binary) copy of all non-resource bundle files to dstPath - just a convenience
@@ -105,7 +105,8 @@ uRequireConfigMasterDefaults = # Command line options overide these.
     resources: [
 
       { # the 'proper' way of declaring a resource (converter)
-        name: 'Javascript'
+        # '*' flag denotes non-terminal
+        name: '*Javascript'
 
         # minimatch string (ala grunt's 'file' expand) or a RegExp
         filez: [ '**/*.js', /.*\.(javascript)$/i ]
@@ -116,21 +117,21 @@ uRequireConfigMasterDefaults = # Command line options overide these.
           (require '../paths/upath').changeExt filename, 'js'
       }
 
-      [ # the alternative (& easier) way of declaring a Converter
-        'coffee-script'                    # name at pos 0
+      [ # the alternative (& easier) way of declaring a Converter: using an Array
+        '*coffee-script'                                  # name at pos 0
 
         [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez at pos 1
 
-        (source, srcFilename)->              # convert function at pos 2
+        (source, srcFilename)->                          # convert function at pos 2
           (require 'coffee-script').compile source, bare:true
 
-        (srcFilename)->                      # dstFilename function at pos 3
+        (srcFilename)->                                  # dstFilename function at pos 3
           ext = srcFilename.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1" # retrieve matched extension, eg 'coffee.md'
           srcFilename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
       ]
 
       # or in short
-      [ 'LiveScript', [ '**/*.ls']
+      [ '*LiveScript', [ '**/*.ls']
         (source)-> (require 'LiveScript').compile source, bare:true
         (srcFilename)-> srcFilename.replace /(.*)\.ls$/, '$1.js' ]
     ]

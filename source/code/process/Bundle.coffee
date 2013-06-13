@@ -380,7 +380,7 @@ class Bundle extends BundleBase
         wrap: almondTemplates.wrap
         baseUrl: @build.dstPath
         include: [@main]
-        deps: nodeOnly # we include the 'fake' AMD files 'getNodeOnly_XXX'
+        deps: nodeOnly # we include the 'fake' AMD files 'getNodeOnly_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
         out: @build.combinedFile
   #      out: (text)=>
   #        #todo: @build.out it!
