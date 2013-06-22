@@ -11,7 +11,6 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
   renameKeysBlender
   resourcesBlender
   templateBlender
-  arrayizeUniquePusher
   dependenciesBindingsBlender
   bundleBuildBlender
 } = blendConfigs
@@ -116,8 +115,7 @@ describe 'blendConfigs & its Blenders', ->
 
   describe 'moveKeysBlender', ->
     it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where they are on `uRequireConfigMasterDefaults`", ->
-      expect(
-        moveKeysBlender.blend(
+      rootLevelKeys =
           name: 'myBundle'
           main: 'myMainLib'
           bundle: # 'bundle' and 'build' hashes have precedence over root items
@@ -137,8 +135,10 @@ describe 'blendConfigs & its Blenders', ->
           allNodeRequires: false
           verbose: false
           debugLevel: 0
-        )
-      ).to.deep.equal
+          done:->
+
+      expected = moveKeysBlender.blend rootLevelKeys
+      expect(expected).to.deep.equal
           bundle:
             name: 'myBundle'
             main: 'myLib'
@@ -158,6 +158,7 @@ describe 'blendConfigs & its Blenders', ->
             allNodeRequires: false
             verbose: false
             debugLevel: 0
+            done: rootLevelKeys.done
 
 
     it "it gives precedence to items in 'bundle' and 'build' hashes, over root items.", ->
@@ -269,37 +270,6 @@ describe 'blendConfigs & its Blenders', ->
   describe "resourcesBlender:", ->
     it "converts array of array resources into array of object resources", ->
       expect(resourcesBlender.blend resources).to.deep.equal expectedResources
-
-  describe "arrayizeUniquePusher:", ->
-    it "pushes source array items into destination array", ->
-      expect(
-        arrayizeUniquePusher.blend [1, 2, 3], [4, 5, 6, '7']
-      ).to.deep.equal [1, 2, 3, 4, 5, 6, '7']
-
-    it "pushes only === unique items", ->
-      expect(
-        arrayizeUniquePusher.blend [1, 4, 2, 3], [1, 2, 4, 5, 6, '7']
-      ).to.deep.equal [1, 4, 2, 3, 5, 6, '7']
-
-    it "pushes source array items into non-array destination, arrayize'ing it first", ->
-      expect(
-        arrayizeUniquePusher.blend 123, [4, 5, 6]
-      ).to.deep.equal [123, 4, 5, 6]
-
-    it "pushes source non-array (but a String) item into array destination", ->
-      expect(
-        arrayizeUniquePusher.blend ['1', '2', '3'], '456'
-      ).to.deep.equal ['1', '2', '3', '456']
-
-    it "pushes non-array (but Strings) items onto each other", ->
-      expect(
-        arrayizeUniquePusher.blend '123', '456'
-      ).to.deep.equal ['123', '456']
-
-    it "resets destination array & then pushes - using signpost `[null]` as 1st src item", ->
-      expect(
-        arrayizeUniquePusher.blend ['items', 'to', 'remove'], [[null], 11, 22, 33]
-      ).to.deep.equal [11, 22, 33]
 
   describe """
            `dependenciesBindingsBlender` converts to proper dependenciesBinding structure

@@ -95,7 +95,9 @@ gruntFunction = (grunt) ->
   }
 
   grunt.initConfig gruntConfig
-  grunt.loadNpmTasks 'grunt-contrib'
+  grunt.loadNpmTasks 'grunt-contrib-clean'
+  grunt.loadNpmTasks 'grunt-contrib-concat'
+  grunt.loadNpmTasks 'grunt-contrib-copy'
   grunt.loadNpmTasks 'grunt-shell'
 
   null
