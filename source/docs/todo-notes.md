@@ -10,8 +10,8 @@ For example:
 
 The larger the number, the more of **Urgency, Easiness and Gracefulness** this `@todo` has!
 
-## This scheme, has a thorough benefit:
-* You just follow larger numbers, from left to right (ususally)! *.
+## This scheme, has a thorough benefit
+* You just follow larger numbers, from left to right (usually)! *.
 
 Think about it! Who wouldn't like to solve a (9 9 9), **right now!** ?
 

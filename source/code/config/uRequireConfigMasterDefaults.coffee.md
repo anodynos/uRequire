@@ -6,25 +6,42 @@ The *master & defaults* configuration file of *uRequire*.
 
 ## Literate Coffescript
 
-This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. The code blocks shown, are the actual code used at runtime, i.e each key declares its self and sets a default value.
+This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. The code blocks shown are the actual code used at runtime, i.e each key declares its self and sets a default value.
 
     module.exports = uRequireConfigMasterDefaults =
 
 ## Config Usage
 
-A config determines a `bundle` and a `build` that uRequire will process. It can be used as:
+A `config` determines a `bundle` and a `build` that uRequire will process. A config is an object with the expected keys and can be used as:
 
-* A node module that exports a config object (eg `myConfig.coffee|js`) or a `.json` file, as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
+* Using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module that exports the `config` object. It can be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
 
-* Using [grunt-urequire](https://github.com/aearly/grunt-urequire), having almost the exact config as a `urequire` task. @todo: diffs ?
+* Using [grunt-urequire](https://github.com/aearly/grunt-urequire), having almost the exact `config` as a `urequire` grunt task. @todo: diffs ?
+
+* Within your tool's code, using `urequire.BundleBuilder` endpoint like this:
+
+```javascript
+    config = {...};
+    urequire = require('./urequire');
+    bundleBuilder = new urequire.BundleBuilder([config]);
+    bundleBuilder.buildBundle();  # build the given `bundle` with given `build`
+    bundleBuilder.watch();        # optionally watch for changes, rebuilding as needed
+```
 
 @todo: doc it better
+
+## Versatility
+
+uRequire configs are extremelly versatile:
+  - it understands keys both in the 'root' of your config or in 'bundle'/'build' hashes
+  - it provides shortcuts, to convert simple declarations to more complex ones.
+  - it has a unique inheritance scheme for 'deriving' from parent configs.
 
 ## Deriving
 
 A config can _inherit_ the values of a parent config, in other words it can be _derived_ from it. Its similar to how a subclass *overrides* a parent class (but much more flexible. @todo: explain why).
 
-For example if you have `DevelopementConfig` derived from a parent `ProductionConfig`, then the first one (the child) will inherit all the values/defaults and perhaps override (or ammend, append etc) the values of the second (the parent).
+For example if you have a child `DevelopementConfig` derived from a parent `ProductionConfig`, then the child will inherit all the values/defaults and perhaps override (or ammend, append etc) the values of the parent. A child can inherit from one or more Parents, with precedence given to whichever parent comes first.
 
 Ultimately all configs are derived from `uRequireConfigMasterDefaults` (this file) which holds all default values.
 
@@ -42,9 +59,9 @@ Ultimately all configs are derived from `uRequireConfigMasterDefaults` (this fil
 
 * @optional - setting this key is optional, unless otherwise specified.
 
-* @todo: this file is documentation & code. todos are part of any code!
+* @todo: this file is documentation & code. `@todo`s should be part of any code and a great chance to highlight future directions! Also watch out for **NOT IMPLEMENTED** features - its still v0.4.0!
 
-* @type The valuetypes that are valid - usually there is a lot of flexibility of the types of values you can use.
+* @type The value types that are valid - usually there is a lot of flexibility of the types of values you can use.
 
 * @alias usually DEPRACATED (but still supported) ones.
 
@@ -59,7 +76,7 @@ Ultimately all configs are derived from `uRequireConfigMasterDefaults` (this fil
 _______
 # bundle
 
-The `bundle` hash defines what constitutes a bundle, i.e where files are located, which ones are converted etc. Consider a `bundle` as the 'source' to the `build` process that follows.
+The `bundle` hash defines what constitutes a bundle, i.e where files are located, which ones are converted etc. Consider a `bundle` as the 'source' or the 'package' that is then processed or build, based on the `build` part of the config.
 
     bundle:
 
@@ -84,7 +101,7 @@ The `'main'` or `'index'` module file of your bundle, that `require`s and kicks 
 ### Details:
 * `bundle.main` is used as 'name' / 'include' on RequireJS build.js, on combined/almond template.
 
-*  It should be the 'entry' point module of your bundle, where all dependencies are `require`'d. Then **r.js** recursivelly adds all dependency tree to the 'combined' optimized file.
+*  It should be the 'entry' point module of your bundle, where all dependencies are `require`'d. Then **r.js** recursively adds all dependency tree to the 'combined' optimized file.
 
 * It is also used to as the initiation `require` on your combined bundle.
   It is the module just kicks off the app and/or requires all your other library modules.
@@ -113,13 +130,13 @@ All files that participate in the `bundle` are specified here.
 
 Each matching file is considered to be either:
 
-* _BundleFile_ - any file (even binary) that is not processed, but can be easily copied over via `bundle.copy` (eg. when changed on 'watch').
+* _BundleFile_ - any file (even binary) that is not really processed, but for convinience can be copied to [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) via [`bundle.copy`](urequireconfigmasterdefaults.coffee#bundle.copy) at each build (or partial build eg on 'watch', when filesize/timestamp changes).
 
-* _Resource_ - any textual resource that we want to convert to something else: eg '.coffee'->'.js', or '.less'->'.css'
+* _Resource_ - any textual resource that we want to convert to something else: eg `.coffee`->`.js`, or `.less`->`.css`
 
-* _Module_ - A Resource that is also a Module whose Dependencies we monitor and convert through some template.
+* _Module_ - A Module is like a _Resource_, but its also a Javascript Module whose Dependencies we monitor and as the last build step we convert it through the [`build.template`](urequireconfigmasterdefaults.coffee#build.template). A Module is ultimately JavaScript code, that is perhaps expressed is some other compiled-to-js language like Coffeescript.
 
-`Resource` & `Module` are only those that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching only `bundle.filez` are considered `BundleFile`s.
+`Resource` & `Module` are only those files that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources) are considered `BundleFile`s.
 
 @type filename specifications (or simply filenames), expressed in either:
 
@@ -163,13 +180,13 @@ Defines an array of text-based resource converters (eg compilers), that perform 
 
 Each resource converter has:
 
- * `name` a simple name eg. `'coffee-script'`
+ * `name` a simple name eg. `'coffee-script'` @todo: should be unique
 
  * `filez` - a [`filez`](urequireconfigmasterdefaults.coffee#bundle.filez) spec of the files it deals with.
 
- * `converter` - a `function(src){return convert(src)}` that converts resource's *source* text to *converted*.
+ * `converter` - a `function(src, filename){return convert(src)}` that converts a resource's *source* text to *converted*.
 
- * `dstFilename` - a `function(fn){return convertFn(fn)}` that converts a source filename to its destination, eg `'file.coffee'-> 'file.js'`.
+ * `dstFilename` - a `function(filename){return convertFn(filename)}` that converts a *source* filename to its *destination* filename, eg `'file.coffee'-> 'file.js'`.
 
 ### resource types 
 
@@ -180,13 +197,16 @@ Each resource converter can deal with either:
   * a **Module**, which is *javascript code* with node/commonjs `require` or AMD style `define`/`require` dependencies. Each module is converted just like a *textual/utf-8* **Resource**, but its dependencies come into play and ultimately it is converted through the chosen [`template`](urequireconfigmasterdefaults.coffee#build.template). Its is again denoted either via key `isModule:true` or via a lack of `'!'` flag preceding name (key has precedence).
   
 ### final 
-Each resource converter can denote it self as `isFinal:true` (or use a flag `'*'`). For `isFinal:true` converters, uRequire will not go through subsequent resource converters (i.e only the first matching resource converter will be used).
+
+Each converter that matches a resource filename, is used in turn during the build process, converting from one format to the next, using the converted source and dstFilename as the input to the next converter. A resource converter can denote it self as `isFinal:true` (or use a flag `'*'`). For `isFinal:true` converters, uRequire will not go through subsequent resource converters (i.e only the first matching resource converter will be used).
+
+### details
 
 @derive [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
 
 @optional unless you want to add resource converters for your *TypeScript*, *coco* or other conversion needs.
 
-@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an Object or an Array (for simpler descriptions). Check the following code [(that is actually part of uRequire)](#Literate), that defines some basic text resource converters:
+@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an Object or an Array (for simpler descriptions). Check the following code [(that is actually part of uRequire)](#Literate), that defines some basic text resource converters ('coffee-script' & 'LiveScript'):
 
       resources: [ # an array of resource converters
 
@@ -226,37 +246,46 @@ Each resource converter can denote it self as `isFinal:true` (or use a flag `'*'
           (srcFilename)-> srcFilename.replace /(.*)\.ls$/, '$1.js' ]
       ]
 
-@note when two ore more files end up with the same `dstFilename`, build halts.
-
-
 @stability: 2 - Unstable
 
-@todo A lot of work has to be done for uRequire resources to become a serious conversion toolkit :
-* in memory pipelines, where to go next etc.
-* equal `dstFilename` for two or more resources/modules, could mean pre or post conversion concatenation: either all sources are concatenated & then converted, or each resource is converted alone & their outputs are concatenated onto `dstFilename`.
+@note when two ore more files end up with the same `dstFilename`, build halts.
 
+@todo uRequire `bundle.resources` aims to power a streamlined conversion process. More functionality is need towards this aim :
+
+* flexible in memory pipelines, where to go next etc.
+
+* When the same `dstFilename` is encountered in two or more resources/modules, it could mean pre or post conversion concatenation: either all sources are concatenated & then passed to `convert`, or each resource is `convert`ed alone & their outputs are concatenated onto `dstFilename`.
 
 ## bundle.webRootMap
 
-For dependencies that refer to webRoot (eg `'/libs/myLib'`), it maps `/` to a directory on the file system **when running in nodejs**. When running on Web/AMD, its the **http-server's root**.
+For dependencies that refer to web's root (eg `'/libs/myLib'`), it maps `/` to a directory on the file system **when running in nodejs**. When running on Web/AMD, RequireJS maps it to the **http-server's root** by default.
 
-Can be absolute or relative to [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path). - it defaults to bundle.
+`webRootMap` can be absolute or relative to [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path). - it defaults to bundle.
 
 @example "/var/www" or "/../../fakeWebRoot"
+
+@note `webRootMap` is not (yet) working with `combined` template.
 
       webRootMap: '.'
 
 ## bundle.dependencies
 
-Anything related to dependenecies is listed here.
+Information related to dependenecies handling is listed here.
 
       dependencies:
 
 ### bundle.dependencies.depsVars
 
-Global dependencies (eg 'underscore') are by default not part of a `combined` file. Each global dep has one or more variables it is exported as, eg `jquery: ["$", "jQuery"]`. At run time, when running on web side, your script will _load_ the dependency from the global object, using the exported global variable. 
+Global dependencies (eg 'underscore') are by default not part of a `combined` file. Each global dep has one or more variables it is exported as, eg `jquery: ["$", "jQuery"]`. At run time, when running on web side as a standalone .js <script/>, the script will _load_ the dependency from the global object, using the exported global variable.
 
-Variable names can be infered from the code by uRequire , when you used this binding implicitly (AMD only for now), for example `define ['jquery'], ('$')->`. You can choose to list them here to be precise.
+Variable names can be infered from the code by uRequire, when you used this binding implicitly (AMD only for now), for example `define ['jquery'], ('$')->`. You can choose to list them here to be precise.
+
+@type 
+* `['dep1', 'dep2']` (with varnames looked up in [`bundle.dependencies.depsvars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsvars))
+
+* `{ dependency1: [varName1, varName2], ...}`
+
+@example `{'underscore': '_', 'jquery': ["$", "jQuery"], 'models/PersonModel': ['persons', 'personsModel']}` will make all modules in the bundle have `_`, `$`, `jQuery`, `persons` and `personsModel` variables injected.
 
 @note In case they can't be identified from modules (i.e you solely use 'nodejs' format), and aren't in `bundle.dependencies.depsVars`, 'combined/almond' build will fail.
 
@@ -264,7 +293,9 @@ Variable names can be infered from the code by uRequire , when you used this bin
 
 ### bundle.dependencies._knownDepsVars
 
-Some known depsVars, have them as backup!
+Some known depsVars, have them as backup - its a private field, not meant to be extended by users.
+
+@type see [bundle.dependencies.depsVars](bundle.dependencies.depsVars)
 
 @todo: provide some 'common/standard' ones.
 
@@ -285,14 +316,9 @@ Holds keys related to binding and exporting modules (i.e making them available t
 
 #### bundle.dependencies.exports.bundle
 
-Each dep will be available in the *whole bundle* under varName(s) - they are global to your bundle.
+Each dep will be available in the *whole bundle* under varName(s) - i.e they are global to your bundle. Effectively this means that each module will have an injection of all `exports.bundle` dependencies/var bindings, so you don't have to list them in each module.
 
-@type
-* `['dep1', 'dep2']` (with varnames looked up in [`bundle.dependencies.depsvars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsvars))
-
-* `{ dependency1: [varName1, varName2], ...}`
-
-@example `{'underscore': '_', 'jquery': ["$", "jQuery"], 'models/PersonModel': ['persons', 'personsModel']}`
+@type see [bundle.dependencies.depsVars](bundle.dependencies.depsVars)
 
           bundle: {}
 
@@ -340,9 +366,9 @@ Output converted files onto this
 
 ## build.forceOverwriteSources
 
-Output on the same directory as source `bundle.path`, overwriting all files. Useful if your sources are not *real sources*.
+Output on the same directory as the _source_ [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path), overwriting all files. Useful if your sources are not *real sources*.
 
-WARNING: when true, [build.dstPath](urequireconfigmasterdefaults.coffee#build.dstPath) is ignored.
+WARNING: when true, [build.dstPath](urequireconfigmasterdefaults.coffee#build.dstPath) is ignored and takes the value of [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path).
 
       forceOverwriteSources: false
 
@@ -384,11 +410,11 @@ When true, it ignores all rootExports {& noConflict()} defined in all module fil
 
 ## build.scanAllow
 
-By default, ALL require('') deps appear on [] to prevent RequireJS to scan @ runtime.
+By default, ALL `require('dep1')` deps in your module are added on the dependency array eg `define(['dep0', 'dep1',...], ...)`, [preventing RequireJS to scan @ runtime](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934).
 
-With `scanAllow:true` you can allow `require('')` scan @ runtime, for source modules that have no other [] deps (i.e. using nodejs source modules or using only require('') instead of the dependencies array.
+With `scanAllow:true` you can allow `require('')` scan @ runtime, *for source modules that have no other [] deps* (i.e. using nodejs source modules or using only require('') instead of the dependencies array. If there is even one dep on [], runtime scan is disabled on requireJs and uRequire takes care to have all `require('')` deps listed on deps array as they should to [prevent halting](https://github.com/jrburke/requirejs/issues/467).
 
-@note: modules with rootExports / noConflict() always have `scanAllow: false`
+@note: modules with `rootExports` / `noConflict()` always have `scanAllow: false`
 
       scanAllow: false
 
@@ -403,10 +429,14 @@ Print bundle, build & module processing information.
 
 @type: Boolean
 
+@todo: make it less verbose / work better with `build.debugLevel`
+
       verbose: false
 
 ## build.debugLevel
 Debug levels *1-100*.
+
+@todo: make it less verbose / work better with `build.verbose`
 
       debugLevel: 0
 
@@ -416,7 +446,7 @@ Dont bail out while processing when there are **module processing errors**.
 
 For example ignore a coffeescript compile error, and just do all the other modules. Or on a `combined` conversion when a 'global' has no 'var' association anywhere, just hold on, ignore this global and continue.
 
-@note: Not needed when `watch` is used.
+@note: Not needed when `build.watch` is used - the `continue` behavior is applied to `build.watch`.
 
       continue: false
 
@@ -441,6 +471,6 @@ Optimizes output files (i.e it minifies/compresses them for production).
 
 ## build.done
 
-This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build - dont use it!
+This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build - don't use it!
 
       done: (doneVal)-> console.log "done() is missing and I got a #{doneVal} on the default done()"
