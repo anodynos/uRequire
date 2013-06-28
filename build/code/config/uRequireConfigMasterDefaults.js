@@ -11,7 +11,7 @@ module.exports = uRequireConfigMasterDefaults = {
     resources: [
       {
         name: '*Javascript',
-        filez: ['**/*.js', /.*\.(javascript)$/i],
+        filez: ['**/*.js', /.*\.(javascript)$/],
         convert: function(source, filename) {
           return source;
         },

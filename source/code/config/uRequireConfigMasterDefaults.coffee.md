@@ -91,6 +91,8 @@ The *name* of the bundle, eg 'MyLibrary'.
 
 @note: `bundle.name` serves as the 1st default for `bundle.main` (if main is not explicit).
 
+@alias `bundleName` DEPRACATED
+
       name: undefined
 
 ## bundle.main
@@ -153,7 +155,7 @@ Each matching file is considered to be either:
 
 @note: The master default is `undefined`, so the highest `filez` in derived hierarchy determines what is ultimately allowed.
 
-@alias `filespecs` DEPRACATED
+@alias `filespecs` DEPRACATED (with different semantics)
 
 @default: NOTE: The actual default (runtime hard-coded), if no `filez` exists in the final cfg, is `['**/*.*']` (and not `undefined`).
 
@@ -217,8 +219,11 @@ Each converter that matches a resource filename, is used in turn during the buil
                                       # Default is terminal, which means no other (subsequent) resource converters will be visited.
 
           filez: [                    # similar to `bundle.filez`, defines what files are converted with this converter
-            '**/*.js'                 # minimatch string (ala grunt's 'file' expand or node-glob)
-            /.*\.(javascript)$/i      # a RegExp works as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
+
+            '**/*.js'    # minimatch string (ala grunt's 'file' expand or node-glob)
+
+                         # a RegExp works as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
+            /.*\.(javascript)$/
           ]
 
           convert: (source, filename)-> source  # javascript needs no compilation - just return source as is
@@ -277,7 +282,9 @@ Information related to dependenecies handling is listed here.
 
 ### bundle.dependencies.node
 
-Dependencies listed here are treated as node-only, hence they aren't added to the AMD dependency array (and hence not available on the Web/AMD side. Its the same as using the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on node without conversion. By default all known node packages like 'util', 'fs' are part of `bundle.dependencies.node`.
+Dependencies listed here are treated as node-only, hence they aren't added to the AMD dependency array (and hence not available on the Web/AMD side). Its the same as using the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without conversion that strips 'node!'.
+
+By default no known node packages like `'util'`, `'fs'` etc are part of `bundle.dependencies.node`, but this may change in future releases and include them all.
 
 @type String or Array<String>
 
@@ -306,6 +313,8 @@ Variable names can be infered from the code by uRequire, when you used this bind
 
 @note In case they can't be identified from modules (i.e you solely use 'nodejs' format), and aren't in `bundle.dependencies.depsVars`, 'combined/almond' build will fail.
 
+@alias variableNames DEPRACATED
+
         depsVars: {}
 
 ### bundle.dependencies._knownDepsVars
@@ -313,6 +322,8 @@ Variable names can be infered from the code by uRequire, when you used this bind
 Some known depsVars, have them as backup - its a private field, not meant to be extended by users.
 
 @type see [bundle.dependencies.depsVars](bundle.dependencies.depsVars)
+
+@alias _knownVariableNames DEPRACATED
 
 @todo: provide some 'common/standard' ones.
 
@@ -336,6 +347,8 @@ Holds keys related to binding and exporting modules (i.e making them available t
 Each dep will be available in the *whole bundle* under varName(s) - i.e they are global to your bundle. Effectively this means that each module will have an injection of all `exports.bundle` dependencies/var bindings, so you don't have to list them in each module.
 
 @type see [bundle.dependencies.depsVars](bundle.dependencies.depsVars)
+
+@alias `bundleExports` DEPRACATED
 
           bundle: {}
 
@@ -362,7 +375,7 @@ Replace all right hand side dependencies (String value or []<String> values), to
 _______
 # Build
 
-The `build` hash holds keys that define the conversion, such as *where* and *what* to output.
+The `build` hash holds keys that define the conversion or `build` process, such as *where* to output, *how* to convert etc.
 
     build:
 
@@ -371,10 +384,12 @@ The `build` hash holds keys that define the conversion, such as *where* and *wha
 Output converted files onto this 
 
 * directory
-* filename (if combining)
+
+* filename (if `combined` template is used)
+
 * function @todo: function NOT IMPLEMENTED
 
-@example 'build/code'
+@example `'build/code'` or `'build/dist/myLib-min.js'`
 
 @alias `outputPath` DEPRACATED
 
