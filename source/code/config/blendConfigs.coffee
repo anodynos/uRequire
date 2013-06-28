@@ -76,6 +76,7 @@ renameKeys =
        copyNonResources: 'copy'
        filespecs: 'filez'
        dependencies:
+         noWeb: 'node'
          bundleExports: 'exports.bundle'
          variableNames: 'depsVars'
          _knownVariableNames: '_knownDepsVars'
@@ -133,6 +134,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         arrayizePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
 
       dependencies:
+        node: '|': '*': (prop, src, dst)-> arrayizeUniquePusher.blend dst[prop], src[prop]
+
         exports:
           bundle: '|': '*': 'dependenciesBindings'
           #root: NOT IMPLEMENTED

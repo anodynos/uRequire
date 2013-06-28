@@ -166,7 +166,7 @@ UModule = (function(_super) {
 
 
   UModule.prototype.convert = function(build) {
-    var bundleExports, d, dep, depName, depsVars, lenDiff, paramIndex, reqDep, requireReplacements, uerr, varName, _i, _j, _k, _l, _len, _len1, _len2, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7;
+    var bundleExports, d, dep, depName, depsVars, lenDiff, paramIndex, reqDep, requireReplacements, uerr, varName, _i, _j, _k, _l, _len, _len1, _len2, _ref1, _ref2, _ref3, _ref4, _ref5, _ref6, _ref7, _ref8;
     this.build = build;
     if (this.isConvertible) {
       if (l.deb(30)) {
@@ -218,11 +218,13 @@ UModule = (function(_super) {
         _ref5 = this.requireDependencies;
         for (_k = 0, _len1 = _ref5.length; _k < _len1; _k++) {
           reqDep = _ref5[_k];
-          if (reqDep.pluginName !== 'node' && !(_.any(this.arrayDependencies, function(dep) {
+          if (reqDep.pluginName !== 'node' && (_ref6 = reqDep.name({
+            plugin: false
+          }), __indexOf.call(this.bundle.dependencies.node, _ref6) < 0) && !(_.any(this.arrayDependencies, function(dep) {
             return dep.isEqual(reqDep);
           }))) {
             this.arrayDependencies.push(reqDep);
-            if ((_ref6 = this.build) != null ? _ref6.allNodeRequires : void 0) {
+            if ((_ref7 = this.build) != null ? _ref7.allNodeRequires : void 0) {
               this.nodeDependencies.push(reqDep);
             }
           }
@@ -230,29 +232,29 @@ UModule = (function(_super) {
       }
       this.webRootMap = this.bundle.webRootMap || '.';
       this.arrayDeps = (function() {
-        var _l, _len2, _ref7, _results;
-        _ref7 = this.arrayDependencies;
+        var _l, _len2, _ref8, _results;
+        _ref8 = this.arrayDependencies;
         _results = [];
-        for (_l = 0, _len2 = _ref7.length; _l < _len2; _l++) {
-          d = _ref7[_l];
+        for (_l = 0, _len2 = _ref8.length; _l < _len2; _l++) {
+          d = _ref8[_l];
           _results.push(d.name());
         }
         return _results;
       }).call(this);
       this.nodeDeps = (function() {
-        var _l, _len2, _ref7, _results;
-        _ref7 = this.nodeDependencies;
+        var _l, _len2, _ref8, _results;
+        _ref8 = this.nodeDependencies;
         _results = [];
-        for (_l = 0, _len2 = _ref7.length; _l < _len2; _l++) {
-          d = _ref7[_l];
+        for (_l = 0, _len2 = _ref8.length; _l < _len2; _l++) {
+          d = _ref8[_l];
           _results.push(d.name());
         }
         return _results;
       }).call(this);
       requireReplacements = {};
-      _ref7 = _.flatten([this.arrayDependencies, this.requireDependencies, this.asyncDependencies]);
-      for (_l = 0, _len2 = _ref7.length; _l < _len2; _l++) {
-        dep = _ref7[_l];
+      _ref8 = _.flatten([this.arrayDependencies, this.requireDependencies, this.asyncDependencies]);
+      for (_l = 0, _len2 = _ref8.length; _l < _len2; _l++) {
+        dep = _ref8[_l];
         requireReplacements[dep.depString] = dep.pluginName === 'node' ? dep.name({
           plugin: false
         }) : dep.name();

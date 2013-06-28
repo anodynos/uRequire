@@ -21,6 +21,7 @@ A `config` determines a `bundle` and a `build` that uRequire will process. A con
 * Within your tool's code, using `urequire.BundleBuilder` endpoint like this:
 
 ```javascript
+    // THIS IS NOT PART OF uRequireConfigMasterDefaults config, only a documentation example
     config = {...};
     urequire = require('./urequire');
     bundleBuilder = new urequire.BundleBuilder([config]);
@@ -273,6 +274,22 @@ For dependencies that refer to web's root (eg `'/libs/myLib'`), it maps `/` to a
 Information related to dependenecies handling is listed here.
 
       dependencies:
+
+### bundle.dependencies.node
+
+Dependencies listed here are treated as node-only, hence they aren't added to the AMD dependency array (and hence not available on the Web/AMD side. Its the same as using the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on node without conversion. By default all known node packages like 'util', 'fs' are part of `bundle.dependencies.node`.
+
+@type String or Array<String>
+
+@derive [ArrayizeUniquePush](urequireconfigmasterdefaults.coffee#tags-legend).
+
+@example `node: ['myutil', 'my_fs']`
+
+@todo: all built-in node packages should be the default eg `node: ['util', 'fs', 'http', 'path', 'child_process', 'events' ...etc ]`. Can lead to inadvertized feature leak if someone has a module under these names - just issue a warning ?
+
+@alias noWeb DEPRACATED
+
+        node: []
 
 ### bundle.dependencies.depsVars
 

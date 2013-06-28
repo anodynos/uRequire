@@ -204,6 +204,7 @@ describe 'blendConfigs & its Blenders', ->
           filespecs: '*.*'
           ignore: [/^draft/] # ignore not handled in renameKeysBlender
           dependencies:
+            noWeb: 'util'
             bundleExports: {lodash:'_'}
             _knownVariableNames: {jquery:'$'}
 
@@ -214,6 +215,7 @@ describe 'blendConfigs & its Blenders', ->
           filez: '*.*',
           ignore: [ /^draft/ ]
           dependencies:
+            node: 'util'
             exports: bundle: { lodash: '_' }
             _knownDepsVars: { jquery: '$'}
 
@@ -359,6 +361,7 @@ describe 'blendConfigs & its Blenders', ->
           {}
         ,
           dependencies:
+            node: ['fs']
             exports: bundle:
               lodash: "_"
           filez: [
@@ -373,6 +376,7 @@ describe 'blendConfigs & its Blenders', ->
             filez: ['**/*.litcoffee'] # added at pos 1
             ignore: [/^draft/]        # negated with '!' and added at pos 2 & 3
             dependencies:
+              node: 'util'
               exports: bundle:
                 uberscore: [[null], '_B'] #reseting existing (derived/inherited) array, allowing only '_B'
 
@@ -437,6 +441,7 @@ describe 'blendConfigs & its Blenders', ->
             ]
             resources: expectedResources
             dependencies:
+              node: ['util', 'fs']
               exports: bundle:
                 'spec-data': ['dataInDerive2', 'dataInDerive1', 'data' ]
                 chai: ['chai']

@@ -179,7 +179,9 @@ class UModule extends UResource
       # We allow them only if `--scanAllow` or if we have a `rootExports`
       if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @moduleInfo.rootExports)
         for reqDep in @requireDependencies
-          if reqDep.pluginName isnt 'node' and                        # 'node' is a fake plugin: signaling nodejs-only executing modules. Hence dont add to arrayDependencies!
+          # dont add to arrayDependencies, if node only
+          if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin signaling nodejs-only executing modules.
+            (reqDep.name(plugin:false) not in @bundle.dependencies.node) and
             not (_.any @arrayDependencies, (dep)->dep.isEqual reqDep) # and not already there
               @arrayDependencies.push reqDep
               @nodeDependencies.push reqDep if @build?.allNodeRequires

@@ -30,15 +30,15 @@ UError = require('../utils/UError');
 
 BundleBuilder = (function() {
   function BundleBuilder(configs, deriveLoader) {
-    var err, finalCfg, uerr, _ref;
+    var err, finalCfg, uerr;
     this.configs = configs;
     configs.push(uRequireConfigMasterDefaults);
     finalCfg = blendConfigs(configs, deriveLoader);
+    _.defaults(finalCfg.bundle, {
+      filez: ['**/*.*']
+    });
     this.bundleCfg = finalCfg.bundle;
     this.buildCfg = finalCfg.build;
-    this.buildCfg.done = ((_ref = configs[0]) != null ? _ref.done : void 0) || function() {
-      return l.log('where s my done1?');
-    };
     if (this.buildCfg.debugLevel != null) {
       _B.Logger.setDebugLevel(this.buildCfg.debugLevel, 'urequire');
       l.debug(0, "Setting userCfg _B.Logger.setDebugLevel(" + this.buildCfg.debugLevel + ", 'urequire')");
@@ -52,7 +52,8 @@ BundleBuilder = (function() {
     }
     l.verbose('uRequire v' + l.VERSION + ' initializing...');
     if (l.deb(40)) {
-      l.debug("user config :\n", blendConfigs(configs.slice(0, +(configs.length - 2) + 1 || 9e9), deriveLoader));
+      l.debug(40, "user config follows (NOTE: duplicate debug/warnings will follow!)");
+      l.debug(40, blendConfigs(configs.slice(0, +(configs.length - 2) + 1 || 9e9), deriveLoader));
     }
     if (l.deb(20)) {
       l.debug("final config :\n", finalCfg);
@@ -67,12 +68,13 @@ BundleBuilder = (function() {
         this.build = new this.Build(this.buildCfg);
       } catch (_error) {
         err = _error;
-        l.err(uerr = "Initializing @bundle or @build", err);
+        l.err(uerr = "Generic error while initializing @bundle or @build", err);
         throw new UError(uerr, {
           nested: err
         });
       }
     } else {
+      l.err("Something went wrong with paths or template");
       this.buildCfg.done(false);
     }
   }
@@ -147,39 +149,39 @@ BundleBuilder = (function() {
   };
 
   BundleBuilder.prototype.isCheckAndFixPaths = function() {
-    var cfgFile, dirName, _ref, _ref1, _ref2;
+    var cfgFile, dirName, pathsOk, _ref, _ref1, _ref2;
+    pathsOk = true;
     if (((_ref = this.bundleCfg) != null ? _ref.path : void 0) == null) {
       if (cfgFile = (_ref1 = this.configs[0]) != null ? (_ref2 = _ref1.derive) != null ? _ref2[0] : void 0 : void 0) {
         if (dirName = upath.dirname(cfgFile)) {
           l.warn("Assuming path = '" + dirName + "' from 1st configFile: '" + cfgFile + "'");
           this.bundleCfg.path = dirName;
-          return true;
         } else {
-          l.err("Assuming path = '" + (upath.dirname(cfgFile)) + "' from 1st configFile: '" + cfgFile + "'");
-          return false;
+          l.err("Quitting build, cant assume path from 1st configFile: '" + cfgFile + "'");
+          pathsOk = false;
         }
       } else {
         l.err("Quitting build, no path specified.\nUse -h for help");
-        return false;
+        pathsOk = false;
       }
-    } else {
+    }
+    if (pathsOk) {
       if (this.buildCfg.forceOverwriteSources) {
         this.buildCfg.dstPath = this.bundleCfg.path;
         l.verbose("Forced output to '" + this.buildCfg.dstPath + "'");
-        return true;
       } else {
         if (!this.buildCfg.dstPath) {
           l.err("Quitting build, no --dstPath specified.\nUse -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).");
-          return false;
+          pathsOk = false;
         } else {
           if (upath.normalize(this.buildCfg.dstPath) === upath.normalize(this.bundleCfg.path)) {
             l.err("Quitting build, dstPath === path.\nUse -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).");
-            return false;
+            pathsOk = false;
           }
         }
       }
     }
-    return true;
+    return pathsOk;
   };
 
   return BundleBuilder;
