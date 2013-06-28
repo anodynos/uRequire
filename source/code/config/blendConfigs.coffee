@@ -8,18 +8,17 @@ uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 
 ### Define the various Blenders used ###
 
+arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
+arrayizePusher = new _B.ArrayizePushBlender
+
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
 # depending on where these keys appear in uRequireConfigMasterDefaults.
 #
 # NOTE: it simply ignores unknown keys (i.e keys not in uRequireConfigMasterDefaults .build or .bundle)
 #       including 'derive'
-functionCopyBB =
-  order:['src']
-  'Function': (prop, src)-> src[prop] #just copy function ref
 
 moveKeysBlender = new _B.DeepCloneBlender [
-  functionCopyBB,
   {
     order: ['path']
     '*': '|':
@@ -41,6 +40,31 @@ moveKeysBlender = new _B.DeepCloneBlender [
   }
 #  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
 ]
+#
+#rootLevelKeys =
+#    name: 'myBundle'
+#    main: 'myMainLib'
+#    bundle: # 'bundle' and 'build' hashes have precedence over root items
+#      main: 'myLib'
+#    path: "/some/path"
+#    webRootMap: "."
+#    dependencies:
+#      depsVars: {}
+#      exports: bundle: {}
+#
+#    dstPath: ""
+#    forceOverwriteSources: false
+#    template: name: "UMD"
+#    watch: false
+#    noRootExports: false
+#    scanAllow: false
+#    allNodeRequires: false
+#    verbose: false
+#    debugLevel: 0
+#    done:->
+#
+#l.log a = moveKeysBlender.blend rootLevelKeys
+#l.log rootLevelKeys.done is a.done
 
 # Backwards compatibility:
 # rename DEPRACATED keys to their new ones
@@ -52,17 +76,17 @@ renameKeys =
        copyNonResources: 'copy'
        filespecs: 'filez'
        dependencies:
+         noWeb: 'node'
          bundleExports: 'exports.bundle'
          variableNames: 'depsVars'
          _knownVariableNames: '_knownDepsVars'
     build:
       outputPath: 'dstPath'
+
 _.extend renameKeys.$, renameKeys.$.bundle # copy $.bundle.* to $.*
 _.extend renameKeys.$, renameKeys.$.build # copy $.build.* to $.*
 
 renameKeysBlender = new _B.DeepDefaultsBlender [
-  functionCopyBB,
-
   order:['src']
   '*': (prop, src, dst, bl)->
     renameTo = _B.getp renameKeys, bl.path
@@ -99,28 +123,32 @@ addIgnoreToFilezAsExclude = (cfg)->
 {_optimizers} = uRequireConfigMasterDefaults.build
 
 bundleBuildBlender = new _B.DeepCloneBlender [
-  functionCopyBB,
   {
     order: ['path', 'src']
 
     bundle:
-      filez: '|' : '*': 'pushUnique'
-      resources: '|' : '*': 'pushUnique'
+
+      filez: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
+
+      resources: '|' : '*': (prop, src, dst)->
+        arrayizePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
+
       dependencies:
+        node: '|': '*': (prop, src, dst)-> arrayizeUniquePusher.blend dst[prop], src[prop]
+
         exports:
           bundle: '|': '*': 'dependenciesBindings'
           #root: NOT IMPLEMENTED
         depsVars: '|': '*': 'dependenciesBindings'
         _knownDepsVars: '|': '*': 'dependenciesBindings'
 
-    # common actions
-    pushUnique: (prop, src, dst)->
-      arrayizeUniquePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
-
     dependenciesBindings: (prop, src, dst)->
       dependenciesBindingsBlender.blend dst[prop], src[prop]
 
     build:
+
+      copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
+
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
 
@@ -203,43 +231,6 @@ templateBlender = new _B.DeepCloneBlender [
     deepCloneBlender.blend dst[prop], src[prop]
 ]
 
-
-# Push all items of `src[prop]` array to the `dst[prop]` array (when these are not in dst[prop] already).
-# If either src[prop] or dst[prop] aren't arrays, they are `arrayize`'d first.
-arrayizeUniquePusher = new _B.DeepCloneBlender [
-    order: ['src']
-    unique: true
-
-    #todo: make this default (but define a custome uRequire_ArrayPusher that deals only with `String` & `Array<String>`, throwing error otherwise.
-#    '*': 'pushToArray'
-#    'Undefined': ->_B.Blender.SKIP
-#    'Null': ->_B.Blender.SKIP
-
-    'Array': 'pushToArray'
-    'String': 'pushToArray'
-    'Number': 'pushToArray'
-    'Undefined': 'pushToArray'
-
-    pushToArray: (prop, src, dst, bl)->
-      #l.log "pushToArray #{prop} = #{src[prop]}"
-      dst[prop] = _B.arrayize dst[prop]
-      srcArray = _B.arrayize src[prop]
-
-      if _.isEqual srcArray[0], [null] # `[null]` is a signpost for 'reset array'.
-        dst[prop] = []
-        srcArray = srcArray[1..] # The remaining items of the array are the 'real' items to push.
-
-      itemsToPush =
-        if bl.currentBlenderBehavior.unique             # @todo: does unique belong to blenderBehavior ?
-          (v for v in srcArray when v not in dst[prop]) # @todo: unique can be a fn: isEqual/isIqual/etc or any other equal fn.
-        else
-          srcArray                                      # add 'em all
-
-      dst[prop].push v for v in itemsToPush
-      dst[prop]
-      #_B.Blender.SKIP # no need to assign, we mutated dst[prop] #todo: needed or not ?
-]
-
 #convert an array of resources, each of which might be an array it self
 #to an array of 'proper' resources
 # For example
@@ -263,7 +254,6 @@ arrayizeUniquePusher = new _B.DeepCloneBlender [
 #        convert: ->
 #      }
 #    ]
-
 resourcesBlender = new _B.DeepCloneBlender [
   order:['path', 'src']
 
@@ -362,7 +352,6 @@ _.extend blendConfigs, {
   renameKeysBlender
   templateBlender
   resourcesBlender
-  arrayizeUniquePusher
   dependenciesBindingsBlender
   bundleBuildBlender
 }

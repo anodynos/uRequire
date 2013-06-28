@@ -24,10 +24,12 @@ class BundleBuilder
     configs.push uRequireConfigMasterDefaults # add as the last one - the defaults on which we lay our more specifics
     finalCfg = blendConfigs configs, deriveLoader
 
+    # apply some hard coded defaults!
+    _.defaults finalCfg.bundle, {filez: ['**/*.*']}
+
     # we now have our 'final' USER config
     @bundleCfg = finalCfg.bundle
     @buildCfg = finalCfg.build
-    @buildCfg.done = configs[0]?.done or ->l.log 'where s my done1?' # @todo: remove / test user configable
 
     # verbose / debug anyone ?
     if @buildCfg.debugLevel?
@@ -42,9 +44,9 @@ class BundleBuilder
 
     l.verbose 'uRequire v'+l.VERSION + ' initializing...'
 
-    # display userCfgs, WITHOUT applying master defaults
-    l.debug("user config :\n",
-      blendConfigs(configs[0..configs.length-2], deriveLoader)) if l.deb 40
+    if l.deb 40 # display userCfgs, WITHOUT applying master defaults
+      l.debug 40, "user config follows (NOTE: duplicate debug/warnings will follow!)"
+      l.debug 40, blendConfigs(configs[0..configs.length-2], deriveLoader)
 
     # display full cfgs, having applied master defaults.
     l.debug("final config :\n", finalCfg) if l.deb 20
@@ -61,15 +63,16 @@ class BundleBuilder
         @bundle = new @Bundle @bundleCfg
         @build = new @Build @buildCfg
       catch err
-        l.err uerr = "Initializing @bundle or @build", err
+        l.err uerr = "Generic error while initializing @bundle or @build", err
         throw new UError uerr, nested:err
 
-    else # something went wrong with paths, template etc # @todo:2,4 add more fixes/checks ?
+    else
+      l.err "Something went wrong with paths or template" # @todo:2,4 add more fixes/checks ?
       @buildCfg.done false
 
   buildBundle: (filenames)->
     if not (!@build or !@bundle)
-      @bundle.buildChangedResources @build, filenames
+      @bundle.buildChangedResources @build, filenames #if no
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
@@ -125,44 +128,45 @@ class BundleBuilder
         Use -h for help"""
       return false
 
-    return true
+    true
 
   isCheckAndFixPaths: ->
+    pathsOk = true
+
     if not @bundleCfg?.path?
       # assume path, from the 1st configFile that came along
       if cfgFile = @configs[0]?.derive?[0]
         if dirName = upath.dirname cfgFile
           l.warn "Assuming path = '#{dirName}' from 1st configFile: '#{cfgFile}'"
           @bundleCfg.path = dirName
-          return true
         else
-          l.err "Assuming path = '#{upath.dirname cfgFile}' from 1st configFile: '#{cfgFile}'"
-          return false
+          l.err "Quitting build, cant assume path from 1st configFile: '#{cfgFile}'"
+          pathsOk = false
       else
         l.err """
           Quitting build, no path specified.
           Use -h for help"""
-        return false
-    else
+        pathsOk = false
+
+    if pathsOk
       if @buildCfg.forceOverwriteSources
         @buildCfg.dstPath = @bundleCfg.path
         l.verbose "Forced output to '#{@buildCfg.dstPath}'"
-        return true
       else
         if not @buildCfg.dstPath
           l.err """
             Quitting build, no --dstPath specified.
             Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
-          return false
+          pathsOk = false
         else
           if upath.normalize(@buildCfg.dstPath) is upath.normalize(@bundleCfg.path)
             l.err """
               Quitting build, dstPath === path.
               Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
               """
-            return false
+            pathsOk = false
 
-    return true
+    pathsOk
 
 module.exports = BundleBuilder
 

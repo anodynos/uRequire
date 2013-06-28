@@ -7,6 +7,7 @@ seekr = require './seekr'
 parser = require("uglify-js").parser
 proc = require("uglify-js").uglify
 
+UError = require '../utils/UError'
 
 # todo: doc it!
 

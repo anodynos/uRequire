@@ -454,7 +454,10 @@ Bundle = (function(_super) {
       this.build.done(false);
     } else {
       globalDepsVars = this.getDepsVars(function(dep) {
-        return (dep.type === Dependency.TYPES.global) && (dep.pluginName !== 'node');
+        var _ref1;
+        return (dep.type === Dependency.TYPES.global) && (dep.pluginName !== 'node') && (_ref1 = dep.name({
+          plugin: false
+        }), __indexOf.call(_this.dependencies.node, _ref1) < 0);
       });
       l.log('globalDepsVars=', globalDepsVars);
       if (_.any(globalDepsVars, function(v) {
@@ -474,7 +477,10 @@ Bundle = (function(_super) {
         }
       }
       nodeOnly = _.keys(this.getDepsVars(function(dep) {
-        return dep.pluginName === 'node';
+        var _ref1;
+        return (dep.pluginName === 'node') || (_ref1 = dep.name({
+          plugin: false
+        }), __indexOf.call(_this.dependencies.node, _ref1) >= 0);
       }));
       almondTemplates = new AlmondOptimizationTemplate({
         globalDepsVars: globalDepsVars,

@@ -323,8 +323,11 @@ class Bundle extends BundleBase
 
     else
       # check no global dependency without a variable binding - quit otherwise
-      globalDepsVars = @getDepsVars (dep)->
-        (dep.type is Dependency.TYPES.global) and (dep.pluginName isnt 'node')
+      globalDepsVars = @getDepsVars (dep)=>
+        (dep.type is Dependency.TYPES.global) and
+        (dep.pluginName isnt 'node') and
+        (dep.name(plugin:false) not in @dependencies.node)
+
       l.log 'globalDepsVars=', globalDepsVars
 
       if _.any(globalDepsVars, (v)-> _.isEmpty v) and false
@@ -357,7 +360,9 @@ class Bundle extends BundleBase
         else
           l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
-      nodeOnly = _.keys @getDepsVars (dep)->dep.pluginName is 'node'
+      nodeOnly = _.keys @getDepsVars (dep)=>
+        (dep.pluginName is 'node') or (dep.name(plugin:false) in @dependencies.node)
+
       almondTemplates = new AlmondOptimizationTemplate {
         globalDepsVars
         nodeOnly
