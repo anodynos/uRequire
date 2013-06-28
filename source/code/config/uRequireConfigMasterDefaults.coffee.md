@@ -1,5 +1,3 @@
-*** WARNING: Work In Progress - version 0.4.0beta2 ***
-
 # Introduction
 
 The *master & defaults* configuration file of *uRequire*.
