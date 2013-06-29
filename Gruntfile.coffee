@@ -49,6 +49,12 @@ gruntFunction = (grunt) ->
           dest: "#{buildSpecDir}/"
         ]
 
+      wiki:
+        files: [
+          src: ["source/code/config/uRequireConfigMasterDefaults.coffee.md"]
+          dest: "../uRequire.wiki/uRequireConfigMasterDefaults.coffee.md"
+        ]
+
     concat:
       bin:
         options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
@@ -73,7 +79,7 @@ gruntFunction = (grunt) ->
 
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
      "default": "build test"
-     "build":   "shell:coffee concat"
+     "build":   "shell:coffee concat copy:wiki"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
      # some shortcuts

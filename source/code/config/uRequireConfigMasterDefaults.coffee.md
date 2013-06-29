@@ -8,6 +8,8 @@ This file is written in [Literate Coffeescript](http://ashkenas.com/literate-cof
 
     module.exports = uRequireConfigMasterDefaults =
 
+NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/uRequireConfigMasterDefaults.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
+
 ## Config Usage
 
 A `config` determines a `bundle` and a `build` that uRequire will process. A config is an object with the expected keys and can be used as:
