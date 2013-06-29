@@ -2,7 +2,7 @@
  "name": "urequire",
  "description": "JavaScript Universal Module Converter: write modular code once, convert to UMD or single `.js` and run/test on AMD (browser/requirejs) & nodejs.",
  "version": "0.4.0",
- "homepage": "urequire.org",
+ "homepage": "http://urequire.org",
  "author": {
   "name": "Agelos Pikoulas",
   "email": "agelos.pikoulas@gmail.com"

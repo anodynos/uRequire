@@ -12,29 +12,23 @@ This file is written in [Literate Coffeescript](http://ashkenas.com/literate-cof
 
 A `config` determines a `bundle` and a `build` that uRequire will process. A config is an object with the expected keys and can be used as:
 
-* Using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module that exports the `config` object. It can be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
+* **File based**, using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module file that exports the `config` object. The file can actually be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
 
-* Using [grunt-urequire](https://github.com/aearly/grunt-urequire), having almost the exact `config` as a `urequire` grunt task. @todo: diffs ?
+* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire` grunt task. @todo: diffs ?
 
-* Within your tool's code, using `urequire.BundleBuilder` endpoint like this:
+* Within your tool's code, [using `urequire.BundleBuilder`](Using-uRequire#Using-within-your-code).
 
-```javascript
-    // THIS IS NOT PART OF uRequireConfigMasterDefaults config, only a documentation example
-    config = {...};
-    urequire = require('./urequire');
-    bundleBuilder = new urequire.BundleBuilder([config]);
-    bundleBuilder.buildBundle();  # build the given `bundle` with given `build`
-    bundleBuilder.watch();        # optionally watch for changes, rebuilding as needed
-```
-
-@todo: doc it better
+@todo: doc this better
 
 ## Versatility
 
 uRequire configs are extremelly versatile:
-  - it understands keys both in the 'root' of your config or in 'bundle'/'build' hashes
-  - it provides shortcuts, to convert simple declarations to more complex ones.
-  - it has a unique inheritance scheme for 'deriving' from parent configs.
+
+* it understands keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](uRequireConfigMasterDefaults.coffee#bundle-build)
+
+* it provides shortcuts, to convert simple declarations to more complex ones.
+
+* it has a unique inheritance scheme for 'deriving' from parent configs.
 
 ## Deriving
 
@@ -45,6 +39,8 @@ For example if you have a child `DevelopementConfig` derived from a parent `Prod
 Ultimately all configs are derived from `uRequireConfigMasterDefaults` (this file) which holds all default values.
 
 ## @tags legend
+
+Each key description might have some of these tags:
 
 * @derive: describes how values are derived from other parent configs. Some *standard* derivations are listed here:
 
@@ -404,7 +400,7 @@ WARNING: when true, [build.dstPath](urequireconfigmasterdefaults.coffee#build.ds
 
 ## build.template
 
-A string in ['UMD', 'AMD', 'nodejs', 'combined'] 
+A string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'AMD', 'nodejs', 'combined']
 
 @see *Conversion Templates* in docs.
 
