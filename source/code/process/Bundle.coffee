@@ -83,14 +83,17 @@ class Bundle extends BundleBase
         isNew = true
         # check if we create a uResource (eg UModule) - if we have some matchedConverters
         matchedConverters = []; resourceClass = UModule # default
+
         # add all matched converters (until a terminal converter found)
+        convFilename = filename
         for resourceConverter in @resources
-          if isFileInSpecs filename, resourceConverter.filez
+          if isFileInSpecs convFilename, resourceConverter.filez
             matchedConverters.push resourceConverter
-            if resourceConverter.isModule is false
-              resourceClass = UResource
-            if resourceConverter.isTerminal
-              break
+            if _.isFunction resourceConverter.dstFilename # use the converted dstFilename to match following converters (i.e not 'myDep.coffee' but 'myDep.js')
+              convFilename = resourceConverter.dstFilename convFilename
+
+            resourceClass = if resourceConverter.isModule then UModule else UResource #last converter determines Module || Resource
+            break if resourceConverter.isTerminal
 
         if _.isEmpty matchedConverters # no resourceConverters matched,
           resourceClass = BundleFile  # its just a bundle file
@@ -190,8 +193,9 @@ class Bundle extends BundleBase
             #####################################################################""" if l.deb 30
           for filename in filenames
             if uModule = @files[filename] # exists when refreshed, but not deleted
-              if uModule.hasChanged and (uModule instanceof UModule) # it has changed, conversion needed
+              if uModule?.hasChanged and (uModule instanceof UModule) # it has changed, conversion needed
                 uModule.convert @build
+                uModule.runResourceConverters (converter)-> converter.isAfterTemplate is true
 
         if not @isPartialBuild
           @hasFullBuild = true # note it's having a full build
@@ -327,8 +331,6 @@ class Bundle extends BundleBase
         (dep.type is Dependency.TYPES.global) and
         (dep.pluginName isnt 'node') and
         (dep.name(plugin:false) not in @dependencies.node)
-
-      l.log 'globalDepsVars=', globalDepsVars
 
       if _.any(globalDepsVars, (v)-> _.isEmpty v) and false
         l.err """

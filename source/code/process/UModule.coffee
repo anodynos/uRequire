@@ -218,7 +218,7 @@ class UModule extends UResource
       l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
       l.debug "module info = \n", _.pick @, [
           'moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps',
-          'parameters', 'webRootMap', 'rootExports'] if l.deb 70
+          'parameters', 'webRootMap', 'rootExports'] if l.deb 80
 
       @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
 

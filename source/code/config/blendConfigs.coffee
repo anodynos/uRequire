@@ -1,9 +1,10 @@
 _ = require 'lodash'
 fs = require 'fs'
-_B = require 'uberscore'
 require('butter-require')() # no need to store it somewhere
+_B = require 'uberscore'
 l = new _B.Logger 'urequire/blendConfigs'
 
+upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 
 ### Define the various Blenders used ###
@@ -40,31 +41,6 @@ moveKeysBlender = new _B.DeepCloneBlender [
   }
 #  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
 ]
-#
-#rootLevelKeys =
-#    name: 'myBundle'
-#    main: 'myMainLib'
-#    bundle: # 'bundle' and 'build' hashes have precedence over root items
-#      main: 'myLib'
-#    path: "/some/path"
-#    webRootMap: "."
-#    dependencies:
-#      depsVars: {}
-#      exports: bundle: {}
-#
-#    dstPath: ""
-#    forceOverwriteSources: false
-#    template: name: "UMD"
-#    watch: false
-#    noRootExports: false
-#    scanAllow: false
-#    allNodeRequires: false
-#    verbose: false
-#    debugLevel: 0
-#    done:->
-#
-#l.log a = moveKeysBlender.blend rootLevelKeys
-#l.log rootLevelKeys.done is a.done
 
 # Backwards compatibility:
 # rename DEPRACATED keys to their new ones
@@ -254,42 +230,40 @@ templateBlender = new _B.DeepCloneBlender [
 #        convert: ->
 #      }
 #    ]
+
+getResourceConverter = (name, filez, convert, dstFilename, isModule, isTerminal, isAfterTemplate)->
+  resource = {}
+  while name[0] in ['#', '*', '!']
+    switch name[0]
+      when '#' then isModule ?= false
+      when '*' then isTerminal ?= false
+      when '!' then isAfterTemplate ?= true
+    name = name[1..] # remove 1st char
+
+  #defaults
+  isTerminal ?= true
+  isModule ?= true
+  isAfterTemplate ?= false
+
+  if _.isString dstFilename
+    dstFilename = do (ext=dstFilename)->
+      (srcFilename)-> upath.changeExt srcFilename, ext
+
+  {name, filez, convert, dstFilename, isModule, isTerminal, isAfterTemplate}
+
 resourcesBlender = new _B.DeepCloneBlender [
   order:['path', 'src']
 
   '*': '|' :
     '[]': (prop, src)->
-      resource = src[prop]
-      name = resource[0]
-      while name[0] in ['#', '*']
-        switch name[0]
-          when '#' then isModule = false
-          when '*' then isTerminal = false
-        name = name[1..] # remove 1st char
-
-      isModule ?= true #default
-      isTerminal ?= true #default
-      filez = resource[1]
-      convert = resource[2]
-      dstFilename = resource[3]
-
-      {name, isModule, isTerminal, filez, convert, dstFilename}
+      r = src[prop]
+      getResourceConverter r[0], r[1], r[2], r[3]
 
     # also combine incomplete Object
     # @todo: 4 3 2 - Combine [] & {} into one
     '{}': (prop, src)->
-      resource = _.clone src[prop], true
-      while resource.name[0] in ['#', '*']
-        switch resource.name[0]
-          when '#' then resource.isModule ?= false
-          when '*' then resource.isTerminal ?= false
-        resource.name = resource.name[1..] # remove 1st char
-
-      # defaults
-      resource.isModule ?= true
-      resource.isTerminal ?= true
-
-      resource
+      r = src[prop]
+      getResourceConverter r.name, r.filez, r.convert, r.dstFilename, r.isModule, r.isTerminal, r.isAfterTemplate
 
 ]
 

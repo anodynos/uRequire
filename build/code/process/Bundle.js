@@ -136,7 +136,7 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.loadOrRefreshResources = function(filenames) {
-    var bundlefile, delMsgs, err, filename, isNew, matchedConverters, resourceClass, resourceConverter, sameDstFile, uerr, updateChanged, _i, _j, _len, _len1, _ref,
+    var bundlefile, convFilename, delMsgs, err, filename, isNew, matchedConverters, resourceClass, resourceConverter, sameDstFile, uerr, updateChanged, _i, _j, _len, _len1, _ref,
       _this = this;
     if (filenames == null) {
       filenames = this.filenames;
@@ -163,14 +163,16 @@ Bundle = (function(_super) {
         isNew = true;
         matchedConverters = [];
         resourceClass = UModule;
+        convFilename = filename;
         _ref = this.resources;
         for (_j = 0, _len1 = _ref.length; _j < _len1; _j++) {
           resourceConverter = _ref[_j];
-          if (isFileInSpecs(filename, resourceConverter.filez)) {
+          if (isFileInSpecs(convFilename, resourceConverter.filez)) {
             matchedConverters.push(resourceConverter);
-            if (resourceConverter.isModule === false) {
-              resourceClass = UResource;
+            if (_.isFunction(resourceConverter.dstFilename)) {
+              convFilename = resourceConverter.dstFilename(convFilename);
             }
+            resourceClass = resourceConverter.isModule ? UModule : UResource;
             if (resourceConverter.isTerminal) {
               break;
             }
@@ -290,8 +292,11 @@ Bundle = (function(_super) {
           for (_i = 0, _len = filenames.length; _i < _len; _i++) {
             filename = filenames[_i];
             if (uModule = this.files[filename]) {
-              if (uModule.hasChanged && (uModule instanceof UModule)) {
+              if ((uModule != null ? uModule.hasChanged : void 0) && (uModule instanceof UModule)) {
                 uModule.convert(this.build);
+                uModule.runResourceConverters(function(converter) {
+                  return converter.isAfterTemplate === true;
+                });
               }
             }
           }
@@ -459,7 +464,6 @@ Bundle = (function(_super) {
           plugin: false
         }), __indexOf.call(_this.dependencies.node, _ref1) < 0);
       });
-      l.log('globalDepsVars=', globalDepsVars);
       if (_.any(globalDepsVars, function(v) {
         return _.isEmpty(v);
       }) && false) {

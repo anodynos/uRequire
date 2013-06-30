@@ -33,9 +33,7 @@ module.exports = uRequireConfigMasterDefaults = {
           return (require('LiveScript')).compile(source, {
             bare: true
           });
-        }, function(srcFilename) {
-          return srcFilename.replace(/(.*)\.ls$/, '$1.js');
-        }
+        }, '.js'
       ]
     ],
     webRootMap: '.',

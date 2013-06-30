@@ -5,7 +5,6 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/UResource'
 
 # uRequire
-upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 Dependency = require "../Dependency"
@@ -50,36 +49,38 @@ class UResource extends BundleFile
         @hasErrors = true
         throw new UError "Error reading file '#{@srcFilepath}'", nested:err
 
-      try
-        if source and (@source isnt source)
-          # go through all converters, converting source & filename in turn
-          @source = @converted = source
-          @dstFilename = @filename
-          for converter in @converters
-            # convert source, or better the previous @converted from convert()
-            if _.isFunction converter.convert
-              l.debug "Converting '#{@dstFilename}' with '#{converter.name}'..." if l.deb 60
-              @converted = converter.convert @converted, @dstFilename
+      if source and (@source isnt source)
+        # go through all converters, converting source & filename in turn
+        @source = @converted = source
+        @dstFilename = @filename
 
-            #convert Filename
-            switch _B.type converter.dstFilename
-              when 'Function'
-                @dstFilename = converter.dstFilename @dstFilename
-              when 'String'
-                @dstFilename = upath.changeExt @dstFilename, converter.dstFilename
+        return @hasChanged = @runResourceConverters (conv)->not conv.isAfterTemplate
+      else
+        l.debug "No changes in source of resource '#{@filename}' " if l.deb 90
+        return @hasChanged = false
 
-            l.debug "...resource.dstFilename is '#{@dstFilename}'" if l.deb 95
+  # go through all converters, converting with each one
+  # Note: it acts on @converted & @dstFlename, leaving them in a new state
+  runResourceConverters: (convFilter=->true) ->
+    try
+      for converter in @converters when convFilter converter
 
-          @hasErrors = false
-          return @hasChanged = true
-        else
-          l.debug "No changes in source of resource '#{@filename}' " if l.deb 90
-          return @hasChanged = false
+        # convert source, or better the previous @converted from convert()
+        if _.isFunction converter.convert
+          l.debug "Converting '#{@dstFilename}' with '#{converter.name}'..." if l.deb 60
+          @converted = converter.convert @converted, @dstFilename
 
-      catch err
-        @hasErrors = true
-        l.err uerr = "Error converting '#{@filename}' with converter '#{converter?.name}'."
-        throw new UError uerr, nested:err
+        #convert Filename
+        if _.isFunction converter.dstFilename
+          @dstFilename = converter.dstFilename @dstFilename
+          l.debug "...resource.dstFilename is '#{@dstFilename}'" if l.deb 95
+
+      @hasErrors = false
+      return @hasChanged = true
+    catch err
+      @hasErrors = true
+      l.err uerr = "Error converting '#{@filename}' with converter '#{converter?.name}'."
+      throw new UError uerr, nested:err
 
   reset:-> super; delete @source; delete @converted
 

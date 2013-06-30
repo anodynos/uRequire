@@ -266,7 +266,7 @@ UModule = (function(_super) {
       this.noRootExports = this.build.noRootExports;
       this.moduleTemplate = new ModuleGeneratorTemplates(this);
       l.verbose("Converting '" + this.modulePath + "' with template = '" + this.build.template.name + "'");
-      if (l.deb(70)) {
+      if (l.deb(80)) {
         l.debug("module info = \n", _.pick(this, ['moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps', 'parameters', 'webRootMap', 'rootExports']));
       }
       this.converted = this.moduleTemplate[this.build.template.name]();

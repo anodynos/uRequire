@@ -2,6 +2,9 @@ chai = require 'chai'
 assert = chai.assert
 expect = chai.expect
 
+_B = require 'uberscore'
+l = new _B.Logger 'urequire/blendConfigs-spec'
+
 _ = require 'lodash'
 
 blendConfigs = require '../../code/config/blendConfigs'
@@ -17,7 +20,7 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
 
 resources =  [
   [
-    'Coffeescript' # a title of the resource
+    'Coffeescript' # a title of the resource (a module since its not starting with #)
     [
       '**/*.coffee'
       /.*\.(coffee\.md|litcoffee)$/i
@@ -28,7 +31,7 @@ resources =  [
   ]
 
   [
-    'Streamline' # a title of the resource
+    '!Streamline' # a title of the resource (a module since its not '#', but with isAfterTemplate:true due to '!'
     '**/*._*'
     (source)-> source
     (filename)-> filename.replace '._js', '.js' # dummy filename converter
@@ -47,7 +50,7 @@ resources =  [
   ]
 
   {
-    name: '#IamAModule' #a module (although starting with '#')
+    name: '#IamAModule' # a module (although starting with '#')
     isModule: true      # this is respected over starting with '#'
     filez: '**/*.module'
     convert: ->
@@ -57,8 +60,6 @@ resources =  [
 expectedResources = [
   {
     name: 'Coffeescript'
-    isModule: true
-    isTerminal: true
     filez: [
        '**/*.coffee'
        /.*\.(coffee\.md|litcoffee)$/i
@@ -66,41 +67,49 @@ expectedResources = [
      ]
     convert: resources[0][2]
     dstFilename: resources[0][3]
+    isModule: true
+    isTerminal: true
+    isAfterTemplate: false
   }
 
   {
     name: 'Streamline'
-    isModule: true
-    isTerminal: true
     filez: '**/*._*'
     convert: resources[1][2]
     dstFilename: resources[1][3]
+    isModule: true
+    isTerminal: true
+    isAfterTemplate: true
   }
 
   {
     name: 'NonModule'
-    isModule: false
-    isTerminal: true
     filez: '**/*.nonmodule'
     convert: resources[2].convert
-    #dstFilename: undefined # not added as undefined in objs
+    dstFilename: undefined
+    isModule: false
+    isTerminal: true
+    isAfterTemplate: false
   }
 
   {
     name: 'NonModule-NonTerminal resource'
-    isModule: false
-    isTerminal: false
     filez: '**/*.ext'
     convert: resources[3][2]
     dstFilename: resources[3][3]
+    isModule: false
+    isTerminal: false
+    isAfterTemplate: false
   }
 
   {
     name: 'IamAModule'
-    isModule: true
-    isTerminal: true
     filez: '**/*.module'
     convert: resources[4].convert
+    dstFilename: undefined
+    isModule: true
+    isTerminal: true
+    isAfterTemplate: false
   }
 
 ]
@@ -111,9 +120,9 @@ describe '`uRequireConfigMasterDefaults` consistency', ->
                          _.keys(uRequireConfigMasterDefaults.build)
     ).to.be.true
 
-describe 'blendConfigs & its Blenders', ->
+describe 'blendConfigs & its Blenders: ', ->
 
-  describe 'moveKeysBlender', ->
+  describe 'moveKeysBlender:', ->
     it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where they are on `uRequireConfigMasterDefaults`", ->
       rootLevelKeys =
           name: 'myBundle'

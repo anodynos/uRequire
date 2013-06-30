@@ -179,7 +179,7 @@ Defines an array of text-based resource converters (eg compilers), that perform 
 
 Each resource converter has:
 
- * `name` a simple name eg. `'coffee-script'` @todo: should be unique
+ * `name` a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of this name - see below. @todo: `name` should be unique
 
  * `filez` - a [`filez`](urequireconfigmasterdefaults.coffee#bundle.filez) spec of the files it deals with.
 
@@ -187,34 +187,62 @@ Each resource converter has:
 
  * `dstFilename` - a `function(filename){return convertFn(filename)}` that converts a *source* filename to its *destination* filename, eg `'file.coffee'-> 'file.js'`.
 
-### resource types 
+ * flags `isModule`, `isTerminal` & `isAfterTemplate` that can be easily defined via `name` flags - explained below.
+
+### resource types & `isModule`
 
 Each resource converter can deal with either: 
 
-  * a *textual/utf-8* **Resource**, eg a .css file, denoted either with a `isModule:false` or via a `'!'` flag preceding its name eg `name:'!less'`. Key has precedence.
+#### Resource
 
-  * a **Module**, which is *javascript code* with node/commonjs `require` or AMD style `define`/`require` dependencies. Each module is converted just like a *textual/utf-8* **Resource**, but its dependencies come into play and ultimately it is converted through the chosen [`template`](urequireconfigmasterdefaults.coffee#build.template). Its is again denoted either via key `isModule:true` or via a lack of `'!'` flag preceding name (key has precedence).
+Any *textual/utf-8* **Resource**, eg a .css file, is denoted either with a `isModule:false` or via a `'#'` flag preceding its `name` eg `name:'#less'`.
+
+By default `isModule:true`.
+
+_Key has precedence over name flag, if object format is used - see @type._
+
+#### Module
+
+A **Module** is *javascript code* with node/commonjs `require` or AMD style `define`/`require` dependencies.
+
+Each Module is converted just like a *textual/utf-8* **Resource**, but its dependencies come into play and ultimately it is converted through the chosen [`template`](urequireconfigmasterdefaults.coffee#build.template).
+
+Its is denoted either via key `isModule:true` or via a lack of `'#'` flag preceding its name.
+
+_Again key has precedence over name flag, if object format is used - see @type._
+
+Note: As filenames are filtered through resource coverters and attach those that match, the last matching converter's `isModule` property will determine if the file will be treated as a Resource or a Module.
   
-### final 
+### isTerminal
 
-Each converter that matches a resource filename, is used in turn during the build process, converting from one format to the next, using the converted source and dstFilename as the input to the next converter. A resource converter can denote it self as `isFinal:true` (or use a flag `'*'`). For `isFinal:true` converters, uRequire will not go through subsequent resource converters (i.e only the first matching resource converter will be used).
+A converter can be `isTerminal:true` (the default) or `isTerminal:false`.
 
-### details
+uRequire uses each matching converter in turn during the build process, converting from one format to the next, using the converted source and dstFilename as the input to the next converter. All that until the first `isTerminal:true` converter is encountered, where the resource conversion process stops.
+
+A converter is by default `isTerminal:true` and can denote it self as `isTerminal:false` in the object format or by using the name flag `'*'`.
+
+### isAfterTemplate
+
+A converter with `isAfterTemplate:true` (refers only to Module converters) will run after the module is converted through its template (eg 'UMD'). By default `isAfterTemplate:false`. Use the `'!'` name flag to denote `isAfterTemplate:true`. 
+
+### details & examples
 
 @derive [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
 
 @optional unless you want to add resource converters for your *TypeScript*, *coco* or other conversion needs.
 
-@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an Object or an Array (for simpler descriptions). Check the following code [(that is actually part of uRequire)](#Literate), that defines some basic text resource converters ('coffee-script' & 'LiveScript'):
+@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object' or an 'Array' (for simpler descriptions). See @example below
+
+@example Check the following code [(that is actually part of uRequire)](#Literate), that defines some basic text resource converters ('coffee-script' & 'LiveScript'):
 
       resources: [ # an array of resource converters
 
-        # the 'proper' way to define a resource converter is an object like this:
+        # the 'Object' way to define a resource converter is an object like this:
         {
-          name: '*Javascript'         # '*' flag denotes non-terminal.
-                                      # Default is terminal, which means no other (subsequent) resource converters will be visited.
+          name: '*Javascript'         # '*' flag denotes isTerminal:false.
+                                      # Default `isTerminal:true`, which means no other (subsequent) resource converters will be visited.
 
-          filez: [                    # similar to `bundle.filez`, defines what files are converted with this converter
+          filez: [                    # type like to `bundle.filez`, defines matching files, converted with this converter
 
             '**/*.js'    # minimatch string (ala grunt's 'file' expand or node-glob)
 
@@ -228,16 +256,16 @@ Each converter that matches a resource filename, is used in turn during the buil
             (require '../paths/upath').changeExt filename, 'js'
         }
 
-        # the alternative (& easier) way of declaring a Converter: using an [] instead of {}
+        # the alternative (& easier) 'Array' way of declaring a Converter: using an [] instead of {}
         [
-          '*coffee-script'                                 # name at pos 0
+          '*coffee-script'                                 # name & flags as a String at pos 0
 
-          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez at pos 1
+          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez [] at pos 1
 
-          (source, srcFilename)->                          # convert function at pos 2
+          (source, srcFilename)->                          # convert Function at pos 2
             (require 'coffee-script').compile source, bare:true
 
-          (srcFilename)->                                  # dstFilename function at pos 3
+          (srcFilename)->                                  # dstFilename Function at pos 3
             ext = srcFilename.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1"  # retrieve matched extension, eg 'coffee.md'
             srcFilename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
         ]
@@ -245,7 +273,7 @@ Each converter that matches a resource filename, is used in turn during the buil
         # or in short
         [ '*LiveScript', [ '**/*.ls']
           (source)-> (require 'LiveScript').compile source, bare:true
-          (srcFilename)-> srcFilename.replace /(.*)\.ls$/, '$1.js' ]
+          '.js'] # if dstFilename is a String, it denotes the extension to change in the srcFilename
       ]
 
 @stability: 2 - Unstable
@@ -396,7 +424,7 @@ Output converted files onto this
 
 Output on the same directory as the _source_ [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path), overwriting all files. Useful if your sources are not *real sources*.
 
-WARNING: when true, [build.dstPath](urequireconfigmasterdefaults.coffee#build.dstPath) is ignored and takes the value of [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path).
+@note: Be warned that when `true`, [build.dstPath](urequireconfigmasterdefaults.coffee#build.dstPath) is ignored and always takes the value of [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path).
 
       forceOverwriteSources: false
 
@@ -416,7 +444,9 @@ The *watch feature* of uRequire works with:
 
 * Standalone urequireCmd, setting `watch: true` or -w flag.
 
-* Instead of `watch:true`, you use [grunt-urequire >=0.4.4](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.4.4](https://github.com/gruntjs/grunt-contrib-watch). 
+* Instead of `watch:true`, you use [grunt-urequire >=0.4.4](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.4.4](https://github.com/gruntjs/grunt-contrib-watch).
+
+@note at each `watch` event there is a *partial build* carried out. You are advised to have a full build (eg run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`) within the same invocation of grunt (eg run `grunt urequire:xxx watch:xxx`) so that all modules & their dependencies are loaded. In some cases (eg `combined` template) a full build is enforced by urequire.
 
       watch: false
 
@@ -432,7 +462,9 @@ When true, it ignores all rootExports {& noConflict()} defined in all module fil
 
 * Use `'bundle'` instead of `true` to ignore those defined in `bundle.exports.root` @todo: NOT IMPLEMENTED
 
-* Use 'all' to ignore all root exports @todo: NOT IMPLEMENTED
+* Use `'all'` to ignore all root exports @todo: NOT IMPLEMENTED
+
+@type boolean | 'bundle' | 'all'
 
       noRootExports: false
 
