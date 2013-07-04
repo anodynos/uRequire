@@ -14,11 +14,13 @@
   }
  ],
  "keywords": [
+    "javascript",
     "modules", "module", "modular", "format",
     "convert", "converter", "conversion",
     "commonjs", "AMD", "UMD", "UMDjs",
-    "requirejs","require", "define", "umdify",
-    "nodefy", "browserify", "dependency", "dependencies",
+    "requirejs","require", "define",
+    "umdify", "nodefy", "browserify", "Stitch", "StitchUp",
+    "Montage Require", "dependency", "dependencies",
     "bundle", "package"
  ],
  "repository": {

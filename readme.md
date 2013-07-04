@@ -2,7 +2,7 @@
 
 ### The JavaScript Universal Module Converter
 
-All documentation is moved to the wiki and soon @ http://urequire.org
+All documentation is moved to the wiki and http://urequire.org
 
 # License
 The MIT License

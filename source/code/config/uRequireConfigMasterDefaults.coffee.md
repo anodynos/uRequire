@@ -324,18 +324,15 @@ By default no known node packages like `'util'`, `'fs'` etc are part of `bundle.
 
 ### bundle.dependencies.depsVars
 
-Global dependencies (eg 'underscore') are by default not part of a `combined` file. Each global dep has one or more variables it is exported as, eg `jquery: ["$", "jQuery"]`. At run time, when running on web side as a standalone .js <script/>, the script will _load_ the dependency from the global object, using the exported global variable.
+Global dependencies (eg 'underscore') are by default not part of a `combined` file. Each global dep has one or more variables it is exported as, eg `jquery: ["$", "jQuery"]`. At run time, when running on web side as a standalone .js <script/>, the script will _load_ the dependency from the global object, using the exported global variable(s).
 
-Variable names can be infered from the code by uRequire, when you used this binding implicitly (AMD only for now), for example `define ['jquery'], ('$')->`. You can choose to list them here to be precise.
+Variable names can be infered from the code by uRequire, when you used this binding implicitly (AMD only for now), for example `define ['jquery'], ('$')->` binds variable `$` with dependency `'jquery'`. You can choose to list them here to be precise.
 
-@type 
-* `['dep1', 'dep2']` (with varnames looked up in [`bundle.dependencies.depsvars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsvars))
+@type `{ dependency1: ['varName1', 'varName2'], dep2:[..], ...}`
 
-* `{ dependency1: [varName1, varName2], ...}`
+@derive Each dependency name/key of child configs is added to the resulted object, if not already there. Its variables are then [ArrayizeUniquePush](urequireconfigmasterdefaults.coffee#tags-legend) onto the existing array. For example for child `{myDep1: ['myDep1Var1', 'myDep1Var3'], myDep2: 'myDep2Var'}` with parent `{myDep1: ['myDep1Var1', 'myDep1Var2']}` the result derived object will be `{myDep1: ['myDep1Var1', 'myDep1Var2', 'myDep1Var3'], myDep2: ['myDep2Var']}`.
 
-@example `{'underscore': '_', 'jquery': ["$", "jQuery"], 'models/PersonModel': ['persons', 'personsModel']}` will make all modules in the bundle have `_`, `$`, `jQuery`, `persons` and `personsModel` variables injected.
-
-@note In case they can't be identified from modules (i.e you solely use 'nodejs' format), and aren't in `bundle.dependencies.depsVars`, 'combined/almond' build will fail.
+@note In case variable names can't be identified from modules (i.e you solely use 'nodejs' format), and aren't in `bundle.dependencies.depsVars`, 'combined/almond' build will fail.
 
 @alias variableNames DEPRACATED
 
@@ -343,9 +340,9 @@ Variable names can be infered from the code by uRequire, when you used this bind
 
 ### bundle.dependencies._knownDepsVars
 
-Some known depsVars, have them as backup - its a private field, not meant to be extended by users.
+Some known depsVars, have them as backup - its a private field, not meant to be extended by users (use .
 
-@type see [bundle.dependencies.depsVars](bundle.dependencies.depsVars)
+@type see [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)
 
 @alias _knownVariableNames DEPRACATED
 
@@ -368,9 +365,19 @@ Holds keys related to binding and exporting modules (i.e making them available t
 
 #### bundle.dependencies.exports.bundle
 
-Each dep will be available in the *whole bundle* under varName(s) - i.e they are global to your bundle. Effectively this means that each module will have an injection of all `exports.bundle` dependencies/var bindings, so you don't have to list them in each module.
+Allows you to export (i.e have available) modules throughout the bundle.
 
-@type see [bundle.dependencies.depsVars](bundle.dependencies.depsVars)
+Each dependency will be available in the *whole bundle* under varName(s) - i.e they will be like *globals* to your bundle. Effectively this means that each module will have an *injection* of all `dependencies.exports.bundle` dependencies/var bindings, so you don't have to list them in each module.
+
+@type either :
+
+* like [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)
+
+* `['dep1', 'dep2']` with varnames looked up in [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)) or discovered by your module declarations.
+
+@derive see [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)
+
+@example `{'underscore': '_', 'jquery': ["$", "jQuery"], 'models/PersonModel': ['persons', 'personsModel']}` will make ALL modules in the bundle have `_`, `$`, `jQuery`, `persons` and `personsModel` variables injected.
 
 @alias `bundleExports` DEPRACATED
 
