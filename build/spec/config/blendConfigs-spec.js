@@ -292,23 +292,55 @@ describe('blendConfigs & its Blenders: ', function() {
   });
   describe("`dependenciesBindingsBlender` converts to proper dependenciesBinding structure\n{dependency1:ArrayOfDep1Bindings, dependency2:ArrayOfDep2Bindings, ...}\ni.e `{lodash:['_'], jquery: ['$']}` :", function() {
     it("converts String: `'lodash'`  --->   `{lodash:[]}`", function() {
-      return expect(dependenciesBindingsBlender.blend('lodash')).to.deep.equal({
+      expect(dependenciesBindingsBlender.blend('lodash')).to.deep.equal({
         lodash: []
       });
-    });
-    it("converts Array<String>: `['lodash', 'jquery']` ---> `{lodash:[], jquery:[]}`", function() {
-      return expect(dependenciesBindingsBlender.blend(['lodash', 'jquery'])).to.deep.equal({
+      expect(dependenciesBindingsBlender.blend(void 0, 'lodash', 'jquery')).to.deep.equal({
+        lodash: [],
+        jquery: []
+      });
+      return expect(dependenciesBindingsBlender.blend({
+        knockout: ['ko']
+      }, 'lodash', 'jquery')).to.deep.equal({
+        knockout: ['ko'],
         lodash: [],
         jquery: []
       });
     });
-    it("converts Object {lodash:['_'], jquery: '$'}` ---> {lodash:['_'], jquery: ['$']}`", function() {
+    it("converts Array<String>: `['lodash', 'jquery']` ---> `{lodash:[], jquery:[]}`", function() {
+      expect(dependenciesBindingsBlender.blend(['lodash', 'jquery'])).to.deep.equal({
+        lodash: [],
+        jquery: []
+      });
+      return expect(dependenciesBindingsBlender.blend({
+        lodash: '_',
+        knockout: ['ko']
+      }, ['lodash', 'jquery'])).to.deep.equal({
+        lodash: ['_'],
+        knockout: ['ko'],
+        jquery: []
+      });
+    });
+    it("converts Object {lodash:['_'], jquery: '$'}` = {lodash:['_'], jquery: ['$']}`", function() {
       return expect(dependenciesBindingsBlender.blend({
         lodash: ['_'],
         jquery: '$'
       })).to.deep.equal({
         lodash: ['_'],
         jquery: ['$']
+      });
+    });
+    it("blends {lodash:['_'], jquery: ['$']} <-- {knockout:['ko'], jquery: ['jQuery']}`", function() {
+      return expect(dependenciesBindingsBlender.blend({
+        lodash: '_',
+        jquery: ['$', 'jquery']
+      }, {
+        knockout: ['ko', 'Knockout'],
+        jquery: 'jQuery'
+      })).to.deep.equal({
+        lodash: ['_'],
+        knockout: ['ko', 'Knockout'],
+        jquery: ['$', 'jquery', 'jQuery']
       });
     });
     return it("converts from all in chain ", function() {
@@ -439,17 +471,20 @@ describe('blendConfigs & its Blenders: ', function() {
             node: ['fs'],
             exports: {
               bundle: {
-                lodash: "_"
+                lodash: "_",
+                backbone: ['Backbone', 'BB']
               }
             }
           },
           filez: ['**/*.coffee.md', '**/*.ls'],
+          copy: /./,
           dstPath: "build/code",
           template: 'UMD'
         }, {
           bundle: {
             path: "source/code",
             filez: ['**/*.litcoffee'],
+            copy: ['**/*.html'],
             ignore: [/^draft/],
             dependencies: {
               node: 'util',
@@ -480,6 +515,14 @@ describe('blendConfigs & its Blenders: ', function() {
             }
           },
           dstPath: "some/useless/default/path"
+        }, {
+          dependencies: {
+            bundleExports: ['backbone', 'unusedDep']
+          }
+        }, {
+          dependencies: {
+            bundleExports: 'dummyDep'
+          }
         }, {}, {
           derive: [
             {
@@ -495,6 +538,7 @@ describe('blendConfigs & its Blenders: ', function() {
                 derive: {
                   resources: resources.slice(0, 2),
                   derive: {
+                    copy: ['!**/*.*'],
                     template: {
                       name: 'combined',
                       dummyOption: 'dummy'
@@ -525,6 +569,7 @@ describe('blendConfigs & its Blenders: ', function() {
             path: "source/code",
             main: "index",
             filez: ['**/*.*', '**/*.litcoffee', '!', /^draft/, '**/*.coffee.md', '**/*.ls'],
+            copy: ['!**/*.*', '**/*.html', /./],
             resources: expectedResources,
             dependencies: {
               node: ['util', 'fs'],
@@ -533,7 +578,10 @@ describe('blendConfigs & its Blenders: ', function() {
                   'spec-data': ['dataInDerive2', 'dataInDerive1', 'data'],
                   chai: ['chai'],
                   uberscore: ['_B'],
-                  lodash: ['_']
+                  lodash: ['_'],
+                  backbone: ['Backbone', 'BB'],
+                  unusedDep: [],
+                  dummyDep: []
                 }
               },
               depsVars: {

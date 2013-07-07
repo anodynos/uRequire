@@ -292,14 +292,27 @@ describe 'blendConfigs & its Blenders: ', ->
         dependenciesBindingsBlender.blend 'lodash'
       ).to.deep.equal {lodash:[]}
 
+      expect(
+        dependenciesBindingsBlender.blend undefined, 'lodash', 'jquery'
+      ).to.deep.equal {lodash:[], jquery:[]}
+
+      expect(
+        dependenciesBindingsBlender.blend {knockout:['ko']}, 'lodash', 'jquery'
+      ).to.deep.equal {knockout:['ko'], lodash:[], jquery:[]}
+
+
 
     it "converts Array<String>: `['lodash', 'jquery']` ---> `{lodash:[], jquery:[]}`", ->
       expect(
         dependenciesBindingsBlender.blend ['lodash', 'jquery']
       ).to.deep.equal {lodash: [], jquery: []}
 
+      expect(
+        dependenciesBindingsBlender.blend {lodash: '_', knockout:['ko']}, ['lodash', 'jquery']
+      ).to.deep.equal {lodash: ['_'], knockout:['ko'], jquery: []}
 
-    it "converts Object {lodash:['_'], jquery: '$'}` ---> {lodash:['_'], jquery: ['$']}`", ->
+
+    it "converts Object {lodash:['_'], jquery: '$'}` = {lodash:['_'], jquery: ['$']}`", ->
       expect(
         dependenciesBindingsBlender.blend
           lodash: ['_'] #as is
@@ -307,6 +320,16 @@ describe 'blendConfigs & its Blenders: ', ->
       ).to.deep.equal
         lodash:['_']
         jquery: ['$']
+
+    it "blends {lodash:['_'], jquery: ['$']} <-- {knockout:['ko'], jquery: ['jQuery']}`", ->
+      expect(
+        dependenciesBindingsBlender.blend {lodash:'_', jquery: ['$', 'jquery']},
+                                          {knockout:['ko', 'Knockout'], jquery: 'jQuery'}
+      ).to.deep.equal {
+        lodash: ['_']
+        knockout: ['ko', 'Knockout']
+        jquery: ['$', 'jquery', 'jQuery']
+      }
 
     it "converts from all in chain ", ->
       expect(
@@ -373,16 +396,19 @@ describe 'blendConfigs & its Blenders: ', ->
             node: ['fs']
             exports: bundle:
               lodash: "_"
+              backbone: ['Backbone', 'BB']
           filez: [
             '**/*.coffee.md'
             '**/*.ls'
           ]
+          copy: /./
           dstPath: "build/code"
           template: 'UMD'
         ,
           bundle:
             path: "source/code"
             filez: ['**/*.litcoffee'] # added at pos 1
+            copy: ['**/*.html']
             ignore: [/^draft/]        # negated with '!' and added at pos 2 & 3
             dependencies:
               node: 'util'
@@ -406,10 +432,14 @@ describe 'blendConfigs & its Blenders: ', ->
 
             bundleExports:
               chai: 'chai'
-              uberscore: ['uberscore', 'B', 'B_']
+              uberscore: ['uberscore', 'B', 'B_'] # reset above
               'spec-data': 'data'
 
           dstPath: "some/useless/default/path"
+        ,
+          {dependencies:bundleExports: ['backbone', 'unusedDep']}
+        ,
+          {dependencies:bundleExports: 'dummyDep'}
         ,
           {}
         ,
@@ -421,6 +451,7 @@ describe 'blendConfigs & its Blenders: ', ->
                 derive:
                   resources: resources[0..1]
                   derive:
+                    copy: ['!**/*.*']
                     template:
                       name: 'combined'
                       dummyOption: 'dummy'
@@ -448,6 +479,7 @@ describe 'blendConfigs & its Blenders: ', ->
               '**/*.coffee.md'    # comes from first (highest precedence) config
               '**/*.ls'           # as above
             ]
+            copy: ['!**/*.*', '**/*.html', /./]
             resources: expectedResources
             dependencies:
               node: ['util', 'fs']
@@ -456,8 +488,12 @@ describe 'blendConfigs & its Blenders: ', ->
                 chai: ['chai']
                 uberscore: ['_B']
                 lodash: ['_']
+                backbone: ['Backbone', 'BB']
+                unusedDep: []
+                dummyDep: []
               depsVars:
                 uberscore: ['_B']
+
           build:
             verbose: true
             dstPath: "build/code"

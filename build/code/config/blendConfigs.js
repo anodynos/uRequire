@@ -138,6 +138,13 @@ bundleBuildBlender = new _B.DeepCloneBlender([
           }
         }
       },
+      copy: {
+        '|': {
+          '*': function(prop, src, dst) {
+            return arrayizePusher.blend(dst[prop], src[prop]);
+          }
+        }
+      },
       resources: {
         '|': {
           '*': function(prop, src, dst) {
@@ -176,13 +183,6 @@ bundleBuildBlender = new _B.DeepCloneBlender([
       return dependenciesBindingsBlender.blend(dst[prop], src[prop]);
     },
     build: {
-      copy: {
-        '|': {
-          '*': function(prop, src, dst) {
-            return arrayizePusher.blend(dst[prop], src[prop]);
-          }
-        }
-      },
       template: {
         '|': {
           '*': function(prop, src, dst) {
@@ -248,20 +248,38 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender([
   {
     order: ['src'],
     'String': function(prop, src, dst) {
-      return arrayizeUniquePusher.blend(dst[prop], _B.okv({}, src[prop], []));
+      var _base, _name;
+      dst[prop] || (dst[prop] = {});
+      (_base = dst[prop])[_name = src[prop]] || (_base[_name] = []);
+      return dst[prop];
     },
     'Array': function(prop, src, dst) {
-      var varBindings;
-      varBindings = {};
-      _B.go(src[prop], {
-        grab: function(v) {
-          return varBindings[v] || (varBindings[v] = []);
-        }
-      });
-      return arrayizeUniquePusher.blend(dst[prop], varBindings);
+      var dep, _i, _len, _ref;
+      if (!_.isPlainObject(dst[prop])) {
+        dst[prop] = {};
+      } else {
+        _B.mutate(dst[prop], _B.arrayize);
+      }
+      _ref = src[prop];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        dep = _ref[_i];
+        dst[prop][dep] = _B.arrayize(dst[prop][dep]);
+      }
+      return dst[prop];
     },
     'Object': function(prop, src, dst) {
-      return arrayizeUniquePusher.blend(dst[prop], src[prop]);
+      var dep, depVars, _ref;
+      if (!_.isPlainObject(dst[prop])) {
+        dst[prop] = {};
+      } else {
+        _B.mutate(dst[prop], _B.arrayize);
+      }
+      _ref = src[prop];
+      for (dep in _ref) {
+        depVars = _ref[dep];
+        dst[prop][dep] = arrayizeUniquePusher.blend(dst[prop][dep], depVars);
+      }
+      return dst[prop];
     }
   }
 ]);

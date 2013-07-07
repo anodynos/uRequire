@@ -233,7 +233,7 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
 
 @type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object' or an 'Array' (for simpler descriptions). See @example below
 
-@example Check the following code [(that is actually part of uRequire)](#Literate), that defines some basic text resource converters ('coffee-script' & 'LiveScript'):
+@example Check the following code [(that is actually part of uRequire)](#Literate-Coffescript), that defines some basic text resource converters ('coffee-script' & 'LiveScript'):
 
       resources: [ # an array of resource converters
 

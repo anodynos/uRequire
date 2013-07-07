@@ -65,7 +65,7 @@ class UResource extends BundleFile
     try
       for converter in @converters when convFilter converter
 
-        # convert source, or better the previous @converted from convert()
+        # convert source (i.e the previous @converted from convert(), intially its source)
         if _.isFunction converter.convert
           l.debug "Converting '#{@dstFilename}' with '#{converter.name}'..." if l.deb 60
           @converted = converter.convert @converted, @dstFilename

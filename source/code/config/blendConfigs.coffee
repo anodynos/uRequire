@@ -106,24 +106,29 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
       filez: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
 
+      copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
+
       resources: '|' : '*': (prop, src, dst)->
         arrayizePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
 
       dependencies:
+
         node: '|': '*': (prop, src, dst)-> arrayizeUniquePusher.blend dst[prop], src[prop]
 
         exports:
+
           bundle: '|': '*': 'dependenciesBindings'
+
           #root: NOT IMPLEMENTED
+
         depsVars: '|': '*': 'dependenciesBindings'
+
         _knownDepsVars: '|': '*': 'dependenciesBindings'
 
     dependenciesBindings: (prop, src, dst)->
       dependenciesBindingsBlender.blend dst[prop], src[prop]
 
     build:
-
-      copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
 
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
@@ -174,16 +179,33 @@ to the existing? corresponding array on the destination
 dependenciesBindingsBlender = new _B.DeepCloneBlender [
   order: ['src']                                                     # our src[prop] (i.e. depsVars eg exports.bundle) is either a:
 
-  'String': (prop, src, dst)->                                       # * String eg  'lodash'.
-    arrayizeUniquePusher.blend dst[prop], _B.okv({}, src[prop], [])  #   convert to {'lodash':[]}
+  'String': (prop, src, dst)->                                       # String eg  'lodash', convert to {'lodash':[]}
+    dst[prop] or= {}
+    dst[prop][src[prop]] or= []                                      # set a 'lodash' key with `[]` as value on our dst
+    dst[prop]
 
-  'Array': (prop, src, dst)->                                        # * Array, eg  `['lodash', 'jquery']`
-    varBindings = {}
-    _B.go src[prop], grab: (v)-> varBindings[v] or= []               #   convert to `{lodash:[], jquery:[]}`
-    arrayizeUniquePusher.blend dst[prop], varBindings
+  'Array': (prop, src, dst)->                                        # Array, eg  `['lodash', 'jquery']`, convert to `{lodash:[], jquery:[]}`
+    if not _.isPlainObject dst[prop]
+      dst[prop] = {} # dependenciesBindingsBlender.blend {}, dst[prop] @todo: why call with 'jquery' returns { j: [] }, '1': { q: [] }, '2': { u: [] }, ....}
+    else
+      _B.mutate dst[prop], _B.arrayize
 
-  'Object': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}
-    arrayizeUniquePusher.blend dst[prop], src[prop]                  #   convert to    `{lodash:['???'], ...}`
+    for dep in src[prop]
+      dst[prop][dep] = _B.arrayize dst[prop][dep]
+
+    dst[prop]
+
+  'Object': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}, convert to    `{lodash:['???'], ...}`
+    if not _.isPlainObject dst[prop]
+      dst[prop] = {} # dependenciesBindingsBlender.blend {}, dst[prop] @todo: why call with 'jquery' returns { j: [] }, '1': { q: [] }, '2': { u: [] }, ....}
+    else
+      _B.mutate dst[prop], _B.arrayize
+
+    for dep, depVars of src[prop]
+      dst[prop][dep] = arrayizeUniquePusher.blend dst[prop][dep], depVars
+
+    dst[prop]
+
 ]
 
 deepCloneBlender = new _B.DeepCloneBlender
@@ -329,4 +351,3 @@ _.extend blendConfigs, {
   dependenciesBindingsBlender
   bundleBuildBlender
 }
-
