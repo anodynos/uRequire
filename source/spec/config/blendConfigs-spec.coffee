@@ -44,14 +44,14 @@ resources =  [
   }
 
   [
-    '#*NonModule-NonTerminal resource' #a non-module & non-terminal (starting with '#' & '*')
+    '@*~UFileResource-NonTerminal resource' #a UFileResource (@), isTerminal:false (*) and isMatchSrcFilename:true (~)
     '**/*.ext'
     (source)-> source
   ]
 
   {
     name: '#IamAModule' # a module (although starting with '#')
-    isModule: true      # this is respected over starting with '#'
+    type: 'module' # this is respected over starting with '#'
     filez: '**/*.module'
     convert: ->
   }
@@ -65,9 +65,10 @@ expectedResources = [
        /.*\.(coffee\.md|litcoffee)$/i
        '!**/*.amd.coffee'
      ]
+    isMatchSrcFilename: false
     convert: resources[0][2]
     dstFilename: resources[0][3]
-    isModule: true
+    type: 'module'
     isTerminal: true
     isAfterTemplate: false
   }
@@ -75,9 +76,10 @@ expectedResources = [
   {
     name: 'Streamline'
     filez: '**/*._*'
+    isMatchSrcFilename: false
     convert: resources[1][2]
     dstFilename: resources[1][3]
-    isModule: true
+    type: 'module'
     isTerminal: true
     isAfterTemplate: true
   }
@@ -85,19 +87,21 @@ expectedResources = [
   {
     name: 'NonModule'
     filez: '**/*.nonmodule'
+    isMatchSrcFilename: false
     convert: resources[2].convert
     dstFilename: undefined
-    isModule: false
+    type: 'text'
     isTerminal: true
     isAfterTemplate: false
   }
 
   {
-    name: 'NonModule-NonTerminal resource'
+    name: 'UFileResource-NonTerminal resource'
     filez: '**/*.ext'
+    isMatchSrcFilename:true
     convert: resources[3][2]
     dstFilename: resources[3][3]
-    isModule: false
+    type: 'file'
     isTerminal: false
     isAfterTemplate: false
   }
@@ -105,9 +109,10 @@ expectedResources = [
   {
     name: 'IamAModule'
     filez: '**/*.module'
+    isMatchSrcFilename: false
     convert: resources[4].convert
     dstFilename: undefined
-    isModule: true
+    type: 'module'
     isTerminal: true
     isAfterTemplate: false
   }
@@ -280,7 +285,8 @@ describe 'blendConfigs & its Blenders: ', ->
 
   describe "resourcesBlender:", ->
     it "converts array of array resources into array of object resources", ->
-      expect(resourcesBlender.blend resources).to.deep.equal expectedResources
+      l.log result = resourcesBlender.blend resources
+      expect(result).to.deep.equal expectedResources
 
   describe """
            `dependenciesBindingsBlender` converts to proper dependenciesBinding structure

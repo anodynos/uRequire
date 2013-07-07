@@ -135,7 +135,7 @@ Each matching file is considered to be either:
 
 * _Module_ - A Module is like a _Resource_, but its also a Javascript Module whose Dependencies we monitor and as the last build step we convert it through the [`build.template`](urequireconfigmasterdefaults.coffee#build.template). A Module is ultimately JavaScript code, that is perhaps expressed is some other compiled-to-js language like Coffeescript.
 
-`Resource` & `Module` are only those files that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources) are considered `BundleFile`s.
+`Resource` & `Module` are only those files that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources) are considered `UBundleFile`s.
 
 @type filename specifications (or simply filenames), expressed in either:
 
@@ -159,7 +159,7 @@ Each matching file is considered to be either:
 
 ## bundle.copy
 
-Copy (binary) of all non-resource [`BundleFile`](urequireconfigmasterdefaults.coffee#bundle.filez)s to [`dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) as a convenience. When [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) is used, it monitors file size & timestamp and copies (overwrites) changed files.
+Copy (binary) of all non-resource [`UBundleFile`](urequireconfigmasterdefaults.coffee#bundle.filez)s to [`dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) as a convenience. When [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) is used, it monitors file size & timestamp and copies (overwrites) changed files.
 
 @example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]`
 

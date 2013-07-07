@@ -17,8 +17,9 @@ DependenciesReporter = require './../DependenciesReporter'
 UError = require '../utils/UError'
 
 #our file types
-BundleFile = require './BundleFile'
-UResource = require './UResource'
+UBundleFile = require './UBundleFile'
+UTextResource = require './UTextResource'
+UFileResource = require './UFileResource'
 UModule = require './UModule'
 
 Build = require './Build'
@@ -50,12 +51,12 @@ class Bundle extends BundleBase
 
   @property
     uModules: get:-> _.pick @files, (file)-> file instanceof UModule
-    uResources: get:-> _.pick @files, (file)-> file instanceof UResource
+    uResources: get:-> _.pick @files, (file)-> file instanceof UFileResource # includes UTextResource
 
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
 
-    If a filename is new, create a new BundleFile (or more interestingly a UResource or UModule)
+    If a filename is new, create a new UBundleFile (or more interestingly a UTextResource or UModule)
 
     In any case, refresh() each one, either new or existing
 
@@ -71,33 +72,48 @@ class Bundle extends BundleBase
       #####################################################################""" if l.deb 30
     updateChanged = => # @todo: refactor this
       @changed.bundlefiles++ #
-      @changed.resources++ if bundlefile instanceof UResource
+      @changed.resources++ if bundlefile instanceof UTextResource
       @changed.modules++ if bundlefile instanceof UModule
       @changed.errors++ if bundlefile.hasErrors
 
     # check which filenames match resource converters
-    # and instantiate them as UResource or UModule
+    # and instantiate them as UTextResource or UModule
     for filename in filenames
       isNew = false
+
       if not @files[filename] # a new filename
         isNew = true
-        # check if we create a uResource (eg UModule) - if we have some matchedConverters
-        matchedConverters = []; resourceClass = UModule # default
-
-        # add all matched converters (until a terminal converter found)
+        matchedConverters = [] # create a XXXResource (eg UModule), if we have some matchedConverters
         convFilename = filename
-        for resourceConverter in @resources
-          if isFileInSpecs convFilename, resourceConverter.filez
-            matchedConverters.push resourceConverter
-            if _.isFunction resourceConverter.dstFilename # use the converted dstFilename to match following converters (i.e not 'myDep.coffee' but 'myDep.js')
-              convFilename = resourceConverter.dstFilename convFilename
 
-            resourceClass = if resourceConverter.isModule then UModule else UResource #last converter determines Module || Resource
-            break if resourceConverter.isTerminal
+        # Add matched converters
+        # - match filename in resConv.filez, either src or converted
+        # - determine its clazz from type
+        # - until a terminal converter found
+        for resConv in @resources when \
+          (!resConv.isMatchSrcFilename and isFileInSpecs convFilename, resConv.filez) or
+          (resConv.isMatchSrcFilename and isFileInSpecs filename, resConv.filez)
+
+            # set the class on resConv it self
+            resConv.clazz or=
+              switch resConv.type
+                when 'module' then UModule
+                when 'text' then UTextResource
+                when 'file' then UFileResource
+                else UModule
+            
+            matchedConverters.push resConv
+
+            if _.isFunction resConv.dstFilename # use converted dstFilename to match converters (i.e not 'myDep.coffee' but 'myDep.js')
+              convFilename = resConv.dstFilename convFilename
+
+            break if resConv.isTerminal
 
         if _.isEmpty matchedConverters # no resourceConverters matched,
-          resourceClass = BundleFile  # its just a bundle file
-          # else its a convertible UResource or UModule
+          resourceClass = UBundleFile  # its just a bundle file
+        else
+          # NOTE: last matching converter determines if file is a UTextResource || UFileResource || UModule
+          resourceClass = _.last(matchedConverters).clazz
 
         l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
         @files[filename] = new resourceClass @, filename, matchedConverters
@@ -194,7 +210,7 @@ class Bundle extends BundleBase
           for filename in filenames
             if uModule = @files[filename] # exists when refreshed, but not deleted
               if uModule?.hasChanged and (uModule instanceof UModule) # it has changed, conversion needed
-                uModule.convert @build
+                uModule.convertWithTemplate @build
                 uModule.runResourceConverters (converter)-> converter.isAfterTemplate is true
 
         if not @isPartialBuild
@@ -274,15 +290,15 @@ class Bundle extends BundleBase
 
         resource.hasChanged = false
 
-  # All @files (i.e bundle.filez) that ARE NOT `UResource`s and below (i.e are plain `BundleFile`s)
+  # All @files (i.e bundle.filez) that ARE NOT `UTextResource`s and below (i.e are plain `UBundleFile`s)
   # are copied to build.dstPath.
   copyNonResourceFiles: (filenames=@filenames)->
     if @changed.bundlefiles # need if ?
 
       if not _.isEmpty @copy then copyNonResFilenames = #save time
         _.filter filenames, (fn)=>
-          not (@files[fn] instanceof UResource) and
-          @files[fn]?.hasChanged and # @todo: 5 2 1 only really changed (BundleFile reads timestamp/size etc)!
+          not (@files[fn] instanceof UTextResource) and
+          @files[fn]?.hasChanged and # @todo: 5 2 1 only really changed (UBundleFile reads timestamp/size etc)!
           (isFileInSpecs fn, @copy)
 
       if not _.isEmpty copyNonResFilenames

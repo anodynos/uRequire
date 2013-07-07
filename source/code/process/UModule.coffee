@@ -8,18 +8,18 @@ fs = require 'fs'
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
-UResource = require './UResource'
+UTextResource = require './UTextResource'
 Dependency = require "../Dependency"
 UError = require '../utils/UError'
 
 # Represents a Javascript module
-class UModule extends UResource
+class UModule extends UTextResource
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
 
   @property modulePath: get:-> upath.trimExt @filename  # filename (bundleRelative) without extension eg `models/PersonModel`
 
   ###
-    Check if `super` in UResource has spotted changes and thus has a possibly changed @converted (javascript code)
+    Check if `super` in UTextResource has spotted changes and thus has a possibly changed @converted (javascript code)
     & call `@adjustModuleInfo()` if so.
 
     It does not actually convert to any template, as it waits for instructions from the bundle
@@ -28,7 +28,7 @@ class UModule extends UResource
   ###
   refresh: ->
     if super
-      if @sourceCodeJs isnt @converted # @converted is produced by UResource's refresh
+      if @sourceCodeJs isnt @converted # @converted is produced by UTextResource's refresh
         @sourceCodeJs = @converted
         @adjustModuleInfo()
         return @hasChanged = true
@@ -104,7 +104,7 @@ class UModule extends UResource
   ###
   Actually converts the module to the target @build options.
   ###
-  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
+  convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
       l.debug("Preparing conversion of '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
 

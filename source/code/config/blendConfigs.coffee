@@ -253,25 +253,39 @@ templateBlender = new _B.DeepCloneBlender [
 #      }
 #    ]
 
-getResourceConverter = (name, filez, convert, dstFilename, isModule, isTerminal, isAfterTemplate)->
-  resource = {}
-  while name[0] in ['#', '*', '!']
+getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTerminal, isAfterTemplate, isMatchSrcFilename)->
+  while name[0] in ['#', '*', '!', '@', '~']
     switch name[0]
-      when '#' then isModule ?= false
-      when '*' then isTerminal ?= false
-      when '!' then isAfterTemplate ?= true
+      when '#'
+        type ?= 'text'
+      when '@'
+        type ?= 'file'
+      when '~'
+        isMatchSrcFilename ?= true
+      when '*'
+        isTerminal ?= false
+      when '!'
+        isAfterTemplate ?= true
     name = name[1..] # remove 1st char
 
-  #defaults
-  isTerminal ?= true
-  isModule ?= true
-  isAfterTemplate ?= false
+  type = 'module' if !type #default
 
-  if _.isString dstFilename
+  if type not in ['module', 'text', 'file']
+    l.err "resourceConverter.type '#{type}' is invalid - will default to 'module'"
+
+  if isModule #isModule is DEPRACATED but still supported (till 0.5 ?)
+    l.warn "DEPRACATED key 'isModule' found in `resources` converter '#{name}'. Use `type: 'module'` instead."
+    type = 'module'
+
+  isTerminal ?= true
+  isAfterTemplate ?= false
+  isMatchSrcFilename ?= false
+
+  if _.isString dstFilename #todo: allow this only it starts with '.'
     dstFilename = do (ext=dstFilename)->
       (srcFilename)-> upath.changeExt srcFilename, ext
 
-  {name, filez, convert, dstFilename, isModule, isTerminal, isAfterTemplate}
+  {name, filez, convert, dstFilename, type, isTerminal, isAfterTemplate, isMatchSrcFilename}
 
 resourcesBlender = new _B.DeepCloneBlender [
   order:['path', 'src']
@@ -279,13 +293,13 @@ resourcesBlender = new _B.DeepCloneBlender [
   '*': '|' :
     '[]': (prop, src)->
       r = src[prop]
-      getResourceConverter r[0], r[1], r[2], r[3]
+      if _.isEqual r, [null] then r # cater for [null] reset array signpost
+      else
+        getResourceConverter r[0],   r[1],    r[2],      r[3]
 
-    # also combine incomplete Object
-    # @todo: 4 3 2 - Combine [] & {} into one
     '{}': (prop, src)->
       r = src[prop]
-      getResourceConverter r.name, r.filez, r.convert, r.dstFilename, r.isModule, r.isTerminal, r.isAfterTemplate
+      getResourceConverter r.name, r.filez, r.convert, r.dstFilename, r.type, r.isModule, r.isTerminal, r.isAfterTemplate, r.isMatchSrcFilename
 
 ]
 
