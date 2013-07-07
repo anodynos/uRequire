@@ -268,8 +268,10 @@ class Bundle extends BundleBase
         Saving changed resource files
         #####################################################################""" if l.deb 30
       for fn, resource of @uResources when resource.hasChanged
-        if _.isFunction @build.out # @todo:5 else if String, output to this file ?
-          @build.out resource.dstFilepath, resource.converted
+        if resource.converted
+          if _.isFunction @build.out # @todo:5 else if String, output to this file ?
+            @build.out resource.dstFilepath, resource.converted
+
         resource.hasChanged = false
 
   # All @files (i.e bundle.filez) that ARE NOT `UResource`s and below (i.e are plain `BundleFile`s)

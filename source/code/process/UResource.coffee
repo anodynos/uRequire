@@ -5,20 +5,16 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/UResource'
 
 # uRequire
-ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
-ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
-Dependency = require "../Dependency"
 BundleFile = require './BundleFile'
 UError = require '../utils/UError'
 
-
 ###
-  Represents any *textual* resource (including but not limited to js-convertable code).
+  Represents any *textual/utf-8* resource (including but not limited to js-convertable code).
 
   Each time it `@refresh()`es,
     if `@source` (content) in file is changed, its passed through all @converters:
-    - stores .convert(@source) result as @converted
-    - stores .dstFilename(@filname) result as @dstFilename
+    - stores `converter.convert(@source)` result as @converted
+    - stores `converter.dstFilename(@filename)` result as @dstFilename
 ###
 class UResource extends BundleFile
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
@@ -65,12 +61,12 @@ class UResource extends BundleFile
     try
       for converter in @converters when convFilter converter
 
-        # convert source (i.e the previous @converted from convert(), intially its source)
+        # convert source to converted (i.e the previous @converted from convert(), intially its source)
         if _.isFunction converter.convert
           l.debug "Converting '#{@dstFilename}' with '#{converter.name}'..." if l.deb 60
           @converted = converter.convert @converted, @dstFilename
 
-        #convert Filename
+        # convert @filename to @dstFilename (i.e the previous @dstFilename from converter.dstFilename(), intially @filename)
         if _.isFunction converter.dstFilename
           @dstFilename = converter.dstFilename @dstFilename
           l.debug "...resource.dstFilename is '#{@dstFilename}'" if l.deb 95
