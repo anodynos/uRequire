@@ -95,7 +95,8 @@ class ModuleManipulator extends JSManipulator
       '_object': (o)->
         if o.top is 'urequire'
           properties = eval "(#{@toCode o.props})" # todo read with safeEval
-          @moduleInfo = _.extend @moduleInfo, properties
+          @moduleInfo.flags or= {}
+          _.extend @moduleInfo.flags, properties
           'stop' #kill this seeker!
 
     defineAMDSeeker =
@@ -169,6 +170,8 @@ class ModuleManipulator extends JSManipulator
       if not _.isEmpty @moduleInfo.requireDeps
         @moduleInfo.requireDeps = _.difference (_.uniq @moduleInfo.requireDeps), @moduleInfo.arrayDeps
 
+      @moduleInfo.flags or= {}
+
     return @moduleInfo
 
   _replaceASTStringElements: (astArray, replacements)->
@@ -201,7 +204,7 @@ module.exports = ModuleManipulator
 #log = console.log
 #log "\n## inline test - module info ##"
 #theJs = """
-#//({urequire: {rootExports: 'papari'}})
+#({urequire: {rootExports: 'papari'}})
 #
 #if (typeof define !== 'function') { var define = require('amdefine')(module); };
 #
@@ -232,12 +235,12 @@ module.exports = ModuleManipulator
 #  return {require: require('finalRequire')};
 #});
 #"""
-
-#theJs = """
-#  var b = require('b/b-lib');
-#  module.exports = {b:'b'}
-#"""
-
+#
+##theJs = """
+##  var b = require('b/b-lib');
+##  module.exports = {b:'b'}
+##"""
+#
 #modMan = new ModuleManipulator theJs, {beautify:false, extractFactory:true}
-#log _.keys modMan.extractModuleInfo()
+#log modMan.extractModuleInfo()
 

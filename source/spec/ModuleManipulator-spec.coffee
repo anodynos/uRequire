@@ -20,6 +20,7 @@ describe "ModuleManipulator", ->
     """
     mi = (new ModuleManipulator js).extractModuleInfo()
     expect(mi).to.deep.equal
+      flags: {}
       moduleType: 'nodejs'
       requireDeps: [ 'something' ]
 
@@ -50,6 +51,7 @@ describe "ModuleManipulator", ->
     """
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
+      flags: {}
       arrayDeps: [ 'underscore', 'depdir1/dep1' ]
       moduleType: 'AMD'
       amdCall: 'define'
@@ -65,6 +67,7 @@ describe "ModuleManipulator", ->
     """
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
+      flags: {}
       moduleType: 'AMD'
       amdCall: 'define'
       factoryBody: 'return{foo:bar}'
@@ -78,6 +81,7 @@ describe "ModuleManipulator", ->
         """
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
+      flags: {}
       moduleType: 'AMD'
       amdCall: 'define'
       parameters: ['require']
@@ -100,7 +104,7 @@ describe "ModuleManipulator", ->
       """
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
-      rootExports: 'myLib'
+      flags: rootExports: 'myLib'
       moduleName: 'myModule'
       arrayDeps: [ 'underscore', 'depdir1/dep1' ]
       moduleType: 'AMD'
@@ -146,7 +150,7 @@ describe "ModuleManipulator", ->
 
     mi = (new ModuleManipulator js, extractFactory:true).extractModuleInfo()
     expect(mi).to.deep.equal
-      rootExports: 'myLib'
+      flags: rootExports: 'myLib'
       moduleName: 'myModule'
       moduleType: 'AMD'
       amdCall: 'define'

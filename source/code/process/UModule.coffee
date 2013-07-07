@@ -95,8 +95,9 @@ class UModule extends UResource
       @parameters = _.clone @moduleInfo.parameters
       @nodeDependencies = _.clone @arrayDependencies
 
-      {@moduleName, @moduleType, @modulePath, @rootExports, @noConflict} = @moduleInfo
-      @rootExports = _B.arrayize @rootExports
+      {@moduleName, @moduleType, @modulePath, @flags} = @moduleInfo
+
+      @flags.rootExports = _B.arrayize @flags.rootExports
 
       null
 
@@ -177,7 +178,7 @@ class UModule extends UResource
       # (# RequireJs disables runtime scan if even one dep exists in []).
       #
       # We allow them only if `--scanAllow` or if we have a `rootExports`
-      if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @moduleInfo.rootExports)
+      if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @flags.rootExports)
         for reqDep in @requireDependencies
           # dont add to arrayDependencies, if node only
           if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin signaling nodejs-only executing modules.
@@ -218,7 +219,7 @@ class UModule extends UResource
       l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
       l.debug "module info = \n", _.pick @, [
           'moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps',
-          'parameters', 'webRootMap', 'rootExports'] if l.deb 80
+          'parameters', 'webRootMap', 'flags'] if l.deb 80
 
       @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
 

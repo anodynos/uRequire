@@ -80,25 +80,25 @@ class ModuleGeneratorTemplates extends Template
   ### private ###
   _rootExportsNoConflict: (factoryFn, rootName='root')-> """
 
-    var m = #{factoryFn};
+    var __umodule = #{factoryFn};
     #{
-      if @ti.noConflict
-        ("#{if i is 0 then 'var ' else '    '}old_#{exp} = #{rootName}.#{exp}" for exp, i in @ti.rootExports).join(',\n') + ';'
+      if @ti.flags.noConflict
+        ("#{if i is 0 then 'var ' else '    '}old_#{exp} = #{rootName}.#{exp}" for exp, i in @ti.flags.rootExports).join(',\n') + ';'
       else ''
     }
 
-    #{("#{rootName}.#{exportedVar} = m" for exportedVar in @ti.rootExports).join(';\n') };
+    #{("#{rootName}.#{exportedVar} = __umodule" for exportedVar in @ti.flags.rootExports).join(';\n') };
 
     """ + (
-      if @ti.noConflict
-        "m.noConflict = " + @_function("""
-              #{("  #{rootName}.#{exp} = old_#{exp}" for exp in @ti.rootExports).join(';\n')};
-              return m;
+      if @ti.flags.noConflict
+        "__umodule.noConflict = " + @_function("""
+              #{("  #{rootName}.#{exp} = old_#{exp}" for exp in @ti.flags.rootExports).join(';\n')};
+              return __umodule;
             """)
 
       else
         ''
-    ) + "\nreturn m;"
+    ) + "\nreturn __umodule;"
 
 
   ###
@@ -117,7 +117,7 @@ class ModuleGeneratorTemplates extends Template
               (", nr.require('#{nDep}')" for nDep in @ti.nodeDeps).join('')});
           } else if (typeof define === 'function' && define.amd) {
               define(#{@moduleNamePrint}#{@arrayDependenciesPrint}#{
-                if (_.isEmpty @ti.rootExports) or @ti.noRootExports
+                if (_.isEmpty @ti.flags.rootExports) or @ti.noRootExports
                   'factory'
                 else
                   @_function(
@@ -149,9 +149,9 @@ class ModuleGeneratorTemplates extends Template
         #our factory function
         @_function(
           # codeBody
-          if (_.isEmpty @ti.rootExports) or @ti.noRootExports # 'standard' AMD format
+          if (_.isEmpty @ti.flags.rootExports) or @ti.noRootExports # 'standard' AMD format
             @factoryBodyPrint
-          else # ammend to export window = @ti.rootExports
+          else # ammend to export window = @ti.flags.rootExports
             @_rootExportsNoConflict(
               @_functionIFI(@factoryBodyPrint,
                     @parametersPrint, @parametersPrint)
