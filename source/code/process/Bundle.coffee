@@ -13,14 +13,14 @@ upath = require '../paths/upath'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 Dependency = require '../Dependency'
-DependenciesReporter = require './../DependenciesReporter'
+DependenciesReporter = require './../utils/DependenciesReporter'
 UError = require '../utils/UError'
 
 #our file types
-UBundleFile = require './UBundleFile'
-UTextResource = require './UTextResource'
-UFileResource = require './UFileResource'
-UModule = require './UModule'
+BundleFile = require './../fileResources/BundleFile'
+TextResource = require './../fileResources/TextResource'
+FileResource = require './../fileResources/FileResource'
+Module = require './../fileResources/Module'
 
 Build = require './Build'
 BundleBase = require './BundleBase'
@@ -50,13 +50,13 @@ class Bundle extends BundleBase
   @staticProperty requirejs: get:=> require 'requirejs'
 
   @property
-    uModules: get:-> _.pick @files, (file)-> file instanceof UModule
-    uResources: get:-> _.pick @files, (file)-> file instanceof UFileResource # includes UTextResource
+    uModules: get:-> _.pick @files, (file)-> file instanceof Module
+    uResources: get:-> _.pick @files, (file)-> file instanceof FileResource # includes TextResource
 
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
 
-    If a filename is new, create a new UBundleFile (or more interestingly a UTextResource or UModule)
+    If a filename is new, create a new BundleFile (or more interestingly a TextResource or Module)
 
     In any case, refresh() each one, either new or existing
 
@@ -72,18 +72,18 @@ class Bundle extends BundleBase
       #####################################################################""" if l.deb 30
     updateChanged = => # @todo: refactor this
       @changed.bundlefiles++ #
-      @changed.resources++ if bundlefile instanceof UTextResource
-      @changed.modules++ if bundlefile instanceof UModule
+      @changed.resources++ if bundlefile instanceof TextResource
+      @changed.modules++ if bundlefile instanceof Module
       @changed.errors++ if bundlefile.hasErrors
 
     # check which filenames match resource converters
-    # and instantiate them as UTextResource or UModule
+    # and instantiate them as TextResource or Module
     for filename in filenames
       isNew = false
 
       if not @files[filename] # a new filename
         isNew = true
-        matchedConverters = [] # create a XXXResource (eg UModule), if we have some matchedConverters
+        matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
         convFilename = filename
 
         # Add matched converters
@@ -97,10 +97,10 @@ class Bundle extends BundleBase
             # set the class on resConv it self
             resConv.clazz or=
               switch resConv.type
-                when 'module' then UModule
-                when 'text' then UTextResource
-                when 'file' then UFileResource
-                else UModule
+                when 'module' then Module
+                when 'text' then TextResource
+                when 'file' then FileResource
+                else Module
             
             matchedConverters.push resConv
 
@@ -110,9 +110,9 @@ class Bundle extends BundleBase
             break if resConv.isTerminal
 
         if _.isEmpty matchedConverters # no resourceConverters matched,
-          resourceClass = UBundleFile  # its just a bundle file
+          resourceClass = BundleFile  # its just a bundle file
         else
-          # NOTE: last matching converter determines if file is a UTextResource || UFileResource || UModule
+          # NOTE: last matching converter determines if file is a TextResource || FileResource || Module
           resourceClass = _.last(matchedConverters).clazz
 
         l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
@@ -123,9 +123,8 @@ class Bundle extends BundleBase
 
       bundlefile = @files[filename]
       try
-
-        if bundlefile.refresh() # compilations / conversions on refresh() = true if resource.hasChanged
-          updateChanged()
+         # compilations / conversions on refresh() = true if resource.hasChanged
+        updateChanged() if bundlefile.refresh()
 
         if isNew # check there is no same dstFilename
           if sameDstFile = (
@@ -159,8 +158,8 @@ class Bundle extends BundleBase
           delete @files[filename]
 
         else
-          l.err uerr = "Something wrong while loading/refreshing/processing '#{filename}'."
-          uerr = new UError uerr, nested:err
+          uerr = new UError "Something wrong while loading/refreshing/processing '#{filename}'.", {stack:true, nested:err}
+          l.err uerr.message
           if not (@build.continue or @build.watch) then l.log uerr; throw uerr
           else l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
@@ -203,18 +202,25 @@ class Bundle extends BundleBase
       # now load/refresh some filenames (or all @filenames)
       if @loadOrRefreshResources(filenames) > 0 # returns @changed.bundlefiles
         if @changed.modules
-          l.debug """
+          l.debug """\n
             #####################################
             Converting changed modules with template '#{@build.template.name}'
             #####################################################################""" if l.deb 30
           for filename in filenames
             if uModule = @files[filename] # exists when refreshed, but not deleted
-              if uModule?.hasChanged and (uModule instanceof UModule) # it has changed, conversion needed
-                uModule.convertWithTemplate @build
-                uModule.runResourceConverters (converter)-> converter.isAfterTemplate is true
+              if uModule?.hasChanged and (uModule instanceof Module) # it has changed, conversion needed
+                try
+                  uModule.convertWithTemplate @build
+                  uModule.runResourceConverters (converter)-> converter.isAfterTemplate is true
+                catch err
+                  uerr = new UError 'Uncaught Exception at Module.convertWithTemplate or uModule.runResourceConverters', {nested:err}
+                  l.err uerr.message
+                  @changed.errors++
+                  uModule.hasErrors = true
+                  if @build.continue then continue else throw uerr
 
         if not @isPartialBuild
-          @hasFullBuild = true # note it's having a full build
+          @hasFullBuild = true if @changed.errors is 0
         else
           # partial build - Warn and perhaps force a full build... # @todo: (3 3 2) add more cases
           if (not @hasFullBuild) and @changed.resources
@@ -290,15 +296,15 @@ class Bundle extends BundleBase
 
         resource.hasChanged = false
 
-  # All @files (i.e bundle.filez) that ARE NOT `UTextResource`s and below (i.e are plain `UBundleFile`s)
+  # All @files (i.e bundle.filez) that ARE NOT `TextResource`s and below (i.e are plain `BundleFile`s)
   # are copied to build.dstPath.
   copyNonResourceFiles: (filenames=@filenames)->
     if @changed.bundlefiles # need if ?
 
       if not _.isEmpty @copy then copyNonResFilenames = #save time
         _.filter filenames, (fn)=>
-          not (@files[fn] instanceof UTextResource) and
-          @files[fn]?.hasChanged and # @todo: 5 2 1 only really changed (UBundleFile reads timestamp/size etc)!
+          not (@files[fn] instanceof TextResource) and
+          @files[fn]?.hasChanged and # @todo: 5 2 1 only really changed (BundleFile reads timestamp/size etc)!
           (isFileInSpecs fn, @copy)
 
       if not _.isEmpty copyNonResFilenames
@@ -424,71 +430,74 @@ class Bundle extends BundleBase
 
       # actually combine (r.js optimize)
       l.verbose "Optimize with r.js (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
-      try
-        @requirejs.optimize _.clone(rjsConfig, true), (buildResponse)->
+
+      hasError = false # how lame is this - use promises next time!
+      @requirejs.optimize _.clone(rjsConfig, true),
+        (buildResponse)->
           l.verbose '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse
-      catch err
-        #doesnt work - requirejs exits process on errors - see https://github.com/jrburke/requirejs/issues/757
-        err.uRequire = "Error optimizing with r.js (v#{@requirejs.version})"
-        l.err err
 
-#      if true
-      setTimeout  (=>
-        l.debug(60, 'Checking r.js output file...')
-        if fs.existsSync build.combinedFile
-          l.verbose "Combined file '#{build.combinedFile}' written successfully."
-
-          globalDepsVars = @getDepsVars (dep)->dep.depType is 'global'
-          if not _.isEmpty globalDepsVars
-            if (not build.watch and not build.verbose) or l.deb 30
-              l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars,
-                """\n
-                are available when combined script '#{build.combinedFile}' is running on:
-
-                a) nodejs: they should exist as a local `nodes_modules`.
-
-                b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)
-
-                c) Web/Script: the binded variables (eg '_' or '$')
-                   must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
-                """
-
-          # delete dstPath, used as temp directory with individual AMD files
-          if not (l.deb(debugLevelSkipTempDeletion) or build.watch)
-            l.debug(40, "Deleting temporary directory '#{build.dstPath}'.")
-            wrench.rmdirSyncRecursive build.dstPath
-          else
-            l.debug("NOT Deleting temporary directory '#{build.dstPath}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
-          build.done not @changed.errors
-        else
-          l.err """
-          Combined file '#{build.combinedFile}' NOT written."
-
-            Some remedy:
-
-             a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
-                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
-                - 'name' is what 'main' defaults to, if its a module.
-
-             b) Perhaps you have a missing dependcency ?
-                r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
-
-             c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
-                *Note this prevents uRequire from finishing properly / printing this message!*
-
-             Note that you can check the AMD-ish files used in temporary directory '#{build.dstPath}'.
-
-             More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
-
-          """, rjsConfig
-
+        (errorResponse)->
+          l.err '@requirejs.optimize errorResponse: ', errorResponse
+          hasError = true
           build.done false
-      ), 100
 
-  getRequireJSConfig: -> #@todo:(7 5 2) HOW LAME - remove & fix this!
-      paths:
-        text: "requirejs_plugins/text"
-        json: "requirejs_plugins/json"
+      setTimeout  (=>
+        if not hasError
+          l.debug(60, 'Checking r.js output file...')
+          if fs.existsSync build.combinedFile
+            l.verbose "Combined file '#{build.combinedFile}' written successfully."
+
+            globalDepsVars = @getDepsVars (dep)->dep.depType is 'global'
+            if not _.isEmpty globalDepsVars
+              if (not build.watch and not build.verbose) or l.deb 30
+                l.log "Global bindinds: make sure the following global dependencies:\n", globalDepsVars,
+                  """\n
+                  are available when combined script '#{build.combinedFile}' is running on:
+
+                  a) nodejs: they should exist as a local `nodes_modules`.
+
+                  b) Web/AMD: they should be declared as `rjs.paths` (or `rjs.baseUrl`)
+
+                  c) Web/Script: the binded variables (eg '_' or '$')
+                     must be a globally loaded (i.e `window.$`) BEFORE loading '#{build.combinedFile}'
+                  """
+
+            # delete dstPath, used as temp directory with individual AMD files
+            if not (l.deb(debugLevelSkipTempDeletion) or build.watch)
+              l.debug(40, "Deleting temporary directory '#{build.dstPath}'.")
+              wrench.rmdirSyncRecursive build.dstPath
+            else
+              l.debug("NOT Deleting temporary directory '#{build.dstPath}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
+            build.done not @changed.errors
+          else
+            l.err """
+            Combined file '#{build.combinedFile}' NOT written."
+
+              Some remedy:
+
+               a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
+                  - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
+                  - 'name' is what 'main' defaults to, if its a module.
+
+               b) Perhaps you have a missing dependcency ?
+                  r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+
+               c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
+                  *Note this prevents uRequire from finishing properly / printing this message!*
+
+               Note that you can check the AMD-ish files used in temporary directory '#{build.dstPath}'.
+
+               More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+
+            """, rjsConfig
+
+            build.done false
+      ), 500
+
+  getRequireJSConfig: -> {} #@todo:(7 5 2) HOW LAME - remove & fix this!
+#      paths:
+#        text: "requirejs_plugins/text"
+#        json: "requirejs_plugins/json"
 
 
   copyAlmondJs: ->
@@ -570,16 +579,6 @@ class Bundle extends BundleBase
         gatherDepsVars dependenciesDepsVars
 
     depsVars
-
-#
-#if l.deb 90
-#  YADC = require('YouAreDaChef').YouAreDaChef
-#
-#  YADC(Bundle)
-#    .before /_constructor/, (match, bundleCfg)->
-#      l.debug("Before '#{match}' with bundleCfg = \n", _.omit(bundleCfg, []))
-#    .before /combine/, (match)->
-#      l.debug('combine: optimizing with r.js')
 
 module.exports = Bundle
 

@@ -16,6 +16,6 @@ class Urequire
     # below, just for reference
     Bundle: get:-> require "./process/Bundle"
     Build: get:-> require "./process/Build"
-    UModule: get:-> require "./process/UModule"
+    Module: get:-> require "./fileResources/Module"
 
 module.exports = new Urequire

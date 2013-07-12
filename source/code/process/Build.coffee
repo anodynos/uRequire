@@ -7,7 +7,7 @@ l = new _B.Logger 'urequire/Build'
 
 # uRequire
 upath = require '../paths/upath'
-DependenciesReporter = require './../DependenciesReporter'
+DependenciesReporter = require './../utils/DependenciesReporter'
 uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
 UError = require '../utils/UError'
 

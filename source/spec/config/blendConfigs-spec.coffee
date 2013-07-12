@@ -31,20 +31,20 @@ resources =  [
   ]
 
   [
-    '!Streamline' # a title of the resource (a module since its not '#', but with isAfterTemplate:true due to '!'
+    '!Streamline' # a title of the resource (a module since its not '#', but with isAfterTemplate:true due to '!')
     '**/*._*'
     (source)-> source
     (filename)-> filename.replace '._js', '.js' # dummy filename converter
   ]
 
   {
-    name: '#NonModule' #a non-module (starting with '#')
+    name: '#|NonModule' #a non-module (starting with '#'), isTerminal:true (starting with '|')
     filez: '**/*.nonmodule'
     convert: ->
   }
 
   [
-    '@*~UFileResource-NonTerminal resource' #a UFileResource (@), isTerminal:false (*) and isMatchSrcFilename:true (~)
+    '@~FileResource' #a FileResource (@) isMatchSrcFilename:true (~)
     '**/*.ext'
     (source)-> source
   ]
@@ -69,7 +69,7 @@ expectedResources = [
     convert: resources[0][2]
     dstFilename: resources[0][3]
     type: 'module'
-    isTerminal: true
+    isTerminal: false
     isAfterTemplate: false
   }
 
@@ -80,7 +80,7 @@ expectedResources = [
     convert: resources[1][2]
     dstFilename: resources[1][3]
     type: 'module'
-    isTerminal: true
+    isTerminal: false
     isAfterTemplate: true
   }
 
@@ -96,7 +96,7 @@ expectedResources = [
   }
 
   {
-    name: 'UFileResource-NonTerminal resource'
+    name: 'FileResource'
     filez: '**/*.ext'
     isMatchSrcFilename:true
     convert: resources[3][2]
@@ -113,7 +113,7 @@ expectedResources = [
     convert: resources[4].convert
     dstFilename: undefined
     type: 'module'
-    isTerminal: true
+    isTerminal: false
     isAfterTemplate: false
   }
 

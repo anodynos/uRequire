@@ -254,18 +254,14 @@ templateBlender = new _B.DeepCloneBlender [
 #    ]
 
 getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTerminal, isAfterTemplate, isMatchSrcFilename)->
-  while name[0] in ['#', '*', '!', '@', '~']
+  while name[0] in ['#', '*', '!', '@', '~', '|']
     switch name[0]
-      when '#'
-        type ?= 'text'
-      when '@'
-        type ?= 'file'
-      when '~'
-        isMatchSrcFilename ?= true
-      when '*'
-        isTerminal ?= false
-      when '!'
-        isAfterTemplate ?= true
+      when '#' then type ?= 'text'
+      when '@' then type ?= 'file'
+      when '~' then isMatchSrcFilename ?= true
+      when '|' then isTerminal ?= true
+      when '*' then isTerminal ?= false # todo: delete '*' case - isTerminal = false is default
+      when '!' then isAfterTemplate ?= true
     name = name[1..] # remove 1st char
 
   type = 'module' if !type #default
@@ -277,7 +273,7 @@ getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTer
     l.warn "DEPRACATED key 'isModule' found in `resources` converter '#{name}'. Use `type: 'module'` instead."
     type = 'module'
 
-  isTerminal ?= true
+  isTerminal ?= false
   isAfterTemplate ?= false
   isMatchSrcFilename ?= false
 
@@ -302,7 +298,6 @@ resourcesBlender = new _B.DeepCloneBlender [
       getResourceConverter r.name, r.filez, r.convert, r.dstFilename, r.type, r.isModule, r.isTerminal, r.isAfterTemplate, r.isMatchSrcFilename
 
 ]
-
 
 #create a finalCfg object & a default deriveLoader
 # and call the recursive _blendDerivedConfigs

@@ -1,6 +1,6 @@
 {
  "name": "urequire",
- "description": "JavaScript Universal Module Converter: write modular code once, convert to UMD or single `.js` and run/test on AMD (browser/requirejs) & nodejs.",
+ "description": "Convert AMD & commonjs modules to commonjs, AMD, UMD or single `.js` and run/test on nodejs, Browser/AMD or Browser/Script.",
  "version": "0.4.3",
  "homepage": "http://urequire.org",
  "author": {
@@ -15,13 +15,9 @@
  ],
  "keywords": [
     "javascript",
-    "modules", "module", "modular", "format",
-    "convert", "converter", "conversion",
-    "commonjs", "AMD", "UMD", "UMDjs",
-    "requirejs","require", "define",
-    "umdify", "nodefy", "browserify", "Stitch", "StitchUp",
-    "Montage Require", "dependency", "dependencies",
-    "bundle", "package"
+    "convert", "commonjs", "AMD", "UMD",
+    "module", "converter",
+    "requirejs","require", "define"
  ],
  "repository": {
   "type": "git",

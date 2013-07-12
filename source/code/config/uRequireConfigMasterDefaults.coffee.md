@@ -135,7 +135,7 @@ Each matching file is considered to be either:
 
 * _Module_ - A Module is like a _Resource_, but its also a Javascript Module whose Dependencies we monitor and as the last build step we convert it through the [`build.template`](urequireconfigmasterdefaults.coffee#build.template). A Module is ultimately JavaScript code, that is perhaps expressed is some other compiled-to-js language like Coffeescript.
 
-`Resource` & `Module` are only those files that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources) are considered `UBundleFile`s.
+`Resource` & `Module` are only those files that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources) are considered `BundleFile`s.
 
 @type filename specifications (or simply filenames), expressed in either:
 
@@ -159,7 +159,7 @@ Each matching file is considered to be either:
 
 ## bundle.copy
 
-Copy (binary) of all non-resource [`UBundleFile`](urequireconfigmasterdefaults.coffee#bundle.filez)s to [`dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) as a convenience. When [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) is used, it monitors file size & timestamp and copies (overwrites) changed files.
+Copy (binary) of all non-resource [`BundleFile`](urequireconfigmasterdefaults.coffee#bundle.filez)s to [`dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) as a convenience. When [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) is used, it monitors file size & timestamp and copies (overwrites) changed files.
 
 @example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]`
 
@@ -175,29 +175,42 @@ Copy (binary) of all non-resource [`UBundleFile`](urequireconfigmasterdefaults.c
 
 ## bundle.resources
 
-Defines an array of text-based resource converters (eg compilers), that perform an in-memory workflow conversion from a resource format (eg coffeescript, less) to another compiled format (eg javascript, css).
+Defines an array of text-based **Resource Converters (RC)** (eg compilers, converters etc), that perform a conversion from a resource format
+(eg coffeescript, less) to another **converted** format (eg javascript, css).
 
-Each resource converter has:
+All files that are matched by one or more RCs are considered as **resources**.
+
+**Resource Converters** can work either as in-memory workflow or as an external file system based conversion.
+
+Each RC has:
 
  * `name` a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of this name - see below. @todo: `name` should be unique
 
  * `filez` - a [`filez`](urequireconfigmasterdefaults.coffee#bundle.filez) spec of the files it deals with.
 
- * `converter` - a `function(src, filename){return convert(src)}` that converts a resource's *source* text to *converted*.
+ * `convert` - a callback eg `function(resource){return convert(resource.source)}` that converts using some resource's data (eg `source`) to an in memory *converted* state or perform any other in memory or external conversion.
+ The return of `convert()` is stored as resource.converted and its possibly converted again by a subsequent converter. Finally, if its not falsy, its saved automatically at resource.dstFilepath (which uses [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstPath)) & `dstFilename` below.
 
- * `dstFilename` - a `function(filename){return convertFn(filename)}` that converts a *source* filename to its *destination* filename, eg `'file.coffee'-> 'file.js'`.
+ * `dstFilename` - a `function(srcFilename){return convertFn(srcFilename)}` that converts a *source* filename to its *destination* filename, eg `'file.coffee'-> 'file.js'`. If its a `String` (eg '.js'), its considered a simple extension replacement.
 
- * flags `isModule`, `isTerminal` & `isAfterTemplate` that can be easily defined via `name` flags - explained below.
+ * and flags `isTerminal`, `isAfterTemplate` & `isMatchSrcFilename` & `type` that can be easily defined via `name` flags - explained below.
 
-### resource types & `isModule`
+Resource Converters are *attached* to the files of the bundle (those that match `filez`), the last one determining the class of resource.
 
-Each resource converter can deal with either: 
+### resource `clazz` & `type`
 
-#### Resource
+The `type` is user set among ['module', 'text', 'file'] - the default being `'module'`.
+A resource converter's `type` marks each matching file's clazz either as a `Module`, a `TextResource` or a `FileResource` (but only the last one matters!)
 
-Any *textual/utf-8* **Resource**, eg a .css file, is denoted either with a `isModule:false` or via a `'#'` flag preceding its `name` eg `name:'#less'`.
+#### FileResource
 
-By default `isModule:true`.
+An external file whose contents we need to know nothing of (but we can if we want). At each conversion, the `convert()` is called, passing a `FileResource` instance with fields (from `BundleFile`) like `srcFilename`, `srcFilepath`, `dstFilepath` & also `fileStats` etc for convenience.
+
+You can perform any internal or external conversion in `convert()`. If `convert()` returns non falsy, the content is saved at [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstPath).
+
+#### TextResource
+
+A subclass of TextResource Any *textual/utf-8* **Resource**, (eg a `.less` file), denoted by `type:'text'` or via a `'#'` flag preceding its `name` eg `name:'#less'`.
 
 _Key has precedence over name flag, if object format is used - see @type._
 
@@ -211,8 +224,6 @@ Its is denoted either via key `isModule:true` or via a lack of `'#'` flag preced
 
 _Again key has precedence over name flag, if object format is used - see @type._
 
-Note: As filenames are filtered through resource coverters and attach those that match, the last matching converter's `isModule` property will determine if the file will be treated as a Resource or a Module.
-  
 ### isTerminal
 
 A converter can be `isTerminal:true` (the default) or `isTerminal:false`.
@@ -239,7 +250,7 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
 
         # the 'Object' way to define a resource converter is an object like this:
         {
-          name: '*Javascript'         # '*' flag denotes isTerminal:false.
+          name: 'Javascript'         # '*' flag denotes isTerminal:false.
                                       # Default `isTerminal:true`, which means no other (subsequent) resource converters will be visited.
 
           filez: [                    # type like to `bundle.filez`, defines matching files, converted with this converter
@@ -250,20 +261,26 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
             /.*\.(javascript)$/
           ]
 
-          convert: (source, filename)-> source  # javascript needs no compilation - just return source as is
+          convert: (resource)-> resource.source  # javascript needs no compilation - just return source as is
 
           dstFilename: (filename)->             # convert .js | .javascript to .js
             (require '../paths/upath').changeExt filename, 'js'
+
+          # these are defaults, you can ommit them
+          isAfterTemplate: false
+          isTerminal: false
+          isMatchSrcFilename: false
+          type: 'module'
         }
 
         # the alternative (& easier) 'Array' way of declaring a Converter: using an [] instead of {}
         [
-          '*coffee-script'                                 # name & flags as a String at pos 0
+          'coffee-script'                      # name & flags as a String at pos 0
 
           [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez [] at pos 1
 
-          (source, srcFilename)->                          # convert Function at pos 2
-            (require 'coffee-script').compile source, bare:true
+          (resource)->                          # convert Function at pos 2
+            (require 'coffee-script').compile resource.source, bare:true
 
           (srcFilename)->                                  # dstFilename Function at pos 3
             ext = srcFilename.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1"  # retrieve matched extension, eg 'coffee.md'
@@ -271,9 +288,9 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
         ]
 
         # or in short
-        [ '*LiveScript', [ '**/*.ls']
-          (source)-> (require 'LiveScript').compile source, bare:true
-          '.js'] # if dstFilename is a String, it denotes the extension to change in the srcFilename
+        [ 'LiveScript', [ '**/*.ls']
+          (resource)-> (require 'LiveScript').compile resource.source, bare:true
+          '.js'] # if dstFilename is a String, it denotes an extension change in the of srcFilename
       ]
 
 @stability: 2 - Unstable

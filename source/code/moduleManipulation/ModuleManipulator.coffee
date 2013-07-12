@@ -24,6 +24,8 @@ class JSManipulator
         Otherwise, check you Javascript source!
         Error=\n
       """
+      l.debug 100, 'The Javascript code:', @js
+
       throw new UError uerr, nested:err
 
 

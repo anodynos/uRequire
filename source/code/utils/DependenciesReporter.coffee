@@ -1,7 +1,7 @@
 ## reporting, in this format
 _ = require 'lodash'
 _B = require 'uberscore'
-Dependency = require './Dependency'
+Dependency = require './../Dependency'
 
 #
 # Embarrasing piece of code, full of misnomers and very custom to this project,

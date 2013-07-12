@@ -2,10 +2,10 @@
 _ = require 'lodash'
 fs = require 'fs'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/UTextResource'
+l = new _B.Logger 'urequire/TextResource'
 
 # uRequire
-UFileResource = require './UFileResource'
+FileResource = require './FileResource'
 UError = require '../utils/UError'
 
 ###
@@ -13,10 +13,11 @@ UError = require '../utils/UError'
 
   Each time it `@refresh()`es,
     if `@source` (content) in file is changed, its passed through all @converters:
-    - stores `converter.convert(@source)` result as @converted
-    - stores `converter.dstFilename(@filename)` result as @dstFilename
+      - stores `converter.convert()` result as @converted
+      - stores `converter.dstFilename(@srcFilename)` result as @dstFilename
+    otherwise it returns `@hasChanged = false`
 ###
-class UTextResource extends UFileResource
+class TextResource extends FileResource
 
   ###
     Check if source (AS IS eg js, coffee, LESS etc) has changed
@@ -28,7 +29,7 @@ class UTextResource extends UFileResource
     if not super
       return false # no change in parent, why should I change ?
 
-    else #refresh only if parent says so
+    else # refresh only if parent says so
       source = undefined
       try
         source = fs.readFileSync @srcFilepath, 'utf-8'
@@ -41,14 +42,12 @@ class UTextResource extends UFileResource
         @source = @converted = source
         @dstFilename = @filename
 
-        return @hasChanged = @runResourceConverters (conv)->not conv.isAfterTemplate
+        return @hasChanged = @runResourceConverters (conv)->not conv.isAfterTemplate # only 'isAfterTemplate:false' aren't a module converted with template
       else
-        l.debug "No changes in `source` of UTextResource/#{@constructor.name} '#{@filename}' " if l.deb 90
+        l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@filename}' " if l.deb 90
         return @hasChanged = false
-
-  convert: (converter)-> @converted = converter.convert @converted, @dstFilename
 
   reset:-> super; delete @source
 
-module.exports = UTextResource
+module.exports = TextResource
 

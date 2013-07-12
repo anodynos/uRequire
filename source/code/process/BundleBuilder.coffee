@@ -72,7 +72,12 @@ class BundleBuilder
 
   buildBundle: (filenames)->
     if not (!@build or !@bundle)
-      @bundle.buildChangedResources @build, filenames #if no
+      try
+        @bundle.buildChangedResources @build, filenames #if no
+      catch err
+        l.err 'Uncaught exception @ bundle.buildChangedResources', err
+        throw err
+        @buildCfg.done false
     else
       l.err "buildBundle(): I have !@build or !@bundle - can't build!"
       @buildCfg.done false
