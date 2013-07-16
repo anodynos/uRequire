@@ -10,8 +10,8 @@ UError = require '../utils/UError'
 
 
 ###
-  Represents any file resource, whose source/content we dont read.
-  Instead the converter is responsible with dealing with the file contents (eg fs.read it, require() it or spawn an external program.
+  Represents any file resource, whose source/content we dont read (but subclasses do).
+  The `convert()` of the resource converter on FileResource should handle the file contents - for example fs.read it, require() it or spawn an external program.
 
   Each time it `@refresh()`es:
     if super is changed, it runs `runResourceConverters`.
@@ -50,7 +50,7 @@ class FileResource extends BundleFile
     # @todo: rename  @converters to @resourceConverters
     for converter in @converters when \
               convFilter(converter) and       # filter and silence higher resourceConverters
-              (@ instanceof converter.clazz)  # (eg dont run 'coffee-script' (a module converter) - if @ is NOT a Module
+              (!converter.clazz or (@ instanceof converter.clazz))  # (eg dont run 'coffee-script' (a module converter) - if @ is NOT a Module
 
       if _.isFunction converter.convert
         l.debug "Converting #{@constructor?.name} '#{@dstFilename}' with '#{converter.name}'..." if l.deb 70
@@ -78,8 +78,7 @@ class FileResource extends BundleFile
 
   # convert @ using resourceConverter.convert
   # and it might return its result.
-
-  convert: (converter)-> # we pass @ (a FileResource instance), with @srcFilepath, @dstFilepath, @bundle, @bundle.build etc
+  convert: (converter)-> # we pass @ (a BundleFile/FileResource instance), with @srcFilepath, @dstFilepath, @bundle, @bundle.build etc
     converter.convert @  # as well as @source in TextResource, @moduleInfo in Module etc.
 
   reset:-> super; delete @converted

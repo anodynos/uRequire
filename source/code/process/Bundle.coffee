@@ -18,8 +18,8 @@ UError = require '../utils/UError'
 
 #our file types
 BundleFile = require './../fileResources/BundleFile'
-TextResource = require './../fileResources/TextResource'
 FileResource = require './../fileResources/FileResource'
+TextResource = require './../fileResources/TextResource'
 Module = require './../fileResources/Module'
 
 Build = require './Build'
@@ -50,8 +50,8 @@ class Bundle extends BundleBase
   @staticProperty requirejs: get:=> require 'requirejs'
 
   @property
-    uModules: get:-> _.pick @files, (file)-> file instanceof Module
-    uResources: get:-> _.pick @files, (file)-> file instanceof FileResource # includes TextResource
+    modules: get:-> _.pick @files, (file)-> file instanceof Module
+    fileResources: get:-> _.pick @files, (file)-> file instanceof FileResource # includes TextResource & Module
 
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
@@ -72,7 +72,7 @@ class Bundle extends BundleBase
       #####################################################################""" if l.deb 30
     updateChanged = => # @todo: refactor this
       @changed.bundlefiles++ #
-      @changed.resources++ if bundlefile instanceof TextResource
+      @changed.resources++ if bundlefile instanceof FileResource
       @changed.modules++ if bundlefile instanceof Module
       @changed.errors++ if bundlefile.hasErrors
 
@@ -91,33 +91,26 @@ class Bundle extends BundleBase
         # - determine its clazz from type
         # - until a terminal converter found
         for resConv in @resources when \
-          (!resConv.isMatchSrcFilename and isFileInSpecs convFilename, resConv.filez) or
-          (resConv.isMatchSrcFilename and isFileInSpecs filename, resConv.filez)
-
-            # set the class on resConv it self
-            resConv.clazz or=
+          isFileInSpecs (if resConv.isMatchSrcFilename then filename else convFilename), resConv.filez
+            resConv.clazz or= # set the class on resConv it self
               switch resConv.type
                 when 'module' then Module
                 when 'text' then TextResource
                 when 'file' then FileResource
-                else Module
-            
+            # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
+            convFilename = resConv.dstFilename convFilename if _.isFunction resConv.dstFilename
             matchedConverters.push resConv
-
-            if _.isFunction resConv.dstFilename # use converted dstFilename to match converters (i.e not 'myDep.coffee' but 'myDep.js')
-              convFilename = resConv.dstFilename convFilename
-
             break if resConv.isTerminal
 
         if _.isEmpty matchedConverters # no resourceConverters matched,
           resourceClass = BundleFile  # its just a bundle file
         else
-          # NOTE: last matching converter determines if file is a TextResource || FileResource || Module
-          resourceClass = _.last(matchedConverters).clazz
+          # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
+          lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
+          resourceClass = _.last(lastResourcesWithClazz)?.clazz or FileResource
 
         l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
         @files[filename] = new resourceClass @, filename, matchedConverters
-
       else
         l.debug "Refreshing existing resource: '#{filename}'" if l.deb 80
 
@@ -289,7 +282,7 @@ class Bundle extends BundleBase
         #####################################
         Saving changed resource files
         #####################################################################""" if l.deb 30
-      for fn, resource of @uResources when resource.hasChanged
+      for fn, resource of @fileResources when resource.hasChanged
         if resource.converted
           if _.isFunction @build.out # @todo:5 else if String, output to this file ?
             @build.out resource.dstFilepath, resource.converted
@@ -303,7 +296,7 @@ class Bundle extends BundleBase
 
       if not _.isEmpty @copy then copyNonResFilenames = #save time
         _.filter filenames, (fn)=>
-          not (@files[fn] instanceof TextResource) and
+          not (@files[fn] instanceof FileResource) and
           @files[fn]?.hasChanged and # @todo: 5 2 1 only really changed (BundleFile reads timestamp/size etc)!
           (isFileInSpecs fn, @copy)
 
@@ -331,7 +324,7 @@ class Bundle extends BundleBase
 
     if not @main # set to name, or index.js, main.js @todo: & other sensible defaults ? NOTE: modules have to be refreshed 1st!
       for mainCand in [@name, 'index', 'main'] when mainCand and not mainModule
-        mainModule = _.find @uModules, (m)-> m.modulePath is mainCand
+        mainModule = _.find @modules, (m)-> m.modulePath is mainCand
           
         if mainModule
           @main = mainModule.modulePath
@@ -557,7 +550,7 @@ class Bundle extends BundleBase
         dv.push v for v in vars when v not in dv
 
     # gather depsVars from all loaded resources
-    gatherDepsVars uModule.getDepsVars depFltr for uMK, uModule of @uModules
+    gatherDepsVars uModule.getDepsVars depFltr for uMK, uModule of @modules
 
     # given a DepsVars object, it picks for existing depsVars,
     # that have no vars associated with them (yet).

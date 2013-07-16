@@ -20,7 +20,7 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
 
 resources =  [
   [
-    'Coffeescript' # a title of the resource (a module since its not starting with #)
+    '$Coffeescript' # a title of the resource (a module since its not starting with #)
     [
       '**/*.coffee'
       /.*\.(coffee\.md|litcoffee)$/i
@@ -31,14 +31,14 @@ resources =  [
   ]
 
   [
-    '!Streamline' # a title of the resource (a module since its not '#', but with isAfterTemplate:true due to '!')
+    '!Streamline' # a title of the resource (without type since its not in [@ # $], but with isAfterTemplate:true due to '!' (runs only on Modules)
     '**/*._*'
     (source)-> source
     (filename)-> filename.replace '._js', '.js' # dummy filename converter
   ]
 
   {
-    name: '#|NonModule' #a non-module (starting with '#'), isTerminal:true (starting with '|')
+    name: '#|NonModule' #a non-module TextResource (starting with '#'), isTerminal:true (starting with '|')
     filez: '**/*.nonmodule'
     convert: ->
   }
@@ -79,7 +79,7 @@ expectedResources = [
     isMatchSrcFilename: false
     convert: resources[1][2]
     dstFilename: resources[1][3]
-    type: 'module'
+    type: undefined
     isTerminal: false
     isAfterTemplate: true
   }

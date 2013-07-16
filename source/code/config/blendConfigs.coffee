@@ -254,19 +254,18 @@ templateBlender = new _B.DeepCloneBlender [
 #    ]
 
 getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTerminal, isAfterTemplate, isMatchSrcFilename)->
-  while name[0] in ['#', '*', '!', '@', '~', '|']
+  while name[0] in ['@', '#', '$', '~', '|', '*', '!']
     switch name[0]
-      when '#' then type ?= 'text'
       when '@' then type ?= 'file'
+      when '#' then type ?= 'text'
+      when '$' then type ?= 'module'
       when '~' then isMatchSrcFilename ?= true
       when '|' then isTerminal ?= true
       when '*' then isTerminal ?= false # todo: delete '*' case - isTerminal = false is default
       when '!' then isAfterTemplate ?= true
     name = name[1..] # remove 1st char
 
-  type = 'module' if !type #default
-
-  if type not in ['module', 'text', 'file']
+  if type and (type not in ['module', 'text', 'file'])
     l.err "resourceConverter.type '#{type}' is invalid - will default to 'module'"
 
   if isModule #isModule is DEPRACATED but still supported (till 0.5 ?)
@@ -277,9 +276,11 @@ getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTer
   isAfterTemplate ?= false
   isMatchSrcFilename ?= false
 
-  if _.isString dstFilename #todo: allow this only it starts with '.'
-    dstFilename = do (ext=dstFilename)->
-      (srcFilename)-> upath.changeExt srcFilename, ext
+  if _.isString dstFilename
+    if dstFilename[0] is '.' #filename extension change if it starts with '.'
+      dstFilename = do (ext=dstFilename)-> (srcFilename)-> upath.changeExt srcFilename, ext
+    else # return a fn that returns the `dstFilename` String
+      dstFilename = do (dstFilename)-> -> dstFilename
 
   {name, filez, convert, dstFilename, type, isTerminal, isAfterTemplate, isMatchSrcFilename}
 

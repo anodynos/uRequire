@@ -49,7 +49,9 @@ class BundleFile
 
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
 
-    # sourceMap information @todo(3, 3, 8): implement source map for template conversion!
+    # sourceMap information
+    # Currentyl usefull only for coffee/livescript/typescript conversion as TextResource (i.e .js), NOT Modules
+    # @todo(3, 3, 8): implement source map for Modules that havetemplate conversion!
     #
     # @todo: spec it
     # With {srcFilepath: 'source/code/glink.coffee', dstFilepath: 'build/code/glink.js'}
@@ -63,7 +65,5 @@ class BundleFile
         //@ sourceMappingURL=#{upath.basename @dstFilepath}.map
         */
       """
-
-
 
 module.exports = BundleFile

@@ -204,7 +204,14 @@ A resource converter's `type` marks each matching file's clazz either as a `Modu
 
 #### FileResource
 
-An external file whose contents we need to know nothing of (but we can if we want). At each conversion, the `convert()` is called, passing a `FileResource` instance with fields (from `BundleFile`) like `srcFilename`, `srcFilepath`, `dstFilepath` & also `fileStats` etc for convenience.
+An external file whose contents we need to know nothing of (but we can if we want). At each conversion, the `convert()` is called, passing a `FileResource` instance with fields:
+  * (from `BundleFile`) :
+    `srcFilename` - eg
+    `srcFilepath` - eg
+    `dstFilepath` - eg
+    `fileStats` - eg
+    `sourceMapInfo` eg
+     more ???
 
 You can perform any internal or external conversion in `convert()`. If `convert()` returns non falsy, the content is saved at [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstPath).
 
@@ -250,14 +257,12 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
 
         # the 'Object' way to define a resource converter is an object like this:
         {
-          name: 'Javascript'         # '*' flag denotes isTerminal:false.
-                                      # Default `isTerminal:true`, which means no other (subsequent) resource converters will be visited.
+          name: '$Javascript'         # '$' flag denotes `type: 'module'`.
 
           filez: [                    # type like to `bundle.filez`, defines matching files, converted with this converter
-
-            '**/*.js'    # minimatch string (ala grunt's 'file' expand or node-glob)
-
-                         # a RegExp works as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
+            # minimatch string (ala grunt's 'file' expand or node-glob)
+            '**/*.js'
+            # a RegExp works as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
             /.*\.(javascript)$/
           ]
 
@@ -275,7 +280,7 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
 
         # the alternative (& easier) 'Array' way of declaring a Converter: using an [] instead of {}
         [
-          'coffee-script'                      # name & flags as a String at pos 0
+          '$coffee-script'                      # name & flags as a String at pos 0
 
           [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez [] at pos 1
 
@@ -288,7 +293,7 @@ A converter with `isAfterTemplate:true` (refers only to Module converters) will 
         ]
 
         # or in short
-        [ 'LiveScript', [ '**/*.ls']
+        [ '$LiveScript', [ '**/*.ls']
           (resource)-> (require 'LiveScript').compile resource.source, bare:true
           '.js'] # if dstFilename is a String, it denotes an extension change in the of srcFilename
       ]
