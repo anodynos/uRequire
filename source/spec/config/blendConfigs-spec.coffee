@@ -12,11 +12,14 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
 {
   moveKeysBlender
   renameKeysBlender
-  resourcesBlender
   templateBlender
   dependenciesBindingsBlender
   bundleBuildBlender
 } = blendConfigs
+
+arrayizePushBlender = new _B.ArrayizePushBlender
+
+resourceConverterBlender = (require '../../code/config/ResourceConverters').resourceConverterBlender
 
 resources =  [
   [
@@ -32,7 +35,8 @@ resources =  [
 
   [
     '!Streamline' # a title of the resource (without type since its not in [@ # $], but with isAfterTemplate:true due to '!' (runs only on Modules)
-    '**/*._*'
+    'I am the Streamline description' # a description (String) at pos 1
+    '**/*._*'                         # even if we have a String as an implied `filez` array
     (source)-> source
     (filename)-> filename.replace '._js', '.js' # dummy filename converter
   ]
@@ -45,7 +49,7 @@ resources =  [
 
   [
     '@~FileResource' #a FileResource (@) isMatchSrcFilename:true (~)
-    '**/*.ext'
+    '**/*.ext'       # this is a `filez`, not a description if pos 1 isString & pos 2 not a String|Array|RegExp
     (source)-> source
   ]
 
@@ -60,6 +64,7 @@ resources =  [
 expectedResources = [
   {
     name: 'Coffeescript'
+    description: undefined
     filez: [
        '**/*.coffee'
        /.*\.(coffee\.md|litcoffee)$/i
@@ -75,10 +80,11 @@ expectedResources = [
 
   {
     name: 'Streamline'
+    description: 'I am the Streamline description'
     filez: '**/*._*'
     isMatchSrcFilename: false
-    convert: resources[1][2]
-    dstFilename: resources[1][3]
+    convert: resources[1][3]
+    dstFilename: resources[1][4]
     type: undefined
     isTerminal: false
     isAfterTemplate: true
@@ -86,6 +92,7 @@ expectedResources = [
 
   {
     name: 'NonModule'
+    description: undefined
     filez: '**/*.nonmodule'
     isMatchSrcFilename: false
     convert: resources[2].convert
@@ -97,6 +104,7 @@ expectedResources = [
 
   {
     name: 'FileResource'
+    description: undefined
     filez: '**/*.ext'
     isMatchSrcFilename:true
     convert: resources[3][2]
@@ -108,21 +116,22 @@ expectedResources = [
 
   {
     name: 'IamAModule'
+    description: undefined
     filez: '**/*.module'
-    isMatchSrcFilename: false
     convert: resources[4].convert
     dstFilename: undefined
     type: 'module'
     isTerminal: false
     isAfterTemplate: false
+    isMatchSrcFilename: false
   }
-
 ]
 
 describe '`uRequireConfigMasterDefaults` consistency', ->
   it "No same name keys in bundle & build ", ->
-    expect(_B.isDisjoint _.keys(uRequireConfigMasterDefaults.bundle),
-                         _.keys(uRequireConfigMasterDefaults.build)
+    expect(
+      _B.isDisjoint _.keys(uRequireConfigMasterDefaults.bundle),
+                    _.keys(uRequireConfigMasterDefaults.build)
     ).to.be.true
 
 describe 'blendConfigs & its Blenders: ', ->
@@ -283,9 +292,10 @@ describe 'blendConfigs & its Blenders: ', ->
           )
         ).to.deep.equal {name: 'combined'}
 
-  describe "resourcesBlender:", ->
+  describe "resourceConverterBlender:", ->
     it "converts array of array resources into array of object resources", ->
-      l.log result = resourcesBlender.blend resources
+      result = []
+      result.push(resourceConverterBlender.blend resource) for resource in resources
       expect(result).to.deep.equal expectedResources
 
   describe """
@@ -469,7 +479,7 @@ describe 'blendConfigs & its Blenders: ', ->
 
       configsClone = _.clone configs, true
       blended = blendConfigs(configs)
-
+      l.log blended
       it "blending doesn't mutate source configs:", ->
         expect(configs).to.deep.equal configsClone
 

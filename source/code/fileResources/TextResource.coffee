@@ -56,14 +56,14 @@ class TextResource extends FileResource
   save: (outputFilename=@dstFilepath, content=@converted)->
     @::save outputFilename, content
 
-  @save: (outputFilename, content)-> # @todo:1 make private ?
+  @save: (outputFilename, content, options='utf-8')->
     l.debug("Save file '#{outputFilename}'") if l.deb 20
     try
       if not fs.existsSync upath.dirname(outputFilename)
         l.verbose "Creating directory '#{upath.dirname outputFilename}'"
         wrench.mkdirSyncRecursive upath.dirname(outputFilename)
 
-      fs.writeFileSync outputFilename, content, 'utf-8'
+      fs.writeFileSync outputFilename, content, options
       if @watch #if debug
         l.verbose "Saved file '#{outputFilename}'"
     catch err

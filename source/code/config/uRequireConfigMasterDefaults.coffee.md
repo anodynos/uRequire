@@ -6,6 +6,7 @@ The *master & defaults* configuration file of *uRequire*.
 
 This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. The code blocks shown are the actual code used at runtime, i.e each key declares its self and sets a default value.
 
+    RCs = require('./ResourceConverters').RCs # default Resource Converters
     module.exports = uRequireConfigMasterDefaults =
 
 NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/uRequireConfigMasterDefaults.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
@@ -175,138 +176,22 @@ Copy (binary) of all non-resource [`BundleFile`](urequireconfigmasterdefaults.co
 
 ## bundle.resources
 
-Defines an array of text-based **Resource Converters (RC)** (eg compilers, converters etc), that perform a conversion from a resource format
-(eg coffeescript, less) to another **converted** format (eg javascript, css).
+Defines an array of text-based **Resource Converters (RC)** (eg compilers, converters etc), that perform a conversion of the bundle files, from one resource format (eg coffeescript, less) to another **converted** format (eg javascript, css).
 
 All files that are matched by one or more RCs are considered as **resources**.
 
-**Resource Converters** can work either as in-memory workflow or as an external file system based conversion.
+**Resource Converters** is an evolving generic workflow file (& source) converions system, that is trivial to use and extend. It respects
+file systems for conversion as its a highly an in-memory and only-when-needed workflow.
 
-Each RC has:
-
- * `name` a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of this name - see below. @todo: `name` should be unique
-
- * `filez` - a [`filez`](urequireconfigmasterdefaults.coffee#bundle.filez) spec of the files it deals with.
-
- * `convert` - a callback eg `function(resource){return convert(resource.source)}` that converts using some resource's data (eg `source`) to an in memory *converted* state or perform any other in memory or external conversion.
- The return of `convert()` is stored as resource.converted and its possibly converted again by a subsequent converter. Finally, if its not falsy, its saved automatically at resource.dstFilepath (which uses [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstPath)) & `dstFilename` below.
-
- * `dstFilename` - a `function(srcFilename){return convertFn(srcFilename)}` that converts a *source* filename to its *destination* filename, eg `'file.coffee'-> 'file.js'`. If its a `String` (eg '.js'), its considered a simple extension replacement.
-
- * and flags `isTerminal`, `isAfterTemplate` & `isMatchSrcFilename` & `type` that can be easily defined via `name` flags - explained below.
-
-Resource Converters are *attached* to the files of the bundle (those that match `filez`), the last one determining the class of resource.
-
-### resource `clazz` & `type`
-
-The `type` is user set among ['module', 'text', 'file'] - the default being `'module'`.
-A resource converter's `type` marks each matching file's clazz either as a `Module`, a `TextResource` or a `FileResource` (but only the last one matters!)
-
-#### FileResource
-
-An external file whose contents we need to know nothing of (but we can if we want). At each conversion, the `convert()` is called, passing a `FileResource` instance with fields:
-  * (from `BundleFile`) :
-    `srcFilename` - eg
-    `srcFilepath` - eg
-    `dstFilepath` - eg
-    `fileStats` - eg
-    `sourceMapInfo` eg
-     more ???
-
-You can perform any internal or external conversion in `convert()`. If `convert()` returns non falsy, the content is saved at [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstPath).
-
-#### TextResource
-
-A subclass of TextResource Any *textual/utf-8* **Resource**, (eg a `.less` file), denoted by `type:'text'` or via a `'#'` flag preceding its `name` eg `name:'#less'`.
-
-_Key has precedence over name flag, if object format is used - see @type._
-
-#### Module
-
-A **Module** is *javascript code* with node/commonjs `require` or AMD style `define`/`require` dependencies.
-
-Each Module is converted just like a *textual/utf-8* **Resource**, but its dependencies come into play and ultimately it is converted through the chosen [`template`](urequireconfigmasterdefaults.coffee#build.template).
-
-Its is denoted either via key `isModule:true` or via a lack of `'#'` flag preceding its name.
-
-_Again key has precedence over name flag, if object format is used - see @type._
-
-### isTerminal
-
-A converter can be `isTerminal:true` (the default) or `isTerminal:false`.
-
-uRequire uses each matching converter in turn during the build process, converting from one format to the next, using the converted source and dstFilename as the input to the next converter. All that until the first `isTerminal:true` converter is encountered, where the resource conversion process stops.
-
-A converter is by default `isTerminal:true` and can denote it self as `isTerminal:false` in the object format or by using the name flag `'*'`.
-
-### isAfterTemplate
-
-A converter with `isAfterTemplate:true` (refers only to Module converters) will run after the module is converted through its template (eg 'UMD'). By default `isAfterTemplate:false`. Use the `'!'` name flag to denote `isAfterTemplate:true`. 
-
-### details & examples
-
-@derive [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
-
-@optional unless you want to add resource converters for your *TypeScript*, *coco* or other conversion needs.
-
-@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object' or an 'Array' (for simpler descriptions). See @example below
-
-@example Check the following code [(that is actually part of uRequire)](#Literate-Coffescript), that defines some basic text resource converters ('coffee-script' & 'LiveScript'):
+See the separate [Resource Converters](Resource-Converters.coffee) docs.
 
       resources: [ # an array of resource converters
-
-        # the 'Object' way to define a resource converter is an object like this:
-        {
-          name: '$Javascript'         # '$' flag denotes `type: 'module'`.
-
-          filez: [                    # type like to `bundle.filez`, defines matching files, converted with this converter
-            # minimatch string (ala grunt's 'file' expand or node-glob)
-            '**/*.js'
-            # a RegExp works as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
-            /.*\.(javascript)$/
-          ]
-
-          convert: (resource)-> resource.source  # javascript needs no compilation - just return source as is
-
-          dstFilename: (filename)->             # convert .js | .javascript to .js
-            (require '../paths/upath').changeExt filename, 'js'
-
-          # these are defaults, you can ommit them
-          isAfterTemplate: false
-          isTerminal: false
-          isMatchSrcFilename: false
-          type: 'module'
-        }
-
-        # the alternative (& easier) 'Array' way of declaring a Converter: using an [] instead of {}
-        [
-          '$coffee-script'                      # name & flags as a String at pos 0
-
-          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i] # filez [] at pos 1
-
-          (resource)->                          # convert Function at pos 2
-            (require 'coffee-script').compile resource.source, bare:true
-
-          (srcFilename)->                                  # dstFilename Function at pos 3
-            ext = srcFilename.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1"  # retrieve matched extension, eg 'coffee.md'
-            srcFilename.replace (new RegExp ext+'$'), 'js'                        # replace it and teturn new filename
-        ]
-
-        # or in short
-        [ '$LiveScript', [ '**/*.ls']
-          (resource)-> (require 'LiveScript').compile resource.source, bare:true
-          '.js'] # if dstFilename is a String, it denotes an extension change in the of srcFilename
+        RCs.javascript
+        RCs.coffeescript
+        RCs.livescript
+        RCs.coco
       ]
 
-@stability: 2 - Unstable
-
-@note when two ore more files end up with the same `dstFilename`, build halts.
-
-@todo uRequire `bundle.resources` aims to power a streamlined conversion process. More functionality is need towards this aim :
-
-* flexible in memory pipelines, where to go next etc.
-
-* When the same `dstFilename` is encountered in two or more resources/modules, it could mean pre or post conversion concatenation: either all sources are concatenated & then passed to `convert`, or each resource is `convert`ed alone & their outputs are concatenated onto `dstFilename`.
 
 ## bundle.webRootMap
 

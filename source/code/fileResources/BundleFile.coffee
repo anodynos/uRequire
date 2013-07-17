@@ -4,6 +4,7 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/BundleFile'
 
 Build = require '../process/Build'
+wrench = require "wrench"
 
 upath = require '../paths/upath'
 UError = require '../utils/UError'
@@ -90,7 +91,7 @@ class BundleFile
       if fs.existsSync dstFile
         compStats = ['mtime', 'size']
         if _.isEqual (_.pick srcStats, compStats), (_.pick fs.statSync(dstFile), compStats)
-          l.debug("copy same src & dst files - not copying : srcFile='#{srcFile}', dstFile='#{dstFile}'") if l.deb 80
+          l.debug("NOT copying same src & dst files: srcFile='#{srcFile}', dstFile='#{dstFile}'") if l.deb 80
           return false
 
     l.debug("copy {src='#{srcFile}', dst='#{dstFile}'}") if l.deb 40

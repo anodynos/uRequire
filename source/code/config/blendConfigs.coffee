@@ -12,6 +12,8 @@ uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
 arrayizePusher = new _B.ArrayizePushBlender
 
+resourceConverterBlender = (require './ResourceConverters').resourceConverterBlender
+
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
 # depending on where these keys appear in uRequireConfigMasterDefaults.
@@ -109,7 +111,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
 
       resources: '|' : '*': (prop, src, dst)->
-        arrayizePusher.blend dst[prop], resourcesBlender.blend([], src[prop])
+        arrayizePusher.blend dst[prop],
+          (resourceConverterBlender.blend(resConv) for resConv in src[prop])
 
       dependencies:
 
@@ -228,78 +231,55 @@ templateBlender = new _B.DeepCloneBlender [
                     not _.isUndefined src[prop].name
     deepCloneBlender.blend dst[prop], src[prop]
 ]
-
-#convert an array of resources, each of which might be an array it self
-#to an array of 'proper' resources
-# For example
-#    [
-#      [
-#        '*#Name of a non-module(#), non-terminal resource (*)'
-#        [
-#          '**/*.someext'
-#        ]
-#        ->
-#      ]
-
-#    ]
-# to
-#    [
-#      {
-#        name: 'Name of a non-module(#), non-terminal resource (*)'
-#        isModule: false
-#        isTerminal: false
-#        filez: '**/*.someext'
-#        convert: ->
-#      }
-#    ]
-
-getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTerminal, isAfterTemplate, isMatchSrcFilename)->
-  while name[0] in ['&','@', '#', '$', '~', '|', '*', '!']
-    switch name[0]
-      when '&' then type ?= 'bundle'
-      when '@' then type ?= 'file'
-      when '#' then type ?= 'text'
-      when '$' then type ?= 'module'
-      when '~' then isMatchSrcFilename ?= true
-      when '|' then isTerminal ?= true
-      when '*' then isTerminal ?= false # todo: delete '*' case - isTerminal = false is default
-      when '!' then isAfterTemplate ?= true
-    name = name[1..] # remove 1st char
-
-  if type and (type not in ['bundle', 'file', 'text', 'module'])
-    l.err "resourceConverter.type '#{type}' is invalid - will default to 'module'"
-
-  if isModule #isModule is DEPRACATED but still supported (till 0.5 ?)
-    l.warn "DEPRACATED key 'isModule' found in `resources` converter '#{name}'. Use `type: 'module'` instead."
-    type = 'module'
-
-  isTerminal ?= false
-  isAfterTemplate ?= false
-  isMatchSrcFilename ?= false
-
-  if _.isString dstFilename
-    if dstFilename[0] is '.' #filename extension change if it starts with '.'
-      dstFilename = do (ext=dstFilename)-> (srcFilename)-> upath.changeExt srcFilename, ext
-    else # return a fn that returns the `dstFilename` String
-      dstFilename = do (dstFilename)-> -> dstFilename
-
-  {name, filez, convert, dstFilename, type, isTerminal, isAfterTemplate, isMatchSrcFilename}
-
-resourcesBlender = new _B.DeepCloneBlender [
-  order:['path', 'src']
-
-  '*': '|' :
-    '[]': (prop, src)->
-      r = src[prop]
-      if _.isEqual r, [null] then r # cater for [null] reset array signpost
-      else
-        getResourceConverter r[0],   r[1],    r[2],      r[3]
-
-    '{}': (prop, src)->
-      r = src[prop]
-      getResourceConverter r.name, r.filez, r.convert, r.dstFilename, r.type, r.isModule, r.isTerminal, r.isAfterTemplate, r.isMatchSrcFilename
-
-]
+#
+#getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTerminal, isAfterTemplate, isMatchSrcFilename)->
+#  while name[0] in ['&','@', '#', '$', '~', '|', '*', '!']
+#    switch name[0]
+#      when '&' then type ?= 'bundle'
+#      when '@' then type ?= 'file'
+#      when '#' then type ?= 'text'
+#      when '$' then type ?= 'module'
+#      when '~' then isMatchSrcFilename ?= true
+#      when '|' then isTerminal ?= true
+#      when '*' then isTerminal ?= false # todo: delete '*' case - isTerminal = false is default
+#      when '!' then isAfterTemplate ?= true
+#    name = name[1..] # remove 1st char
+#
+#  if type and (type not in ['bundle', 'file', 'text', 'module'])
+#    l.err "resourceConverter.type '#{type}' is invalid - will default to 'module'"
+#
+#  if isModule #isModule is DEPRACATED but still supported (till 0.5 ?)
+#    l.warn "DEPRACATED key 'isModule' found in `resources` converter '#{name}'. Use `type: 'module'` instead."
+#    type = 'module'
+#
+#  isTerminal ?= false
+#  isAfterTemplate ?= false
+#  isMatchSrcFilename ?= false
+#
+#  if _.isString dstFilename
+#    if dstFilename[0] is '.' #filename extension change if it starts with '.'
+#      dstFilename = do (ext=dstFilename)-> (srcFilename)-> upath.changeExt srcFilename, ext
+#    else # return a fn that returns the `dstFilename` String
+#      dstFilename = do (dstFilename)-> -> dstFilename
+#
+#  {name, filez, convert, dstFilename, type, isTerminal, isAfterTemplate, isMatchSrcFilename}
+#
+#resourcesBlender = new _B.DeepCloneBlender [
+#  order:['path', 'src']
+#
+#  '*': '|' :
+#    '[]': (prop, src)->
+#      r = src[prop]
+#      if _.isEqual r, [null]
+#        r # cater for [null] reset array signpost
+#      else
+#        getResourceConverter r[0],   r[1],    r[2],      r[3]
+#
+#    '{}': (prop, src)->
+#      r = src[prop]
+#      getResourceConverter r.name, r.filez, r.convert, r.dstFilename, r.type, r.isModule, r.isTerminal, r.isAfterTemplate, r.isMatchSrcFilename
+#
+#]
 
 #create a finalCfg object & a default deriveLoader
 # and call the recursive _blendDerivedConfigs
@@ -358,7 +338,6 @@ _.extend blendConfigs, {
   moveKeysBlender
   renameKeysBlender
   templateBlender
-  resourcesBlender
   dependenciesBindingsBlender
   bundleBuildBlender
 }

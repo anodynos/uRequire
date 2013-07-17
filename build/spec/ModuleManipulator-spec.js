@@ -17,6 +17,7 @@ describe("ModuleManipulator", function() {
     js = "  function dosomething(someVar) {\n    abc(['underscore', 'depdir1/dep1'], function(_, dep1) {\n       dep1=new dep1();\n       var j = require('something');\n       return dep1.doit();\n    });\n}";
     mi = (new ModuleManipulator(js)).extractModuleInfo();
     return expect(mi).to.deep.equal({
+      flags: {},
       moduleType: 'nodejs',
       requireDeps: ['something']
     });
@@ -36,6 +37,7 @@ describe("ModuleManipulator", function() {
       extractFactory: true
     })).extractModuleInfo();
     return expect(mi).to.deep.equal({
+      flags: {},
       arrayDeps: ['underscore', 'depdir1/dep1'],
       moduleType: 'AMD',
       amdCall: 'define',
@@ -50,6 +52,7 @@ describe("ModuleManipulator", function() {
       extractFactory: true
     })).extractModuleInfo();
     return expect(mi).to.deep.equal({
+      flags: {},
       moduleType: 'AMD',
       amdCall: 'define',
       factoryBody: 'return{foo:bar}'
@@ -62,6 +65,7 @@ describe("ModuleManipulator", function() {
       extractFactory: true
     })).extractModuleInfo();
     return expect(mi).to.deep.equal({
+      flags: {},
       moduleType: 'AMD',
       amdCall: 'define',
       parameters: ['require'],
@@ -75,7 +79,9 @@ describe("ModuleManipulator", function() {
       extractFactory: true
     })).extractModuleInfo();
     return expect(mi).to.deep.equal({
-      rootExports: 'myLib',
+      flags: {
+        rootExports: 'myLib'
+      },
       moduleName: 'myModule',
       arrayDeps: ['underscore', 'depdir1/dep1'],
       moduleType: 'AMD',
@@ -91,7 +97,9 @@ describe("ModuleManipulator", function() {
       extractFactory: true
     })).extractModuleInfo();
     return expect(mi).to.deep.equal({
-      rootExports: 'myLib',
+      flags: {
+        rootExports: 'myLib'
+      },
       moduleName: 'myModule',
       moduleType: 'AMD',
       amdCall: 'define',
