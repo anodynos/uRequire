@@ -308,7 +308,7 @@ class Bundle extends BundleBase
         copiedCount = skippedCount = 0
         for fn in copyNonResFilenames
           try
-            if Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath, #overwrite:"olderdiff"
+            if BundleFile.copy @files[fn].srcFilepath, @files[fn].dstFilepath # @todo: overwrite:"olderOrSizediff"
               copiedCount++
             else
               skippedCount++
@@ -394,7 +394,7 @@ class Bundle extends BundleBase
       }
 
       for depfilename, genCode of almondTemplates.dependencyFiles
-        Build.outputToFile upath.join(@build.dstPath, depfilename+'.js'), genCode
+        TextResource.save upath.join(@build.dstPath, depfilename+'.js'), genCode
 
       @copyAlmondJs()
       @copyWebMapDeps()
@@ -414,7 +414,7 @@ class Bundle extends BundleBase
   #      out: (text)=>
   #        #todo: @build.out it!
   #        l.verbose "uRequire: writting combinedFile '#{combinedFile}'."
-  #        @outputToFile text, @combinedFile
+  #        @save text, @combinedFile
   #        if fs.existsSync @combinedFile
   #          l.verbose "uRequire: combined file '#{combinedFile}' written successfully."
         name: 'almond'
@@ -500,7 +500,7 @@ class Bundle extends BundleBase
 
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> dstPath
-      Build.copyFileSync(
+      BundleFile.copy(
         "#{__dirname}/../../../node_modules/almond/almond.js" # from
         upath.join(@build.dstPath, 'almond.js')            # to
       )
@@ -523,9 +523,9 @@ class Bundle extends BundleBase
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
-#        Build.copyFileSync  "#{@webRoot}#{depName}",         #from
+#        BundleFile.copy     "#{@webRoot}#{depName}",         #from
 #                            "#{@build.dstPath}#{depName}" #to
-        l.err "NOT IMPLEMENTED: Build.copyFileSync  #{@webRoot}#{depName}, #{@build.dstPath}#{depName}"
+        l.err "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.dstPath}#{depName}"
 
 
   ###

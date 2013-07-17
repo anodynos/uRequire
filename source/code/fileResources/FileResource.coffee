@@ -8,7 +8,6 @@ l = new _B.Logger 'urequire/FileResource'
 BundleFile = require './BundleFile'
 UError = require '../utils/UError'
 
-
 ###
   Represents any file resource, whose source/content we dont read (but subclasses do).
   The `convert()` of the resource converter on FileResource should handle the file contents - for example fs.read it, require() it or spawn an external program.
@@ -20,7 +19,7 @@ UError = require '../utils/UError'
       Eg if @ instanceof FileResource, then 'coffee-script' which is a module converter will not run.
 ###
 class FileResource extends BundleFile
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
+  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p; null
 
   ###
   @param {Object} bundle The Bundle where this FileResource belongs
@@ -75,11 +74,10 @@ class FileResource extends BundleFile
     @hasErrors = false
     return @hasChanged
 
-
   # convert @ using resourceConverter.convert
   # and it might return its result.
   convert: (converter)-> # we pass @ (a BundleFile/FileResource instance), with @srcFilepath, @dstFilepath, @bundle, @bundle.build etc
-    converter.convert @  # as well as @source in TextResource, @moduleInfo in Module etc.
+    converter.convert.call @, @  # as well as @source in TextResource, @moduleInfo in Module etc.
 
   reset:-> super; delete @converted
 

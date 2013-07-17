@@ -35,11 +35,11 @@ upath.changeExt = (file, ext)->
 
 ###
   Add .ext, ONLY if filename doesn't have an extension (any).
-  Extensions are considered to be up to 4 chars long
+  Extensions are considered to be up to 6 chars long
 ###
 upath.defaultExt = (file, ext)->
   oldExt = upath.extname file
-  if oldExt and (oldExt.length <= 4) and (oldExt.length >= 1)
+  if oldExt and (oldExt.length <= 6) and (oldExt.length >= 1)
     file
   else
     upath.addExt file, ext

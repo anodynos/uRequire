@@ -3,6 +3,8 @@ fs = require 'fs'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/BundleFile'
 
+Build = require '../process/Build'
+
 upath = require '../paths/upath'
 UError = require '../utils/UError'
 
@@ -66,5 +68,78 @@ class BundleFile
         //@ sourceMappingURL=#{upath.basename @dstFilepath}.map
         */
       """
+
+
+  # Helpers: available to bundleFile instance (passed as convert() this & 1st argument) for convenience
+  # They are defined as static, with an instance shortcut *with sane defaults*
+  # They are all sync
+  
+  # Without params it copies (binary) the source file from `bundle.path`
+  # to `build.dstPath` - otherwise it respects the params
+  copy: (srcFile=@srcFilepath, dstFile=(upath.join @bundle.build.dstPath, @srcFilename))-> 
+    BundleFile.copy srcFile, dstFile
+
+  # copyFile helper (missing from fs & wrench)
+  # @return true if copy was made, false if skipped (eg. same file)
+  # copyFileSync based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/) @todo: improve !
+  @copy: (srcFile, dstFile, overwrite='DUMMY')-> # @todo: overwrite: 'olderOrSizeDiff' (current default behavior) or 'all', 'none', 'older', 'sizeDiff'
+    if not fs.existsSync srcFile
+      throw new UError "copy source file missing '#{srcFile}'"
+    else
+      srcStats = _.pick fs.statSync(srcFile), ['atime', 'mtime', 'size']
+      if fs.existsSync dstFile
+        compStats = ['mtime', 'size']
+        if _.isEqual (_.pick srcStats, compStats), (_.pick fs.statSync(dstFile), compStats)
+          l.debug("copy same src & dst files - not copying : srcFile='#{srcFile}', dstFile='#{dstFile}'") if l.deb 80
+          return false
+
+    l.debug("copy {src='#{srcFile}', dst='#{dstFile}'}") if l.deb 40
+    try
+      BUF_LENGTH = 64*1024
+      buff = new Buffer(BUF_LENGTH)
+      fdr = fs.openSync(srcFile, 'r')
+
+      if not (fs.existsSync upath.dirname(dstFile))
+        l.verbose "Creating directory #{upath.dirname dstFile}"
+        wrench.mkdirSyncRecursive upath.dirname(dstFile)
+
+      fdw = fs.openSync(dstFile, 'w')
+      bytesRead = 1
+      pos = 0
+      while bytesRead > 0
+        bytesRead = fs.readSync fdr, buff, 0, BUF_LENGTH, pos
+        fs.writeSync fdw, buff, 0, bytesRead
+        pos += bytesRead
+      fs.closeSync fdr
+      fs.closeSync fdw
+
+      fs.utimesSync dstFile, srcStats.atime, srcStats.mtime
+      return true
+    catch err
+      l.err uerr = "copy from '#{srcFile}' to '#{dstFile}'", err
+      throw new UError uerr, nested:err
+
+  # helper - uncaching require
+  # based on http://stackoverflow.com/questions/9210542/node-js-require-cache-possible-to-invalidate
+  # Removes a nodejs module from the cache
+  requireUncached: (moduleName)-> BundleFile.requireUncached moduleName
+  @requireUncached: (moduleName) ->
+    # Runs over the cache to search for all the cached nodejs modules files
+    searchCache = (moduleName, callback) ->
+      # Resolve the module identified by the specified name
+      mod = require.resolve(moduleName)
+      # Check if the module has been resolved and found within the cache
+      if mod and ((mod = require.cache[mod]) isnt undefined)
+        # Recursively go over the results
+        (run = (mod) ->
+           # Go over each of the module's children and run over it
+           mod.children.forEach (child)-> run child
+           # Call the specified callback providing the found module
+           callback mod
+        ) mod
+
+    # Run over the cache looking for the files loaded by the specified module name
+    searchCache moduleName, (mod)-> delete require.cache[mod.id]
+    require moduleName
 
 module.exports = BundleFile
