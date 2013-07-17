@@ -75,7 +75,7 @@ class BundleBuilder
       try
         @bundle.buildChangedResources @build, filenames #if no
       catch err
-        l.err 'Uncaught exception @ bundle.buildChangedResources', err
+        if @build.debugLevel > 100 then l.err 'Uncaught exception @ bundle.buildChangedResources', err
         throw err
         @buildCfg.done false
     else

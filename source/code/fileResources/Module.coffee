@@ -106,7 +106,7 @@ class Module extends TextResource
   ###
   convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @isConvertible
-      l.debug("Preparing conversion of '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 30
+      l.debug("Preparing conversion of '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 80
 
       # inject exports.bundle Dependencies information to arrayDependencies, nodeDependencies & parameters
       if not _.isEmpty (bundleExports = @bundle?.dependencies?.exports?.bundle)

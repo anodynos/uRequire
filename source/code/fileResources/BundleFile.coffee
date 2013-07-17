@@ -25,6 +25,7 @@ class BundleFile
       stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']
       if not _.isEqual stats, @fileStats
         @hasChanged = true
+        @dstFilename = @srcFilename # reset to original @filename
       else
         @hasChanged = false
         l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90

@@ -254,8 +254,9 @@ templateBlender = new _B.DeepCloneBlender [
 #    ]
 
 getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTerminal, isAfterTemplate, isMatchSrcFilename)->
-  while name[0] in ['@', '#', '$', '~', '|', '*', '!']
+  while name[0] in ['&','@', '#', '$', '~', '|', '*', '!']
     switch name[0]
+      when '&' then type ?= 'bundle'
       when '@' then type ?= 'file'
       when '#' then type ?= 'text'
       when '$' then type ?= 'module'
@@ -265,7 +266,7 @@ getResourceConverter = (name, filez, convert, dstFilename, type, isModule, isTer
       when '!' then isAfterTemplate ?= true
     name = name[1..] # remove 1st char
 
-  if type and (type not in ['module', 'text', 'file'])
+  if type and (type not in ['bundle', 'file', 'text', 'module'])
     l.err "resourceConverter.type '#{type}' is invalid - will default to 'module'"
 
   if isModule #isModule is DEPRACATED but still supported (till 0.5 ?)

@@ -94,20 +94,20 @@ class Bundle extends BundleBase
           isFileInSpecs (if resConv.isMatchSrcFilename then filename else convFilename), resConv.filez
             resConv.clazz or= # set the class on resConv it self
               switch resConv.type
-                when 'module' then Module
-                when 'text' then TextResource
+                when 'bundle' then BundleFile
                 when 'file' then FileResource
+                when 'text' then TextResource
+                when 'module' then Module
+
             # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
+
             convFilename = resConv.dstFilename convFilename if _.isFunction resConv.dstFilename
             matchedConverters.push resConv
             break if resConv.isTerminal
 
-        if _.isEmpty matchedConverters # no resourceConverters matched,
-          resourceClass = BundleFile  # its just a bundle file
-        else
-          # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
-          lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
-          resourceClass = _.last(lastResourcesWithClazz)?.clazz or FileResource
+        # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
+        lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
+        resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile
 
         l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
         @files[filename] = new resourceClass @, filename, matchedConverters
@@ -262,7 +262,7 @@ class Bundle extends BundleBase
       # some build reporting
       report = @reporter.getReport @build.interestingDepTypes
       l.warn 'Report for this `build`:\n', report if not _.isEmpty report
-      l.verbose "Copied #{copied} files." if copied
+      l.verbose "Copied #{copied[0]} files, Skipped copying #{copied[1]} files." if copied[0] or copied[1]
       l.verbose "Changed & built: #{@changed.resources} resources of which #{@changed.modules} were modules."
       l.err "#{@changed.errors} files/resources with errors in this build." if @changed.errors
 
@@ -305,14 +305,19 @@ class Bundle extends BundleBase
           #####################################
           Copying #{copyNonResFilenames.length} non-resources files..."
           #####################################################################""" if l.deb 30
+        copiedCount = skippedCount = 0
         for fn in copyNonResFilenames
           try
-            Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath
+            if Build.copyFileSync @files[fn].srcFilepath, @files[fn].dstFilepath, #overwrite:"olderdiff"
+              copiedCount++
+            else
+              skippedCount++
+
             @files[fn].hasChanged = false
           catch err
             if not (@build.continue or @build.watch) then throw err
 
-    copyNonResFilenames?.length || 0
+    [copiedCount, skippedCount]
 
   ###
   ###
