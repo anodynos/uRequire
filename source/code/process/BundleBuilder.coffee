@@ -3,7 +3,7 @@ _ = require 'lodash'
 fs = require 'fs'
 _B = require 'uberscore'
 
-l = new _B.Logger 'urequire/BundleBuilder'
+l = new _B.Logger 'urequire/process/BundleBuilder'
 
 # urequire
 upath = require '../paths/upath'

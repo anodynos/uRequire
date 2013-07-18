@@ -1,7 +1,7 @@
 _ = require 'lodash'
 fs = require 'fs'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/BundleFile'
+l = new _B.Logger 'urequire/fileResources/BundleFile'
 
 Build = require '../process/Build'
 wrench = require "wrench"

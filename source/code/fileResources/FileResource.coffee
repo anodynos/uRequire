@@ -2,7 +2,7 @@
 _ = require 'lodash'
 fs = require 'fs'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/FileResource'
+l = new _B.Logger 'urequire/fileResources/FileResource'
 
 # uRequire
 BundleFile = require './BundleFile'
@@ -55,8 +55,8 @@ class FileResource extends BundleFile
         l.debug "Converting #{@constructor?.name} '#{@dstFilename}' with '#{converter.name}'..." if l.deb 70
 
         # convert @filename to @dstFilename (i.e the previous @dstFilename from converter.dstFilename(), intially @filename)
-        if _.isFunction converter.dstFilename
-          @dstFilename = converter.dstFilename @dstFilename
+        if _.isFunction converter.convFilename
+          @dstFilename = converter.convFilename @dstFilename, @srcFilename, @
           l.debug "... @dstFilename is '#{@dstFilename}'" if l.deb 95
 
         try

@@ -4,7 +4,7 @@ _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
 wrench = require 'wrench'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/Bundle'
+l = new _B.Logger 'urequire/process/Bundle'
 globExpand = require 'glob-expand'
 minimatch = require 'minimatch'
 
@@ -84,14 +84,14 @@ class Bundle extends BundleBase
       if not @files[filename] # a new filename
         isNew = true
         matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
-        convFilename = filename
+        dstFilename = filename
 
         # Add matched converters
-        # - match filename in resConv.filez, either src or converted
+        # - match filename in resConv.filez, either srcFilename or dstFilename depending on `~` flag
         # - determine its clazz from type
         # - until a terminal converter found
         for resConv in @resources when \
-          isFileInSpecs (if resConv.isMatchSrcFilename then filename else convFilename), resConv.filez
+          isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
             resConv.clazz or= # set the class on resConv it self
               switch resConv.type
                 when 'bundle' then BundleFile
@@ -100,14 +100,15 @@ class Bundle extends BundleBase
                 when 'module' then Module
 
             # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
+            if _.isFunction resConv.convFilename
+              dstFilename = resConv.convFilename dstFilename, filename
 
-            convFilename = resConv.dstFilename convFilename if _.isFunction resConv.dstFilename
             matchedConverters.push resConv
             break if resConv.isTerminal
 
         # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
         lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
-        resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile
+        resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
 
         l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
         @files[filename] = new resourceClass @, filename, matchedConverters
@@ -161,7 +162,7 @@ class Bundle extends BundleBase
 
 
     @filenames = _.keys @files
-    @dstFilenames = _.map @files, (file)-> file.dstFilename
+    @dstFilenames = _.map @files, (file)-> file.dstFilename # just dstFilenames
     return @changed.bundlefiles
 
   ###

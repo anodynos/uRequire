@@ -1,7 +1,7 @@
 _ = require 'lodash'
 fs = require 'fs'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/Build'
+l = new _B.Logger 'urequire/process/Build'
 
 # uRequire
 DependenciesReporter = require './../utils/DependenciesReporter'

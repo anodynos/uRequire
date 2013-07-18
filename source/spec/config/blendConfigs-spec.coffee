@@ -11,7 +11,7 @@ blendConfigs = require '../../code/config/blendConfigs'
 uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDefaults'
 {
   moveKeysBlender
-  renameKeysBlender
+  depracatedKeysBlender
   templateBlender
   dependenciesBindingsBlender
   bundleBuildBlender
@@ -72,7 +72,7 @@ expectedResources = [
      ]
     isMatchSrcFilename: false
     convert: resources[0][2]
-    dstFilename: resources[0][3]
+    convFilename: resources[0][3]
     type: 'module'
     isTerminal: false
     isAfterTemplate: false
@@ -84,7 +84,7 @@ expectedResources = [
     filez: '**/*._*'
     isMatchSrcFilename: false
     convert: resources[1][3]
-    dstFilename: resources[1][4]
+    convFilename: resources[1][4]
     type: undefined
     isTerminal: false
     isAfterTemplate: true
@@ -96,7 +96,7 @@ expectedResources = [
     filez: '**/*.nonmodule'
     isMatchSrcFilename: false
     convert: resources[2].convert
-    dstFilename: undefined
+    convFilename: undefined
     type: 'text'
     isTerminal: true
     isAfterTemplate: false
@@ -108,7 +108,7 @@ expectedResources = [
     filez: '**/*.ext'
     isMatchSrcFilename:true
     convert: resources[3][2]
-    dstFilename: resources[3][3]
+    convFilename: resources[3][3]
     type: 'file'
     isTerminal: false
     isAfterTemplate: false
@@ -119,7 +119,7 @@ expectedResources = [
     description: undefined
     filez: '**/*.module'
     convert: resources[4].convert
-    dstFilename: undefined
+    convFilename: undefined
     type: 'module'
     isTerminal: false
     isAfterTemplate: false
@@ -217,7 +217,7 @@ describe 'blendConfigs & its Blenders: ', ->
             name: 'myBundle'
             path: "/some/path"
 
-  describe "renameKeysBlender:", ->
+  describe "depracatedKeysBlender:", ->
     it "renames DEPRACATED keys to their new name", ->
 
       oldCfg =
@@ -225,13 +225,13 @@ describe 'blendConfigs & its Blenders: ', ->
           bundlePath: "source/code"
           main: "index"
           filespecs: '*.*'
-          ignore: [/^draft/] # ignore not handled in renameKeysBlender
+          ignore: [/^draft/] # ignore not handled in depracatedKeysBlender
           dependencies:
             noWeb: 'util'
             bundleExports: {lodash:'_'}
             _knownVariableNames: {jquery:'$'}
 
-      expect(renameKeysBlender.blend oldCfg).to.be.deep.equal
+      expect(depracatedKeysBlender.blend oldCfg).to.be.deep.equal
         bundle:
           path: 'source/code'
           main: 'index'

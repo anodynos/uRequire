@@ -1,7 +1,7 @@
 # externals
 _ = require 'lodash'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/Module'
+l = new _B.Logger 'urequire/fileResources/Module'
 fs = require 'fs'
 
 # uRequire
@@ -33,7 +33,7 @@ class Module extends TextResource
         @adjustModuleInfo()
         return @hasChanged = true
       else
-        l.debug "No changes in sourceCodeJs of module '#{@dstFilename}' " if l.deb 90
+        l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
 
     return @hasChanged = false # only when written
 
@@ -47,7 +47,7 @@ class Module extends TextResource
   adjustModuleInfo: ->
     # reset info holders
 #    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
-    l.debug "adjustModuleInfo for '#{@dstFilename}'" if l.deb 70
+    l.debug "adjustModuleInfo for '#{@srcFilename}'" if l.deb 70
 
     @moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
     @moduleInfo = @moduleManipulator.extractModuleInfo() # keeping original @moduleInfo

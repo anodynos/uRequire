@@ -183,6 +183,12 @@ Defines an Array of [**Resource Converters (RC)**](Resource-Converters.coffee) (
 
 *Note:* All [`bundle.filez`](urequireconfigmasterdefaults.coffee#bundle.filez) that are matched & marked by one or more RCs are considered as **Resources**, all others are just *`BundleFile`s* (which are usefull only for declarative sync [`bundle.copy`](urequireconfigmasterdefaults.coffee#bundle.copy)ing at each build).
 
+@derive [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
+
+@optional unless you want to add you own *Resource Converters* (eg `TypeScript`, `stylus`) for your conversion needs.
+
+@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object' or an 'Array' (for simpler descriptions). See @example below
+
 See the separate [Resource Converters](Resource-Converters.coffee) docs.
 
       resources: resourceConverters.defaultResourceConverters
@@ -439,6 +445,16 @@ Optimizes output files (i.e it minifies/compresses them for production).
 
 ## build.done
 
-This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build - don't use it!
+This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build.
+
+@todo: not tested in user configs!
 
       done: (doneVal)-> console.log "done() is missing and I got a #{doneVal} on the default done()"
+
+## build.clean
+
+Clean all files & folders from `build.dstPath` before each non-watched, non-partial build.
+
+@todo: NOT IMPLEMENTED
+
+      clean: undefined

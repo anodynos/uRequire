@@ -3,7 +3,7 @@ _ = require 'lodash'
 fs = require 'fs'
 wrench = require 'wrench'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/TextResource'
+l = new _B.Logger 'urequire/fileResources/TextResource'
 
 # uRequire
 FileResource = require './FileResource'
@@ -18,7 +18,7 @@ upath = require '../paths/upath'
   Each time it `@refresh()`es,
     if `@source` (content) in srcFile is changed, its passed through all @converters:
       - stores `converter.convert()` result as @converted
-      - stores `converter.dstFilename(@srcFilename)` result as @dstFilename
+      - stores `converter.convFilename()` result as @dstFilename
     otherwise it returns `@hasChanged = false`
 
   When `save()` is called (with no args) it outputs `converted` to `dstFilepath`.
@@ -46,7 +46,7 @@ class TextResource extends FileResource
       if source and (@source isnt source)
         # go through all converters, converting source & filename in turn
         @source = @converted = source
-        @dstFilename = @filename
+        @dstFilename = @filename # @todo: why init?
 
         return @hasChanged = @runResourceConverters (conv)->not conv.isAfterTemplate # only 'isAfterTemplate:false' aren't a module converted with template
       else
