@@ -19,7 +19,7 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 
-resourceConverterBlender = (require '../../code/config/ResourceConverters').resourceConverterBlender
+resourceConverterBlender = (require '../../code/config/resourceConverters').resourceConverterBlender
 
 resources =  [
   [

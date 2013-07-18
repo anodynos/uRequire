@@ -12,7 +12,7 @@ uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
 arrayizePusher = new _B.ArrayizePushBlender
 
-resourceConverterBlender = (require './ResourceConverters').resourceConverterBlender
+resourceConverterBlender = (require './resourceConverters').resourceConverterBlender
 
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),

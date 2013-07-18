@@ -153,8 +153,11 @@ class Bundle extends BundleBase
         else
           uerr = new UError "Something wrong while loading/refreshing/processing '#{filename}'.", {stack:true, nested:err}
           l.err uerr.message
-          if not (@build.continue or @build.watch) then l.log uerr; throw uerr
-          else l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
+          if not (@build.continue or @build.watch)
+            l.log uerr
+            throw uerr
+          else
+            l.warn "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
 
     @filenames = _.keys @files
@@ -196,7 +199,7 @@ class Bundle extends BundleBase
       if @loadOrRefreshResources(filenames) > 0 # returns @changed.bundlefiles
         if @changed.modules
           l.debug """\n
-            #####################################
+            #####################################################################
             Converting changed modules with template '#{@build.template.name}'
             #####################################################################""" if l.deb 30
           for filename in filenames
@@ -382,7 +385,7 @@ class Bundle extends BundleBase
           @build.done false
           return
         else
-          l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
+          l.warn "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
       nodeOnly = _.keys @getDepsVars (dep)=>
         (dep.pluginName is 'node') or (dep.name(plugin:false) in @dependencies.node)
@@ -510,8 +513,10 @@ class Bundle extends BundleBase
         Tried: '#{__dirname}/../../../node_modules/almond/almond.js'
       """
       uerr = new UError uerr, nested:err
-      if not (@build.continue or @build.watch) then throw uerr
-      else l.err "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
+      if not (@build.continue or @build.watch)
+        throw uerr
+      else
+        l.warn "Continuing from error due to @build.continue || @build.watch - not throwing:\n", uerr
 
   ###
    Copy all bundle's webMap dependencies to dstPath

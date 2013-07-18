@@ -6,7 +6,7 @@ The *master & defaults* configuration file of *uRequire*.
 
 This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. The code blocks shown are the actual code used at runtime, i.e each key declares its self and sets a default value.
 
-    RCs = require('./ResourceConverters').RCs # default Resource Converters
+    resourceConverters = require('./resourceConverters')
     module.exports = uRequireConfigMasterDefaults =
 
 NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/uRequireConfigMasterDefaults.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
@@ -176,22 +176,16 @@ Copy (binary) of all non-resource [`BundleFile`](urequireconfigmasterdefaults.co
 
 ## bundle.resources
 
-Defines an array of text-based **Resource Converters (RC)** (eg compilers, converters etc), that perform a conversion of the bundle files, from one resource format (eg coffeescript, less) to another **converted** format (eg javascript, css).
+Defines an Array of [**Resource Converters (RC)**](Resource-Converters.coffee) (eg compilers, transpilers etc), that perform a conversion on the `bundle.filez`, from one resource format (eg coffeescript, less) to another **converted** format (eg javascript, css).
 
-All files that are matched by one or more RCs are considered as **resources**.
+**Resource Converters** is an evolving & generic workflow converions system, that is trivial to use and extend with your own one-liner converters. The workflow uses your `bundle` & `build` paths and is a highly *in-memory-pipeline* and *read-convert-or-save-only-when-needed* workflow, with [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) capability.
 
-**Resource Converters** is an evolving generic workflow file (& source) converions system, that is trivial to use and extend. It respects
-file systems for conversion as its a highly an in-memory and only-when-needed workflow.
+
+*Note:* All [`bundle.filez`](urequireconfigmasterdefaults.coffee#bundle.filez) that are matched & marked by one or more RCs are considered as **Resources**, all others are just *`BundleFile`s* (which are usefull only for declarative sync [`bundle.copy`](urequireconfigmasterdefaults.coffee#bundle.copy)ing at each build).
 
 See the separate [Resource Converters](Resource-Converters.coffee) docs.
 
-      resources: [ # an array of resource converters
-        RCs.javascript
-        RCs.coffeescript
-        RCs.livescript
-        RCs.coco
-      ]
-
+      resources: resourceConverters.defaultResourceConverters
 
 ## bundle.webRootMap
 
