@@ -16,7 +16,7 @@ Dependency = require '../Dependency'
 DependenciesReporter = require './../utils/DependenciesReporter'
 UError = require '../utils/UError'
 
-#our file types
+#our file system
 BundleFile = require './../fileResources/BundleFile'
 FileResource = require './../fileResources/FileResource'
 TextResource = require './../fileResources/TextResource'
@@ -66,8 +66,8 @@ class Bundle extends BundleBase
     @return Number of bundlefiles changed, i.e @change.bundlefiles
   ###
   loadOrRefreshResources: (filenames = @filenames)->
-    l.debug """
-      #####################################
+    l.debug """\n
+      #####################################################################
       loadOrRefreshResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
     updateChanged = => # @todo: refactor this
@@ -90,15 +90,8 @@ class Bundle extends BundleBase
         # - match filename in resConv.filez, either srcFilename or dstFilename depending on `~` flag
         # - determine its clazz from type
         # - until a terminal converter found
-        for resConv in @resources when \
-          isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
-            resConv.clazz or= # set the class on resConv it self
-              switch resConv.type
-                when 'bundle' then BundleFile
-                when 'file' then FileResource
-                when 'text' then TextResource
-                when 'module' then Module
-
+        for resConv in @resources
+          if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
             # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
             if _.isFunction resConv.convFilename
               dstFilename = resConv.convFilename dstFilename, filename
@@ -169,8 +162,8 @@ class Bundle extends BundleBase
     build / convert all resources that have changed since last
   ###
   buildChangedResources: (@build, filenames=@filenames)->
-    l.debug """
-      #####################################
+    l.debug """\n
+      #####################################################################
       buildChangedResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
     @changed = bundlefiles:0, resources: 0, modules: 0, errors: 0 #reset all change counters
@@ -282,12 +275,12 @@ class Bundle extends BundleBase
 
   saveChangedResources:->
     if @changed.resources
-      l.debug """
-        #####################################
-        Saving changed resource files
+      l.debug """\n
+        #####################################################################
+        Saving changed resource files that have a `converted` String
         #####################################################################""" if l.deb 30
       for fn, resource of @fileResources when resource.hasChanged
-        if resource.converted
+        if resource.converted and _.isString(resource.converted) # only non-empty Strings are written
           if _.isFunction @build.out # @todo:5 else if String, output to this file ?
             @build.out resource.dstFilepath, resource.converted
 
@@ -305,14 +298,14 @@ class Bundle extends BundleBase
           (isFileInSpecs fn, @copy)
 
       if not _.isEmpty copyNonResFilenames
-        l.debug """
-          #####################################
+        l.debug """\n
+          #####################################################################
           Copying #{copyNonResFilenames.length} non-resources files..."
           #####################################################################""" if l.deb 30
         copiedCount = skippedCount = 0
         for fn in copyNonResFilenames
           try
-            if BundleFile.copy @files[fn].srcFilepath, @files[fn].dstFilepath # @todo: overwrite:"olderOrSizediff"
+            if @files[fn].copy() # @todo: overwrite:"olderOrSizediff"
               copiedCount++
             else
               skippedCount++
@@ -326,8 +319,8 @@ class Bundle extends BundleBase
   ###
   ###
   combine: (@build)->
-    l.debug """
-      #####################################
+    l.debug """\n
+      #####################################################################
       'combined' template: optimizing with r.js
       #####################################################################""" if l.deb 30
 

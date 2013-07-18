@@ -27,6 +27,11 @@ This file is written in [Literate Coffeescript](http://ashkenas.com/literate-cof
     upath = require '../paths/upath'
     UError = require '../utils/UError'
 
+    BundleFile = require '../fileResources/BundleFile'
+    FileResource = require '../fileResources/FileResource'
+    TextResource = require '../fileResources/TextResource'
+    Module = require '../fileResources/Module'
+
 ## Inside a Resource Converter
 
 Each *Resource Converter* (RC) has:
@@ -187,26 +192,48 @@ We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here
         '{}': (prop, src)->
           r = src[prop]
           new ResourceConverter   r.name, r.description, r.filez, r.convert, r.convFilename, r.type, r.isModule, r.isTerminal, r.isAfterTemplate, r.isMatchSrcFilename
+
+        '->': (prop, src)-> # if function, call it (with a dummy object) to search resourceConverters by name or function
+          resourceConverter = src[prop].call (search)-> # @todo: src[prop].call with more meaningfull context eg urequire's runtime
+            if _.isString search
+              resourceConverters[search]
+            else
+              _.find resourceConverters, (rc)-> search rc
+
+          new ResourceConverter resourceConverter # special call of constructor with an {}
     ]
 
 ## A formal `ResourceConverter` creator
 
     class ResourceConverter
       constructor: (@name, @description, @filez, @convert, @convFilename, @type, isModule, @isTerminal, @isAfterTemplate, @isMatchSrcFilename)->
+        if _.isObject @name
+          _.extend @, _.omit(@name, 'clazz')
+          l.log 'extended obj'
+
         while @name[0] in ['&','@', '#', '$', '~', '|', '*', '!']
           switch @name[0]
-            when '&' then @type ?= 'bundle'
-            when '@' then @type ?= 'file'
-            when '#' then @type ?= 'text'
-            when '$' then @type ?= 'module'
-            when '~' then @isMatchSrcFilename ?= true
-            when '|' then @isTerminal ?= true
-            when '*' then @isTerminal ?= false # todo: delete '*' case - isTerminal = false is default
-            when '!' then @isAfterTemplate ?= true
+            when '&' then @type = 'bundle'
+            when '@' then @type = 'file'
+            when '#' then @type = 'text'
+            when '$' then @type = 'module'
+            when '~' then @isMatchSrcFilename = true
+            when '|' then @isTerminal = true
+            when '*' then @isTerminal = false # todo: delete '*' case - isTerminal = false is default
+            when '!' then @isAfterTemplate = true
           @name = @name[1..] # remove 1st char
 
-        if @type and (@type not in ['bundle', 'file', 'text', 'module'])
-          l.err "resourceConverter.type '#{@type}' is invalid - will default to 'module'"
+        if @type
+          if @type not in ['bundle', 'file', 'text', 'module']
+            l.err "resourceConverter.type '#{@type}' is invalid - will default to 'bundle'"
+          else
+            Object.defineProperty @, 'clazz',
+              enumerable:false
+              value: switch @type
+                when 'bundle' then BundleFile
+                when 'file' then FileResource
+                when 'text' then TextResource
+                when 'module' then Module
 
         if @isModule # isModule is DEPRACATED but still supported (till 0.5 ?)
           l.warn "DEPRACATED key 'isModule' found in `resources` converter '#{name}'. Use `type: 'module'` instead."
@@ -240,7 +267,6 @@ We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here
 @stability: 2 - Unstable
 
 @note *When two ore more files end up with the same `dstFilename`*, build halts. @todo: This should change in the future: when the same `dstFilename` is encountered in two or more resources/modules, it could mean Pre- or Post- conversion concatenation. Pre- means all sources are concatenated & then passed once to `convert`, or Post- where each resource is `convert`ed alone & but their outputs are concatenated onto that same `dstFilename`.
-
 
 ## Exporting resourceConverters
 

@@ -54,8 +54,8 @@ resources =  [
   ]
 
   {
-    name: '#IamAModule' # a module (although starting with '#')
-    type: 'module' # this is respected over starting with '#'
+    name: '#IamAModule' # A TextResource (starting with '#')
+    type: 'module'      # this is NOT respected cause its starting with '#'
     filez: '**/*.module'
     convert: ->
   }
@@ -120,7 +120,7 @@ expectedResources = [
     filez: '**/*.module'
     convert: resources[4].convert
     convFilename: undefined
-    type: 'module'
+    type: 'text'
     isTerminal: false
     isAfterTemplate: false
     isMatchSrcFilename: false
