@@ -115,7 +115,7 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
 
         # a dummy .js converter
         {
-          name: '$JavaScript'            # '$' flag denotes `type: 'module'`.
+          name: '$javascript'            # '$' flag denotes `type: 'module'`.
 
           description: "I am a dummy js converter, I do nothing but mark `.js` files as `Module`s."
 
@@ -175,8 +175,17 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
 
 We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here, cause it makes absolute sense to exactly define it here!
 
-    resourceConverterBlender = new _B.DeepCloneBlender [
+    class ResourceConverterBlender extends _B.DeepCloneBlender
+
+      constructor: (@blenderBehaviors...)->
+        (@defaultBlenderBehaviors or= []).push ResourceConverterBlender.behavior
+        super
+
+      @behavior:
         order:['src']
+
+        '*': (prop, src)->
+          l.debug 20, 'Ignoring bogus resourceConverter:', src[prop]
 
         '[]': (prop, src)->
           r = src[prop]
@@ -189,29 +198,46 @@ We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here
             else                                                         # pos 1 is not a description, its a `filez`
               new ResourceConverter r[0],   undefined,    r[1],     r[2],      r[3]
 
-        '{}': (prop, src)->
-          r = src[prop]
-          new ResourceConverter   r.name, r.description, r.filez, r.convert, r.convFilename, r.type, r.isModule, r.isTerminal, r.isAfterTemplate, r.isMatchSrcFilename
+        '{}': (prop, src)-> new ResourceConverter src[prop]   # call of constructor with an {} - no need for r.name, r.description etc
 
-        '->': (prop, src)-> # if function, call it (with a dummy object) to search resourceConverters by name or function
-          resourceConverter = src[prop].call (search)-> # @todo: src[prop].call with more meaningfull context eg urequire's runtime
-            if _.isString search
-              resourceConverters[search]
-            else
-              _.find resourceConverters, (rc)-> search rc
+        '->': (prop, src)->                                   # if RC is a function, call with a context of 'search resourceConverters by name or function'
+          resourceConverter =                                 # and the return value is our {} or [] RC definition.
+              src[prop].call (search)->                       # allow user `-> @ 'coffeescript'` @todo: src[prop].call with more meaningfull context ? eg urequire's runtime ?
 
-          new ResourceConverter resourceConverter # special call of constructor with an {}
-    ]
+                  rc = if _.isString search
+                    resourceConverters[search]
+                  else
+                    _.find resourceConverters, (resConv)-> search resConv
+
+                  if not rc
+                    l.err uerr = "ResourceConverter not found with search = #{search}"
+                    throw new UError uerr
+                  else
+                    rc
+          l.warn 'resourceConverter = ', resourceConverter
+          (new ResourceConverterBlender).blend resourceConverter               # The function-declared/returned RC, might return the [] format
+
+    resourceConverterBlender = new ResourceConverterBlender
 
 ## A formal `ResourceConverter` creator
 
+It accepts either all details as arguments
+
     class ResourceConverter
       constructor: (@name, @description, @filez, @convert, @convFilename, @type, isModule, @isTerminal, @isAfterTemplate, @isMatchSrcFilename)->
-        if _.isObject @name
-          _.extend @, _.omit(@name, 'clazz')
-          l.log 'extended obj'
+        l.log ' @name or rc = ', @name
 
-        while @name[0] in ['&','@', '#', '$', '~', '|', '*', '!']
+        if _.isPlainObject(@name) or (@name instanceof ResourceConverter)  # already an RC or RC-like object
+          rc = @name              # store it for registry check (update if already regd under same name)
+          _.extend @, rc
+
+        l.log ' @name =', @name
+
+        if (not @name) or !_.isString(@name)
+          l.err uerr = "resourceConverter.name should be a unique, non empty String - was #{@name}"
+          throw new UError uerr
+
+        while @name[0] in ['&', '@', '#', '$', '~', '|', '*', '!']
           switch @name[0]
             when '&' then @type = 'bundle'
             when '@' then @type = 'file'
@@ -222,6 +248,14 @@ We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here
             when '*' then @isTerminal = false # todo: delete '*' case - isTerminal = false is default
             when '!' then @isAfterTemplate = true
           @name = @name[1..] # remove 1st char
+
+        if resourceConverters[@name]
+          if (resourceConverters[@name] isnt rc)
+            if (resourceConverters[@name] instanceof ResourceConverter)
+              l.err uerr = "Another ResourceConverter named '#{@name}' already exists - change the name, or use that `-> @ '#{@name}'!`"
+              throw new UError uerr
+
+          l.warn "Updating ResourceConverter '#{@name}'"
 
         if @type
           if @type not in ['bundle', 'file', 'text', 'module']
@@ -243,8 +277,8 @@ We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here
         @isAfterTemplate ?= false
         @isMatchSrcFilename ?= false
 
+        # ammend convFilename function
         if _.isString @convFilename
-
           if @convFilename[0] is '~'
             @convFilename = @convFilename[1..]
             isSrcFilename = true
@@ -264,23 +298,43 @@ We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here
             l.err uerr = "ResourceConverter error: `convFilename` is not String|Function|Undefined."
             throw new UError uerr, nested:err
 
+        resourceConverters[@name] = @ # 'register' this RC
+
 @stability: 2 - Unstable
 
 @note *When two ore more files end up with the same `dstFilename`*, build halts. @todo: This should change in the future: when the same `dstFilename` is encountered in two or more resources/modules, it could mean Pre- or Post- conversion concatenation. Pre- means all sources are concatenated & then passed once to `convert`, or Post- where each resource is `convert`ed alone & but their outputs are concatenated onto that same `dstFilename`.
 
-## Exporting resourceConverters
+## Extra resourceConverters
 
-We exported a `resourceConverters` {} with `name` as key & each RC as value. @todo `resourceConverters` should be populated with all RCs loaded (user config ones). @todo: you can then "reference" or "call" an RC from another (user defined) RC!
+    extraResourceConverters = [
+      [
+       '@~teacup', 'Renders teacup nodejs modules (that export the plain template function), to HTML'
+       ['**/*.teacup']
+       do ->
+          require.extensions['.teacup'] = require.extensions['.coffee'] # register once
+          teacup = require 'teacup'
+          return ->
+            template = @requireUncached "#{@srcRealpath}"
+            teacup.render template
+       '.html'
+      ]
+    ]
+
+## Registering resourceConverters
+
+We have an unordered `resourceConverters` {} registry with `name` as key & a ResourceCoverter instance as value.
 
     resourceConverters = {}
 
-Replace all default RCs to their 'proper' Object format.
+Its populated with all RCs loaded, either from master defaults or user defined as well as the following non by default loaded RCs.
+The registry allows user defined RCs (as a function), to easily look up, instantiate, reuse or call functions of registered RCs.
 
-    for rc, idxRc in defaultResourceConverters
-      defaultResourceConverters[idxRc] = rc = resourceConverterBlender.blend {}, rc
+    for rc in extraResourceConverters
+      rc = resourceConverterBlender.blend rc
       resourceConverters[rc.name] = rc
 
-    resourceConverters.defaultResourceConverters = defaultResourceConverters # used as-is by master config's `bundle.resources`
-    resourceConverters.resourceConverterBlender = resourceConverterBlender
-
-    module.exports = resourceConverters
+    module.exports = {
+      defaultResourceConverters       # used as is by [`bundle.resources`](uRequireConfigMasterDefaults.coffee#bundle.resources)
+      resourceConverterBlender        # used by blendConfigs
+      ResourceConverter               # for testing only, not instantiated externally
+    }

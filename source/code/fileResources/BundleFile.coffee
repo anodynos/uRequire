@@ -43,13 +43,12 @@ class BundleFile
 
     # alias to source @filename
     srcFilename: get: -> @filename
-    # source filename with path, eg `myproject/mybundle/mymodule.js`
-    srcFilepath: get: -> upath.join @bundle.path, @filename
+    srcFilepath: get: -> upath.join @bundle.path, @filename # source filename with path, eg `myproject/mybundle/mymodule.js`
+    srcRealpath: get: -> "#{process.cwd()}/#{@srcFilepath}"
 
     # @dstFilename populated after each refresh/conversion (or a default on constructor)
-
-    # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
-    dstFilepath: get:-> if @bundle.build then upath.join @bundle.build.dstPath, @dstFilename
+    dstFilepath: get:-> if @bundle.build then upath.join @bundle.build.dstPath, @dstFilename # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
+    dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
 
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
 

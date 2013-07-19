@@ -108,8 +108,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
 
       resources: '|' : '*': (prop, src, dst)->
-        arrayizePusher.blend dst[prop],
-          (resourceConverterBlender.blend(resConv) for resConv in src[prop])
+        arrayizePusher.blend dst[prop], (resourceConverterBlender.blend resConv for resConv in src[prop])
 
       dependencies:
 

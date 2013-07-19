@@ -43,13 +43,7 @@ class BundleBuilder
         _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
 
     l.verbose 'uRequire v'+l.VERSION + ' initializing...'
-
-    if l.deb 40 # display userCfgs, WITHOUT applying master defaults
-      l.debug 40, "user config follows (NOTE: duplicate debug/warnings will follow!)"
-      l.debug 40, blendConfigs(configs[0..configs.length-2], deriveLoader)
-
-    # display full cfgs, having applied master defaults.
-    l.debug("final config :\n", finalCfg) if l.deb 20
+    l.debug "final config (with master defaults):\n", finalCfg if l.deb 20
 
     ### Lets check & fix different formats or quit if we have anomalies ###
     # Why these here instead of top ? # Cause We need to have _B.Logging.debugLevel ready BEFORE YADC debug check

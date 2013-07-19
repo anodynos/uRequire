@@ -19,7 +19,7 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 
-resourceConverterBlender = (require '../../code/config/resourceConverters').resourceConverterBlender
+{resourceConverterBlender, ResourceConverter} = require '../../code/config/resourceConverters'
 
 resources =  [
   [
@@ -515,3 +515,6 @@ describe 'blendConfigs & its Blenders: ', ->
             dstPath: "build/code"
             debugLevel: 90
             template: name: "UMD"
+
+      it "all {} in bundle.resources are instanceof ResourceConverter :", ->
+        expect(resConv instanceof ResourceConverter) for resConv in blended.bundle.resources
