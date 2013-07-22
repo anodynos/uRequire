@@ -23,7 +23,7 @@ This file is written in [Literate Coffeescript](http://ashkenas.com/literate-cof
 
     _ = require 'lodash'
     _B = require 'uberscore'
-    l = new _B.Logger 'urequire/config/resourceConverters'
+    l = new _B.Logger 'urequire/config/resourceConverters', 0 # config's `build.debugLevel` doesn't work here, cause the config is not read yet!
     upath = require '../paths/upath'
     UError = require '../utils/UError'
 
@@ -113,30 +113,29 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
 
 ### The proper *Object way* to define a Resource Converter
 
-        # a dummy .js converter
-        {
-          name: '$javascript'            # '$' flag denotes `type: 'module'`.
+# a dummy .js converter
+{
+  name: '$javascript'            # '$' flag denotes `type: 'module'`.
 
-          description: "I am a dummy js converter, I do nothing but mark `.js` files as `Module`s."
+  description: "I am a dummy js converter, I do nothing but mark `.js` files as `Module`s."
 
-          filez: [                       # type is like `bundle.filez`, defines matching files, matched, marked and converted with this converter
+  filez: [                       # type is like `bundle.filez`, defines matching files, matched, marked and converted with this converter
+    '**/*.js'                    # minimatch string (ala grunt's 'file' expand or node-glob), with exclusions as '!**/*temp.*'
+                                 # RegExps work as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
+    /.*\.(javascript)$/
+  ]
 
-            '**/*.js'                    # minimatch string (ala grunt's 'file' expand or node-glob), with exclusions as '!**/*temp.*'
-                                         # RegExps work as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
-            /.*\.(javascript)$/
-          ]
+  convert: -> @source            # javascript needs no compilation - just return source as is
 
-          convert: -> @source            # javascript needs no compilation - just return source as is
+  convFilename: (srcFilename)->   # convert .js | .javascript to .js
+    (require '../paths/upath').changeExt srcFilename, 'js'
 
-          convFilename: (srcFilename)->   # convert .js | .javascript to .js
-            (require '../paths/upath').changeExt srcFilename, 'js'
-
-          # these are defaults, you can ommit them
-          isAfterTemplate: false
-          isTerminal: false
-          isMatchSrcFilename: false
-          type: 'module'                # not needed, since we have '$' flag to denote `type: 'module'`
-        }
+  # these are defaults, you can ommit them
+  isAfterTemplate: false
+  isTerminal: false
+  isMatchSrcFilename: false
+  type: 'module'                # not needed, since we have '$' flag to denote `type: 'module'`
+}
 
 ### The alternative (and less verbose) *Array way* of declaring an RC, using an [] instead of {}.
 
@@ -173,168 +172,203 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
 
 ## How do we such flexinbility with both [] & {} formats ?
 
-We define an [uBerscore](http://github.com/anodynos/uberscore) `_B.Blender` here, cause it makes absolute sense to exactly define it here!
 
-    class ResourceConverterBlender extends _B.DeepCloneBlender
+## A formal `ResourceConverter` creator & registry retriever/updater function
 
-      constructor: (@blenderBehaviors...)->
-        (@defaultBlenderBehaviors or= []).push ResourceConverterBlender.behavior
-        super
+It accepts as arguments either all details, or a single RC-like object as the first arg.
 
-      @behavior:
-        order:['src']
+It then creates an object with the following keys :
+  `'name', 'description', 'filez', 'convert', 'convFilename', 'type', 'isModule', 'isTerminal', 'isAfterTemplate, 'isMatchSrcFilename'`
 
-        '*': (prop, src)->
-          l.debug 20, 'Ignoring bogus resourceConverter:', src[prop]
+    nameFlagsActions =
+      '&': (rc)-> rc.type = 'bundle'
+      '@': (rc)-> rc.type = 'file'
+      '#': (rc)-> rc.type = 'text'
+      '$': (rc)-> rc.type = 'module'
+      '~': (rc)-> rc.isMatchSrcFilename = true
+      '|': (rc)-> rc.isTerminal = true
+      '*': (rc)-> rc.isTerminal = false             # todo: delete '*' case - isTerminal = false is default
+      '!': (rc)-> rc.isAfterTemplate = true
+    nameFlags = _.keys nameFlagsActions
+    
+    getResourceConverterForObjectArrayOrFunction = (rc)->
 
-        '[]': (prop, src)->
-          r = src[prop]
-          if _.isEqual r, [null]
-            r # cater for [null] reset array signpost
+      if _.isFunction rc
+        retrievedRC = rc.call (search)->                              # @todo: `src[prop].call` with more meaningfull context ? eg urequire's runtime ?
+          # search by name
+          if _.isString search
+            name = search
+            # strip nameFlags for search's sake
+            while name[0] in nameFlags then name = name[1..]
+            # lookup registry with name (without flags)
+            rcInReg = resourceConverters[name]
+
+            # The search being a name String, perhaps WITH nameFlags
+            if _B.isObject rcInReg
+              # so search becomes the new name, causing a refresh of {} flags.
+              rcInReg.name = search
+            else
+              # oops, Array versions might still have their own flags
+              # still not materilized as {} properties flags
+              if _.isArray rcInReg
+                lastFlagIdx = 0
+                while rcInReg[0][lastFlagIdx] in nameFlags then lastFlagIdx++
+                rcInReg[0] = rcInReg[0].slice(0, lastFlagIdx) + search
+
+          # search is actually a function
           else
-            if _.isString(r[1]) and                                       # possibly a `description` @ pos 1, if followed
-              (_.isArray(r[2]) or _.isString(r[2]) or _.isRegExp(r[2]) ) # by what looks as `filez` at pos 2
-                new ResourceConverter r[0],   r[1],       r[2],     r[3],      r[4]
-            else                                                         # pos 1 is not a description, its a `filez`
-              new ResourceConverter r[0],   undefined,    r[1],     r[2],      r[3]
+            rcInReg = _.find resourceConverters, (resConv)-> search resConv
 
-        '{}': (prop, src)-> new ResourceConverter src[prop]   # call of constructor with an {} - no need for r.name, r.description etc
+          if not rcInReg
+            l.err uerr = "ResourceConverter not found in registry with name = #{name}, search = #{search}"
+            throw new UError uerr
 
-        '->': (prop, src)->                                   # if RC is a function, call with a context of 'search resourceConverters by name or function'
-          resourceConverter =                                 # and the return value is our {} or [] RC definition.
-              src[prop].call (search)->                       # allow user `-> @ 'coffeescript'` @todo: src[prop].call with more meaningfull context ? eg urequire's runtime ?
+          # retrieved RC from registry, might be a ->, [] or {} - call recursivelly to cater for it
+          return getResourceConverterForObjectArrayOrFunction rcInReg
 
-                  rc = if _.isString search
-                    resourceConverters[search]
-                  else
-                    _.find resourceConverters, (resConv)-> search resConv
+        # retrieved the RC from fn.call, again might be a ->, [] or {} - call recursivelly to cater for it
+        return getResourceConverterForObjectArrayOrFunction retrievedRC
 
-                  if not rc
-                    l.err uerr = "ResourceConverter not found with search = #{search}"
-                    throw new UError uerr
-                  else
-                    rc
-          l.warn 'resourceConverter = ', resourceConverter
-          (new ResourceConverterBlender).blend resourceConverter               # The function-declared/returned RC, might return the [] format
+      if _.isArray rc
+        if _.isEqual rc, [null]                                          # cater for [null] reset array signpost
+          return rc                                                      # in blender that arrayPushes RCs
+        else
+          if _.isString(rc[1]) and                                       # possibly a `description` @ pos 1, if followed
+            (_.isArray(rc[2]) or _.isString(rc[2]) or _.isRegExp(rc[2]) )   # by what looks as `filez` at pos 2
+              [ name,  description, filez, convert, convFilename] = [    # assign all attributes of array, incl `description`
+                rc[0], rc[1],       rc[2], rc[3],   rc[4] ]
+          else
+            [ name,  filez, convert, convFilename] = [                   # pos 1 is not a description, its a `filez`
+              rc[0], rc[1], rc[2],   rc[3] ]
 
-    resourceConverterBlender = new ResourceConverterBlender
+          rc = {name, description, filez, convert, convFilename}
 
-## A formal `ResourceConverter` creator
+      if not _B.isObject rc
+        l.err uerr = 'Bogus resourceConverter:', rc
+        throw new UError uerr
 
-It accepts either all details as arguments
+      else    # already an {}, or was an Array/Function which ended up as an {}
 
-    class ResourceConverter
-      constructor: (@name, @description, @filez, @convert, @convFilename, @type, isModule, @isTerminal, @isAfterTemplate, @isMatchSrcFilename)->
-        l.log ' @name or rc = ', @name
-
-        if _.isPlainObject(@name) or (@name instanceof ResourceConverter)  # already an RC or RC-like object
-          rc = @name              # store it for registry check (update if already regd under same name)
-          _.extend @, rc
-
-        l.log ' @name =', @name
-
-        if (not @name) or !_.isString(@name)
-          l.err uerr = "resourceConverter.name should be a unique, non empty String - was #{@name}"
+        if (not rc.name) or !_.isString(rc.name)
+          l.err uerr = "ResourceConverter `name` should be a unique, non empty String - was '#{rc.name}'"
           throw new UError uerr
 
-        while @name[0] in ['&', '@', '#', '$', '~', '|', '*', '!']
-          switch @name[0]
-            when '&' then @type = 'bundle'
-            when '@' then @type = 'file'
-            when '#' then @type = 'text'
-            when '$' then @type = 'module'
-            when '~' then @isMatchSrcFilename = true
-            when '|' then @isTerminal = true
-            when '*' then @isTerminal = false # todo: delete '*' case - isTerminal = false is default
-            when '!' then @isAfterTemplate = true
-          @name = @name[1..] # remove 1st char
+        # Read & remove the flags in name, setting the proper RC object flags.
+        while (flag = rc.name[0]) in nameFlags
+          nameFlagsActions[flag] rc
+          rc.name = rc.name[1..]  # remove 1st char
 
-        if resourceConverters[@name]
-          if (resourceConverters[@name] isnt rc)
-            if (resourceConverters[@name] instanceof ResourceConverter)
-              l.err uerr = "Another ResourceConverter named '#{@name}' already exists - change the name, or use that `-> @ '#{@name}'!`"
+        # Check the registry for existing RC under same or different name
+        if resourceConverters[rc.name]
+          if _B.isObject(resourceConverters[rc.name])          # non {} version will be overwritten as a {}
+            if (resourceConverters[rc.name] is rc)
+              l.warn "Updated/ing existing ResourceConverter '#{rc.name}'"
+            else
+              l.err uerr = """
+                Another ResourceConverter with `name: '#{rc.name}'` exists.
+                Change its name, or use `-> @ '#{rc.name}'` to retrieve an existing instance and use it, update it etc"
+              """
+              throw new UError uerr
+          else
+            l.debug 30, "Instantiating & registering ResourceConverter from non-object format:", rc
+            resourceConverters[rc.name] = rc
+
+        else
+          for regName, regRc of resourceConverters
+            if rc is regRc
+              l.err uerr = """
+                The ResourceConverter instance with `name: '#{rc.name}' is registered with another `name '#{regName}'`.
+                You must use the same name to update it.
+                Alternativelly u can clone it (eg use `-> my_#{regName} = _.clone(@ '$#{regName}')` to retrieve
+                an existing one and use it, update it, change its flags etc, but changing `my_#{rc.name}.name` before returning it."
+              """
               throw new UError uerr
 
-          l.warn "Updating ResourceConverter '#{@name}'"
+          l.debug 30, "Registering new ResourceConverter:", rc
+          resourceConverters[rc.name] = rc
 
-        if @type
-          if @type not in ['bundle', 'file', 'text', 'module']
-            l.err "resourceConverter.type '#{@type}' is invalid - will default to 'bundle'"
-          else
-            Object.defineProperty @, 'clazz',
-              enumerable:false
-              value: switch @type
-                when 'bundle' then BundleFile
-                when 'file' then FileResource
-                when 'text' then TextResource
-                when 'module' then Module
+        if rc.isModule # isModule is DEPRACATED but still supported (till 0.5 ?)
+          l.warn "DEPRACATED key 'isModule' found in ResourcesConverter with `name: '#{rc.name}'`. Use `type: 'module'` instead."
+          rc.type = 'module'
 
-        if @isModule # isModule is DEPRACATED but still supported (till 0.5 ?)
-          l.warn "DEPRACATED key 'isModule' found in `resources` converter '#{name}'. Use `type: 'module'` instead."
-          @type = 'module'
+        if rc.type
+          if rc.type not in ['bundle', 'file', 'text', 'module']
+            l.err "invalid resourceConverter.type '#{rc.type}' - will default to 'bundle'"
+            rc.type = 'bundle'
 
-        @isTerminal ?= false
-        @isAfterTemplate ?= false
-        @isMatchSrcFilename ?= false
+          Object.defineProperty rc, 'clazz',
+            enumerable: false
+            configurable: true
+            value: switch rc.type
+              when 'bundle' then BundleFile
+              when 'file' then FileResource
+              when 'text' then TextResource
+              when 'module' then Module
+
+        # some defaults
+        rc.description or= "No description for ResourceConverter '#{rc.name}'"
+        rc.isTerminal ?= false
+        rc.isAfterTemplate ?= false
+        rc.isMatchSrcFilename ?= false
 
         # ammend convFilename function
-        if _.isString @convFilename
-          if @convFilename[0] is '~'
-            @convFilename = @convFilename[1..]
+        if _.isString rc.convFilename
+          if rc.convFilename[0] is '~'
+            rc.convFilename = rc.convFilename[1..]
             isSrcFilename = true
 
-          if @convFilename[0] is '.' # filename extension change if it starts with '.'.
-                                     # By default it replaces `dstFilename`, with `~` flag it replaces `srcFilename`
-            @convFilename =
-              do (ext=@convFilename)->
+          if rc.convFilename[0] is '.'  # filename extension change if it starts with '.'.
+                                        # By default it replaces `dstFilename`, with `~` flag it replaces `srcFilename`
+            rc.convFilename =
+              do (ext=rc.convFilename)->
                 (dstFilename, srcFilename)->
                   upath.changeExt (if isSrcFilename then srcFilename else dstFilename), ext
 
           else # return a fn that returns the `convFilename` String
-            @convFilename = do (filename=@convFilename)-> -> filename
+            rc.convFilename = do (filename=rc.convFilename)-> -> filename
 
         else
-          if not (_.isFunction(@convFilename) or _.isUndefined(@convFilename))
-            l.err uerr = "ResourceConverter error: `convFilename` is not String|Function|Undefined."
+          if not (_.isFunction(rc.convFilename) or _.isUndefined(rc.convFilename))
+            l.err uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined."
             throw new UError uerr, nested:err
 
-        resourceConverters[@name] = @ # 'register' this RC
+      rc
+
+
 
 @stability: 2 - Unstable
 
 @note *When two ore more files end up with the same `dstFilename`*, build halts. @todo: This should change in the future: when the same `dstFilename` is encountered in two or more resources/modules, it could mean Pre- or Post- conversion concatenation. Pre- means all sources are concatenated & then passed once to `convert`, or Post- where each resource is `convert`ed alone & but their outputs are concatenated onto that same `dstFilename`.
 
-## Extra resourceConverters
-
-    extraResourceConverters = [
-      [
-       '@~teacup', 'Renders teacup nodejs modules (that export the plain template function), to HTML'
-       ['**/*.teacup']
-       do ->
-          require.extensions['.teacup'] = require.extensions['.coffee'] # register once
-          teacup = require 'teacup'
-          return ->
-            template = @requireUncached "#{@srcRealpath}"
-            teacup.render template
-       '.html'
-      ]
-    ]
 
 ## Registering resourceConverters
 
 We have an unordered `resourceConverters` {} registry with `name` as key & a ResourceCoverter instance as value.
+Its populated with all RCs loaded, initially from master defaults followed by user defined ones.
+The registry allows user defined RCs (as a function), to easily look up, instantiate, reuse or call functions of registered RCs.
 
     resourceConverters = {}
 
-Its populated with all RCs loaded, either from master defaults or user defined as well as the following non by default loaded RCs.
-The registry allows user defined RCs (as a function), to easily look up, instantiate, reuse or call functions of registered RCs.
+## Extra Resource Converters
 
-    for rc in extraResourceConverters
-      rc = resourceConverterBlender.blend rc
-      resourceConverters[rc.name] = rc
+We define some extra built-in RC-definitions for convenience. We add them to the registry by name, but we dont actually create their *proper* RC-instances unless they are needed (i.e used in a `resources` config) to save loading time.
+
+    resourceConverters = {
+      teacup: [
+       '@~teacup'
+       'Renders teacup nodejs modules (that export the plain template function), to HTML. FileResource means its source is not read/refreshed.'
+       ['**/*.teacup']
+       do ->
+          require.extensions['.teacup'] = require.extensions['.coffee']     # register extension once
+          teacup = require 'teacup'                                         # require once, avail through closure
+          -> teacup.render @requireUncached "#{@srcRealpath}"               # return our `convert()` function
+       '.html'
+      ]
+    }
+
 
     module.exports = {
       defaultResourceConverters       # used as is by [`bundle.resources`](uRequireConfigMasterDefaults.coffee#bundle.resources)
-      resourceConverterBlender        # used by blendConfigs
-      ResourceConverter               # for testing only, not instantiated externally
+      getResourceConverterForObjectArrayOrFunction        # used by blendConfigs
     }
+

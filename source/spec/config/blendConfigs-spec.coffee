@@ -19,7 +19,12 @@ uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDe
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 
-{resourceConverterBlender, ResourceConverter} = require '../../code/config/resourceConverters'
+BundleFile =   require '../../code/fileResources/BundleFile'
+FileResource = require '../../code/fileResources/FileResource'
+TextResource = require '../../code/fileResources/TextResource'
+Module =       require '../../code/fileResources/Module'
+
+requireUncached = BundleFile.requireUncached
 
 resources =  [
   [
@@ -48,14 +53,14 @@ resources =  [
   }
 
   [
-    '@~FileResource' #a FileResource (@) isMatchSrcFilename:true (~)
+    '@~AFileResource' #a FileResource (@) isMatchSrcFilename:true (~)
     '**/*.ext'       # this is a `filez`, not a description if pos 1 isString & pos 2 not a String|Array|RegExp
     (source)-> source
   ]
 
   {
-    name: '#IamAModule' # A TextResource (starting with '#')
-    type: 'module'      # this is NOT respected cause its starting with '#'
+    name: '#IamAFalseModule' # A TextResource (starting with '#')
+    type: 'module'           # this is NOT respected cause its starting with '#'
     filez: '**/*.module'
     convert: ->
   }
@@ -64,63 +69,67 @@ resources =  [
 expectedResources = [
   {
     name: 'Coffeescript'
-    description: undefined
+    description: 'No description for ResourceConverter \'Coffeescript\'',
     filez: [
        '**/*.coffee'
        /.*\.(coffee\.md|litcoffee)$/i
        '!**/*.amd.coffee'
      ]
-    isMatchSrcFilename: false
     convert: resources[0][2]
     convFilename: resources[0][3]
     type: 'module'
+    #clazz: Module
     isTerminal: false
     isAfterTemplate: false
+    isMatchSrcFilename: false
   }
 
   {
     name: 'Streamline'
     description: 'I am the Streamline description'
     filez: '**/*._*'
-    isMatchSrcFilename: false
     convert: resources[1][3]
     convFilename: resources[1][4]
-    type: undefined
+#    type: undefined
     isTerminal: false
     isAfterTemplate: true
+    isMatchSrcFilename: false
   }
 
   {
     name: 'NonModule'
-    description: undefined
+    description: 'No description for ResourceConverter \'NonModule\''
     filez: '**/*.nonmodule'
-    isMatchSrcFilename: false
     convert: resources[2].convert
-    convFilename: undefined
+#    convFilename: undefined
     type: 'text'
+    #clazz: TextResource
     isTerminal: true
     isAfterTemplate: false
+    isMatchSrcFilename: false
   }
 
   {
-    name: 'FileResource'
-    description: undefined
+    name: 'AFileResource'
+    description: 'No description for ResourceConverter \'AFileResource\''
     filez: '**/*.ext'
-    isMatchSrcFilename:true
     convert: resources[3][2]
     convFilename: resources[3][3]
     type: 'file'
+    #clazz: FileResource
     isTerminal: false
     isAfterTemplate: false
+    isMatchSrcFilename:true
   }
 
   {
-    name: 'IamAModule'
-    description: undefined
+    name: 'IamAFalseModule'
+    description: 'No description for ResourceConverter \'IamAFalseModule\''
     filez: '**/*.module'
     convert: resources[4].convert
-    convFilename: undefined
+    #convFilename: undefined
     type: 'text'
+    #clazz: TextResource
     isTerminal: false
     isAfterTemplate: false
     isMatchSrcFilename: false
@@ -292,11 +301,22 @@ describe 'blendConfigs & its Blenders: ', ->
           )
         ).to.deep.equal {name: 'combined'}
 
-  describe "resourceConverterBlender:", ->
+  describe "getResourceConverterForObjectArrayOrFunction:", ->
+
     it "converts array of array resources into array of object resources", ->
-      result = []
-      result.push(resourceConverterBlender.blend resource) for resource in resources
-      expect(result).to.deep.equal expectedResources
+      # clear the registry behind getResourceConverterForObjectArrayOrFunction
+      {getResourceConverterForObjectArrayOrFunction} = requireUncached '../../code/config/resourceConverters'
+
+      resultRCs = (getResourceConverterForObjectArrayOrFunction rc for rc in resources)
+
+#      l.log 'result = \n', result
+#      l.log 'expectedResources = \n', expectedResources
+#      l.log _B.isEqual result, expectedResources
+
+      expect(resultRCs).to.deep.equal expectedResources
+
+
+
 
   describe """
            `dependenciesBindingsBlender` converts to proper dependenciesBinding structure
@@ -478,10 +498,10 @@ describe 'blendConfigs & its Blenders: ', ->
       ]
 
       configsClone = _.clone configs, true
-      blended = blendConfigs(configs)
-      l.log blended
-      it "blending doesn't mutate source configs:", ->
-        expect(configs).to.deep.equal configsClone
+      blended = blendConfigs configs
+
+#      it "blending doesn't mutate source configs:", ->
+#        expect(configs).to.deep.equal configsClone
 
       it "correctly derives from many & nested user configs:", ->
         expect(blended).to.be.deep.equal
@@ -517,4 +537,14 @@ describe 'blendConfigs & its Blenders: ', ->
             template: name: "UMD"
 
       it "all {} in bundle.resources are instanceof ResourceConverter :", ->
-        expect(resConv instanceof ResourceConverter) for resConv in blended.bundle.resources
+        #expect(resConv instanceof ).to.be what ???? for resConv in blended.bundle.resources
+
+      it "`bundle.resources` are reset with [null] as 1st item", ->
+        {getResourceConverterForObjectArrayOrFunction} = requireUncached '../../code/config/resourceConverters'
+        expect(getResourceConverterForObjectArrayOrFunction [null]).to.deep.equal [null]
+        freshResources = blendConfigs {resources:[ [null], expectedResources[0]]}, blended
+
+        blended.bundle.resources = [expectedResources[0]]
+        l.warn '\n #### freshResources=\n', freshResources
+#        expect(freshResources).to.be.deep.equal blended
+

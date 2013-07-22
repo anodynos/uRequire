@@ -12,7 +12,7 @@ uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
 arrayizePusher = new _B.ArrayizePushBlender
 
-resourceConverterBlender = (require './resourceConverters').resourceConverterBlender
+getResourceConverterForObjectArrayOrFunction = (require './resourceConverters').getResourceConverterForObjectArrayOrFunction
 
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
@@ -108,7 +108,14 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
 
       resources: '|' : '*': (prop, src, dst)->
-        arrayizePusher.blend dst[prop], (resourceConverterBlender.blend resConv for resConv in src[prop])
+        for rc, rcIdx in src[prop]
+          l.log "before src[#{prop}][#{rcIdx}] = ", src[prop][rcIdx]
+          src[prop][rcIdx] = getResourceConverterForObjectArrayOrFunction rc
+          l.log "after src[#{prop}][#{rcIdx}] = ", src[prop][rcIdx]
+
+        l.log "ALL RCs src[#{prop}] = ", src[prop]
+
+        arrayizePusher.blend dst[prop], src[prop]
 
       dependencies:
 
