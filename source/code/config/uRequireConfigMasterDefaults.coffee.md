@@ -193,6 +193,9 @@ See the separate [Resource Converters](Resource-Converters.coffee) docs.
 
       resources: resourceConverters.defaultResourceConverters
 
+
+
+
 ## bundle.webRootMap
 
 For dependencies that refer to web's root (eg `'/libs/myLib'`), it maps `/` to a directory on the file system **when running in nodejs**. When running on Web/AMD, RequireJS maps it to the **http-server's root** by default.

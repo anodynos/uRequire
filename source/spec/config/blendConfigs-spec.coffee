@@ -146,31 +146,35 @@ describe '`uRequireConfigMasterDefaults` consistency', ->
 describe 'blendConfigs & its Blenders: ', ->
 
   describe 'moveKeysBlender:', ->
-    it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where they are on `uRequireConfigMasterDefaults`", ->
-      rootLevelKeys =
-          name: 'myBundle'
-          main: 'myMainLib'
-          bundle: # 'bundle' and 'build' hashes have precedence over root items
-            main: 'myLib'
-          path: "/some/path"
-          webRootMap: "."
-          dependencies:
-            depsVars: {}
-            exports: bundle: {}
+    rootLevelKeys =
+      name: 'myBundle'
+      main: 'myMainLib'
+      bundle: # 'bundle' and 'build' hashes have precedence over root items
+        main: 'myLib'
+      path: "/some/path"
+      webRootMap: "."
+      dependencies:
+        depsVars: {}
+        exports: bundle: {}
 
-          dstPath: ""
-          forceOverwriteSources: false
-          template: name: "UMD"
-          watch: false
-          noRootExports: false
-          scanAllow: false
-          allNodeRequires: false
-          verbose: false
-          debugLevel: 0
-          done:->
+      dstPath: ""
+      forceOverwriteSources: false
+      template: name: "UMD"
+      watch: false
+      noRootExports: false
+      scanAllow: false
+      allNodeRequires: false
+      verbose: false
+      debugLevel: 0
+      done:->
 
-      expected = moveKeysBlender.blend rootLevelKeys
-      expect(expected).to.deep.equal
+    result = moveKeysBlender.blend rootLevelKeys
+
+    it "result is NOT the srcObject", ->
+      expect(result).to.not.equal rootLevelKeys
+
+    it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where keys are on `uRequireConfigMasterDefaults`", ->
+      expect(result).to.deep.equal
           bundle:
             name: 'myBundle'
             main: 'myLib'
@@ -301,13 +305,13 @@ describe 'blendConfigs & its Blenders: ', ->
           )
         ).to.deep.equal {name: 'combined'}
 
-  describe "getResourceConverterForObjectArrayOrFunction:", ->
+  describe "getResourceConverter:", ->
 
     it "converts array of array resources into array of object resources", ->
-      # clear the registry behind getResourceConverterForObjectArrayOrFunction
-      {getResourceConverterForObjectArrayOrFunction} = requireUncached '../../code/config/resourceConverters'
+      # clear the registry behind getResourceConverter
+      getResourceConverter = requireUncached '../../code/config/getResourceConverter'
 
-      resultRCs = (getResourceConverterForObjectArrayOrFunction rc for rc in resources)
+      resultRCs = (getResourceConverter rc for rc in resources)
 
 #      l.log 'result = \n', result
 #      l.log 'expectedResources = \n', expectedResources
@@ -540,8 +544,8 @@ describe 'blendConfigs & its Blenders: ', ->
         #expect(resConv instanceof ).to.be what ???? for resConv in blended.bundle.resources
 
       it "`bundle.resources` are reset with [null] as 1st item", ->
-        {getResourceConverterForObjectArrayOrFunction} = requireUncached '../../code/config/resourceConverters'
-        expect(getResourceConverterForObjectArrayOrFunction [null]).to.deep.equal [null]
+        getResourceConverter = requireUncached '../../code/config/getResourceConverter'
+        expect(getResourceConverter [null]).to.deep.equal [null]
         freshResources = blendConfigs {resources:[ [null], expectedResources[0]]}, blended
 
         blended.bundle.resources = [expectedResources[0]]

@@ -279,12 +279,16 @@ class Bundle extends BundleBase
         #####################################################################
         Saving changed resource files that have a `converted` String
         #####################################################################""" if l.deb 30
-      for fn, resource of @fileResources when resource.hasChanged
+      fr = @fileResources
+      for fn, resource of fr when resource.hasChanged
         if resource.converted and _.isString(resource.converted) # only non-empty Strings are written
           if _.isFunction @build.out # @todo:5 else if String, output to this file ?
             @build.out resource.dstFilepath, resource.converted
+        else
+          l.debug 80, "Not saving #{resource.dstFilename} cause its not a non-empty String."
 
         resource.hasChanged = false
+    null
 
   # All @files (i.e bundle.filez) that ARE NOT `TextResource`s and below (i.e are plain `BundleFile`s)
   # are copied to build.dstPath.

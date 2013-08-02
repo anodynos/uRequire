@@ -12,7 +12,7 @@ uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
 arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
 arrayizePusher = new _B.ArrayizePushBlender
 
-getResourceConverterForObjectArrayOrFunction = (require './resourceConverters').getResourceConverterForObjectArrayOrFunction
+getResourceConverter = require './getResourceConverter'
 
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
@@ -21,7 +21,8 @@ getResourceConverterForObjectArrayOrFunction = (require './resourceConverters').
 # NOTE: it simply ignores unknown keys (i.e keys not in uRequireConfigMasterDefaults .build or .bundle)
 #       including 'derive'
 
-moveKeysBlender = new _B.DeepCloneBlender [
+#moveKeysBlender = new _B.DeepCloneBlender [
+moveKeysBlender = new _B.Blender [
   {
     order: ['path']
     '*': '|':
@@ -109,11 +110,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
       resources: '|' : '*': (prop, src, dst)->
         for rc, rcIdx in src[prop]
-          l.log "before src[#{prop}][#{rcIdx}] = ", src[prop][rcIdx]
-          src[prop][rcIdx] = getResourceConverterForObjectArrayOrFunction rc
-          l.log "after src[#{prop}][#{rcIdx}] = ", src[prop][rcIdx]
-
-        l.log "ALL RCs src[#{prop}] = ", src[prop]
+          src[prop][rcIdx] = getResourceConverter rc
 
         arrayizePusher.blend dst[prop], src[prop]
 
@@ -275,6 +272,7 @@ _blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
     derivedObjects =
       (for drv in _B.arrayize cfg.derive when drv # no nulls/empty strings
         deriveLoader drv)
+
     if not _.isEmpty derivedObjects
       _blendDerivedConfigs cfgDest, derivedObjects, deriveLoader
 
