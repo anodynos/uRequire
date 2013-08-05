@@ -51,8 +51,10 @@ gruntFunction = (grunt) ->
 
       wiki:
         files: [
-          src: ["source/code/config/uRequireConfigMasterDefaults.coffee.md"]
-          dest: "../uRequire.wiki/uRequireConfigMasterDefaults.coffee.md"
+          expand: true
+          cwd: "source/code/config/"
+          src: ["*.coffee.md"]
+          dest: "../uRequire.wiki/"
         ]
 
     concat:
@@ -94,7 +96,7 @@ gruntFunction = (grunt) ->
      "t":       "test"
 
      # IDE shortcuts
-     "alt-c": "cp"
+     "alt-c": "copy:wiki"
      "alt-b": "b"
      "alt-d": "d"
      "alt-t": "t"

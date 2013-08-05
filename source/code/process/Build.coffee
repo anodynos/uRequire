@@ -5,7 +5,7 @@ l = new _B.Logger 'urequire/process/Build'
 
 # uRequire
 DependenciesReporter = require './../utils/DependenciesReporter'
-uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
+MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 UError = require '../utils/UError'
 TextResource = require '../fileResources/TextResource'
 

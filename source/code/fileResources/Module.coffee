@@ -12,7 +12,7 @@ TextResource = require './TextResource'
 Dependency = require "../Dependency"
 UError = require '../utils/UError'
 
-# Represents a Javascript module
+# Represents a Javascript nodejs/commonjs or AMD module
 class Module extends TextResource
   Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
 
@@ -22,9 +22,9 @@ class Module extends TextResource
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
     & call `@adjustModuleInfo()` if so.
 
-    It does not actually convert to any template, as it waits for instructions from the bundle
+    It does not actually convert to any template - the bundle building does that
 
-    But the module can provide deps information (eg to inject Dependencies etc)
+    But the module info needs to provide dependencies information (eg to inject Dependencies etc)
   ###
   refresh: ->
     if super

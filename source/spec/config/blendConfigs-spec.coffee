@@ -8,7 +8,7 @@ l = new _B.Logger 'urequire/blendConfigs-spec'
 _ = require 'lodash'
 
 blendConfigs = require '../../code/config/blendConfigs'
-uRequireConfigMasterDefaults = require '../../code/config/uRequireConfigMasterDefaults'
+MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
 {
   moveKeysBlender
   depracatedKeysBlender
@@ -24,11 +24,12 @@ FileResource = require '../../code/fileResources/FileResource'
 TextResource = require '../../code/fileResources/TextResource'
 Module =       require '../../code/fileResources/Module'
 
-requireUncached = BundleFile.requireUncached
+{requireUncached} = BundleFile
+ResourceConverter = requireUncached '../../code/config/ResourceConverter'
 
 resources =  [
   [
-    '$Coffeescript' # a title of the resource (a module since its not starting with #)
+    '$cofreescript' # a title of the resource (a module since its not starting with #)
     [
       '**/*.coffee'
       /.*\.(coffee\.md|litcoffee)$/i
@@ -40,7 +41,7 @@ resources =  [
 
   [
     '!Streamline' # a title of the resource (without type since its not in [@ # $], but with isAfterTemplate:true due to '!' (runs only on Modules)
-    'I am the Streamline description' # a description (String) at pos 1
+    'I am the Streamline descr' # a descr (String) at pos 1
     '**/*._*'                         # even if we have a String as an implied `filez` array
     (source)-> source
     (filename)-> filename.replace '._js', '.js' # dummy filename converter
@@ -54,68 +55,69 @@ resources =  [
 
   [
     '@~AFileResource' #a FileResource (@) isMatchSrcFilename:true (~)
-    '**/*.ext'       # this is a `filez`, not a description if pos 1 isString & pos 2 not a String|Array|RegExp
+    '**/*.ext'       # this is a `filez`, not a descr if pos 1 isString & pos 2 not a String|Array|RegExp
     (source)-> source
   ]
 
   {
     name: '#IamAFalseModule' # A TextResource (starting with '#')
-    type: 'module'           # this is NOT respected cause its starting with '#'
+#    type: 'module'           # this is NOT respected cause its starting with '#'
     filez: '**/*.module'
     convert: ->
   }
+
+  ->
+    rc = @ 'cofreescript'    # retrieve a registered RC
+    rc.name = 'coffeescript' # change its name
+    null                     # dont add it to 'resources'
 ]
 
 expectedResources = [
   {
-    name: 'Coffeescript'
-    description: 'No description for ResourceConverter \'Coffeescript\'',
+    ' name': 'coffeescript'      # name is changed
+    descr: 'No descr for ResourceConverter \'cofreescript\'',
     filez: [
        '**/*.coffee'
        /.*\.(coffee\.md|litcoffee)$/i
        '!**/*.amd.coffee'
      ]
     convert: resources[0][2]
-    convFilename: resources[0][3]
-    type: 'module'
-    #clazz: Module
+    ' convFilename': resources[0][3]
+    ' type': 'module'
     isTerminal: false
     isAfterTemplate: false
     isMatchSrcFilename: false
   }
 
   {
-    name: 'Streamline'
-    description: 'I am the Streamline description'
+    ' name': 'Streamline'
+    descr: 'I am the Streamline descr'
     filez: '**/*._*'
     convert: resources[1][3]
-    convFilename: resources[1][4]
-#    type: undefined
+    ' convFilename': resources[1][4]
     isTerminal: false
     isAfterTemplate: true
     isMatchSrcFilename: false
   }
 
   {
-    name: 'NonModule'
-    description: 'No description for ResourceConverter \'NonModule\''
+    ' name': 'NonModule'
+    descr: 'No descr for ResourceConverter \'NonModule\''
     filez: '**/*.nonmodule'
     convert: resources[2].convert
-#    convFilename: undefined
-    type: 'text'
-    #clazz: TextResource
+    ' type': 'text'
     isTerminal: true
     isAfterTemplate: false
     isMatchSrcFilename: false
   }
 
   {
-    name: 'AFileResource'
-    description: 'No description for ResourceConverter \'AFileResource\''
+    ' name': 'AFileResource'
+    descr: 'No descr for ResourceConverter \'AFileResource\''
     filez: '**/*.ext'
     convert: resources[3][2]
-    convFilename: resources[3][3]
-    type: 'file'
+    ' convFilename': resources[3][3]
+    ' type': 'file'
     #clazz: FileResource
     isTerminal: false
     isAfterTemplate: false
@@ -123,24 +125,22 @@ expectedResources = [
   }
 
   {
-    name: 'IamAFalseModule'
-    description: 'No description for ResourceConverter \'IamAFalseModule\''
+    ' name': 'IamAFalseModule'
+    descr: 'No descr for ResourceConverter \'IamAFalseModule\''
     filez: '**/*.module'
     convert: resources[4].convert
-    #convFilename: undefined
-    type: 'text'
-    #clazz: TextResource
+    ' type': 'text'
     isTerminal: false
     isAfterTemplate: false
     isMatchSrcFilename: false
   }
 ]
 
-describe '`uRequireConfigMasterDefaults` consistency', ->
+describe '`MasterDefaultsConfig` consistency', ->
   it "No same name keys in bundle & build ", ->
     expect(
-      _B.isDisjoint _.keys(uRequireConfigMasterDefaults.bundle),
-                    _.keys(uRequireConfigMasterDefaults.build)
+      _B.isDisjoint _.keys(MasterDefaultsConfig.bundle),
+                    _.keys(MasterDefaultsConfig.build)
     ).to.be.true
 
 describe 'blendConfigs & its Blenders: ', ->
@@ -173,7 +173,7 @@ describe 'blendConfigs & its Blenders: ', ->
     it "result is NOT the srcObject", ->
       expect(result).to.not.equal rootLevelKeys
 
-    it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where keys are on `uRequireConfigMasterDefaults`", ->
+    it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where keys are on `MasterDefaultsConfig`", ->
       expect(result).to.deep.equal
           bundle:
             name: 'myBundle'
@@ -214,7 +214,7 @@ describe 'blendConfigs & its Blenders: ', ->
           build:
             dstPath: "/some/path"
 
-    it "ignores root keys deemed irrelevant (not exist on `uRequireConfigMasterDefaults`'s `.build` or `.bundle`.)", ->
+    it "ignores root keys deemed irrelevant (not exist on `MasterDefaultsConfig`'s `.build` or `.bundle`.)", ->
       expect(
         moveKeysBlender.blend(
           iRReLeVaNt_key_is_Ignored: true
@@ -305,28 +305,13 @@ describe 'blendConfigs & its Blenders: ', ->
           )
         ).to.deep.equal {name: 'combined'}
 
-  describe "getResourceConverter:", ->
+  describe "blending config with ResourceConverters :", ->
 
-    it "converts array of array resources into array of object resources", ->
-      # clear the registry behind getResourceConverter
-      getResourceConverter = requireUncached '../../code/config/getResourceConverter'
+    it "converts array of RC-specs' into array of RC-instances", ->
+      resultRCs = blendConfigs [{resources}]
+      expect(resultRCs.bundle.resources).to.deep.equal expectedResources
 
-      resultRCs = (getResourceConverter rc for rc in resources)
-
-#      l.log 'result = \n', result
-#      l.log 'expectedResources = \n', expectedResources
-#      l.log _B.isEqual result, expectedResources
-
-      expect(resultRCs).to.deep.equal expectedResources
-
-
-
-
-  describe """
-           `dependenciesBindingsBlender` converts to proper dependenciesBinding structure
-           {dependency1:ArrayOfDep1Bindings, dependency2:ArrayOfDep2Bindings, ...}
-           i.e `{lodash:['_'], jquery: ['$']}` :
-  """, ->
+  describe "dependenciesBindingsBlender converts to proper dependenciesBinding structure", ->
     it "converts String: `'lodash'`  --->   `{lodash:[]}`", ->
       expect(
         dependenciesBindingsBlender.blend 'lodash'
@@ -544,11 +529,7 @@ describe 'blendConfigs & its Blenders: ', ->
         #expect(resConv instanceof ).to.be what ???? for resConv in blended.bundle.resources
 
       it "`bundle.resources` are reset with [null] as 1st item", ->
-        getResourceConverter = requireUncached '../../code/config/getResourceConverter'
-        expect(getResourceConverter [null]).to.deep.equal [null]
         freshResources = blendConfigs {resources:[ [null], expectedResources[0]]}, blended
-
         blended.bundle.resources = [expectedResources[0]]
-        l.warn '\n #### freshResources=\n', freshResources
 #        expect(freshResources).to.be.deep.equal blended
 

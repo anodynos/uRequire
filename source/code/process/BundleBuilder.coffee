@@ -7,7 +7,7 @@ l = new _B.Logger 'urequire/process/BundleBuilder'
 
 # urequire
 upath = require '../paths/upath'
-uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
+MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 blendConfigs = require '../config/blendConfigs'
 UError = require '../utils/UError'
 
@@ -21,7 +21,7 @@ class BundleBuilder
 
   constructor: (@configs, deriveLoader)->
 
-    configs.push uRequireConfigMasterDefaults # add as the last one - the defaults on which we lay our more specifics
+    configs.push MasterDefaultsConfig # add as the last one - the defaults on which we lay our more specifics
     finalCfg = blendConfigs configs, deriveLoader
 
     # apply some hard coded defaults!

@@ -21,7 +21,7 @@ class BundleFile
   ###
   constructor: (@bundle, @filename)-> @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
 
-  refresh:-> #perhaps we could check for filesystem timestamp etc
+  refresh:-> # check for filesystem timestamp etc
     if not fs.existsSync @srcFilepath
       throw new UError "BundleFile missing '#{@srcFilepath}'"
     else
@@ -122,7 +122,6 @@ class BundleFile
   # helper - uncaching require
   # based on http://stackoverflow.com/questions/9210542/node-js-require-cache-possible-to-invalidate
   # Removes a nodejs module from the cache
-  requireUncached: (moduleName)-> BundleFile.requireUncached moduleName
   @requireUncached: (moduleName) ->
     # Runs over the cache to search for all the cached nodejs modules files
     searchCache = (moduleName, callback) ->
@@ -141,5 +140,8 @@ class BundleFile
     # Run over the cache looking for the files loaded by the specified module name
     searchCache moduleName, (mod)-> delete require.cache[mod.id]
     require moduleName
+
+  #shortcut as instance var
+  requireUncached: BundleFile.requireUncached
 
 module.exports = BundleFile

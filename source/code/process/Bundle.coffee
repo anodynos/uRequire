@@ -10,7 +10,7 @@ minimatch = require 'minimatch'
 
 # uRequire
 upath = require '../paths/upath'
-uRequireConfigMasterDefaults = require '../config/uRequireConfigMasterDefaults'
+MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 Dependency = require '../Dependency'
 DependenciesReporter = require './../utils/DependenciesReporter'

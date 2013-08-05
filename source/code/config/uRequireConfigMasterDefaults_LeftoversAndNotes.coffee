@@ -108,6 +108,6 @@
 ##      baseUrl: "use uRequire.path instead" ?
 ##      appDir:  "use uRequire.appDir instead"
 
-l.log '\n', uRequireConfigMasterDefaults
-l.log '\n', require './uRequireConfigMasterDefaults'
-l.log _.isEqual uRequireConfigMasterDefaults, require('./uRequireConfigMasterDefaults')
+#l.log '\n', MasterDefaultsConfig
+#l.log '\n', require './MasterDefaultsConfig'
+#l.log _.isEqual MasterDefaultsConfig, require('./MasterDefaultsConfig')

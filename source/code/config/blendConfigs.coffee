@@ -5,20 +5,20 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/blendConfigs'
 
 upath = require '../paths/upath'
-uRequireConfigMasterDefaults = require './uRequireConfigMasterDefaults'
+MasterDefaultsConfig = require './MasterDefaultsConfig'
 
 ### Define the various Blenders used ###
 
 arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
 arrayizePusher = new _B.ArrayizePushBlender
 
-getResourceConverter = require './getResourceConverter'
+ResourceConverter = require './ResourceConverter'
 
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
-# depending on where these keys appear in uRequireConfigMasterDefaults.
+# depending on where these keys appear in MasterDefaultsConfig.
 #
-# NOTE: it simply ignores unknown keys (i.e keys not in uRequireConfigMasterDefaults .build or .bundle)
+# NOTE: it simply ignores unknown keys (i.e keys not in MasterDefaultsConfig .build or .bundle)
 #       including 'derive'
 
 #moveKeysBlender = new _B.DeepCloneBlender [
@@ -27,8 +27,8 @@ moveKeysBlender = new _B.Blender [
     order: ['path']
     '*': '|':
       do (partsKeys = {
-        bundle: _.keys uRequireConfigMasterDefaults.bundle # eg ['path', 'dependencies', ...]
-        build: _.keys uRequireConfigMasterDefaults.build   # eg ['dstPath', 'template', ...]
+        bundle: _.keys MasterDefaultsConfig.bundle # eg ['path', 'dependencies', ...]
+        build: _.keys MasterDefaultsConfig.build   # eg ['dstPath', 'template', ...]
       })->
         (prop, src, dst, bl)->
           for confPart in _.keys partsKeys # partKeys = ['bundle', 'build'] 
@@ -96,7 +96,7 @@ addIgnoreToFilezAsExclude = (cfg)->
 #
 # It extends DeepCloneBlender, so if there's no path match,
 # it works like _.clone (deeply).
-{_optimizers} = uRequireConfigMasterDefaults.build
+{_optimizers} = MasterDefaultsConfig.build
 
 bundleBuildBlender = new _B.DeepCloneBlender [
   {
@@ -109,10 +109,16 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
 
       resources: '|' : '*': (prop, src, dst)->
-        for rc, rcIdx in src[prop]
-          src[prop][rcIdx] = getResourceConverter rc
+        rcs = []
+        for rc in src[prop]
+          if _.isEqual rc, [null] # cater for [null] reset array signpost for arrayizePusher
+            rcs.push rc
+          else
+            rc = ResourceConverter.register rc
+            if rc and !_.isEmpty(rc)
+              rcs.push rc
 
-        arrayizePusher.blend dst[prop], src[prop]
+        arrayizePusher.blend dst[prop], rcs
 
       dependencies:
 
@@ -262,7 +268,7 @@ blendConfigs = (configsArray, deriveLoader)->
 # the recursive fn that also considers cfg.derive
 _blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
   # We always blend in reverse order: start copying all items in the most base config
-  # (usually 'uRequireConfigMasterDefaults') and continue overwritting/blending backwards
+  # (usually 'MasterDefaultsConfig') and continue overwritting/blending backwards
   # from most general to the more specific. Hence the 1st item in configsArray is blended last.
   for cfg in cfgsArray by -1 when cfg
 

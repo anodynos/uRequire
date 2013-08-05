@@ -6,10 +6,9 @@ The *master & defaults* configuration file of *uRequire*.
 
 This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. The code blocks shown are the actual code used at runtime, i.e each key declares its self and sets a default value.
 
-    resourceConverters = require('./resourceConverters')
-    module.exports = uRequireConfigMasterDefaults =
+    module.exports = MasterDefaultsConfig =
 
-NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/uRequireConfigMasterDefaults.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
+NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
 
 ## Config Usage
 
@@ -27,7 +26,7 @@ A `config` determines a `bundle` and a `build` that uRequire will process. A con
 
 uRequire configs are extremelly versatile:
 
-* it understands keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](uRequireConfigMasterDefaults.coffee#bundle-build)
+* it understands keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](MasterDefaultsConfig.coffee#bundle-build)
 
 * it provides shortcuts, to convert simple declarations to more complex ones.
 
@@ -39,7 +38,7 @@ A config can _inherit_ the values of a parent config, in other words it can be _
 
 For example if you have a child `DevelopementConfig` derived from a parent `ProductionConfig`, then the child will inherit all the values/defaults and perhaps override (or ammend, append etc) the values of the parent. A child can inherit from one or more Parents, with precedence given to whichever parent comes first.
 
-Ultimately all configs are derived from `uRequireConfigMasterDefaults` (this file) which holds all default values.
+Ultimately all configs are derived from `MasterDefaultsConfig` (this file) which holds all default values.
 
 ## @tags legend
 
@@ -130,13 +129,13 @@ All files that participate in the `bundle` are specified here.
 
 Each matching file is considered to be either:
 
-* _BundleFile_ - any file (even binary) that is not really processed, but for convinience can be copied to [`build.dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) via [`bundle.copy`](urequireconfigmasterdefaults.coffee#bundle.copy) at each build (or partial build eg on 'watch', when filesize/timestamp changes).
+* _BundleFile_ - any file (even binary) that is not really processed, but for convinience can be copied to [`build.dstPath`](MasterDefaultsConfig.coffee#build.dstpath) via [`bundle.copy`](MasterDefaultsConfig.coffee#bundle.copy) at each build (or partial build eg on 'watch', when filesize/timestamp changes).
 
 * _Resource_ - any textual resource that we want to convert to something else: eg `.coffee`->`.js`, or `.less`->`.css`
 
-* _Module_ - A Module is like a _Resource_, but its also a Javascript Module whose Dependencies we monitor and as the last build step we convert it through the [`build.template`](urequireconfigmasterdefaults.coffee#build.template). A Module is ultimately JavaScript code, that is perhaps expressed is some other compiled-to-js language like Coffeescript.
+* _Module_ - A Module is like a _Resource_, but its also a Javascript Module whose Dependencies we monitor and as the last build step we convert it through the [`build.template`](MasterDefaultsConfig.coffee#build.template). A Module is ultimately JavaScript code, that is perhaps expressed is some other compiled-to-js language like Coffeescript.
 
-`Resource` & `Module` are only those files that matched in [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](urequireconfigmasterdefaults.coffee#bundle.resources) are considered `BundleFile`s.
+`Resource` & `Module` are only those files that matched in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources). All those matching `bundle.filez` but not [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) are considered `BundleFile`s.
 
 @type filename specifications (or simply filenames), expressed in either:
 
@@ -148,59 +147,80 @@ Each matching file is considered to be either:
 
 @note the `z` in `filez` is used to segragate from gruntjs `files`, when urequire is used within [grunt-urequire](https://github.com/aearly/grunt-urequire) and allow its different features like RegExp & deriving.
 
-@derive: [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
+@derive: [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend).
 
 @note: The master default is `undefined`, so the highest `filez` in derived hierarchy determines what is ultimately allowed.
 
-@alias `filespecs` DEPRACATED (with different semantics)
-
 @default: NOTE: The actual default (runtime hard-coded), if no `filez` exists in the final cfg, is `['**/*.*']` (and not `undefined`).
+
+@alias `filespecs` DEPRACATED (with different semantics)
 
       filez: undefined
 
+## bundle.resources
+
+An Array of [**ResourceConverters (RC)**](ResourceConverters.coffee) (eg compilers, transpilers etc), that perform a conversion on the `bundle.filez`, from one resource format (eg coffeescript, less) to another **converted** format (eg javascript, css).
+
+**Resource Converters** is an evolving & generic workflow converions system, that is trivial to use and extend with your own, perhaps one-liner, converters. The workflow uses `bundle` & `build` paths and is a highly *in-memory-pipeline* and *read-convert-or-save-only-when-needed* workflow, with [`build.watch`](MasterDefaultsConfig.coffee#build.watch) capability.
+
+*Note:* All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) that are matched & marked by one or more RCs are considered as **Resources**, all others are just *`BundleFile`s* (which are useful for declarative sync [`bundle.copy`](MasterDefaultsConfig.coffee#bundle.copy)ing at each build).
+
+@derive [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend).
+
+@optional unless you want to add you own *Resource Converters* for your conversion needs.
+
+@stability: 3 - Stable
+
+@default By default `resources` has RCs 'javascript', 'coffee-script', 'LiveScript' and 'coco' as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). Also an extra 'teacup' RC is registered, but not added to 'resources' - more will be added in future uRequire versions.
+
+@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object', an 'Array' (for fancy RC-specs) or a 'String' name search of a previously registered RC or a function that returns an RC (with a name search fn as `this`). See the separate [Resource Converters](ResourceConverters.coffee) docs.
+
+@example A dummy example follows :
+```
+resources: [   #example - not part of coffee.md source
+  #lookup registered RC 'teacup' & use as-is
+  'teacup'                                      
+
+  #lookup, clone, change, return in one line
+  -> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
+
+  #define a new RC, with the fancy [] RC-spec
+  [ '$coocoo', [ '**/*.coo'], (-> require('coocoo').compile @source, bare:true), '.js']
+  
+  #define a new RC, with the grandaddy {} RC-spec
+  {
+   name: 'kookoo'
+   type: 'module'
+   filez: [ '**/*.koo']
+   convert: -> require('kookoo').compile @source, bare:true)
+   convFilename: '.js'
+  }
+]
+```
+
+      resources: require('./ResourceConverters').defaultResourceConverters
+
 ## bundle.copy
 
-Copy (binary) of all non-resource [`BundleFile`](urequireconfigmasterdefaults.coffee#bundle.filez)s to [`dstPath`](urequireconfigmasterdefaults.coffee#build.dstpath) as a convenience. When [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) is used, it monitors file size & timestamp and copies (overwrites) changed files.
+Copy (binary & sync) of all non-resource [`BundleFile`](MasterDefaultsConfig.coffee#bundle.filez)s to [`dstPath`](MasterDefaultsConfig.coffee#build.dstpath) as a convenience. If destination exists, it checks nodejs's `fs.statSync` 'mtime' & 'size' and copies (overwrites) ONLY changed files.
 
 @example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]`
 
-@type see [`bundle.filez`](urequireconfigmasterdefaults.coffee#bundle.filez) 
+@type see [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez)
 
-@derive [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
+@derive [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend).
 
 @alias `copyNonResources` DEPRACATED
 
-@default `[]`, no non-resource files are copied. You can use `/./` for all non-resource/non-module files to be copied to dstPath.
+@default `[]`, no non-resource files are copied. You can use `/./` for all non-resource files to be copied to dstPath.
 
       copy: []
-
-## bundle.resources
-
-Defines an Array of [**Resource Converters (RC)**](Resource-Converters.coffee) (eg compilers, transpilers etc), that perform a conversion on the `bundle.filez`, from one resource format (eg coffeescript, less) to another **converted** format (eg javascript, css).
-
-**Resource Converters** is an evolving & generic workflow converions system, that is trivial to use and extend with your own one-liner converters. The workflow uses your `bundle` & `build` paths and is a highly *in-memory-pipeline* and *read-convert-or-save-only-when-needed* workflow, with [`build.watch`](urequireconfigmasterdefaults.coffee#build.watch) capability.
-
-
-*Note:* All [`bundle.filez`](urequireconfigmasterdefaults.coffee#bundle.filez) that are matched & marked by one or more RCs are considered as **Resources**, all others are just *`BundleFile`s* (which are usefull only for declarative sync [`bundle.copy`](urequireconfigmasterdefaults.coffee#bundle.copy)ing at each build).
-
-@derive [ArrayizePush](urequireconfigmasterdefaults.coffee#tags-legend).
-
-@optional unless you want to add you own *Resource Converters* (eg `TypeScript`, `stylus`) for your conversion needs.
-
-@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object' or an 'Array' (for simpler descriptions). See @example below
-
-See the separate [Resource Converters](Resource-Converters.coffee) docs.
-
-      resources: resourceConverters.defaultResourceConverters
-
-
-
 
 ## bundle.webRootMap
 
 For dependencies that refer to web's root (eg `'/libs/myLib'`), it maps `/` to a directory on the file system **when running in nodejs**. When running on Web/AMD, RequireJS maps it to the **http-server's root** by default.
 
-`webRootMap` can be absolute or relative to [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path). - it defaults to bundle.
+`webRootMap` can be absolute or relative to [`bundle.path`](MasterDefaultsConfig.coffee#bundle.path). - it defaults to bundle.
 
 @example "/var/www" or "/../../fakeWebRoot"
 
@@ -216,17 +236,19 @@ Information related to dependenecies handling is listed here.
 
 ### bundle.dependencies.node
 
-Dependencies listed here are treated as node-only, hence they aren't added to the AMD dependency array (and hence not available on the Web/AMD side). Its the same as using the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without conversion that strips 'node!'.
+Dependencies listed here are treated as node-only, hence they aren't added to the AMD dependency array (and hence not available on the Web/AMD side). Its up to your code to make sure the dep is not used outside node (use __isNode, __isAMD, __isWeb globals available in uRequire compiled modules.)!
+
+Its the same as using the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without conversion that strips 'node!'.
 
 By default no known node packages like `'util'`, `'fs'` etc are part of `bundle.dependencies.node`, but this may change in future releases and include them all.
 
+@todo: all built-in node packages should be the default eg `node: ['util', 'fs', 'http', 'path', 'child_process', 'events' ...etc ]`. Can lead to inadvertized feature leak if someone has a module under these names - just issue a warning ?
+
 @type String or Array<String>
 
-@derive [ArrayizeUniquePush](urequireconfigmasterdefaults.coffee#tags-legend).
+@derive [ArrayizeUniquePush](MasterDefaultsConfig.coffee#tags-legend).
 
-@example `node: ['myutil', 'my_fs']`
-
-@todo: all built-in node packages should be the default eg `node: ['util', 'fs', 'http', 'path', 'child_process', 'events' ...etc ]`. Can lead to inadvertized feature leak if someone has a module under these names - just issue a warning ?
+@example `node: ['util', 'my_fs']`
 
 @alias noWeb DEPRACATED
 
@@ -240,7 +262,7 @@ Variable names can be infered from the code by uRequire, when you used this bind
 
 @type `{ dependency1: ['varName1', 'varName2'], dep2:[..], ...}`
 
-@derive Each dependency name/key of child configs is added to the resulted object, if not already there. Its variables are then [ArrayizeUniquePush](urequireconfigmasterdefaults.coffee#tags-legend) onto the existing array. For example for child `{myDep1: ['myDep1Var1', 'myDep1Var3'], myDep2: 'myDep2Var'}` with parent `{myDep1: ['myDep1Var1', 'myDep1Var2']}` the result derived object will be `{myDep1: ['myDep1Var1', 'myDep1Var2', 'myDep1Var3'], myDep2: ['myDep2Var']}`.
+@derive Each dependency name/key of child configs is added to the resulted object, if not already there. Its variables are then [ArrayizeUniquePush](MasterDefaultsConfig.coffee#tags-legend) onto the existing array. For example for child `{myDep1: ['myDep1Var1', 'myDep1Var3'], myDep2: 'myDep2Var'}` with parent `{myDep1: ['myDep1Var1', 'myDep1Var2']}` the result derived object will be `{myDep1: ['myDep1Var1', 'myDep1Var2', 'myDep1Var3'], myDep2: ['myDep2Var']}`.
 
 @note In case variable names can't be identified from modules (i.e you solely use 'nodejs' format), and aren't in `bundle.dependencies.depsVars`, 'combined/almond' build will fail.
 
@@ -250,9 +272,9 @@ Variable names can be infered from the code by uRequire, when you used this bind
 
 ### bundle.dependencies._knownDepsVars
 
-Some known depsVars, have them as backup - its a private field, not meant to be extended by users (use .
+Some known depsVars, have them as backup - its a private field, not meant to be extended by users (use depsVars).
 
-@type see [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)
+@type see [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars)
 
 @alias _knownVariableNames DEPRACATED
 
@@ -275,17 +297,17 @@ Holds keys related to binding and exporting modules (i.e making them available t
 
 #### bundle.dependencies.exports.bundle
 
-Allows you to export (i.e have available) modules throughout the bundle.
+Allows you to export (i.e have available) modules throughout the bundle (eg 'underscore', 'Backbone' etc).
 
 Each dependency will be available in the *whole bundle* under varName(s) - i.e they will be like *globals* to your bundle. Effectively this means that each module will have an *injection* of all `dependencies.exports.bundle` dependencies/var bindings, so you don't have to list them in each module.
 
 @type either :
 
-* like [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)
+* like [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars)
 
-* `['dep1', 'dep2']` with varnames looked up in [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)) or discovered by your module declarations.
+* `['dep1', 'dep2']` with varnames looked up in [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars)) or discovered by your module declarations.
 
-@derive see [`bundle.dependencies.depsVars`](urequireconfigmasterdefaults.coffee#bundle.dependencies.depsVars)
+@derive see [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars)
 
 @example `{'underscore': '_', 'jquery': ["$", "jQuery"], 'models/PersonModel': ['persons', 'personsModel']}` will make ALL modules in the bundle have `_`, `$`, `jQuery`, `persons` and `personsModel` variables injected.
 
@@ -339,9 +361,9 @@ Output converted files onto this
 
 ## build.forceOverwriteSources
 
-Output on the same directory as the _source_ [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path), overwriting all files. Useful if your sources are not *real sources*.
+Output on the same directory as the _source_ [`bundle.path`](MasterDefaultsConfig.coffee#bundle.path), overwriting all files. Useful if your sources are not *real sources*.
 
-@note: Be warned that when `true`, [build.dstPath](urequireconfigmasterdefaults.coffee#build.dstPath) is ignored and always takes the value of [`bundle.path`](urequireconfigmasterdefaults.coffee#bundle.path).
+@note: Be warned that when `true`, [build.dstPath](MasterDefaultsConfig.coffee#build.dstPath) is ignored and always takes the value of [`bundle.path`](MasterDefaultsConfig.coffee#bundle.path).
 
       forceOverwriteSources: false
 
