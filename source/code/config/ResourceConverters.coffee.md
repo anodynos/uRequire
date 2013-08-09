@@ -1,4 +1,4 @@
-**Resource Converters** is a powerful, generic and evolving *conversions workflow*, that is trivial to use and extend to cater for all common conversions (eg coffeescript, Livescript, coffeecup, less, jade etc).
+**Resource Converters** is a powerful, generic and evolving **in-memory conversions workflow**, that is trivial to use and extend to cater for all common conversions (eg coffeescript, Livescript, coffeecup, less, jade etc).
 
 ## Literate Coffescript
 
@@ -23,7 +23,7 @@ The workflow has the following principles :
 
 ## How do they work ?
 
-All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) are matched against the Resource Converters in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) of your config. Each RC that matches a file, marks it as a **resource** that needs conversion with it. Not matched at all *[`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) are still useful for declarative binary copy*.
+All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) are matched against the Resource Converters in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) of your config. Each RC that matches a file, marks it as a **resource** that needs conversion with it. *Not matched at all files are still useful for declarative binary copy*.
 
 ## Defining in `bundle.resources`
 
@@ -31,7 +31,7 @@ A *Resource Converter* (RC) can be user-defined inside [`bundle.resources`](Mast
 
 * an Object {}, [as described bellow](#Inside-a-Resource-Converter).
 
-* an Array [], (a shortcut spec) omitting property names that are inferred by position - see [alternative array way](#the-alternative-and-less-verbose-array-way-of-declaring-an-rc-using-an-instead-of-.) and [Default Resource Converters](#Default-Recource-Converters).
+* an Array [], (a shortcut spec) omitting property names that are inferred by position - see [alternative array way](#the-alternative-less-verbose-array-way-using-an-instead-of-.) and [The shortest one-liner-converter](#the-shortest-way-ever-a-one-liner-converter).
 
 * by searching/retrieving an already registered RC, either by :
 
@@ -54,13 +54,13 @@ bundle: resources : [
 
 ```
 
-Also see [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) and the real examples in [Default Resource Converters](#Default-Recource-Converters).
+Also see [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) and the real [Default Resource Converters](#Default-Recource-Converters).
 
 ## Inside a Resource Converter
 
 Ultimately, an RC has these fields:
 
- * `name` : a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of its initial name - see below - that are applied & stripped from name when set. A `name` should be unique to each RC; otherwise it updates the registered RC by that name (registry is simply used to lookup RCs).
+ * `name` : a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of its initial name - see below - that are applied & stripped each time name is set. A `name` should be unique to each RC; otherwise it updates the registered RC by that name (registry is simply used to lookup RCs).
 
  * `descr` : any optional details to keep the name tidy.
 
@@ -207,6 +207,11 @@ ___
 #### isMatchSrcFilename - "~"
 
 By default (`isMatchSrcFilename:false`) filename matching of `filez` uses the instance `dstFilename`, which is set by the last `convFilename()` that run on the instance (initially its set to srcFilename). Use "~" name flag or (`isMatchSrcFilename:true`) if you want to match `filez` against the original source filename (eg. `'**/myfile.coffee'` instead of `'**/myfile.js'`). The sane default allows the creation of RCs that are agnostic of how the source files came about, whether they are actual matched files on disk or part of the in-memory conversion pipeline.
+___
+#### Flag updating notes
+
+Note: when you change `name`, `type` and `convFilename` of an RC, the properties are correctly updated (flags are set etc). The name searching can also carry flags, which are applied on the found RC, for example `"#coco"` will find 'coco' RC and apply the `'#'` flag to it (`type:"TextResource"), before stripping it.
+___
 
 # Default Recource Converters
 
@@ -241,7 +246,7 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
           isMatchSrcFilename: false
         }
 
-### The alternative (and less verbose) *Array way* of declaring an RC, using an [] instead of {}.
+### The alternative (less verbose) *Array way*, using an [] instead of {}.
 
 Key names are assumed from their posision in the array:
 
@@ -262,7 +267,7 @@ Key names are assumed from their posision in the array:
             srcFn.replace (new RegExp ext+'$'), 'js'                        # replace it and return new filename
         ]
 
-### The alternative, even shorter `[] way`
+### The alternative, even shorter `[]` way
 
         [
           '$LiveScript'                                                     # `name` at pos 0
