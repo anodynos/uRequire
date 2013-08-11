@@ -161,33 +161,49 @@ Each matching file is considered to be either:
 
 An Array of [**ResourceConverters (RC)**](ResourceConverters.coffee) (eg compilers, transpilers etc), that perform a conversion on the `bundle.filez`, from one resource format (eg coffeescript, less) to another **converted** format (eg javascript, css).
 
-**Resource Converters** is an evolving & generic workflow converions system, that is trivial to use and extend with your own, perhaps one-liner, converters. The workflow uses `bundle` & `build` paths and is a highly *in-memory-pipeline* and *read-convert-or-save-only-when-needed* workflow, with [`build.watch`](MasterDefaultsConfig.coffee#build.watch) capability.
+**Resource Converters** is an evolving & generic workflow conversions system, that is trivial to use and extend with your own, perhaps one-liner, converters (eg `['$coco', [ '**/*.co'], (-> (require 'coco').compile @source, bare:true), '.js']`).
 
-*Note:* All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) that are matched & marked by one or more RCs are considered as **Resources**, all others are just *`BundleFile`s* (which are useful for declarative sync [`bundle.copy`](MasterDefaultsConfig.coffee#bundle.copy)ing at each build).
+The workflow unobtrusively uses `bundle` & `build` info like paths and is a highly *in-memory-pipeline* and *read-convert-and-save only-when-needed* workflow, with an integrated [`build.watch`](MasterDefaultsConfig.coffee#build.watch) capability (grunt or standalone).
 
-@derive [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend).
+Read all about them in [**ResourceConverters.coffee**](ResourceConverters.coffee).
+
+**Quick notes on RCs:**
+
+* All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) that are matched by RCs are considered as **Resources** (that need conversion).
+
+* All non-matching filez are just `BundleFile`s - useful for *declarative sync [`bundle.copy`](MasterDefaultsConfig.coffee#bundle.copy)ing at each build*.
+
+@derive [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend). You can use [null] as the 1st item to reset inherited array itrems.
 
 @optional unless you want to add you own *Resource Converters* for your conversion needs.
 
 @stability: 3 - Stable
 
-@default By default `resources` has RCs 'javascript', 'coffee-script', 'LiveScript' and 'coco' as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). Also an extra 'teacup' RC is registered, but not added to 'resources' - more will be added in future uRequire versions.
+@type An Array<ResourceConverer>, where a `ResourceConverter` can be either :
 
-@type An Array<ResourceConverer>, where a `ResourceConverter` can be either an 'Object', an 'Array' (for fancy RC-specs) or a 'String' name search of a previously registered RC or a function that returns an RC (with a name search fn as `this`). See the separate [Resource Converters](ResourceConverters.coffee) docs.
+* an ['Object'](ResourceConverters.coffee#Inside-a-Resource-Converter), for [boring formal RC definitions](ResourceConverters.coffee#The-formal-Object-way-to-define-a-Resource-Converter).
+
+* an ['Array'](ResourceConverters.coffee#The-alternative-less-verbose-Array-way) (for fancy RC-specs)
+
+* a 'String' name search of a previously registered RC, eg `'teacup'`.
+
+* a function that returns an RC - called with the name search function as 1st argument & `this`. eg `-> rc = @("RCname4").clone(); rc.filez.push('!**/DRAFT*.*'); rc`. If the function returns null or undefined, its not added to the Array.
+
+**Important**: The **order of RCs in `resources` does matter**, since *only the last matching RC determines the actual class* of the created resource (file). Read about [attaching some clazz](ResourceConverters.coffee#Attaching-some-clazz).
 
 @example A dummy example follows :
 ```
 resources: [   #example - not part of coffee.md source
-  #lookup registered RC 'teacup' & use as-is
+  # search registered RC 'teacup' & use as-is
   'teacup'                                      
 
-  #lookup, clone, change, return in one line
+  # search, clone, change, return in one line
   -> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
 
-  #define a new RC, with the fancy [] RC-spec
-  [ '$coocoo', [ '**/*.coo'], (-> require('coocoo').compile @source, bare:true), '.js']
+  # define a new RC, with the fancy [] RC-spec
+  ['$coocoo', [ '**/*.coo'], (-> require('coocoo').compile @source, bare:true), '.js']
   
-  #define a new RC, with the grandaddy {} RC-spec
+  # define a new RC, with the grandaddy {} RC-spec
   {
    name: 'kookoo'
    type: 'module'
@@ -198,13 +214,15 @@ resources: [   #example - not part of coffee.md source
 ]
 ```
 
+@default By default `resources` has RCs **'javascript', 'coffee-script', 'LiveScript' and 'coco'** as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). Also an [extra 'teacup' RC is registered](ResourceConverters.coffee#Extra-Resource-Converters) is defined, but not added to 'resources' - it can be used by searching for 'teacup'. More [Extra Resource Converters](ResourceConverters.coffee#Extra-Resource-Converters), will be added in future uRequire versions - feel free to contribute yours with a PR!
+
       resources: require('./ResourceConverters').defaultResourceConverters
 
 ## bundle.copy
 
-Copy (binary & sync) of all non-resource [`BundleFile`](MasterDefaultsConfig.coffee#bundle.filez)s to [`dstPath`](MasterDefaultsConfig.coffee#build.dstpath) as a convenience. If destination exists, it checks nodejs's `fs.statSync` 'mtime' & 'size' and copies (overwrites) ONLY changed files.
+Copy (binary & sync) of all non-resource [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez) (i.e those that are [`BundleFile`]((MasterDefaultsConfig.coffee#bundlefile)s) to [`dstPath`](MasterDefaultsConfig.coffee#build.dstpath) as a convenience. If destination exists, it checks nodejs's `fs.statSync` 'mtime' & 'size' and copies (overwrites) ONLY changed files.
 
-@example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i ]`
+@example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i]`
 
 @type see [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez)
 
@@ -212,7 +230,7 @@ Copy (binary & sync) of all non-resource [`BundleFile`](MasterDefaultsConfig.cof
 
 @alias `copyNonResources` DEPRACATED
 
-@default `[]`, no non-resource files are copied. You can use `/./` for all non-resource files to be copied to dstPath.
+@default `[]`, i.e no non-resource files are copied. You can use `/./` or `'**/*.*'` for all non-resource files to be copied.
 
       copy: []
 

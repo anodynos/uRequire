@@ -54,11 +54,11 @@ bundle: resources : [
 
 ```
 
-Also see [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) and the real [Default Resource Converters](#Default-Recource-Converters).
+Also see [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) and the real [Default Resource Converters](#Default-Resource-Converters).
 
 ## Inside a Resource Converter
 
-Ultimately, an RC has these fields:
+Ultimately, a **Resource Converter** has these fields:
 
  * `name` : a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of its initial name - see below - that are applied & stripped each time name is set. A `name` should be unique to each RC; otherwise it updates the registered RC by that name (registry is simply used to lookup RCs).
 
@@ -93,9 +93,13 @@ The `type` is user set among ['bundle', 'file', 'text', 'module'] -the default i
 
 #### Attaching some clazz
 
-As an RC is *attached* to each matching file, its `type` marks the file's class to be created either as `BundleFile`, `FileResource`, `TextResource` or `Module`. Resource Converters order inside `resources` does matter, since only the the last matching RC determines the actual class of the created resource (file).
+Each Resource Converter in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) is *attached* to each matching resource (i.e file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) ) and its `type` (`clazz` internally) *marks* the resource's instance (to be created) either as `BundleFile`, `FileResource`, `TextResource` or `Module`.
 
-While building, at each conversion, each `resource` (file) is passed to `convert()` which usually converts the `source` or `converted` and returns the result, or performs any other conversion on the file.
+**IMPORTANT**: Resource Converters order inside [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) does matter, since **only the last matching RC (with a `type`) determines the actual class** of the created resource.
+
+At each build/conversion cycle, each `resource` is passed to the `convert(resource)` of its matched RCs, in the order defined in `resources`.
+
+The RC's `convert(resource)` call converts the `source` or `converted` of the resource and returns the result, or performs any other conversion on the file (eg spawing external tools, load as a module and use, copy it etc). The result is stored at `resource.converted`, available to the next RC in line.
 
 ### Resource classes
 
@@ -213,15 +217,16 @@ ___
 Note: when you change `name`, `type` and `convFilename` of an RC, the properties are correctly updated (flags are set etc). The name searching can also carry flags, which are applied on the found RC, for example `"#coco"` will find 'coco' RC and apply the `'#'` flag to it (`type:"TextResource"), before stripping it.
 ___
 
-# Default Recource Converters
+# Default Resource Converters
 
-The following code [(that is actually part of uRequire's code)](#Literate-Coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module' :
+The following code [(that is actually part of uRequire's code)](#Literate-Coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module' (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
 
     defaultResourceConverters = [
 
-### The proper *Object way* to define a Resource Converter
+### The formal **Object way** to define a Resource Converter
 
-        # a dummy .js converter
+This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-Converter):
+
         {
           name: '$javascript'             # '$' flag denotes `type: 'module'`.
 
@@ -246,9 +251,9 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
           isMatchSrcFilename: false
         }
 
-### The alternative (less verbose) *Array way*, using an [] instead of {}.
+### The alternative (less verbose) **Array way**
 
-Key names are assumed from their posision in the array:
+This RC is using an [] instead of {}. Key names of RC are assumed from their posision in the array:
 
         [
           '$coffee-script'                                                  # `name` & flags as a String at pos 0

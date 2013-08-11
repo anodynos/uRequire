@@ -194,7 +194,7 @@ class ResourceConverter
   getResourceConverterObject = (rc)->
 
     if _.isFunction rc
-      rc = rc.call ResourceConverter.search
+      rc = rc.call ResourceConverter.search, ResourceConverter.search
       return getResourceConverterObject rc                              # returned rc might still be a ->, [] or {}
 
     if _.isString rc
