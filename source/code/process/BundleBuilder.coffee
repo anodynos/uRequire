@@ -1,15 +1,17 @@
 _ = require 'lodash'
-_ = require 'lodash'
-fs = require 'fs'
 _B = require 'uberscore'
-
 l = new _B.Logger 'urequire/process/BundleBuilder'
+
+fs = require 'fs'
 
 # urequire
 upath = require '../paths/upath'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 blendConfigs = require '../config/blendConfigs'
 UError = require '../utils/UError'
+
+Bundle = require './Bundle'
+Build = require './Build'
 
 ###
   Load config :
@@ -18,68 +20,62 @@ UError = require '../utils/UError'
     * Build & watch for changes
 ###
 class BundleBuilder
-
   constructor: (@configs, deriveLoader)->
 
     configs.push MasterDefaultsConfig # add as the last one - the defaults on which we lay our more specifics
-    finalCfg = blendConfigs configs, deriveLoader
-
-    # apply some hard coded defaults!
-    _.defaults finalCfg.bundle, {filez: ['**/*.*']}
-
+    @config = blendConfigs configs, deriveLoader
+    _.defaults @config.bundle, {filez: ['**/*.*']} # hard coded default
     # we now have our 'final' USER config
-    @bundleCfg = finalCfg.bundle
-    @buildCfg = finalCfg.build
 
-    # verbose / debug anyone ?
-    if @buildCfg.debugLevel?
-      _B.Logger.setDebugLevel @buildCfg.debugLevel, 'urequire'
-      l.debug 0, "Setting userCfg _B.Logger.setDebugLevel(#{@buildCfg.debugLevel}, 'urequire')"
+    @setDebugVerbose()
 
-    if not @buildCfg.verbose
-      if @buildCfg.debugLevel >= 50
-        l.warn 'Enabling verbose, because debugLevel >= 50'
+    l.verbose 'uRequire v' + require('../urequire').VERSION + ' initializing...'
+    l.debug "Final config (with master defaults):\n", @config if l.deb 20
+
+    # check & fix different formats or quit if we have anomalies
+    if @isCheckAndFixPaths() and @isCheckTemplate()
+      try
+        @bundle = new Bundle @config.bundle
+        @build = new Build @config.build
+      catch err
+        l.er uerr = "Generic error while initializing @bundle or @build", err
+        throw new UError uerr, nested:err
+
+  verboseRef = _B.Logger::verbose # hack & travestry
+  setDebugVerbose: ->
+    _B.Logger.addDebugPathLevel 'urequire', @config.build.debugLevel
+    if @config.build.verbose
+      _B.Logger::verbose = verboseRef
+    else
+      if @config.build.debugLevel >= 50
+        _B.Logger::verbose = verboseRef
+        l.warn 'Enabling verbose, because debugLevel >= 50' if @build?.count is undefined
       else
         _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
 
-    l.verbose 'uRequire v'+l.VERSION + ' initializing...'
-    l.debug "final config (with master defaults):\n", finalCfg if l.deb 20
-
-    ### Lets check & fix different formats or quit if we have anomalies ###
-    # Why these here instead of top ? # Cause We need to have _B.Logging.debugLevel ready BEFORE YADC debug check
-    # Why on @ ? Cause we need them outside constructor, below
-    @Bundle = require './Bundle'
-    @Build = require './Build'
-
-    if @isCheckAndFixPaths() and @isCheckTemplate()
-      # Create the implementation instance from these configs @todo: refactor / redesign this / better practice ?
-      try
-        @bundle = new @Bundle @bundleCfg
-        @build = new @Build @buildCfg
-      catch err
-        l.err uerr = "Generic error while initializing @bundle or @build", err
-        throw new UError uerr, nested:err
-
-    else
-      l.err "Something went wrong with paths or template" # @todo:2,4 add more fixes/checks ?
-      @buildCfg.done false
-
   buildBundle: (filenames)->
-    if not (!@build or !@bundle)
+    if @build and @bundle
       try
-        @bundle.buildChangedResources @build, filenames #if no
+        @setDebugVerbose()
+        @build.newBuild()
+        @bundle.buildChangedResources @build, filenames
       catch err
-        if @build.debugLevel > 100 then l.err 'Uncaught exception @ bundle.buildChangedResources', err
-        throw err
-        @buildCfg.done false
+        if err.quit
+          l.er 'Quiting building bundle - err is:', err
+        else # we should not have come here
+          l.er 'Uncaught exception @ bundle.buildChangedResources', err
+        @config.build.done false
     else
-      l.err "buildBundle(): I have !@build or !@bundle - can't build!"
-      @buildCfg.done false
+      l.er "buildBundle(): I have !@build or !@bundle - can't build!"
+      @config.build.done false
 
-
-  watch: ->
-    bundleBuilder = this
-    watchFiles = []; watchDirs = []
+  watch: =>
+    bundleBuilder = @
+    buildDone = @build.done
+    @build.done = (doneValue)->
+      buildDone doneValue
+      l.ok "Watched build ##{bundleBuilder.build.count} took #{(new Date() - bundleBuilder.build.startDate) / 1000 }secs - Watching again..."
+    watchFiles = []
     gaze = require 'gaze'
     path = require 'path'
     fs = require 'fs'
@@ -89,7 +85,6 @@ class BundleBuilder
 #      path.join bundleBuilder.bundle.path, file
 #    watchedFiles.unshift bundleBuilder.bundle.path + '/**/*.*' # all dirs
     gaze bundleBuilder.bundle.path + '/**/*.*', (err, watcher)->
-      l.log 'Watching started...'
       watcher.on 'all', (event, filepath)->
         if event isnt 'deleted'
           try
@@ -99,31 +94,27 @@ class BundleBuilder
         filepath = path.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
 
         if filepathStat?.isDirectory()
-          l.log "Adding '#{filepath}' as new watch directory is NOT SUPPORTED yet."
-#          _.delay addDirs, 500 if _.isEmpty watchDirs
-#          watchDirs.push filepath + '/**/*.*'
+          l.log "Adding '#{filepath}' as new watch directory is NOT SUPPORTED by gaze."
         else
-          l.log "Watch file '#{filepath}' has #{event}."
-          _.delay runBuildBundle, 500 if _.isEmpty watchFiles
+          l.log "Watched file '#{filepath}' has '#{event}'."
           watchFiles.push path.relative bundleBuilder.bundle.path, filepath
+          runBuildBundleDebounced()
 
-      addDirs = ()->
-        watcher.add dir for dir in watchDirs # gaze crashes on 'watcher.add'
-        watchDirs = []
+    runBuildBundle = ->
+      if not _.isEmpty watchFiles
+        bundleBuilder.buildBundle watchFiles
+        watchFiles = []
+        runBuildBundleDebounced = _.debounce runBuildBundle, 100
+      else
+        l.warn 'EMPTY watchFiles = ', watchFiles
 
-      runBuildBundle = ->
-        if not _.isEmpty watchFiles
-          bundleBuilder.buildBundle watchFiles
-          watchFiles = []
-        else
-          l.warn 'EMPTY watchFiles = ', watchFiles
-        l.log 'Watching again...'
+    runBuildBundleDebounced = _.debounce runBuildBundle, 100
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->
-    if @buildCfg.template.name not in @Build.templates
-      l.err """
-        Quitting build, invalid template '#{@buildCfg.template.name}' specified.
+    if @config.build.template.name not in Build.templates
+      l.er """
+        Quitting build, invalid template '#{@config.build.template.name}' specified.
         Use -h for help"""
       return false
 
@@ -132,34 +123,34 @@ class BundleBuilder
   isCheckAndFixPaths: ->
     pathsOk = true
 
-    if not @bundleCfg?.path?
+    if not @config.bundle?.path?
       # assume path, from the 1st configFile that came along
       if cfgFile = @configs[0]?.derive?[0]
         if dirName = upath.dirname cfgFile
           l.warn "Assuming path = '#{dirName}' from 1st configFile: '#{cfgFile}'"
-          @bundleCfg.path = dirName
+          @config.bundle.path = dirName
         else
-          l.err "Quitting build, cant assume path from 1st configFile: '#{cfgFile}'"
+          l.er "Quitting build, cant assume path from 1st configFile: '#{cfgFile}'"
           pathsOk = false
       else
-        l.err """
+        l.er """
           Quitting build, no path specified.
           Use -h for help"""
         pathsOk = false
 
     if pathsOk
-      if @buildCfg.forceOverwriteSources
-        @buildCfg.dstPath = @bundleCfg.path
-        l.verbose "Forced output to '#{@buildCfg.dstPath}'"
+      if @config.build.forceOverwriteSources
+        @config.build.dstPath = @config.bundle.path
+        l.verbose "Forced output to '#{@config.build.dstPath}'"
       else
-        if not @buildCfg.dstPath
-          l.err """
+        if not @config.build.dstPath
+          l.er """
             Quitting build, no --dstPath specified.
             Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
           pathsOk = false
         else
-          if upath.normalize(@buildCfg.dstPath) is upath.normalize(@bundleCfg.path)
-            l.err """
+          if upath.normalize(@config.build.dstPath) is upath.normalize(@config.bundle.path)
+            l.er """
               Quitting build, dstPath === path.
               Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
               """
@@ -168,12 +159,3 @@ class BundleBuilder
     pathsOk
 
 module.exports = BundleBuilder
-
-### Debug information ###
-
-#if l.deb > 10 #or true
-#  YADC = require('YouAreDaChef').YouAreDaChef
-#
-#  YADC(BundleBuilder)
-#    .before /_constructor/, (match, config)->
-#      l.debug(1, "Before '#{match}' with config = ", config)

@@ -1,5 +1,3 @@
-console.log '\nNodeRequirer-test started'
-
 chai = require 'chai'
 assert = chai.assert
 expect = chai.expect
@@ -9,7 +7,7 @@ fs = require('fs')
 upath = require '../code/paths/upath'
 
 NR = require "../code/NodeRequirer"
-Dependency = require "../code/Dependency"
+Dependency = require "../code/fileResources/Dependency"
 
 # @todo: test asynch `require([], callback)`
 # @todo: getRequirejs & requirejs.config paths - (inject a mock requirejs, via injected mock nodeRequire)
@@ -41,30 +39,30 @@ describe "NodeRequirer basics:", ->
     expect(nr.getRequireJSConfig()).to.deep.equal rjsconf
 
   it "nodejs require-mock called with correct module path", ->
-    modulePath = ''
-    nr.nodeRequire = (m)-> modulePath = m # works via closure cause its called in synch
+    path = ''
+    nr.nodeRequire = (m)-> path = m # works via closure cause its called in synch
     nr.require 'path/fromBundleRoot/to/anotherModule'
 
-    expect(modulePath).to.equal upath.normalize "#{__dirname}/path/fromBundleRoot/to/anotherModule"
+    expect(path).to.equal upath.normalize "#{__dirname}/path/fromBundleRoot/to/anotherModule"
 
   describe "resolves Dependency paths:", ->
     it "global-looking Dependency", ->
-      resolvedDeps = nr.resolvePaths new Dependency 'underscore', moduleNameBR
+      resolvedDeps = nr.resolvePaths new Dependency 'underscore', path:moduleNameBR
       for resDep in ['underscore', upath.normalize "#{__dirname}/underscore"]
         expect(resDep in resolvedDeps).to.be.true
 
     it "bundleRelative Dependency", ->
       depStr = 'some/pathTo/depName'
-      expect(nr.resolvePaths new Dependency depStr, moduleNameBR).to.deep
+      expect(nr.resolvePaths new Dependency depStr, path:moduleNameBR).to.deep
         .equal [upath.normalize "#{__dirname}/#{depStr}"]
 
     it "fileRelative Dependency", ->
       expect(
-        nr.resolvePaths new Dependency('./rel/pathTo/depName', moduleNameBR)
+        nr.resolvePaths new Dependency('./rel/pathTo/depName', path:moduleNameBR)
       ).to.deep.equal [ upath.normalize "#{__dirname}/#{upath.dirname moduleNameBR}/rel/pathTo/depName" ]
 
     it "requirejs config {paths:..} Dependency", ->
-      expect(nr.resolvePaths new Dependency 'src/depName', moduleNameBR).to.deep
+      expect(nr.resolvePaths new Dependency 'src/depName', path:moduleNameBR).to.deep
         .equal [upath.normalize "#{__dirname}/../../src/depName"]
 
 describe "NodeRequirer uses requirejs config :", ->

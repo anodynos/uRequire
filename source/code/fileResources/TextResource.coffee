@@ -28,14 +28,13 @@ class TextResource extends FileResource
 
     else # refresh only if parent says so
       source = @read()
-      if source and (@source isnt source)
-        # go through all converters, converting source & filename in turn
-        @source = @converted = source
-        @dstFilename = @filename # @todo: why init?
-
-        return @hasChanged = @runResourceConverters (conv)->not conv.isAfterTemplate # only 'isAfterTemplate:false' aren't a module converted with template
+      if source and (@source isnt source) # go through converters, converting source & filename in turn
+        @source = source
+        @converted = @source
+        @dstFilename = @srcFilename
+        return @hasChanged = @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
       else
-        l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@filename}' " if l.deb 90
+        l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@srcFilename}' " if l.deb 90
         return @hasChanged = false
 
   reset:-> super; delete @source

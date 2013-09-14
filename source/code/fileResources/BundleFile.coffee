@@ -10,16 +10,16 @@ upath = require '../paths/upath'
 UError = require '../utils/UError'
 
 ###
-  A dummy/base class, representing any file in the bundle
+  Represents any file in the bundle (that matched `bundle.filez`)
 ###
 class BundleFile
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
-
   ###
-    @param {Object} bundle The Bundle where this BundleFile belongs
-    @param {String} filename, bundleRelative eg 'models/PersonModel.coffee'
+    @param bundle {Object} The Bundle where this BundleFile belongs
+    @param filename {String} bundleRelative eg 'models/PersonModel.coffee'
   ###
-  constructor: (@bundle, @filename)-> @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
+  constructor: (data)->
+    _.extend @, data
+    @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
 
   refresh:-> # check for filesystem timestamp etc
     if not fs.existsSync @srcFilepath
@@ -27,29 +27,29 @@ class BundleFile
     else
       stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']
       if not _.isEqual stats, @fileStats
+        @fileStats = stats
         @hasChanged = true
-        @dstFilename = @srcFilename # reset to original @filename
       else
         @hasChanged = false
         l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
 
-    @fileStats = stats
-    return @hasChanged
+    @hasChanged
 
-  reset:-> delete @fileStats
+  reset:->
+    delete @fileStats
+    delete @hasErrors
 
-  @property
-    extname: get: -> upath.extname @filename                # original extension, eg `.js` or `.coffee`
+  Object.defineProperties @::,
+    extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
 
-    # alias to source @filename
-    srcFilename: get: -> @filename
-    srcFilepath: get: -> upath.join @bundle.path, @filename # source filename with path, eg `myproject/mybundle/mymodule.js`
+    # @srcFilename: set at creation
+    srcFilepath: get: -> upath.join @bundle?.path or '', @srcFilename # source filename with path, eg `myproject/mybundle/mymodule.js`
     srcRealpath: get: -> "#{process.cwd()}/#{@srcFilepath}"
+    srcExists: get:-> fs.existsSync @srcFilepath
 
     # @dstFilename populated after each refresh/conversion (or a default on constructor)
-    dstFilepath: get:-> if @bundle.build then upath.join @bundle.build.dstPath, @dstFilename # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
+    dstFilepath: get:-> upath.join @bundle?.build?.dstPath or '', @dstFilename # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
     dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
-
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
 
     # sourceMap information
@@ -70,21 +70,22 @@ class BundleFile
       """
 
 
-  # Helpers: available to bundleFile instance (passed as convert() this & 1st argument) for convenience
+  # Helpers: available to bundleFile instance (passed as `convert()`) for convenience
   # They are defined as static, with an instance shortcut *with sane defaults*
   # They are all sync
   
   # Without params it copies (binary) the source file from `bundle.path`
-  # to `build.dstPath` - otherwise it respects the params
-  copy: (srcFile=@srcFilepath, dstFile=(upath.join @bundle.build.dstPath, @srcFilename))-> 
-    BundleFile.copy srcFile, dstFile
+  # to `build.dstPath`
+  copy: (srcFilename=@srcFilename, dstFilename=@srcFilename)->
+    BundleFile.copy upath.join(@bundle?.path or '', srcFilename),
+                    upath.join(@bundle?.build?.dstPath or '', dstFilename)
 
   # copyFile helper (missing from fs & wrench)
   # @return true if copy was made, false if skipped (eg. same file)
   # copyFileSync based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/) @todo: improve !
   @copy: (srcFile, dstFile, overwrite='DUMMY')-> # @todo: overwrite: 'olderOrSizeDiff' (current default behavior) or 'all', 'none', 'older', 'sizeDiff'
     if not fs.existsSync srcFile
-      throw new UError "copy source file missing '#{srcFile}'"
+      throw new UError "copy: source file missing '#{srcFile}'"
     else
       srcStats = _.pick fs.statSync(srcFile), ['atime', 'mtime', 'size']
       if fs.existsSync dstFile
@@ -116,17 +117,16 @@ class BundleFile
       fs.utimesSync dstFile, srcStats.atime, srcStats.mtime
       return true
     catch err
-      l.err uerr = "copy from '#{srcFile}' to '#{dstFile}'", err
-      throw new UError uerr, nested:err
+      throw new UError "copy: Error copying from '#{srcFile}' to '#{dstFile}'", nested:err
 
   # helper - uncaching require
   # based on http://stackoverflow.com/questions/9210542/node-js-require-cache-possible-to-invalidate
   # Removes a nodejs module from the cache
-  @requireUncached: (moduleName) ->
+  @requireUncached: (name) ->
     # Runs over the cache to search for all the cached nodejs modules files
-    searchCache = (moduleName, callback) ->
+    searchCache = (name, callback) ->
       # Resolve the module identified by the specified name
-      mod = require.resolve(moduleName)
+      mod = require.resolve(name)
       # Check if the module has been resolved and found within the cache
       if mod and ((mod = require.cache[mod]) isnt undefined)
         # Recursively go over the results
@@ -138,10 +138,16 @@ class BundleFile
         ) mod
 
     # Run over the cache looking for the files loaded by the specified module name
-    searchCache moduleName, (mod)-> delete require.cache[mod.id]
-    require moduleName
+    searchCache name, (mod)-> delete require.cache[mod.id]
+    require name
 
   #shortcut as instance var
-  requireUncached: BundleFile.requireUncached
+  requireUncached: (name=@srcRealpath)-> BundleFile.requireUncached(name)
+
+  inspect: ->
+    inspectText = " #{@constructor.name} : '#{@srcFilename}' "
+    inspectText += '(hasChanged)' if @hasChanged
+    inspectText += '(hasErrors)' if @hasErrors
+    inspectText
 
 module.exports = BundleFile

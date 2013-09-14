@@ -6,18 +6,15 @@ l = new _B.Logger 'urequire/process/BundleBase'
 
 upath = require '../paths/upath'
 pathRelative = require '../paths/pathRelative'
-Dependency = require '../Dependency'
+Dependency = require '../fileResources/Dependency'
 UError = require '../utils/UError' #todo: use this instead!
 
 ###
 Common functionality used at build time (Bundle) or runtime (NodeRequirer)
 ###
-class BundleBase
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p
-  Function::staticProperty = (p)=> Object.defineProperty @::, n, d for n, d of p
-  constructor: ->@_constructor.apply @, arguments
+class BundleBase extends _B.CalcCachedProperties
 
-  @property
+  Object.defineProperties @::,
     webRoot:
       get: -> upath.normalize "#{
         if @webRootMap[0] is '.' # hardwired as path from path
@@ -25,7 +22,6 @@ class BundleBase
         else
           @webRootMap # an OS file system dir, as-is
         }"
-
 
   ###
   For a given `Dependency`, resolve *all possible* paths to the file.

@@ -25,7 +25,6 @@ describe('isFileInSpecs', function() {
     filteredFiles = _.filter(files, function(f) {
       return isFileInSpecs(f, fileSpecs);
     });
-    console.log(filteredFiles);
     return expect(filteredFiles).to.deep.equal(['file.txt', 'path/file.coffee', 'draft/mydraft.coffee', 'literate/draft/*.coffee.md']);
   });
 });

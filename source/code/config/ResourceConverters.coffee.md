@@ -1,4 +1,4 @@
-**Resource Converters** is a powerful, generic and evolving **in-memory conversions workflow**, that is trivial to use and extend to cater for all common conversions (eg coffeescript, Livescript, coffeecup, less, jade etc).
+**Resource Converters** is a powerful, generic and extendible **in-memory conversions workflow**, that is expressive and flexible to cater for all common conversions needs (eg coffeescript, Livescript, coffeecup, less, jade etc).
 
 ## Literate Coffescript
 
@@ -6,38 +6,45 @@ This file is written in [Literate Coffeescript](http://ashkenas.com/literate-cof
 
 NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverters.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
 
-## What are Resource Converters ?
+## What is a ResourceConverter ?
 
-**Resource Converters (RC)** is a *conversions workflow* system that is comprised of simplistic, yet powerful declarations of compilers/converters/transpilers etc. Each RC performs a conversion from one resource format (eg *coffeescript*, *less*) to another **converted** format (eg *javascript*, *css*) for the files it matches in the [bundle](MasterDefaultsConfig.coffee#bundle).
+A **ResourceConverter (RC)** is the buidling block of uRequire's *conversions workflow* system. An RC is a simplistic declaration and callback wrapping of a compiler/transpiler or any other converter/conversion. Each RC performs a conversion from one resource format (eg *coffeescript*, *teacup*) to another **converted** format (eg *javascript*, *html*), for all [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez) that also match its own [`ResourceConverter.filez`](#Inside-a-Resource-Converter).
 
-The workflow has the following principles :
+The **ResourceConverter workflow** has the following principles :
 
-  * **simple callback API** that enables any kind of conversion, even with *one-liners*. This is an actual RC :
-    `[ '$coco', [ '**/*.co'], (->(require 'coco').compile @source, bare:true), '.js']`
+  * **simple callback API** that enables any kind of conversion, even with *one-liners*. This is an actual ResourceConverter :
+   
+   `[ '$coco', [ '**/*.co'], function(r){return require('coco').compile(r.source)}, '.js']`
+   
+  Authoring an RC is very simple and has a [formal spec](#Inside-a-Resource-Converter) and [space saving shortcuts](#the-alternative-even-shorter-way). 
 
-  * focus to an **in-memory conversions pipeline**, to save time loading & saving from the filesystem.
+  * focus to an **in-memory conversions pipeline**, with an **only-when-needed** workflow, where each file is processed/converted/saved/copied *only when it really needs to* (very useful when used with [build.watch](MasterDefaultsConfig.coffee#build.watch) or grunt's watch).
 
-  * powerful **only-when-needed** workflow, where each file is processed/converted *only when it really needs to*.
+  * DRY (Dont Repeat Yourself) via the *seamlessly integrated* [uRequire's configuration](MasterDefaultsConfig.coffee) settings, such as [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez), [bundle.path](MasterDefaultsConfig.coffee#bundle.path), [build.dstPath](MasterDefaultsConfig.coffee#build.dstPath) etc, unobtrusively loading & saving with the leanest possible configuration. It also works smoothly with `build.watch` and the whole uRequire building workflow/process.
 
-  * *seamlessly integrated* with `bundle` & `build` paths, unobtrusively loading & saving with the leanest possible configuration. It also works smoothly with `build.watch` and the whole uRequire building process.
+  * Provide the first **module & dependencies aware build system**, with advanced [module manipulation features](#Manipulating-Modules) such as injecting or replacing dependencies, matching and replacing/removing AST code fragments and more coming.
 
-## How do they work ?
+## How does it work ?
 
-All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) are matched against the Resource Converters in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) of your config. Each RC that matches a file, marks it as a **resource** that needs conversion with it. *Not matched at all files are still useful for declarative binary copy*.
+Each file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) is matched against each ResourceConverter [`filez`](#Inside-a-Resource-Converter) in the order defined in your [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) of your config. Each RC that matches a file, marks it as a `resource` that needs conversion with it, in the order defined in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources). *Files that are not matched by any RC are still useful for declarative binary copy*.
+
+When a file (`resource`) changes, it goes through each matched ResourceConverter instance (`rc`) - always in the order defined in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) - effectively `rc.convert()`-ing  `resource.source` to `resource.converted` at each subsequent step. 
+
+The result of each `rc.convert()` (i.e `resource.converted`) is the input to the next matched RC's `rc.convert()`. The whole process is usually **in memory only**, with only the 1st read() and last save() being on the file system.
 
 ## Defining in `bundle.resources`
 
-A *Resource Converter* (RC) can be user-defined inside [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) either as:
+A *Resource Converter* (RC) instance is user-defined inside the [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) Array either as:
 
 * an Object {}, [as described bellow](#Inside-a-Resource-Converter).
 
-* an Array [], (a shortcut spec) omitting property names that are inferred by position - see [alternative array way](#the-alternative-less-verbose-array-way-using-an-instead-of-.) and [The shortest one-liner-converter](#the-shortest-way-ever-a-one-liner-converter).
+* an Array [], (a shortcut spec) omitting property names that are inferred by position - see [alternative array way](#the-alternative-even-shorter-way) and [The shortest one-liner-converter](#the-shortest-way-ever-a-one-liner-converter).
 
 * by searching/retrieving an already registered RC, either by :
 
   a) a String 'name', used to retrieve an RC.
 
-  b) by a function, whose context (`this`) is a search-by-name function that returns the proper RC instance. It can then be changed, cloned etc and return the RC used in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources)
+  b) by a function, whose context (`this`) is a search-by-name function that returns the proper RC instance. It can then be changed, cloned etc and return the RC to be added to [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources).
   
 Example :
 ```
@@ -58,27 +65,29 @@ Also see [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) and 
 
 ## Inside a Resource Converter
 
-Ultimately, a **Resource Converter** has these fields:
+Ultimately, a **Resource Converter** instance has these fields:
 
  * `name` : a simple name eg. `'coffee-script'`. A `name` can have various flags at the start of its initial name - see below - that are applied & stripped each time name is set. A `name` should be unique to each RC; otherwise it updates the registered RC by that name (registry is simply used to lookup RCs).
 
  * `descr` : any optional details to keep the name tidy.
 
- * `filez` : the same format as [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) spec ([] of minimatch & RegExp). It matches the files this RC deals with (always within the boundaries of `bundle.filez` files).
+ * `filez` : the same format as [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) spec ([] of minimatch, RegExp & fns). It matches the files this RC deals with (always within the boundaries of `bundle.filez` files).
 
- * `convert()` :  the actual conversion callback `function(resource){return 'convertedText'}` that converts some resource's data (eg `source`, `converted` etc) and returns it. The only argument passed is a `resource` (the representation of a file under processing); for convenience the context (value of `this`) is also set to the resource.
+ * `convert()` :  the actual conversion callback `function(resource){return 'convertedText'}` that converts some resource's data (eg `source`, `converted` etc) and returns it. The only argument passed is a `resource` (the representation of a file under processing, which might also be a Module). 
+
+   **NOTE: The context (value of `this`) is set to `this` ResourceConverter (uRequire >=0.6)**.
   
- The return value of `convert()` is stored as `resource.converted` and its possibly converted again by a subsequent converter (that has also matched the file), leading to an in memory *conversion pipeline*. 
+   The return value of `convert()` is stored as `resource.converted` and its possibly converted again by a subsequent converter (that has also matched the file), leading to an in memory *conversion pipeline*.
  
- Finally, after all conversions are done (for current build), if `resource.converted` is a non-empty String, its saved automatically at `resource.dstFilepath` (which uses [`build.dstPath`](MasterDefaultsConfig.coffee#build.dstPath)) & `convFilename` below.
+ Finally, after all conversions are done (for current build), **if `resource.converted` is a non-empty String**, its saved automatically at `resource.dstFilepath` (which uses [`build.dstPath`](MasterDefaultsConfig.coffee#build.dstPath)) & `convFilename` below.
 
  * `convFilename` :
 
   * a `function(dstFilename, srcFilename){return "someConvertedDstFilename.someext")}` that converts the current `dstFilename` (or the `srcFilename`) to its new *destination* `dstFilename`, eg `"file.coffee"` to `"file.js"`.
 
-  * a `String` which can be either a) starting with "." (eg ".js"), where its considered an extension replacement. By default it replaces the extension of `dstFilename`, but with the "~" flag it performs the extension replacement on `srcFilename` (eg `"~.coffee.md"`). b) a plain String, returned as is (*note: duplicate dstFilename currently cause a build error*).
+  * a `String` which can be either: a) starting with "." (eg ".js"), where its considered an extension replacement. By default it replaces the extension of `dstFilename`, but with the "~" flag it performs the extension replacement on `srcFilename` (eg `"~.coffee.md"`). b) a plain String, returned as is (*note: duplicate `dstFilename` currently causes a build error*).
 
- * [`type`](#resource-types:-the-type-field) & flags [`isTerminal`](#isTerminal), [`isAfterTemplate`](#isAfterTemplate) & [`isMatchSrcFilename`](#isMatchSrcFilename) that can be easily defined via `name` flags - explained right below.
+ * [`type`](#resource-types:-the-type-field) & flags [`isTerminal`](#isTerminal), [`isBeforeTemplate`](#isBeforeTemplate),[`isAfterTemplate`](#isAfterTemplate) & [`isMatchSrcFilename`](#isMatchSrcFilename) that can be easily defined via `name` flags - explained right below.
 
 ### Resource types: the `type` field
 
@@ -93,33 +102,88 @@ The `type` is user set among ['bundle', 'file', 'text', 'module'] -the default i
 
 #### Attaching some clazz
 
-Each Resource Converter in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) is *attached* to each matching resource (i.e file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) ) and its `type` (`clazz` internally) *marks* the resource's instance (to be created) either as `BundleFile`, `FileResource`, `TextResource` or `Module`.
+Each Resource Converter in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) is *attached* to each matching resource (i.e file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) ) and its `type` (`clazz` internally) ** *marks* the resource's class (to be instantiated)** either as `BundleFile`, `FileResource`, `TextResource` or `Module`.
 
-**IMPORTANT**: Resource Converters order inside [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) does matter, since **only the last matching RC (with a `type`) determines the actual class** of the created resource.
+**IMPORTANT**: Resource Converters order inside [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) does matter, since **only the last matching RC (with a `type`) determines (marks) the actual class** of the created resource.
 
-At each build/conversion cycle, each `resource` is passed to the `convert(resource)` of its matched RCs, in the order defined in `resources`.
+At each build/conversion cycle, each changed `resource` is passed to the `convert(resource)` of its matched RCs, in the order defined in `resources`.
 
-The RC's `convert(resource)` call converts the `source` or `converted` of the resource and returns the result, or performs any other conversion on the file (eg spawing external tools, load as a module and use, copy it etc). The result is stored at `resource.converted`, available to the next RC in line.
+The RC's `convert(resource)` call converts the `source` or `converted` of the resource and returns the result, or performs any other conversion on the file (eg spawing external tools, load as a module and use, copy it etc). The result of `convert()` is stored at `resource.converted`, available to the next RC in line.
 
-### Resource classes
 
-Each file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) can be instantiated as a :  
+### Flags & Name Flags 
+___
+#### isTerminal - "|"
+
+A converter can be `isTerminal:false` (the default) or `isTerminal:true`.
+
+uRequire uses each matching converter in turn during each build, converting from one format to the next, using the `converted` and `dstFilename` as the input to the next converter. All that until the first `isTerminal:true` converter is encountered, where the conversion process (for this resource instance) stops.
+
+You can denote an RC as `isTerminal:true` in the {} format or with *name flag* `'|'`.
+___
+#### isBeforeTemplate - "+"
+
+A converter with `isBeforeTemplate:true` (refers only to "Module" instances) will run just BEFORE the module is converted through [`build.template`](MasterDefaultsConfig.coffee#bundle.filez) (eg. 'UMD'). By default `isBeforeTemplate: false`. Use the `'+'` name flag to denote `isBeforeTemplate :true`.
+
+The `convert(module)` function of `isBeforeTemplate` RCs will receive a Module instance ([Module is a subclass of BundleFile/Resource](#module-extends-textresource)) with : 
+
+* parsed javascript in [Mozzila Parser AST](https://developer.mozilla.org/en/SpiderMonkey/Parser_API) format. 
+
+* extracted/adjusted dependencies data, allowing an [advanced manipulation of module's code](#Manipulating-Modules).
+
+* Methods & members to [manipulate the module instance](#Manipulating-Modules)
+
+*Note: for `isBeforeTemplate` RCs, the **return value of `convert(module)` is ignored** - the template uses only AST code and dependencies to produce its @converted string at the next step (the template rendering).* You can affect the produced code (template rendering) only through [manipulating the Module](#Manipulating-Modules).
+___
+#### isAfterTemplate - "!"
+
+A converter with `isAfterTemplate:true` (refers only to "Module" instances) will run right AFTER the module is converted through [`build.template`](MasterDefaultsConfig.coffee#bundle.filez). By default `isAfterTemplate:false`. Use the `'!'` name flag to denote `isAfterTemplate:true`.
+
+Following the norm, the return value of `convert(module)` is assigned to `module.converted` and (assuming its the last RC) it is the value to be saved as `module.dstFilename` (assuming its a non-empty String). This is the place to add banners etc outside of the UMD/AMD/nodejs template.
+___
+#### isMatchSrcFilename - "~"
+
+By default (`isMatchSrcFilename:false`) filename matching of `ResourceConverter.filez` uses the instance `dstFilename`, which is set by the last `convFilename()` that run on the instance (initially its set to srcFilename). Use "~" name flag or (`isMatchSrcFilename:true`) if you want to match `filez` against the original source filename (eg. `'**/myfile.coffee'` instead of `'**/myfile.js'`). The sane default allows the creation of RCs that are agnostic of how the input resource came about, whether they are actual matched '.js' files on disk or became a '.js' as part of the in-memory conversion pipeline.
+___
+#### Flag updating notes
+
+Note: when you change `name`, `type` and `convFilename` of an RC, the properties are correctly updated (flags are set etc). 
+
+The *name searching can also carry flags*, which are applied on the found RC, for example `"#coco"` will both find 'coco' ResourceConverter and also apply the `'#'` flag to it (`type:"TextResource"), before stripping it and leaving 'coco' as the name of the RC.
+___
+
+
+## Resource classes
+
+Each file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) can be instantiated as one of 4 classes (each extending the previous one):  
+
+**BundleFile** <- **FileResource** <- **TextResource** <- **Module**
 _____
-#### BundleFile
+### BundleFile 
 
-All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) that are NOT matched by any RC (with a `type`), or those marked as `type:'bundle'` (or name-flagged with `'&'`) are instantiated as a `BundleFile`. 
+Represents a generic file inside the bundle. Its also the base class of all resources.
+
+All [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) that 
+
+* are NOT matched by any RC (that has some [`type`/`clazz`](resource-types:-the-type-field)), 
+
+* last matched by an RC with an explicit `type:'bundle'` (or name-flagged with `'&'`) 
+
+are instantiated as a `BundleFile`. 
 
 BundleFiles instances are NOT converted at all - they are never passed to `convert()`. Also their contents are unknown. They can just be easily binary copied if they match [`bundle.copy`](MasterDefaultsConfig.coffee#bundle.copy).
 
-##### Watching BF changes 
+#### Watching BF changes 
 
-When watching, a BundleFile instance is considered as changed, only when fs.stats `size` & `mtime` have changed since last build.
+When watching, a BundleFile instance is considered as changed, only when fs.stats `size` or `mtime` have changed since the last refresh (i.e a partial/full build noting this file).
 
-##### Properties 
+#### Properties 
 
-BundleFile class serves as a base for all resource types (its the parent class of all others). Each BF instance (and consequently each resource instance passed to `convert()`) has the following properties :
+BundleFile class serves as a base for all resource types  - its the parent (and grand* parent) class of the others. Each BF instance (and consequently each resource/module instance passed to `convert()`) has the following properties :
 
-###### Filename properties
+##### Filename properties
+
+###### source properties
 
 * `srcFilename` : the source filename, within the bundle, Eg `'models/initialValues.json'` or `'models/Person.coffee'`
 
@@ -127,18 +191,20 @@ BundleFile class serves as a base for all resource types (its the parent class o
 
 * `srcRealpath` : the full OS path, eg `'mnt/myproject/source/code/models/initialValues.json` - useful for `require`ing modules without worrying about relative paths.
 
+###### destination properties
+
 * `dstFilename` : as it is returned by the last executed `convFilename`. Its initial value is `srcFilename`. Eg `'models/initialValues.json'` or `'models/Person.js'`.
 
 * `dstFilepath` : calculated to include [`build.dstPath`](MasterDefaultsConfig.coffee#build.dstPath), eg `'build/code/models/Person.js'`
 
 * `dstRealpath` : the full OS destination path, eg `'mnt/myproject/build/code/models/Person.js`
 
-@note `dstXXX` : **When two ore more files end up with the same `dstFilename`**, build halts. @todo: This should change in the future: when the same `dstFilename` is encountered in two or more resources/modules, it could mean Pre- or Post- conversion concatenation. Pre- means all sources are concatenated & then passed once to `convert`, or Post- where each resource is `convert`ed alone & but their outputs are concatenated onto that same `dstFilename`.
+@note `dstXXX` : **When two ore more files end up with the same `dstFilename`**, build halts. *@todo: This should change in the future: when the same `dstFilename` is encountered in two or more resources/modules, it could mean Pre- or Post- conversion concatenation. Pre- means all sources are concatenated & then passed once to `convert`, or Post- where each resource is `convert`ed alone & but their outputs are concatenated onto that same `dstFilename`*.
 
-###### Info properties
+##### other info properties
 
 * `fileStats` : auxiliary, it stores ['mtime', 'size'] from nodejs's `fs.statSync`, 
-needed internally to decide whether the file has changed at all (mainly for watch events).
+needed internally to decide whether the file has changed at all (at watch events that note it).
 
 * `sourceMapInfo` : calculates sourceMap info (reserved for the future) - eg with 
 
@@ -155,71 +221,230 @@ needed internally to decide whether the file has changed at all (mainly for watc
   }
   ```
 
-###### Utility functions
+##### Utility functions
 
-* `copy()` : each instance is equiped with a `copy(srcfile, dstfile)` function, that binary copies a file (synchronously). It can be used without one or both arguments, where the 1st defaults to `@srcFilename` and 2nd to `build.dstPath/@srcFilename`. With this you can have a converter that simply copies a file, eg:
-`['@copyVendorJs', ['vendorJs/**/*.js'], -> @copy()]`
+* `copy()` : each BundleFile (or subclasses) instance is equiped with a `copy(srcFilename, dstFilename)` function, that binary copies a file (synchronously) from its source (`bundle.path` + `srcFilename`) to its destination (`build.dstPath` + `dstFilename`). 
+ 
+  It can be used without any or both arguments, where the 1st defaults to `resource.srcFilename` and 2nd to `resource.dstFilename`. Both filenames are appended respectively to `bundle.path` & `build.dstPath`.
 
-* `requireUncached` : a special utility nodejs `require`, that makes sure the cached module (and its dependencies) is cleared before loading it. Useful if you want to load file resources (that change on disk) as nodejs modules (that are cached and don't care about disk changes). Its really a static method of BundleFile, added to instance for convenience.
+  Example:
+
+  With `copy()` you can have a converter that simply copies each file in `RC.filez`, eg:
+
+  `['@copyVendorJs', ['vendorJs/**/*.js'], (r)-> r.copy()]`
+
+  or copies them renamed, from `bundle.path` to `build.dstPath` eg
+
+  `['@copyRenamedVendorJs', ['vendorJs/**/*.js'], (r)-> r.copy(null, 'renamed_'+e.dstFilename)]`
+
+  Note: to avoid the appending to `bundle.path` & `build.dstPath`, use the static `resource.constructor.copy()` that has no default arguments or appending. 
+
+  `copy()` makes sure that **no redundant copies are made**: when the destination file exists, it checks nodejs's `fs.stat` `'mtime'`, `'size'` and copies over only if either is changed, and skips if they are the same. It returns `true` if a copy was made, `false' if it was skipped.
+
+* `requireUncached('name')` : a utility wrapper to nodejs `require('name')`, that makes sure the cached module (and its dependencies) is cleared before loading it.
+ 
+  Its useful if you want to load a fileResource (that changed on disk) as a nodejs module (nodejs modules are cached and don't reload when file on disk changes).
+  The instance method is a wrapper to the BundleFile.requireUncached() static method, added as instance method for convenience **with `resource.srcRealpath` as the default value** of the `name` argument.
+
+  Example: see 'teacup' at [Extra Resource Converters](#Extra-Resource-Converters)
 
 There are also some other methods that are used *internally only*, like `refresh()` & `reset()` - don't use them!
 
 _____
-#### FileResource extends BundleFile
+### FileResource extends BundleFile
 
-Represents an external file, whose `source` contents we know nothing of: we dont read it upon refresh() or base our 'hasChanged' decision on its source.
+ResourceConverters that mark files as `FileResource` have a name flag '@'  or `type: 'file'`
 
-The `convert()` is called for each matched instance passing a `FileResource` (or a subclass) instance. `FileResource` instances/converters are useful when we want to `fs.read` their contents our selves or load 'em as modules, copy 'em, spawn external programs etc, but their `source` contents are not really useful or we simply want to save time from double-reading. As an example consider 'teacup' in [Extra Resource Converters](#Extra-Resource-Converters).
+A `FileResource` represents an external file, whose `source` contents we know nothing of: we dont read it upon refresh() or base our 'hasChanged' decision on its source.
 
-If `convert()` returns a String, it is stored as @converted on the instance and it is saved at `@dstFilename` at each build cycle.
+The `convert()` is called for each matched file, passing a `FileResource` (or a subclass) instance. `FileResource` instances are useful when their corresponding file `source` contents are not useful, or we simply want to save time from double-reading them. For instance we might want to :
 
-**Paradoxically**, FR has a `read: (filepath=@srcFilepath)->` function that reads and returns the `utf-8` contents of the file; you can use on demand from within `convert()`.
+ * `fs.read` their contents our selves 
+ 
+ * require them as modules (perhaps with `requireUncached()`) and execute their code to get some result.
+ 
+ * spawn external programs to convert them, copy 'em, etc
 
-**Watching FR changes** : (When watching suggests the underlying file has changed) a `FileResource` instance is considered as changed, only when `fs.stats`'s `size` & `mtime` have changed, just like BundleFile. Otherwise RCs `convert()` is not called at all.
+In all cases the call is synchronous.
 
+Example: consider 'teacup' in [Extra Resource Converters](#Extra-Resource-Converters): each time the underlying FileResource changes, it loads it as a nodejs module (which returns a teacup function/template) and them renders it to HTML via the 'teacup' module.
+
+If `convert()` returns a String, it is stored as `converted` on the instance and it is saved at `dstFilename` at each build cycle.
+
+#### Watching FileResource changes
+
+When watching suggests the underlying file has changed, a `FileResource` instance is considered as changed, only when `fs.stats`'s `size` & `mtime` have changed, functionality inherited by `BundleFile`. The contents are NOT checked on each refresh(). 
+
+#### FileResource Methods
+
+Paradoxically, a *FileResource* instance has instance methods to `read()` and `save()`:
+
+* `read()` : a `function(filename, options)` that reads and returns contents of the source file. It takes two **optional arguments**:
+
+ * `filename`, which is appended to `bundle.path`. It defaults to `resource.srcFilename`.
+
+ * `options` hash, passed as is to [`fs.readFileSync`](http://nodejs.org/api/fs.html#fs_fs_readfilesync_filename_options), with `utf8` as the default `encoding`.
+
+ You can use `read()` on demand from within `convert()`, for example:  
+ ```
+    convert: function(fileResource){ return 'Banner' + fileResource.read()}
+ ```
+
+ Note: Use the static `resource.constructor.read()` method to skip default `filename` & `bundle.path` appending.
+
+* `save()`: a `function(filename, content, options)` that saves the contents to the destination file. It takes **three optional arguments**: 
+* 
+ * `filename`, appended to `build.dstPath` and defaults to `resource.dstFilename`
+
+ * `content`, the (String) contents to be saved, defaults to `resource.converted`
+
+ *  `options` hash which is passed to [`fs.writeFileSync`](http://nodejs.org/api/fs.html#fs_fs_writefilesync_filename_data_options) with 'utf8' as default encoding.
+ 
+ Use the static `resource.constructor.save()` that has no `dstPath` appending and default values (only 'utf8' is default)
 _____
-#### TextResource extends FileResource
+### TextResource extends FileResource
 
-A subclass of FileResource, it represents any *textual/utf-8* **Resource**, (eg a `.less` file). The only difference is that it calls `read` each time it refreshes and stores the result as `@source` (and initial value of `@converted`) and then it takes @source into account for watching.
+A subclass of [FileResource](#FileResource-extends-BundleFile), it represents any *textual/utf-8* **Resource**, (eg a `.coffee` file). The only difference is that it calls `read()` each time it refreshes and stores it as `resource.source` (and the initial value of `resource.converted`) and then it takes `resource.source` into account for watching.
 
-**Watching TR changes** : a `TextResource` instance is considered as changed, if parent says so (`fs.stats`'s `size` & `mtime`), but also if the source (eg the .coffee contents) has changed. This is to prevent processing/converting files that the editor has saved/changed, but no real changes occurred.
+#### Watching TR changes
 
+A `TextResource` instance is considered as changed, if parent TextResource/BundleFile says so (`fs.stats`'s `size` & `mtime`), and if they do, it checks if `read()`-ing source (eg the .coffee contents) has changed. 
+
+This is to **prevent a lengthy processing/converting of files** that the editor has saved/changed/touched, but no real content change has occurred.
 _____
-#### Module extends TextResource 
+### Module extends TextResource 
 
 A **Module** is **javascript code** with node/commonjs `require()` or AMD style `define()`/`require()` dependencies.
 
-Each Module instance is converted just like a **TextResource**, but its dependencies come into play and it adjusts its *module info* at each refresh. Ultimately it is converted through the chosen [`build.template`](MasterDefaultsConfig.coffee#build.template).
+Each Module instance is converted just like a **TextResource**, but its javascript source and dependencies come into play: 
 
-**Watching Module changes** : a `Module` instance is considered as changed (hence its module info adjusting), if parent says so (`fs.stats` & @source), but also if the *Javascript source* has changed. This is i.e to prevent processing a module whose coffeescript source changed eg whitespaces, but its javascript compiled code remained the same.
+* Its javascript source is parsed to [Mozilla Parser AST] (https://developer.mozilla.org/en/SpiderMonkey/Parser_API) via the excellent [esprima parser](http://esprima.org/).
 
+* Its **module/dependencies info is extracted & adjusted** at each refresh (with real javascript source changes). Ultimately its dependencies are analysed, adjusted and finally the module gets converted through the chosen [`build.template`](MasterDefaultsConfig.coffee#build.template).
 
-### Flags & Name Flags 
-___
-#### isTerminal - "|"
+#### Watching Module changes
 
-A converter can be `isTerminal:false` (the default) or `isTerminal:true`.
+A `Module` instance is considered as changed (hence its module info adjusting), if parent says so (`fs.stats` & @source), but also if the resulting *Javascript source* has changed. This is for example to prevent processing a module whose coffeescript source has changed, but its javascript compiled code remained the same (eg changing coffeescript whitespaces).
 
-uRequire uses each matching converter in turn during each build, converting from one format to the next, using the @converted and @dstFilename as the input to the next converter. All that until the first `isTerminal:true` converter is encountered, where the conversion process for this resource instance stops.
+## Manipulating Modules
 
-You can denote an RC as `isTerminal:true` in the {} format or with name flag `'|'`.
-___
-#### isAfterTemplate - "!"
+The special [`isBeforeTemplate` flag of ResourceConverters](#isbeforetemplate) allows advanced manipulation of Modules: when this flag is true on an RC, **the ResourceConverter runs (only) just before the template is applied**, but after having AST parsed the javascript code and extracted/adjusted the module's dependencies information. 
 
-A converter with `isAfterTemplate:true` (refers only to "Module" instances) will run after the module is converted through its template (eg 'UMD'). By default `isAfterTemplate:false`. Use the `'!'` name flag to denote `isAfterTemplate:true`.
-___
-#### isMatchSrcFilename - "~"
+Hence, the `convert()` RC method is passed a Module instance with **fully extracted & adjusted dependencies information, with a parsed AST tree and with facilities to manipulate it at a very high level**, far more flexible than simple textual manipulation/conversion.
 
-By default (`isMatchSrcFilename:false`) filename matching of `filez` uses the instance `dstFilename`, which is set by the last `convFilename()` that run on the instance (initially its set to srcFilename). Use "~" name flag or (`isMatchSrcFilename:true`) if you want to match `filez` against the original source filename (eg. `'**/myfile.coffee'` instead of `'**/myfile.js'`). The sane default allows the creation of RCs that are agnostic of how the source files came about, whether they are actual matched files on disk or part of the in-memory conversion pipeline.
-___
-#### Flag updating notes
+*Note: for [`isBeforeTemplate` RCs](#isbeforetemplate), the **return value of `convert()` is ignored** - the template uses only AST and dependencies to produce its @converted string at the next step (template rendering). Use the [Module Members](#Module-Members) to affect the resulted `module.converted`.*
 
-Note: when you change `name`, `type` and `convFilename` of an RC, the properties are correctly updated (flags are set etc). The name searching can also carry flags, which are applied on the found RC, for example `"#coco"` will find 'coco' RC and apply the `'#'` flag to it (`type:"TextResource"), before stripping it.
-___
+### Module Members 
+
+The following member properties/methods manipulate a Module instance:
+
+#### Inject any string before & after body
+`beforeBody` : Any String that is concatenated just before the original 'body' on the template rendering, for example:
+```
+[ '+inject:VERSION', ['uberscore.js'], 
+  function(modyle){modyle.beforeBody = "var VERSION='" + version + "';"}
+]
+```            
+
+Module 'uberscore.js' will get this string injected before its body, **but inside the module**.
+
+`afterBody` : A String concatenated after the original body, just like `beforeBody`.
+
+### Manipulate/replace AST code
+
+`replaceCode(matchCode, replCode)`: A function that replaces (or removes) a code statement/expression that matches a code 'skeleton'. It takes two arguments:
+
+ * `matchCode` : (mandatory) the statement/expression to match in the AST body - it can be either: 
+
+  * a **String**, which MUST BE a **single parseable Javascript statement/expression** (it gets converted to AST, getting the first body node). For example:
+ ```
+    'if (l.deb()){}'
+ ``` 
+ will match all code like :
+ ```
+    if (l.deb(someParam, anotherParam)){
+        statement1;
+        statement2;
+        ...
+    } // no else or it wont match
+ ```
+
+  * or an **AST 'skeleton'** object (in [Mozzila Parser AST](https://developer.mozilla.org/en/SpiderMonkey/Parser_API)) like:
+ ```coffeescript
+ {
+    type: 'IfStatement'
+    test: 
+        type: 'CallExpression'
+        callee:
+            type: 'MemberExpression'
+            object: type: 'Identifier', name: 'l'
+            property: type: 'Identifier', name: 'deb' 
+ }
+ ```
+that matches an `if (l.deb())...` with or without an else part.
+
+In both cases, the resulting AST 'skeleton' node will be compared against each traversed AST node in module's body, **matching only its existing object keys / array items and their values with the traversed node** - for example `{type: 'IfStatement'}` matches all nodes that have this key/value irrespective of all others.
+  
+ * `replCode`: (optional) the replacement code, taking the place of each node that matched `matchCode`. It can be either:
+
+  * **undefined**, in which case each matched code node is removed from the AST tree (or replaced with an `EmptyStatement` if its not in a block).
+
+  * A **String**, again of a single parsable javascript statement/expression.
+
+  * a valid **AST fragment**, which should `escodegen.generate` to javascript
+
+  * a **`function(matchingAstNode){return node}`** which again returns either undefined/null, a String with valid javascript or a generatable AST fragement.
+
+For example :
+```
+resources: [
+  ...
+  [
+    '+remove:debug/deb', [/./]                              
+    function(modyle){ modyle.replaceCode('if (l.deb()){}');}                      
+  ]
+  ...  
+]
+```
+will remove all code that matches the `'if (l.deb()){}'` skeleton.
+
+#### Inject / replace dependencies
+
+* `replaceDeps(oldDep, newDep)`: a method that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of the module. Its taking two arguments:
+
+ * `oldDep`: the dependency to find and replace, in [bundleRelative format](#bundlerelative-vs-filerelative-paths), eg `'models/Person'` or `'underscore'`
+
+ * `newDep`: the dependency to replace with, again in [bundleRelative](#bundlerelative-vs-filerelative-paths) format, eg `'mockModels/PersonMock'` or `'lodash'`
+    If newDep is ommited (i.e undefined), the **dependency is removed** from the module, along with its corresponding parameter (if any). Note its not removed from the actual module's body, i.e if it exists as a `require('dep')`).
+
+ In any case, the dependency is matched considering the module's location within the bundle.
+
+ example: `m.replaceDep('models/Person', 'mockModels/PersonMock')`
+
+* `injectDeps(depVars)`: a method that injects one (or more) dependencies, along with one or more variables to bind with them on the module. Its taking only one argument, with the type of [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars).
+
+For example 
+```
+  module.injectDeps({ 'lodash':'_', 'models/Person':['persons', 'personsModel']})
+```  
+
+The deps are (the keys of the object) are always given in [bundleRelative](#bundlerelative-vs-filerelative-paths) format.
+
+ `injectDeps` is used internally to inject [`dependencies.exports.bundle`](MasterDefaultsConfig.coffee#bundle.dependencies.exports.bundle) - on templates other that `'combined'` that need it. 
+
+  In general it makes sure that : 
+
+ * not two same-named parameters are injected - the 'late arrivals' bindings are simply ignored (with a warning). So if a Module already has a a parameter `'_'` and you try to inject `'lodash':'_'`, it wont be injected at all.
+
+ * Not injecting a self-dependency. If you are at module 'agreements/isAgree', trying to inject dependency 'agreements/isAgree' will be ignored (without a warning, only a debug message).
+
+ * For deps without a variable binding, eg `mod.injectDep({'models/Person':[]}):`, the variable bindings are inferred from the bundle (other modules that `myBindinedDepVar = require('dep')` or `define(['dep'], function(myBindinedDepVar){})` or [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars) etc
+
+ Note: uREquire doesn't enforce that the injected dependency is valid, for example whether it exists in the bundle.
 
 # Default Resource Converters
 
-The following code [(that is actually part of uRequire's code)](#Literate-Coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module' (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
+The following code [(that is actually part of uRequire's code)](#Literate-Coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module'` (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
 
     defaultResourceConverters = [
 
@@ -232,20 +457,20 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
 
           descr: "Dummy js converter, does nothing much but marking `.js` files as `Module`s."
 
-          filez: [                        # type is like `bundle.filez`, defines matching files, matched, marked and converted with this converter
-            '**/*.js'                     # minimatch string (ala grunt's 'file' expand or node-glob), with exclusions as '!**/*temp.*'
-                                          # RegExps work as well - use [..., `'!', /myRegExp/`, ...] to denote exclusion
+          filez: [                        # type is `bundle.filez`, matches files RC is attached to
+            '**/*.js'                     # minimatch string, with exclusions as '!**/*temp.*'
+                                          # RegExps work as well, with[.., `'!', /myRegExp/`] for exclusions
             /.*\.(javascript)$/
           ]
 
-          convert: -> @source             # javascript needs no compilation - just return source as is
+          convert: (r)-> r.source         # javascript needs no compilation - just return source as is
 
           convFilename: (srcFilename)->   # convert .js | .javascript to .js
             (require '../paths/upath').changeExt srcFilename, 'js'
 
-          type: 'module'                  # not really needed, since we have '$' flag to denote `type: 'module'`
+          type: 'module'                  # not needed, we have '$' flag to denote `type: 'module'`
 
-          # these are defaults, you can ommit them
+          # these are defaults, can be omitted
           isAfterTemplate: false
           isTerminal: false
           isMatchSrcFilename: false
@@ -256,35 +481,38 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
 This RC is using an [] instead of {}. Key names of RC are assumed from their posision in the array:
 
         [
-          '$coffee-script'                                                  # `name` & flags as a String at pos 0
+          '$coffee-script'                                           # `name` & flags as a String at pos 0
 
-                                                                            # `descr` at pos 1
+                                                                     # `descr` at pos 1
           "Coffeescript compiler, using the locally installed 'coffee-script' npm package. Uses `bare:true`."
 
-          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]                  # `filez` [] at pos 2
+          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]           # `filez` [] at pos 2
 
-          do ->                                                             # `convert` Function at pos 3
-            coffee = require 'coffee-script'                                # 'store' `coffee` in closure
-            -> coffee.compile @source, bare:true                            # return the convert fn
+          (r)->                                                      # `convert` Function at pos 3
+             coffee = require 'coffee-script'                        # 'coffee-script' must be in 'node_modules'
+             coffee.compile r.source                                 # return converted source
 
-          (srcFn)->                                                         # `convFilename` Function at pos 4
-            ext = srcFn.replace /.*\.(coffee\.md|litcoffee|coffee)$/, "$1"  # retrieve matched extension, eg 'coffee.md'
-            srcFn.replace (new RegExp ext+'$'), 'js'                        # replace it and return new filename
+          (srcFn)->                                                  # `convFilename` Function at pos 4
+            coffeeExtensions = /.*\.(coffee\.md|litcoffee|coffee)$/  # RexExp for all coffeescript extensions
+            ext = srcFn.replace coffeeExtensions , "$1"              # retrieve matched extension
+            srcFn.replace (new RegExp ext+'$'), 'js'                 # replace it and return new filename
         ]
 
 ### The alternative, even shorter `[]` way
 
         [
-          '$LiveScript'                                                     # `name` at pos 0
-          [ '**/*.ls']                                                      # if pos 1 is Array, then there's *undefined `descr`*
-          ->(require 'LiveScript').compile @source, bare:true               # `convert` functions at pos 2
-          '.js'                                                             # if `convFilename` is String starting with '.',
-        ]                                                                   # it denotes an extension replacement of @dstFilename
-                                                                            # if `~` flag is used, eg `~.js`, ext replacement is applied on @srcFilename
+          '$LiveScript'                                    # `name` at pos 0
+          [ '**/*.ls']                                     # if pos 1 is Array, its `filez` (& undefined `descr`)
+          (r)->(require 'LiveScript').compile r.source     # `convert` Function at pos 2
+          '.js'                                            # if `convFilename` is String starting with '.',
+        ]                                                  # it denotes an extension replacement of `dstFilename`
+                                                           # if `~` flag is used, eg `~.js`, ext replacement is applied on `srcFilename`
 
 ### The shortest way ever, a one-liner converter!
 
-        [ '$coco', [ '**/*.co'], (-> require('coco').compile @source, bare:true), '.js']
+        [ '$iced-coffee-script', [ '**/*.iced'], ((r)-> require('iced-coffee-script').compile r.source), '.js']
+
+        [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.source), '.js']
 
     ]
 
@@ -304,13 +532,17 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
 
       teacup: [
          '@~teacup'
-         'Renders teacup nodejs modules (that export the plain template function), to HTML. FileResource means its source is not read/refreshed.'
+         """
+          Renders teacup as nodejs modules (exporting the template function or a `renderable`), to HTML.
+          FileResource means the file's source is not read/refreshed.
+         """
          ['**/*.teacup']
          do ->
-            require.extensions['.teacup'] = require.extensions['.coffee']     # register extension once
-            -> @requireUncached(@srcRealpath)()                               # return our `convert()` function
-
-         '.html'
+            require.extensions['.teacup'] = require.extensions['.coffee']  # register extension once, to require as a node module
+            (r)->                                                          # our `convert()` function
+              template = r.requireUncached r.srcRealpath                   # Clear nodejs caching with `requireUncached` helper & get the `realpath` of module's location.
+              (require 'teacup').render template                           # just return rendered string - requires `teacup` on demand from your project's 'node_modules'
+         '.html'                                                           # starting with '.' is an extension replacement
       ]
 
 # Finito 

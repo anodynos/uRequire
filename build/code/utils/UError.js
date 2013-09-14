@@ -13,9 +13,7 @@ module.exports = UError = (function(_super) {
       v = props[p];
       this[p] = v;
     }
-    if (this.stack) {
-      this.stack = (new Error()).stack.replace(/\n[^\n]*/, '');
-    }
+    this.stack = (new Error()).stack.replace(/\n[^\n]*/, '');
   }
 
   return UError;

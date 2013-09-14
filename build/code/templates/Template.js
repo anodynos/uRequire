@@ -18,7 +18,7 @@ module.exports = Template = (function() {
         }
       }
       return _results;
-    })()).join(',')) + ") {\n  " + codeBody + "\n})(" + (((function() {
+    })()).join(',')) + ") {\n  " + codeBody + "\n}).call(this" + (paramValuePairs.length >= 1 ? ', ' : '') + (((function() {
       var _i, _len, _results;
       _results = [];
       for (i = _i = 0, _len = paramValuePairs.length; _i < _len; i = ++_i) {

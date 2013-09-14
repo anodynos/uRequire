@@ -17,6 +17,17 @@ for fName, fn of _path when _.isFunction fn
       else
         res
 
+# normalize eveything but the first meaninigfull './'
+upath.normalizeSafe = (path)->
+  path = path.replace /\\/g, '/'
+  if _.startsWith path, './'
+    if _.startsWith path, './..'
+      upath.normalize(path)
+    else
+      './' + upath.normalize(path)
+  else
+    upath.normalize(path)
+
 ## filename related additions
 ###
   @return file + ext, if it doesnt have it
@@ -57,3 +68,8 @@ module.exports = upath
 #console.log upath.addExt 'myfile/addedDotTxt.txt', '.txt'
 
 #console.log upath.addExt 'mymodule.coffee.md', 'coffee.md' # NOT WORKING
+
+#console.log upath.join undefined or '', 'module/location'
+#console.log upath.normalizeSafe './../module/./location'
+#console.log upath.normalizeSafe './module/./location'
+#console.log upath.normalizeSafe '.././module//location'

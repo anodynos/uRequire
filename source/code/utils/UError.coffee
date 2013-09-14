@@ -3,13 +3,16 @@ module.exports =
 class UError extends Error
   constructor: (@message, props)->
     @[p] = v for p, v of props #copy all props to @
-    @stack = (new Error()).stack.replace(/\n[^\n]*/,'') if @stack
+    @stack = (new Error()).stack.replace(/\n[^\n]*/,'') #if @stack
+
+
+#errorFunction = ->
+#  uerr = new UError 'This is an error',
+#    stack:true
+#    name:'MyUError'
+#    nested: new Error 'Some Error'
 #
-#uerr = new UError 'This is an error',
-#  stack:true
-#  name:'MyUError'
-#  nested:new Error 'Some Error'
 #
-#console.log uerr instanceof UError
-#console.log uerr
+#console.log errorFunction()
+
 

@@ -2,8 +2,6 @@
 var Dependency, NR, assert, chai, dirname, expect, fs, moduleNameBR, nr, rjsconf, upath, webRootMap, _,
   __indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
 
-console.log('\nNodeRequirer-test started');
-
 chai = require('chai');
 
 assert = chai.assert;
@@ -18,7 +16,7 @@ upath = require('../code/paths/upath');
 
 NR = require("../code/NodeRequirer");
 
-Dependency = require("../code/Dependency");
+Dependency = require("../code/fileResources/Dependency");
 
 moduleNameBR = 'path/fromBundleRoot/toModuleName.js';
 
@@ -41,18 +39,20 @@ describe("NodeRequirer basics:", function() {
     return expect(nr.getRequireJSConfig()).to.deep.equal(rjsconf);
   });
   it("nodejs require-mock called with correct module path", function() {
-    var modulePath;
-    modulePath = '';
+    var path;
+    path = '';
     nr.nodeRequire = function(m) {
-      return modulePath = m;
+      return path = m;
     };
     nr.require('path/fromBundleRoot/to/anotherModule');
-    return expect(modulePath).to.equal(upath.normalize("" + __dirname + "/path/fromBundleRoot/to/anotherModule"));
+    return expect(path).to.equal(upath.normalize("" + __dirname + "/path/fromBundleRoot/to/anotherModule"));
   });
   return describe("resolves Dependency paths:", function() {
     it("global-looking Dependency", function() {
       var resDep, resolvedDeps, _i, _len, _ref, _results;
-      resolvedDeps = nr.resolvePaths(new Dependency('underscore', moduleNameBR));
+      resolvedDeps = nr.resolvePaths(new Dependency('underscore', {
+        path: moduleNameBR
+      }));
       _ref = ['underscore', upath.normalize("" + __dirname + "/underscore")];
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
@@ -64,13 +64,19 @@ describe("NodeRequirer basics:", function() {
     it("bundleRelative Dependency", function() {
       var depStr;
       depStr = 'some/pathTo/depName';
-      return expect(nr.resolvePaths(new Dependency(depStr, moduleNameBR))).to.deep.equal([upath.normalize("" + __dirname + "/" + depStr)]);
+      return expect(nr.resolvePaths(new Dependency(depStr, {
+        path: moduleNameBR
+      }))).to.deep.equal([upath.normalize("" + __dirname + "/" + depStr)]);
     });
     it("fileRelative Dependency", function() {
-      return expect(nr.resolvePaths(new Dependency('./rel/pathTo/depName', moduleNameBR))).to.deep.equal([upath.normalize("" + __dirname + "/" + (upath.dirname(moduleNameBR)) + "/rel/pathTo/depName")]);
+      return expect(nr.resolvePaths(new Dependency('./rel/pathTo/depName', {
+        path: moduleNameBR
+      }))).to.deep.equal([upath.normalize("" + __dirname + "/" + (upath.dirname(moduleNameBR)) + "/rel/pathTo/depName")]);
     });
     return it("requirejs config {paths:..} Dependency", function() {
-      return expect(nr.resolvePaths(new Dependency('src/depName', moduleNameBR))).to.deep.equal([upath.normalize("" + __dirname + "/../../src/depName")]);
+      return expect(nr.resolvePaths(new Dependency('src/depName', {
+        path: moduleNameBR
+      }))).to.deep.equal([upath.normalize("" + __dirname + "/../../src/depName")]);
     });
   });
 });

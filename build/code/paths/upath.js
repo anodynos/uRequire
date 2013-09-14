@@ -35,6 +35,19 @@ for (fName in _path) {
   }
 }
 
+upath.normalizeSafe = function(path) {
+  path = path.replace(/\\/g, '/');
+  if (_.startsWith(path, './')) {
+    if (_.startsWith(path, './..')) {
+      return upath.normalize(path);
+    } else {
+      return './' + upath.normalize(path);
+    }
+  } else {
+    return upath.normalize(path);
+  }
+};
+
 /*
   @return file + ext, if it doesnt have it
   eg to add .js to output .js file
@@ -60,14 +73,14 @@ upath.changeExt = function(file, ext) {
 
 /*
   Add .ext, ONLY if filename doesn't have an extension (any).
-  Extensions are considered to be up to 4 chars long
+  Extensions are considered to be up to 6 chars long
 */
 
 
 upath.defaultExt = function(file, ext) {
   var oldExt;
   oldExt = upath.extname(file);
-  if (oldExt && (oldExt.length <= 4) && (oldExt.length >= 1)) {
+  if (oldExt && (oldExt.length <= 6) && (oldExt.length >= 1)) {
     return file;
   } else {
     return upath.addExt(file, ext);

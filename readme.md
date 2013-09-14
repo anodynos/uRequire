@@ -1,4 +1,4 @@
-# uRequire v0.5.x
+# uRequire v0.6.0
 
 ### The JavaScript Universal Module Converter
 

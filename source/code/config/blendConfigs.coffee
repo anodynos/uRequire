@@ -6,13 +6,12 @@ l = new _B.Logger 'urequire/blendConfigs'
 
 upath = require '../paths/upath'
 MasterDefaultsConfig = require './MasterDefaultsConfig'
+ResourceConverter = require './ResourceConverter'
 
-### Define the various Blenders used ###
+UError = require '../utils/UError'
 
 arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
 arrayizePusher = new _B.ArrayizePushBlender
-
-ResourceConverter = require './ResourceConverter'
 
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
@@ -21,7 +20,6 @@ ResourceConverter = require './ResourceConverter'
 # NOTE: it simply ignores unknown keys (i.e keys not in MasterDefaultsConfig .build or .bundle)
 #       including 'derive'
 
-#moveKeysBlender = new _B.DeepCloneBlender [
 moveKeysBlender = new _B.Blender [
   {
     order: ['path']
@@ -30,13 +28,13 @@ moveKeysBlender = new _B.Blender [
         bundle: _.keys MasterDefaultsConfig.bundle # eg ['path', 'dependencies', ...]
         build: _.keys MasterDefaultsConfig.build   # eg ['dstPath', 'template', ...]
       })->
-        (prop, src, dst, bl)->
+        (prop, src, dst)->
           for confPart in _.keys partsKeys # partKeys = ['bundle', 'build'] 
             if prop in partsKeys[confPart]
-              _B.setp bl.dstRoot, "/#{confPart}/#{prop}", src[prop], overwrite:true
+              _B.setp @dstRoot, "/#{confPart}/#{prop}", src[prop], overwrite:true
               break
 
-          _B.Blender.SKIP # no assign
+          @SKIP # no assign
 
     # just DeepClone our 'legitimate' parts
     bundle: '|': -> _B.Blender.NEXT
@@ -67,14 +65,14 @@ _.extend renameKeys.$, renameKeys.$.build # copy $.build.* to $.*
 
 depracatedKeysBlender = new _B.DeepDefaultsBlender [
   order:['src']
-  '*': (prop, src, dst, bl)->
-    renameTo = _B.getp renameKeys, bl.path
+  '*': (prop, src, dst)->
+    renameTo = _B.getp renameKeys, @path
     if  _.isString renameTo
-      l.warn "DEPRACATED key '#{_.last bl.path}' found @ config path '#{bl.path.join '.'}' - rename to '#{renameTo}'"
-      _B.setp bl.dstRoot, bl.path.slice(1,-1).join('.')+'.'+renameTo, src[prop], {overwrite:true, separator:'.'}
-      return _B.Blender.SKIP
+      l.warn "DEPRACATED key '#{_.last @path}' found @ config path '#{@path.join '.'}' - rename to '#{renameTo}'"
+      _B.setp @dstRoot, @path.slice(1,-1).join('.')+'.'+renameTo, src[prop], {overwrite:true, separator:'.'}
+      return @SKIP
 
-    return _B.Blender.NEXT
+    @NEXT
 ]
 
 addIgnoreToFilezAsExclude = (cfg)->
@@ -128,7 +126,9 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
           bundle: '|': '*': 'dependenciesBindings'
 
-          #root: NOT IMPLEMENTED
+          root: '|': '*': (prop, src)-> src[prop]
+
+        replace: '|': '*': 'dependenciesBindings' # paradoxically, its compatible albeit a different meaning!
 
         depsVars: '|': '*': 'dependenciesBindings'
 
@@ -151,7 +151,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         # find if proper optimizer, default 'ulgify2''
         String: (prop, src, dst)->
           if not optimizer = (_.find _optimizers, (v)-> v is src[prop])
-            l.err "Unknown optimize '#{src[prop]}' - using 'uglify2' as default"
+            l.er "Unknown optimize '#{src[prop]}' - using 'uglify2' as default"
             _optimizers[0]
           else
             optimizer
@@ -160,7 +160,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         Object: (prop, src, dst)->
           # find a key that's an optimizer, eg 'uglify2'
           if not optimizer = (_.find _optimizers, (v)-> v in _.keys src[prop])
-            l.err "Unknown optimize object", src[prop], " - using 'uglify2' as default"
+            l.er "Unknown optimize object", src[prop], " - using 'uglify2' as default"
             _optimizers[0]
           else 
             dst[optimizer] = src[prop][optimizer] # if optimizer is 'uglify2', copy { uglify2: {...uglify2 options...}} to dst ('ie build')
@@ -213,10 +213,9 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
       dst[prop][dep] = arrayizeUniquePusher.blend dst[prop][dep], depVars
 
     dst[prop]
-
 ]
 
-deepCloneBlender = new _B.DeepCloneBlender
+deepCloneBlender = new _B.DeepCloneBlender #@todo: why deepCloneBlender need this instead of @
 
 templateBlender = new _B.DeepCloneBlender [
   order: ['src']
@@ -232,8 +231,8 @@ templateBlender = new _B.DeepCloneBlender [
   'Object': 'templateSetter'
 
   templateSetter: (prop, src, dst)->
-    dst[prop] = {} if src[prop].name isnt dst[prop]?.name and
-                    not _.isUndefined src[prop].name
+    dst[prop] = {} if (src[prop].name isnt dst[prop]?.name) and
+                    not _.isUndefined(src[prop].name)
     deepCloneBlender.blend dst[prop], src[prop]
 ]
 
@@ -256,7 +255,7 @@ blendConfigs = (configsArray, deriveLoader)->
             return derive
 
         # if its hasnt returned, we're in error
-        l.err """
+        l.er """
           Error loading configuration files:
             derive """, derive, """ is a not a valid filename
             while processing derive array ['#{derive.join "', '"}']"
@@ -288,9 +287,7 @@ _blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
     bundleBuildBlender.blend cfgDest, moveKeysBlender.blend addIgnoreToFilezAsExclude depracatedKeysBlender.blend cfg
   null
 
-module.exports = blendConfigs
-
-# expose blender instances to module.exports/blendConfigs, just for testing
+# expose blender instances to module.exports/blendConfigs, mainly for testing
 _.extend blendConfigs, {
   moveKeysBlender
   depracatedKeysBlender
@@ -298,3 +295,5 @@ _.extend blendConfigs, {
   dependenciesBindingsBlender
   bundleBuildBlender
 }
+
+module.exports = blendConfigs
