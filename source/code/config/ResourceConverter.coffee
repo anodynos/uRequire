@@ -2,10 +2,10 @@ _ = require 'lodash'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/config/ResourceConverter', 0 # config's `build.debugLevel` doesn't work here, cause the config is not read yet!
 
-BundleFile = require '../fileResources/BundleFile'
-FileResource = require '../fileResources/FileResource'
-TextResource = require '../fileResources/TextResource'
-Module = require '../fileResources/Module'
+#BundleFile = require '../fileResources/BundleFile'
+#FileResource = require '../fileResources/FileResource'
+#TextResource = require '../fileResources/TextResource'
+#Module = require '../fileResources/Module'
 
 upath = require '../paths/upath'
 UError = require '../utils/UError'
@@ -20,8 +20,6 @@ UError = require '../utils/UError'
 #   - '_prop  (with a low dash infront) is the actual value holder of 'prop' getter (if different from ' prop')
 
 class ResourceConverter
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
-
   # @param rc - an RC-spec ({}, [] or ->)
   # The constructor performs the following:
   # - retrieves the {} representation (from a perhaps [] or -> representation)
@@ -33,7 +31,7 @@ class ResourceConverter
 #    l.log "Constructing new RC from rcSpec =", rc
     rc = getResourceConverterObject rc # make sure we deal with an {}
 
-    if _B.isObject rc
+    if _B.isHash rc
       @update rc
     else
       return {}
@@ -50,6 +48,7 @@ class ResourceConverter
     @descr or= "No descr for ResourceConverter '#{@name}'"
     @isTerminal ?= false
     @isAfterTemplate ?= false
+    @isBeforeTemplate ?= false
     @isMatchSrcFilename ?= false
 
 #    l.log "Returning new RC '#{@name}' with clazz.name = #{@clazz?.name}"
@@ -62,14 +61,14 @@ class ResourceConverter
     new ResourceConverter rc
 
   # turn name, type & convFilename into getter/setter properties, so they can be updated
-  @property
+  Object.defineProperties @::,
     # setting name strips flags & applies them on instance
     name:
       get: -> @[' name']
       set: (name)->
         # Read & remove the flags in name, setting the proper RC object flags.
         if (not name) or !_.isString(name)
-          l.err uerr = "ResourceConverter `name` should be a unique, non empty String - was '#{name}'"
+          l.er uerr = "ResourceConverter `name` should be a unique, non empty String - was '#{name}'"
           throw new UError uerr
 
         while (flag = name[0]) in nameFlags
@@ -90,7 +89,7 @@ class ResourceConverter
       get: -> @[' type']
       set: (type)->
         if type not in types = ['bundle', 'file', 'text', 'module']
-          l.err uerr = "invalid resourceConverter.type '#{type}' - must be in [#{types.join ','}]"
+          l.er uerr = "invalid resourceConverter.type '#{type}' - must be in [#{types.join ','}]"
           throw new UError uerr
 
         @[' type'] = type # human display value & value holder
@@ -100,10 +99,11 @@ class ResourceConverter
           enumerable: false
           configurable: true
           value: switch type
-            when 'bundle' then BundleFile
-            when 'file' then FileResource
-            when 'text' then TextResource
-            when 'module' then Module
+            #note late loading cause of some circular deps on specs
+            when 'bundle' then require '../fileResources/BundleFile'
+            when 'file' then require '../fileResources/FileResource'
+            when 'text' then require '../fileResources/TextResource'
+            when 'module' then require '../fileResources/Module'
 
     # changes the `convFilename` to a function if a String
     convFilename:
@@ -130,7 +130,7 @@ class ResourceConverter
 
         else # some checks
           if not (_.isFunction(cf) or _.isUndefined(cf))
-            l.err uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined."
+            l.er uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined."
             throw new UError uerr, nested:err
 
         # set and hide value holder
@@ -140,7 +140,7 @@ class ResourceConverter
   ### ResourceConverters Registry functions ###
 
   registry = require('./ResourceConverters').extraResourceConverters
-  @registry: registry #export it
+  @registry = registry #@todo: export safely
 
   #add or update the given RC (formal ResourceConverter or an informal descr)
   #@return The new or Updated ResourceConverter instance
@@ -163,14 +163,14 @@ class ResourceConverter
 
     rcInReg
 
-  # # search by name, returns RC if found, throws exception if not found
-  @search: (searchName)=>
-    if !_.isString searchName
-      throw new UError 'searchName must be a String'
+  # search by String name, returns RC if found, registers otherwise
+  @search: (searchNameOrRC)=>
+    if !_.isString searchNameOrRC
+      return @register searchNameOrRC
 
-    name = searchName
+    name = searchNameOrRC
 
-    # strip nameFlags for searchName's sake
+    # strip nameFlags for searchNameOrRC's sake
     while name[0] in nameFlags then name = name[1..]
 
     # lookup registry with name (without flags)
@@ -178,13 +178,13 @@ class ResourceConverter
 
       if not (rcInReg instanceof ResourceConverter)
         rcInReg = registry[name] = new ResourceConverter rcInReg
-        l.warn "Instantiated a registered, non instance ResourceConverter while searching for '#{searchName}'."
+        #l.warn "Instantiated a registered, non instance ResourceConverter while searching for '#{searchNameOrRC}'."
 
-      # set found RC's 'name' to 'searchName', to apply nameFlags in one go!
-      rcInReg.name = searchName
+      # set found RC's 'name' to 'searchNameOrRC', to apply nameFlags in one go!
+      rcInReg.name = searchNameOrRC
 
     else
-      throw new UError "ResourceConverter not found in registry with name = #{name}, searchName = #{searchName}"
+      throw new UError "ResourceConverter not found in registry with name = #{name}, searchNameOrRC = #{searchNameOrRC}"
 
     rcInReg
 
@@ -211,22 +211,23 @@ class ResourceConverter
 
       rc = {name, descr, filez, convert, convFilename}
 
-    if rc and not _B.isObject(rc) # allow null & undefined
-      l.err uerr = 'Bogus resourceConverter:', rc
+    if rc and not _B.isHash(rc) # allow null & undefined
+      l.er uerr = 'Bogus resourceConverter:', rc
       throw new UError uerr
 
     rc
 
   nameFlagsActions =
-      '&': (rc)-> rc.type = 'bundle'
-      '@': (rc)-> rc.type = 'file'
-      '#': (rc)-> rc.type = 'text'
-      '$': (rc)-> rc.type = 'module'
+    '&': (rc)-> rc.type = 'bundle'
+    '@': (rc)-> rc.type = 'file'
+    '#': (rc)-> rc.type = 'text'
+    '$': (rc)-> rc.type = 'module'
 
-      '~': (rc)-> rc.isMatchSrcFilename = true
-      '|': (rc)-> rc.isTerminal = true
-      '*': (rc)-> rc.isTerminal = false   # default, needed only for 0.4.x strip support
-      '!': (rc)-> rc.isAfterTemplate = true
+    '~': (rc)-> rc.isMatchSrcFilename = true
+    '|': (rc)-> rc.isTerminal = true
+    '*': (rc)-> rc.isTerminal = false   # default, needed only for 0.4.x strip support
+    '+': (rc)-> rc.isBeforeTemplate = true
+    '!': (rc)-> rc.isAfterTemplate = true
 
   nameFlags = _.keys nameFlagsActions
 

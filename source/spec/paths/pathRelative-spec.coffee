@@ -1,15 +1,13 @@
-console.log '\npathRelative-test started'
-
 chai = require 'chai'
 assert = chai.assert
 expect = chai.expect
 
-pathRelative = require "../code/paths/pathRelative"
+pathRelative = require "../../code/paths/pathRelative"
 
 describe "pathRelative(from, to)", ->
 
   it "should work in simple cases", ->
-    from  = 'common\\a\\b'
+    from  = './common\\a\\b'
     to    = 'common\\d\\e'
 
     expect(pathRelative from, to).to.equal "../../d/e"

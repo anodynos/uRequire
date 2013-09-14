@@ -1,238 +1,438 @@
 # externals
 _ = require 'lodash'
 _B = require 'uberscore'
-l = new _B.Logger 'urequire/fileResources/Module'
+l = new _B.Logger 'urequire/fileResources/Module'#  100
 fs = require 'fs'
+
+esprima = require 'esprima'
+escodegen = require 'escodegen'
 
 # uRequire
 upath = require '../paths/upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
-ModuleManipulator = require "../moduleManipulation/ModuleManipulator"
 TextResource = require './TextResource'
-Dependency = require "../Dependency"
+Dependency = require "./Dependency"
 UError = require '../utils/UError'
+
+isLikeCode = (code1, code2)->
+  code1 = esprima.parse(code1).body[0] if _.isString code1
+  code2 = esprima.parse(code2).body[0] if _.isString code2
+  _B.isLike code1, code2
+
+isEqualCode = (code1, code2)->
+  code1 = esprima.parse(code1).body[0] if _.isString code1
+  code2 = esprima.parse(code2).body[0] if _.isString code2
+  _.isEqual code1, code2
 
 # Represents a Javascript nodejs/commonjs or AMD module
 class Module extends TextResource
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p ;null
 
-  @property modulePath: get:-> upath.trimExt @filename  # filename (bundleRelative) without extension eg `models/PersonModel`
+  escodegenOptions:
+    format:
+      indent: style: '  ', base: 1
+      json: false
+      renumber: false
+      hexadecimal: false
+      quotes: 'double'
+      escapeless: true
+      compact: false
+      parentheses: true
+      semicolons: true
+
+  @escodegenOptions: @::escodegenOptions
 
   ###
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
-    & call `@adjustModuleInfo()` if so.
+    & call `@adjust()` if so.
 
     It does not actually convert to any template - the bundle building does that
 
     But the module info needs to provide dependencies information (eg to inject Dependencies etc)
   ###
   refresh: ->
-    if super
+    if not super
+      return false # no change in parent, why should I change ?
+    else
       if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
         @sourceCodeJs = @converted
-        @adjustModuleInfo()
+        @extract()
+        @prepare()
         return @hasChanged = true
       else
         l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
+        return @hasChanged = false
 
-    return @hasChanged = false # only when written
+  reset:->
+    super
+    delete @sourceCodeJs
+    @resetModuleInfo()
 
-  reset:-> super; delete @sourceCodeJs
+  # init / clear stuff & create those on demand
+  resetModuleInfo:->
+    @flags = {}
+#    delete @[dv] for dv in @AST_data
+    @[dv] = [] for dv in @keys_depsAndVarsArrays
+    delete @[dv] for dv in @keys_resolvedDependencies
+    delete @parameters
 
-  ###
-  Extract AMD/module information for this module.
-  Factory bundleRelative deps like `require('path/dep')` are replaced with their fileRelative counterpart
-  Extracted module info augments this instance.
-  ###
-  adjustModuleInfo: ->
-    # reset info holders
-#    @depenenciesTypes = {} # eg `globals:{'lodash':['file1.js', 'file2.js']}, externals:{'../dep':[..]}` etc
-    l.debug "adjustModuleInfo for '#{@srcFilename}'" if l.deb 70
+  # keep a reference to our data, easy to init & export
+  AST_data: [
+    'AST_top', 'AST_body', 'AST_factoryBody'
+    'AST_preDefineIFINodes', 'AST_requireReplacementLiterals'
+  ]
 
-    @moduleManipulator = new ModuleManipulator @sourceCodeJs, beautify:true
-    @moduleInfo = @moduleManipulator.extractModuleInfo() # keeping original @moduleInfo
+  keys_depsAndVarsArrays: [
+    'ext_defineArrayDeps',  'ext_defineFactoryParams'
+    'ext_requireDeps',      'ext_requireVars'
+    'ext_asyncRequireDeps', 'ext_asyncFactoryParams'
+  ]
 
-    if _.isEmpty @moduleInfo
-      l.warn "Not AMD/nodejs module '#{@filename}', copying as-is."
-    else if @moduleInfo.moduleType is 'UMD'
-        l.warn "Already UMD module '#{@filename}', copying as-is."
-    else if @moduleInfo.untrustedArrayDeps
-        l.err "Module '#{@filename}', has untrusted deps #{d for d in @moduleInfo.untrustedArrayDeps}: copying as-is."
-    else
-      @isConvertible = true
-      @moduleInfo.parameters or= []        #default
-      @moduleInfo.arrayDeps or= [] #default
+  keys_resolvedDependencies: [
+    'defineArrayDeps'
+    'nodeDeps'
+  ]
 
-      if _.isEmpty @moduleInfo.arrayDeps
-        @moduleInfo.parameters = []
+  # info for debuging / testing (empties are eliminated)
+  info: ->
+    info = {}
+    for p in _.flatten [
+      @keys_depsAndVarsArrays,
+      @keys_resolvedDependencies, [
+        'flags', 'name', 'kind', 'path'
+        'factoryBody', 'preDefineIFIBody', 'parameters']
+      ]
+      if !_.isEmpty @[p]
+        if _.isArray @[p]
+          info[p] = _.map @[p], (x)=>
+            if p in @keys_resolvedDependencies
+              x.name()      # return fileRelative, with plugin & ext if exists
+            else
+              x.toString()  # return as is
+        else
+          info[p] = @[p]
+    info
+
+  # Read the AST of defineArrayDeps & factory params and add them to the corresponding arrays
+  readArrayDepsAndVars: (arrayAst, arrayDeps, paramsAst, factoryParams)->
+    for astArrayDep, idx in arrayAst.elements
+      param = paramsAst[idx]?.name
+
+      if _B.isLike {type: 'Literal'}, astArrayDep
+        arrayDep = new Dependency astArrayDep.value, @             # astArrayDep is { type: 'Literal', value: 'someString' }
+        (@AST_requireReplacementLiterals or= []).push astArrayDep  # store it for quick replacements later
       else
-        # remove *reduntant parameters* (those in excess of the arrayDependencies):
-        # useless & also requireJS doesn't like them if require is 1st param!
-        @moduleInfo.parameters = @moduleInfo.parameters[0..@moduleInfo.arrayDeps.length-1]
+        arrayDep = new Dependency (@toCode astArrayDep), @, true # untrusted = true
 
-      # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require'
-      for pd in [@moduleInfo.parameters, @moduleInfo.arrayDeps]
-        pd.shift() if pd[0] is 'require'
+      arrayDeps.push arrayDep if arrayDep
+      factoryParams.push param if param
 
-      # Go throught all original deps & resolve their fileRelative counterpart.
-      [ @arrayDependencies  # Store resolvedDeps as res'DepType'
-        @requireDependencies
-        @asyncDependencies ] = for strDepsArray in [ # @todo:2 why do we need to replaceAsynchRequires ?
-           @moduleInfo.arrayDeps
-           @moduleInfo.requireDeps
-           @moduleInfo.asyncDeps
-          ]
-            for strDep in (strDepsArray || [])
-              new Dependency strDep, @filename, @bundle
+    # add excessive params as they are
+    for excParamIdx in [arrayAst.elements.length..paramsAst.length-1] by 1
+      factoryParams.push paramsAst[excParamIdx]?.name
+    @
 
-      # add remaining dependencies (eg 'untrustedRequireDeps') to DependenciesReport
-      if @bundle.reporter
-        for repData in [ (_.pick @moduleInfo, @bundle.reporter.reportedDepTypes) ]
-          @bundle.reporter.addReportData repData, @modulePath
+  # called at each AST node as the AST tree is traversed
+  requireFinder: (prop, src, dst, blender)=> # bind to this instance
+    # do we have a `require()` CallExpression nested somewhere ?
+    if _B.isLike {type:"CallExpression", callee: {type: "Identifier", name: "require"}}, src[prop]
 
-      # setup some 'templateInfo' information
-      #clone these cause we're injecting deps in them & keep the original for reference
-      @parameters = _.clone @moduleInfo.parameters
-      @nodeDependencies = _.clone @arrayDependencies
+      if _B.isLike {arguments: [type: 'Literal']}, src[prop] # require('aStringLiteral')
+        requireDep = new Dependency src[prop].arguments[0].value, @
+        # store literal of `require()`s needing replacement
+        (@AST_requireReplacementLiterals or= []).push src[prop].arguments[0]
 
-      {@moduleName, @moduleType, @modulePath, @flags} = @moduleInfo
+      else # require( non literal expression ) #@todo: warn for wrong signature
+        #  signature of async `require([dep1, dep2], function(dep1, dep2){...})`
+        if _B.isLike [{type: 'ArrayExpression'}, {type: 'FunctionExpression'}], src[prop].arguments
+          args = src[prop].arguments
+          @readArrayDepsAndVars args[0],        (@ext_asyncRequireDeps or= []),    # async require deps array, at pos 0
+                                args[1].params, (@ext_asyncFactoryParams or= [])  # async factory function, at pos 1
 
-      @flags.rootExports = _B.arrayize @flags.rootExports
+        else
+          requireDep = new Dependency (@toCode src[prop].arguments[0]), @, true
 
-      null
+      # store the assigned or declared requireVar
+      if _B.isLike({type: 'AssignmentExpression', left: type:'Identifier'}, src) or
+         _B.isLike({type: 'VariableDeclarator', id: type: 'Identifier'}, src)
 
-  ###
-  Actually converts the module to the target @build options.
-  ###
-  convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
-    if @isConvertible
-      l.debug("Preparing conversion of '#{@modulePath}' with template '#{@build.template.name}'") if l.deb 80
+        requireVar =
+          if _B.isLike type: 'AssignmentExpression', src
+            src.left.name
+          else # assigned as a declaration
+            src.id.name
 
-      # inject exports.bundle Dependencies information to arrayDependencies, nodeDependencies & parameters
-      if not _.isEmpty (bundleExports = @bundle?.dependencies?.exports?.bundle)
-        l.debug("#{@modulePath}: injecting dependencies \n", @bundle.dependencies.exports.bundle) if l.deb 80
+        # warn if `require('string literal')` signature is wrong
+        if src[prop].arguments.length > 1  #@todo: improve
+          l.warn """Wrong require() signature in #{@toCode src[prop]}
+                    Use the proper AMD `require([dep1, dep2], function(dep1, dep2){...})` for the asnychronous AMD require."""
 
-        for depName, depsVars of bundleExports
-          if _.isEmpty depsVars
-            # attempt to read from bundle & store found depsVars at @bundle.dependencies.exports.bundle
-            depsVars = bundleExports[depName] = @bundle.getDepsVars( (dep)->dep.depName is depName)[depName]
+      # keep dep & var together - insert at the index of last var
+      # push deps without a var to the end
+      if requireDep
+        if requireVar
+          (@ext_requireVars or= []).push requireVar
+          (@ext_requireDeps or= []).splice @ext_requireVars.length-1, 0, requireDep
+        else
+          (@ext_requireDeps or= []).push requireDep
 
-            l.debug("""#{@modulePath}: dependency '#{depName}' had no corresponding parameters/variable names to bind with.
-                       An attempt to infer depsVars from bundle: """, depsVars) if l.deb 40
+    null
 
-          if _.isEmpty depsVars # still empty, throw error. #todo: bail out on globals with no vars ??
-            l.err uerr = """
-              No variable names can be identified for `dependencies: exports: bundle` dependency '#{depName}'.
+  extract: ->
+    l.debug "@extract for '#{@srcFilename}'" if l.deb 70
+    @resetModuleInfo()
+    try
+      @AST_top = esprima.parse @sourceCodeJs #, {comment:true, range:true}
+    catch err
+      throw new UError "*esprima.parse* error while parsing top Module's javascript.", nested:err
 
-              These variable names are used to :
-                - inject the dependency into each module
-                - grab the dependency from the global object, when running as <script>.
+    # retrieve bare body, i.e without coffeescript IFI (function(){..body..}).call(this);
+    if isLikeCode('(function(){}).call()', @AST_top.body[0]) or
+       isLikeCode('(function(){}).apply()', @AST_top.body[0])
+      @AST_body = @AST_top.body[0].expression.callee.object.body.body
+      @AST_preDefineIFINodes = []   # store all nodes preceding IFIied define()
+    else
+      if isLikeCode '(function(){})()', @AST_top.body[0]
+        @AST_body = @AST_top.body[0].expression.callee.body.body
+        @AST_preDefineIFINodes = []   # store all nodes preceding IFIied define()
+      else
+        @AST_body = @AST_top.body
 
-              Remedy:
+    # we now have our @AST_body, with no IFI
+    defines = [] # should contain max one define()
+    for bodyNode, idx in @AST_body
+      # look for a) single define call b) flags
+      # store preDefineIFINodes, but exclude flags and amdefine :-)
+      if bodyNode.expression and isLikeCode 'define()', bodyNode
+        defines.push bodyNode.expression
+        if defines.length > 1
+          throw new UError "Each AMD file shoule have one (top-level or IFI) define call - found #{defines.length} `define` calls"
+      else
+        # grab flags - dont add to @AST_preDefineIFINodes
+        if isLikeCode '({urequire:{}})', bodyNode
+          @flags = (eval @toCode bodyNode).urequire
+        else
+          # omit 'amdefine' from @AST_preDefineIFINodes
+          if not (isLikeCode('var define;', bodyNode)  or
+             isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
+             isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
+             not isLikeCode(';', bodyNode) and
+             (defines.length is 0) and @AST_preDefineIFINodes # if no define found yet & were in IFI
+               @AST_preDefineIFINodes.push bodyNode
 
-              You should add it at uRequireConfig 'bundle.dependencies.exports.bundle' as a
-                ```
-                  dependencies: exports: bundle: {
-                    '#{depName}': 'VARIABLE(S)_IT_BINDS_WITH',
-                    ...
-                    jquery: ['$', 'jQuery'],
-                    backbone: ['Backbone']
-                  }
-                ```
-              instead of the simpler
-                ```
-                  dependencies: exports: bundle: [ '#{depName}', 'jquery', 'backbone' ]
-                ```
+    # AMD module
+    if defines.length is 1
+      define = defines[0]
+      args = define.arguments
 
-              Alternativelly, pick one medicine :
-                - define at least one module that has this dependency + variable binding, using AMD instead of commonJs format, and uRequire will find it!
-                - declare it in the above format, but in `bundle.dependencies.depsVars` and uRequre will pick it from there!
-                - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
-            """
-            throw new UError uerr
-          else
-            # @todo: (5 3 4) Make sure arrays are at the same index,
-            # and adjust them so deps & params correspond to each other!
-            if (lenDiff = @arrayDependencies.length - @parameters.length) > 0
-              @parameters.push "__dummyParam#{paramIndex}" for paramIndex in [1..lenDiff]
+      AMDSignature = ['Literal', 'ArrayExpression', 'FunctionExpression']
+      for i in [0..args.length-1]
+        if args[i].type isnt AMDSignature[i+(3-args.length)]
+          throw new UError "Invalid AMD define() signature with #{args.length} args: got a '#{args[i].type}' as arg #{i}, expected a '#{AMDSignature[i+(3-args.length)]}'."
 
-            for varName in depsVars # add for all corresponding vars
-              if not (varName in @parameters)
-                d = new Dependency depName, @filename, @bundle #its cheap!
-                @arrayDependencies.push d
-                @nodeDependencies.push d
-                @parameters.push varName
-                l.debug("#{@modulePath}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 99
-              else
-                l.debug("#{@modulePath}: Not injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") if l.deb 90
+      @kind = 'AMD'
+      @name = args[0].value if args.length is 3
+      if args.length >=2
+        @readArrayDepsAndVars args[args.length-2],        @ext_defineArrayDeps,     # deps array : either at pos 0 or 1, followed by factory function
+                              args[args.length-1].params, @ext_defineFactoryParams  # factory function, always last argument
 
-      # @todo:3 also add rootExports ?
+      else # just 1 factory arg - pluck name
+        @ext_defineFactoryParams = _.map args[args.length-1].params, 'name'
 
-      # Add all `require('dep')` calls
-      # Execution stucks on require('dep') if its not loaded (i.e not present in arrayDeps).
-      # see https://github.com/jrburke/requirejs/issues/467
-      #
-      # So load ALL require('dep') fileRelative deps have to be added to the arrayDepsendencies on AMD.
-      #
-      # Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
-      # (# RequireJs disables runtime scan if even one dep exists in []).
-      #
-      # We allow them only if `--scanAllow` or if we have a `rootExports`
-      if not (_.isEmpty(@arrayDependencies) and @build?.scanAllow and not @flags.rootExports)
-        for reqDep in @requireDependencies
-          # dont add to arrayDependencies, if node only
-          if reqDep.pluginName isnt 'node' and # 'node' is a fake plugin signaling nodejs-only executing modules.
-            (reqDep.name(plugin:false) not in @bundle.dependencies.node) and
-            not (_.any @arrayDependencies, (dep)->dep.isEqual reqDep) # and not already there
-              @arrayDependencies.push reqDep
-              @nodeDependencies.push reqDep if @build?.allNodeRequires
+      @AST_factoryBody = args[args.length-1].body
+    else
+      @kind = 'nodejs'
 
-      @webRootMap = @bundle.webRootMap || '.'
-      @arrayDeps = (d.name() for d in @arrayDependencies)
-      @nodeDeps = (d.name() for d in @nodeDependencies)
+      @AST_factoryBody =
+        if _.isEmpty @AST_preDefineIFINodes
+          @AST_body
+        else
+          @AST_preDefineIFINodes #use instead of @AST_body, as it ommits flags
 
-      # Now we have all our Dependenecies & bundle properly initialized
+      delete @AST_preDefineIFINodes
 
-      # populate requireReplacements (what goes into 'require()' calls),
-      # with fileRelative paths that work everywhere & remove 'node' fake pluging
-      requireReplacements = {}
-      for dep in _.flatten [ @arrayDependencies, @requireDependencies, @asyncDependencies ]
-        requireReplacements[dep.depString] =
-          if dep.pluginName is 'node' # remove fake plugin 'node'
-            dep.name(plugin:false)
-          else
-            dep.name()
+    _B.traverse @AST_factoryBody, @requireFinder # store info from `require()` calls
 
-        # Report each Dependency (if interesting) eg. infrom us "Bundle-looking dependencies not found in bundle"
-        if @bundle.reporter
-          @bundle.reporter.addReportData _B.okv({}, # build a `{'global':'lodash':['_']}`
-            dep.type, [dep.name()]
-          ), @modulePath
+    l.debug "'#{@srcFilename}' extracted module .info():\n", _.omit @info(), ['factoryBody', 'preDefineIFIBody'] if l.deb 90
+    @
 
-      # replace 'require()' calls using requireReplacements
-      @factoryBody = @moduleManipulator.getFactoryWithReplacedRequires requireReplacements
+  # leave basic extracted as is, but create the Dependency arrays actually used on template
+  prepare: ->
+    l.debug "@prepare for '#{@srcFilename}'\n" if l.deb 70
 
-      {@noRootExports} = @build
-      # `this` uModule, stands also for templateInfo :-)
-      @moduleTemplate = new ModuleGeneratorTemplates @ #todo: (1 3 1) retain the same @moduleTemplate {} (we need to refresh headers etc in template)
+    # Store @parameters removing *reduntant* ones (those in excess of @ext_defineArrayDeps):
+    # RequireJS doesn't like them if require is 1st param!
+    @parameters = @ext_defineFactoryParams[0..@ext_defineArrayDeps.length-1]
 
-      l.verbose "Converting '#{@modulePath}' with template = '#{@build.template.name}'"
-      l.debug "module info = \n", _.pick @, [
-          'moduleName', 'moduleType', 'modulePath', 'arrayDeps', 'nodeDeps',
-          'parameters', 'webRootMap', 'flags'] if l.deb 80
+    # add dummy params for deps without corresponding params
+#    if (lenDiff = @ext_defineArrayDeps.length - @parameters.length) > 0
+#      @parameters.push "__dummyParam#{pi}__" for pi in [1..lenDiff]
 
-      @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+    # Our final' defineArrayDeps (& @nodeDeps) will eventually have -in this order-:
+    #   - original ext_defineArrayDeps, each instanciated as a Dependency
+    #   - all dependencies.exports.bundle, if template is not 'combined'
+    #   - module injected dependencies
+    #   - Add all deps in `require('dep')`, from @module.ext_requireDeps are added
+    # @see adjust
+    @defineArrayDeps = _.clone @ext_defineArrayDeps
 
-      delete @noRootExports
+    # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require' as dep & arg
+    # @todo: check template and with module, exports
+    if ar1 = (@parameters[0] is 'require') | ar2 = (@defineArrayDeps[0]?.isEqual? 'require')
+      if ar1 and (ar2 or @defineArrayDeps[0] is undefined)
+        @parameters.shift()
+        @defineArrayDeps.shift()
+      else
+        throw new UError("Module '#{@path}':" +
+          if ar1 then "1st define factory argument is 'require', but 1st dependency is '#{@defineArrayDeps[0]}'"
+          else "1st dependency is 'require', but 1st define factory argument is '#{@parameters[0]}'")
+
+    @nodeDeps = _.clone @defineArrayDeps # shallow clone
     @
 
   ###
+  Produce final template information:
+
+  - bundleRelative deps like `require('path/dep')` in factory, are replaced with their fileRelative counterpart
+
+  - injecting dependencies?.exports?.bundle
+
+  - add @ext_requireDeps to @defineArrayDeps (& perhaps @nodeDeps)
+
+  @todo: decouple from build, use calculated (cached) properties, populated at convertWithTemplate(@build) step
+
+  ###
+  adjust: (@build)->
+    l.debug "\n@adjust for '#{@srcFilename}'" if l.deb 70
+
+    for newDep, oldDeps of (@bundle?.dependencies?.replace or {})
+      @replaceDep oldDep, newDep for oldDep in oldDeps
+
+    # replace each bundleRelative dep in require('string literal') calls
+    # with the fileRelative path -that work everywhere- and remove 'node' fake pluging
+    for dep in _.flatten [ @defineArrayDeps, @ext_requireDeps, @ext_asyncRequireDeps ] when dep and not dep.untrusted
+      @replaceDep dep, dep # replaces all `bundleRelative` deps with their `fileRelative` in AST
+
+    if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
+      @injectDeps @bundle?.dependencies?.exports?.bundle
+
+    # add exports.root, i.e {'models/PersonModel': ['persons', 'personsModel']}`
+    # is like having a `{rootExports: ['persons', 'personsModel'], noConflict:true}` in 'models/PersonModel' module.
+    @flags.rootExports = _B.arrayize @flags.rootExports if @flags.rootExports
+    if rootExports = @bundle?.dependencies?.exports?.root?[@path]
+      (@flags.rootExports or= []).push rt for rt in _B.arrayize rootExports
+      @flags.noConflict = true
+
+    @webRootMap = @bundle?.webRootMap || '.'
+
+    #  Add all deps in `require('dep')`, from @module.ext_requireDeps(those not already there)
+    #  Reason: execution stucks on require('dep') if its not loaded (i.e not present in ext_defineArrayDeps).
+    #         see https://github.com/jrburke/requirejs/issues/467
+    #  Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
+    #  (# RequireJs disables runtime scan if even one dep exists in []).
+    #  We dont add them only if _.isEmpty and `--scanAllow` and we dont have a `rootExports`
+    addToArrayDependencies = (reqDep)=>
+      if (reqDep.pluginName isnt 'node') and # 'node' is a fake plugin signaling nodejs-only executing modules.
+        (reqDep.name(plugin:false) not in (@bundle?.dependencies?.node or [])) and
+        (not _.any @defineArrayDeps, (dep)->dep.isEqual reqDep) # and not already there
+          @defineArrayDeps.push reqDep
+          @nodeDeps.push reqDep if @build?.allNodeRequires
+
+    if not (_.isEmpty(@defineArrayDeps) and @build?.scanAllow and not @flags.rootExports)
+      addToArrayDependencies reqDep for reqDep in @ext_requireDeps
+    @
+
+  # inject [depVars] Dependencies to defineArrayDeps, nodeDeps
+  # and their corresponding parameters (infered if not found)
+  injectDeps: (depVars)->
+    l.debug("#{@path}: injecting dependencies: ", depVars) if l.deb 40
+
+    {dependenciesBindingsBlender} = require '../config/blendConfigs' # circular reference delayed loading
+    return if _.isEmpty depVars = dependenciesBindingsBlender.blend depVars
+
+    @bundle?.inferEmptyDepVars? depVars, "Infering empty depVars from injectDeps for '#{@path}'"
+    for depName, varNames of depVars
+      dep = new Dependency depName, @
+      if not dep.isEqual @path
+        for varName in varNames # add for all corresponding vars, BEFORE the deps not corresponding to params!
+          if not (varName in @parameters)
+            @defineArrayDeps.splice @parameters.length, 0, dep
+            @nodeDeps.splice @parameters.length, 0, dep
+            @parameters.push varName
+            l.debug("#{@path}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 70
+          else
+            l.warn("#{@path}: NOT injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") #if l.deb 90
+      else
+        l.debug("#{@path}: NOT injecting dependency '#{depName}' on self'") if l.deb 50
+
+    null
+
+
+  # Replaces a Dependency with another dependency on the Module.
+  # It makes the replacements on
+  #
+  #   * All Dependency instances on @keys_resolvedDependencies arrays
+  #
+  #   * All AST Literals in code, in deps array ['literal',...] or require('literal') calls,
+  #     always leaving the fileRelative newDep string
+  #
+  # @param oldDep {Dependency|String} The old dependency, expressed either a Dependency instance
+  #                                   or String (file or bundleRelative)
+  #
+  # @param newDep {Dependency|String|Undefined} The dependency to replace the old with.
+  #        If its empty, it removes the oldDep from all keys_resolvedDependencies Arrays
+  #       (BUT NOT THE AST)
+  replaceDep: (oldDep, newDep)->
+    if not (oldDep instanceof Dependency)
+      if _.isString oldDep
+        oldDep = new Dependency oldDep, @
+      else
+        l.er "Module.replaceDep: Wrong old dependency type '#{oldDep}' in module #{@path} - should be String|Dependency."
+        throw new UError "Module.replaceDep: Wrong old dependency type '#{oldDep}' in module #{@path} - should be String|Dependency."
+
+    if newDep
+      if not (newDep instanceof Dependency)
+        if _.isString newDep
+          newDep = new Dependency newDep, @
+        else
+          throw new UError("Module.replaceDep: Wrong new dependency type '#{newDep}' in module #{@path} - should be String|Dependency|Undefined.")
+    else
+      removeArrayIdxs = []
+    # both deps are Dependency instances now (if newDep exists)
+
+    # find & replace (or remove) all matching deps in all keys_resolvedDependencies arrays (with Dependency instances)
+    if oldDep isnt newDep # if oldDep IS newDep, no need to replace resolved deps array, only literals in AST code
+      for rdArrayName in @keys_resolvedDependencies
+        for dep, depIdx in (@[rdArrayName] or []) when dep.isEqual(oldDep)
+          if newDep
+            @[rdArrayName][depIdx] = newDep
+            l.debug(80, "Module.replaceDep in '#{rdArrayName}', replaced '#{oldDep}' with '#{newDep}'.")
+          else # mark idx for removal
+            removeArrayIdxs.push {rdArrayName, depIdx}
+
+      # actually remove found old deps
+      if not newDep
+        for rai in removeArrayIdxs by -1 # in reverse order so idxs stay meaningful
+          l.debug(80, "Module.replaceDep in '#{rai.rdArrayName}', removing '#{@[rai.rdArrayName][rai.depIdx]}'.")
+          @[rai.rdArrayName].splice rai.depIdx, 1
+
+          # also remove from @parameters for defineArrayDeps
+          if rai.rdArrayName is 'defineArrayDeps'
+            @parameters.splice rai.depIdx, 1
+
+    # replace dep literals in AST code (bundleRelative to fileRelative) OR warn if it was just removed
+    for depLiteral in (@AST_requireReplacementLiterals or []) when (depLiteral?.value isnt newDep?.name?())
+      if oldDep.isEqual new Dependency depLiteral.value, @
+        if newDep
+          l.debug(80, "Replacing AST literal '#{depLiteral.value}' with '#{newDep.name()}'")
+          depLiteral.value = newDep.name()
+        # else # this is wrong - the AST might be removed from the body, we dont know about it. To search is costly!
+        # l.warn "Removed dependency '#{oldDep.name(relative:'bundle')}', but AST literal '#{depLiteral.value}' is still in the code!"
+
+    null
+
+  ###
   Returns all deps in this module along with their corresponding parameters (variable names)
-
-  Note: currently, only AMD-modules provide us with the variable-binding of dependencies!
-
-  @param {Function} depFltr optional callback filtering dependency. Called with dep as param. Defaults to all-true fltr
-
+  @param {Function} depFltr optional callback filtering dependency, called with dep (defaults to all-true fltr)
   @return {Object}
       {
         jquery: ['$', 'jQuery']
@@ -241,31 +441,110 @@ class Module extends TextResource
       }
   ###
   getDepsVars: (depFltr=->true)->
-    depsVars = {}
-    if @isConvertible
-      for dep, idx in _.flatten [@arrayDependencies, @requireDependencies] when depFltr(dep)
-      #when (
-#        ((not q.depType) or (q.depType is dep.type)) and
-#        ((not q.depName) or (dep.isEqual q.depName)) and
-#        ((not q.pluginName) or (dep.pluginName is q.pluginName))
-#      )
-          dv = (depsVars[dep.name(relativeType:'bundle', plugin:false)] or= [])
-          # store the variable(s) associated with dep
-          if @parameters[idx] and not (@parameters[idx] in dv )
-            dv.push @parameters[idx] # if there is a var, add once
+    varNames = {}
+    depVarArrays = # use the Array<Dependency> ones, cause they talk 'bundleRelative'
+      'defineArrayDeps'        : 'parameters'
+      'ext_requireDeps'        : 'ext_requireVars'
+      'ext_asyncRequireDeps'   : 'ext_asyncFactoryParams'
 
-      depsVars
-    else {}
+    for depsArrayName, varsArrayName of depVarArrays
+      for dep, idx in (@[depsArrayName] or []) when depFltr(dep)
+        bundleRelativeDep = dep.name relative:'bundle'
+        dv = (varNames[bundleRelativeDep] or= [])
+        # store the variable(s) associated with dep
+        if @[varsArrayName][idx] and not (@[varsArrayName][idx] in dv )
+          dv.push @[varsArrayName][idx] # if there is a var, add once
+    varNames
+
+  replaceCode: (matchCode, replCode)->
+    matchCode = Module.toAST matchCode
+    replCode = Module.toAST replCode # leaves AS-IS if !_.isString
+    deletions = []
+
+    replCodeAction = (prop, src)->
+      if _B.isLike matchCode, src[prop]
+        matchedCode = Module.toCode src[prop]
+        _replCode =
+          if _.isFunction replCode
+            Module.toAST replCode src[prop]
+          else replCode
+
+        if _replCode
+          l.debug("""
+            Replacing code:
+            ```````````````````
+            #{matchedCode}
+            ```` with code: ```
+            #{Module.toCode _replCode}
+            ```````````````````""") if l.deb 50
+          src[prop] = _replCode
+
+        else # remove matchedCode code
+          if _.isArray src
+            l.debug("Deleting code:\n  `#{matchedCode}`") if l.deb 50
+            deletions.push {src, prop}
+          else
+            l.debug("Delete code (replacing with EmptyStatement) :\n  `#{matchedCode}`") if l.deb 50
+            src[prop] = {type: 'EmptyStatement'}
+          return false # 'stop traversing deepr' @todo: check its working properly in uBerscore traverse
+
+    _B.traverse @AST_factoryBody, replCodeAction
+
+    # deletions in reverse order to preserve array order
+    for deletion in deletions by -1
+      deletion.src.splice(deletion.prop, 1)
+
+  # add report data after all deps manipulations are done (adjust, & beforeTemplate RCs)
+  addReportData:->
+    for dep in _.flatten [ @defineArrayDeps, @ext_asyncRequireDeps ]
+      if dep.type not in ['bundle', 'system']
+        @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'global':['lodash']}`
+
+  # Actually converts the module to the target @build options.
+  convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
+    l.verbose "Converting '#{@path}' with template = '#{@build.template.name}'"
+    l.debug("'#{@path}' adjusted module.info() with keys_resolvedDependencies = \n",
+      _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 60
+
+    @moduleTemplate or= new ModuleGeneratorTemplates @
+    @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+
+  Object.defineProperties @::,
+    path: get:-> upath.trimExt @srcFilename if @srcFilename # filename (bundleRelative) without extension eg `models/PersonModel`
+
+    factoryBody: get:->
+      fb = @toCode @AST_factoryBody
+      if @kind isnt 'AMD' then fb else fb[1..fb.length-2].trim()
+
+    # 'body' / statements BEFORE define (coffeescript & family gencode `__extend`, `__slice` etc)
+    'preDefineIFIBody': get:-> @toCode @AST_preDefineIFINodes if @AST_preDefineIFINodes
+
+  # returns the AST of the 1st statement/expression if its a String, as-is otherwise
+  # @todo: return whole body / all statements
+  toAST: (code)->
+    if _.isString code
+      try
+        (esprima.parse code).body[0]
+      catch err
+        l.err err
+        throw new UError "*esprima.parse* in Module @toAST while parsing javascript fragment: \n #{code}.", nested:err
+    else
+      code # AS-IS if not String!
+
+  @toAST: @::toAST  # copy to constructor
+
+  @toCode: (astCode)->
+    return '' if _.isEmpty astCode
+    if _.isArray astCode
+      astCode = {type: 'Program', body: astCode} # use BlockStatement instead of program ?
+    try
+      return escodegen.generate astCode, @escodegenOptions
+    catch err
+      throw new UError "Error generating code from AST in Module's toCode - AST = \n #{l.prettify astCode}"
+
+  toCode: (astCode=@AST_body)-> Module.toCode.call @, astCode
+
+_.extend Module, {isLikeCode, isEqualCode} # export for testing
 
 module.exports = Module
-
-### Debug information ###
-#if l.deb >= 90
-#  YADC = require('YouAreDaChef').YouAreDaChef
-#
-#  YADC(Module)
-#    .before /_constructor/, (match, bundle, filename)->
-#      l.debug("Before '#{match}' with filename = '#{filename}'")
-#
-#
 

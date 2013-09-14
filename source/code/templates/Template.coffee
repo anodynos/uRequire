@@ -14,7 +14,9 @@ module.exports =
     _functionIFI: (codeBody, paramValuePairs...)-> """
       (function (#{(param for param, i in paramValuePairs when i%2 is 0).join(',')}) {
         #{codeBody}
-      })(#{(value for value, i in paramValuePairs when i%2 isnt 0).join(',')})
+      }).call(this#{if paramValuePairs.length>=1 then ', ' else ''}#{
+        (value for value, i in paramValuePairs when i%2 isnt 0).join(',')
+      })
     """
 
     # Declare a Function

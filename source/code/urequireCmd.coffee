@@ -3,7 +3,6 @@ fs = require 'fs'
 wrench = require "wrench"
 _B = require 'uberscore'
 
-_B.Logger::VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat
 l = new _B.Logger 'urequire/urequireCMD'
 
 urequireCommander = require 'commander'
@@ -20,7 +19,7 @@ config = {}
 urequireCommander
 #  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <path> [options]')
-  .version(l.VERSION) # 'var version = xxx' written by grunt's banner
+  .version(VERSION) # 'var version = xxx' written by grunt's banner
   .option('-o, --dstPath <dstPath>', 'Output converted files onto this directory')
   .option('-f, --forceOverwriteSources', 'Overwrite *source* files (-o not needed & ignored)', undefined)
   .option('-v, --verbose', 'Print module processing information', undefined)
@@ -98,7 +97,7 @@ urequireCommander.on '--help', ->
 
     - configFiles can be written as a .js module, .coffee module, json and much more - see 'butter-require'
 
-    uRequire version #{l.VERSION}
+    uRequire version #{VERSION}
   """
 
 urequireCommander.parse process.argv
@@ -111,27 +110,30 @@ _.extend config, _.pick(urequireCommander, CMDOPTIONS)
 delete config.version
 
 if _.isEmpty config
-  l.err """
+  l.er """
     No CMD options or config file specified.
     Not looking for any default config file in this uRequire version.
     Type -h if U R after help!"
   """
-  l.log "uRequire version #{l.VERSION}"
+  l.log "uRequire version #{VERSION}"
 else
   if config.debugLevel?
-    _B.Logger.setDebugLevel config.debugLevel, 'urequire'
-    l.debug 0, "Setting cmd _B.Logger.setDebugLevel(#{config.debugLevel}, 'urequire')"
+    _B.Logger.addDebugPathLevel 'urequire', config.debugLevel
+    l.debug 0, "Setting cmd _B.Logger.addDebugPathLevel('urequire', #{config.debugLevel})"
 
   if config.verbose
     l.verbose 'uRequireCmd called with cmdConfig=\n', config
 
   config.done = (doneValue)->
+    b =
+      startDate: bundleBuilder?.build?.startDate or new Date()
+      count: bundleBuilder?.build?.count or 0
     if (doneValue is true) or (doneValue is undefined)
-      l.verbose "uRequireCmd done() successfully!"
+      l.verbose "uRequireCmd done() ##{b.count} successfully in #{(new Date() - b.startDate) / 1000 }secs."
     else
-      l.err "uRequireCmd done(), with errors!"
-      process.exit 1
+      l.er "uRequireCmd done() ##{b.count} with errors in #{(new Date() - b.startDate) / 1000 }secs."
 
-  bundleBuilder = new (require './urequire').BundleBuilder [config]
+  {BundleBuilder} = require('./urequire')
+  bundleBuilder = new BundleBuilder [config]
   bundleBuilder.buildBundle()
-  bundleBuilder.watch() if bundleBuilder.build.watch
+  bundleBuilder.watch() if bundleBuilder?.build?.watch

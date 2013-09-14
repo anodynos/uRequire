@@ -32,7 +32,6 @@ fileSpecs = [
 describe 'isFileInSpecs', ->
   it "correctly expands files", ->
     filteredFiles = _.filter files, (f)-> isFileInSpecs f, fileSpecs
-    console.log filteredFiles
     expect(
       filteredFiles
     ).to.deep.equal [

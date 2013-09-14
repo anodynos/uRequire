@@ -1,8 +1,9 @@
 ## reporting, in this format
 _ = require 'lodash'
 _B = require 'uberscore'
-Dependency = require './../Dependency'
+Dependency = require './../fileResources/Dependency'
 
+l = new _B.Logger 'urequire/utils/DependencyReporter'
 #
 # Embarrasing piece of code, full of misnomers and very custom to this project,
 # but could refactoreed to support more generic data gathering transformations for reporting
@@ -16,12 +17,12 @@ class DependenciesReporter
   dependencyTypesMessages =
 
     ### 'problematic' ones ###
-    untrustedRequireDeps:
-      header: "\u001b[31m Untrusted require('') dependencies found:"
-      footer: "They are IGNORED. If evaluated name of the require() isnt in dependency array [..] before require() call, your app WILL HALT and WILL NOT WORK on the web-side (but should be OK on node).\u001b[0m"
-    untrustedAsyncDeps:
-      header: "\u001b[31m Untrusted async require(['']) dependencies found:"
-      footer: "They are IGNORED. If evaluated name of the require([..]) isnt found, you'll get an http error on web, or exception 'module not found' on node.).\u001b[0m"
+    untrusted:
+      header: "\u001b[31m Untrusted dependencies (i.e non literal String) found:"
+      footer: """
+        They are left AS-IS, BUT are added to the dependency array.
+        If evaluated name of the `require( utrusted + 'string' )` isnt in dependency array [..],
+        your app WILL HALT and WILL NOT WORK on the web/AMD side (but should be OK on node).\u001b[0m"""
 
   ### simply interesting :-) ###
   DT = Dependency.TYPES
@@ -49,7 +50,7 @@ class DependenciesReporter
 
   reportTemplate: (texts, dependenciesFound)-> """
    \n#{texts.header}
-     #{ "'#{dependency}' dependendency appears in modules: [
+     #{ "'#{dependency}' dependency appears in modules: [
        #{("\n         '" +
          mf + "'" for mf in moduleFiles)}\n  ]\n" for dependency, moduleFiles of dependenciesFound
         }#{
@@ -71,12 +72,13 @@ class DependenciesReporter
   addReportData: (resolvedDeps, modyle)->
     for depType, resDeps of resolvedDeps when (not _.isEmpty resDeps)
       @reportData[depType] or= {}
-      for resDep in resDeps
+      for resDep in _B.arrayize resDeps
         foundModules = (@reportData[depType][resDep] or= [])
         foundModules.push modyle if modyle not in foundModules
     null
 
   getReport: (interestingDepTypes = @reportedDepTypes)->
+    l.debug 95, 'Getting report only for types :', interestingDepTypes
     report = ""
     for depType, depTypesMsgs of dependencyTypesMessages when depType in interestingDepTypes
       if @reportData[depType]
@@ -85,27 +87,20 @@ class DependenciesReporter
 
 module.exports = DependenciesReporter
 
-
-## some debugging code
-#(require('YouAreDaChef').YouAreDaChef DependenciesReporter)
-#
-#  .before 'addReportData', ( resolvedDeps, modyle)->
-#    console.log 'addReportData:', {resolvedDeps, modyle}
-#
-
 ##inline tests
 #rep = new DependenciesReporter()
 #
 #rep.addReportData {
-#    untrustedAsyncDeps: [ "data + '/messages/hello'", "data + '/messages/bye'" ],
+#    untrustedAsyncRequireDeps: [ "data + '/messages/hello'", "data + '/messages/bye'" ],
+#    untrustedDefineArrayDeps: [ "data + '/messages/ohno'", "data + '/messages/byebye'" ],
+#    untrustedAsyncRequireDeps: [ "data + '/messages/hmmmm'", "data + '/messages/nowwhat'" ],
 #    notFoundInBundle: ['data/missingLib.js']
-#    parameters: [],
-#    requireDeps: [],
+#    parameters: ['_'],
+#    ext_requireDeps: ['lodash'],
 #    wrongDependencies: [ 'require(msgLib)' ],
 #    nodeDeps: [ '../data/messages/hello', '../data/messages/bye' ],
 #    webRootMap: '..'
 #  }
 #  , 'some/Module'
 #
-#console.log rep.reportData
 #console.log rep.getReport()

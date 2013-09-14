@@ -19,17 +19,11 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 
-BundleFile =   require '../../code/fileResources/BundleFile'
-FileResource = require '../../code/fileResources/FileResource'
-TextResource = require '../../code/fileResources/TextResource'
-Module =       require '../../code/fileResources/Module'
-
-{requireUncached} = BundleFile
-ResourceConverter = requireUncached '../../code/config/ResourceConverter'
+ResourceConverter = require '../../code/config/ResourceConverter'
 
 resources =  [
   [
-    '$cofreescript' # a title of the resource (a module since its not starting with #)
+    '$+cofreescript' # a title of the resource (a module since its starting with '$', running after adjusting module info cause of '+')
     [
       '**/*.coffee'
       /.*\.(coffee\.md|litcoffee)$/i
@@ -86,6 +80,7 @@ expectedResources = [
     ' type': 'module'
     isTerminal: false
     isAfterTemplate: false
+    isBeforeTemplate: true
     isMatchSrcFilename: false
   }
 
@@ -97,6 +92,7 @@ expectedResources = [
     ' convFilename': resources[1][4]
     isTerminal: false
     isAfterTemplate: true
+    isBeforeTemplate: false
     isMatchSrcFilename: false
   }
 
@@ -108,6 +104,7 @@ expectedResources = [
     ' type': 'text'
     isTerminal: true
     isAfterTemplate: false
+    isBeforeTemplate: false
     isMatchSrcFilename: false
   }
 
@@ -121,6 +118,7 @@ expectedResources = [
     #clazz: FileResource
     isTerminal: false
     isAfterTemplate: false
+    isBeforeTemplate: false
     isMatchSrcFilename:true
   }
 
@@ -132,6 +130,7 @@ expectedResources = [
     ' type': 'text'
     isTerminal: false
     isAfterTemplate: false
+    isBeforeTemplate: false
     isMatchSrcFilename: false
   }
 ]
@@ -306,12 +305,16 @@ describe 'blendConfigs & its Blenders: ', ->
         ).to.deep.equal {name: 'combined'}
 
   describe "blending config with ResourceConverters :", ->
-
     it "converts array of RC-specs' into array of RC-instances", ->
       resultRCs = blendConfigs [{resources}]
       expect(resultRCs.bundle.resources).to.deep.equal expectedResources
 
   describe "dependenciesBindingsBlender converts to proper dependenciesBinding structure", ->
+    it "converts undefined to an empty {}", ->
+      expect(
+        dependenciesBindingsBlender.blend undefined
+      ).to.deep.equal {}
+
     it "converts String: `'lodash'`  --->   `{lodash:[]}`", ->
       expect(
         dependenciesBindingsBlender.blend 'lodash'
@@ -322,10 +325,8 @@ describe 'blendConfigs & its Blenders: ', ->
       ).to.deep.equal {lodash:[], jquery:[]}
 
       expect(
-        dependenciesBindingsBlender.blend {knockout:['ko']}, 'lodash', 'jquery'
+        dependenciesBindingsBlender.blend {knockout:['ko']}, 'lodash', 'jquery', undefined
       ).to.deep.equal {knockout:['ko'], lodash:[], jquery:[]}
-
-
 
     it "converts Array<String>: `['lodash', 'jquery']` ---> `{lodash:[], jquery:[]}`", ->
       expect(
@@ -335,7 +336,6 @@ describe 'blendConfigs & its Blenders: ', ->
       expect(
         dependenciesBindingsBlender.blend {lodash: '_', knockout:['ko']}, ['lodash', 'jquery']
       ).to.deep.equal {lodash: ['_'], knockout:['ko'], jquery: []}
-
 
     it "converts Object {lodash:['_'], jquery: '$'}` = {lodash:['_'], jquery: ['$']}`", ->
       expect(
@@ -394,13 +394,11 @@ describe 'blendConfigs & its Blenders: ', ->
             'lodash': []
             'jquery': []
 
-
       it "exports: bundle {} - depBindings is `arrayize`d", ->
         expect(
           a = blendConfigs [ dependencies: exports: bundle: {'lodash': '_'} ]
         ).to.deep.equal
           bundle: dependencies: exports: bundle: {'lodash': ['_']}
-
 
       it "exports: bundle {} - depBinding reseting its array", ->
         expect(
@@ -412,6 +410,7 @@ describe 'blendConfigs & its Blenders: ', ->
           ]
         ).to.deep.equal
           bundle: dependencies: exports: bundle: {'uberscore': ['_B']}
+
 
     describe "Nested & derived configs:", ->
       configs = [
@@ -526,10 +525,10 @@ describe 'blendConfigs & its Blenders: ', ->
             template: name: "UMD"
 
       it "all {} in bundle.resources are instanceof ResourceConverter :", ->
-        #expect(resConv instanceof ).to.be what ???? for resConv in blended.bundle.resources
+        expect(resConv instanceof ResourceConverter).to.be.true for resConv in blended.bundle.resources
 
       it "`bundle.resources` are reset with [null] as 1st item", ->
-        freshResources = blendConfigs {resources:[ [null], expectedResources[0]]}, blended
+        freshResources = blendConfigs [{resources:[ [null], expectedResources[0]]}, blended]
         blended.bundle.resources = [expectedResources[0]]
-#        expect(freshResources).to.be.deep.equal blended
+        expect(freshResources).to.be.deep.equal blended
 

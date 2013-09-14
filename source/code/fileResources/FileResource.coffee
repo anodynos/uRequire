@@ -11,10 +11,13 @@ upath = require '../paths/upath'
 UError = require '../utils/UError'
 
 ###
-  Represents any file resource, whose source/content we dont read (but subclasses do).
+  Represents any bundlefile resource, whose source/content we dont read (but subclasses do).
+
   The `convert()` of the ResourceConverter should handle the file contents - for example fs.read it, require() it or spawn an external program.
 
-  Nevertheless, it can `save()` its `converted` content (if any).
+  Paradoxically, a FileResource
+    - can `read()` its source contents (assumed utf-8 text)
+    - can `save()` its `converted` content (if any).
 
   Each time it `@refresh()`es, if super is changed (BundleFile's fileStats), it runs `runResourceConverters`:
       - calls `converter.convert()` and stores result as @converted
@@ -24,14 +27,10 @@ UError = require '../utils/UError'
   When `save()` is called (with no args) it outputs `@converted` to `@dstFilepath`.
 ###
 class FileResource extends BundleFile
-  Function::property = (p)-> Object.defineProperty @::, n, d for n, d of p; null
 
   ###
-  @param {Object} bundle The Bundle where this FileResource belongs
-  @param {String} filename, bundleRelative eg 'models/PersonModel.coffee'
-  @param {Array<?>} converters The converters (bundle.resources) that matched this filename & are used in turn to convert, each time we `refresh()`
+    @data converters {Array<ResourceConverter} (bundle.resources) that matched this filename & are used in turn to convert, each time we `refresh()`
   ###
-  constructor: (@bundle, @filename, @converters)-> super
 
   ###
     Check if source (AS IS eg js, coffee, LESS etc) has changed
@@ -45,67 +44,67 @@ class FileResource extends BundleFile
       return false # no change in parent, why should I change ?
     else
       if @constructor is FileResource # run only for this class, otherwise let subclasses decide wheather to run ResourceConverters.
-        return @hasChanged = @runResourceConverters (conv)-> not conv.isAfterTemplate
+        return @hasChanged = @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
       else true
 
-  read: (filepath=@srcFilepath)->
-    try
-      fs.readFileSync filepath, 'utf-8'
-    catch err
-      @hasErrors = true
-      throw new UError "Error reading file '#{filepath}'", nested:err
+  reset:-> super; delete @converted
 
-  save: (outputFilename=@dstFilepath, content=@converted)->
-    @::save outputFilename, content
-
-  @save: (outputFilename, content, options='utf-8')->
-    l.debug("Save file '#{outputFilename}'") if l.deb 20
-
-    throw new UError "Error saving - no outputFilename" if !outputFilename
-    throw new UError "Error saving - no content" if !content
-
-    try
-      if not fs.existsSync upath.dirname(outputFilename)
-        l.verbose "Creating directory '#{upath.dirname outputFilename}'"
-        wrench.mkdirSyncRecursive upath.dirname(outputFilename)
-
-      fs.writeFileSync outputFilename, content, options
-      if @watch #if debug
-        l.verbose "Saved file '#{outputFilename}'"
-    catch err
-      l.err uerr = "Can't save '#{outputFilename}'", err
-      throw new UError uerr, nested:err
-
-  # go through all converters, converting with each one
+  # go through all Resource `converters`, converting with each one
   # Note: it acts on @converted & @dstFilename, leaving them in a new state
   runResourceConverters: (convFilter=->true) ->
-    # @todo: rename  @converters to @ResourceConverters
-    for converter in @converters when \
-        convFilter(converter) # filter
-        # silence higher ResourceConverters, (eg dont run 'coffee-script' (a module converter) - if @ is NOT a Module
-        #(!converter.clazz or (@ instanceof converter.clazz))
-
-      if _.isFunction converter.convert
-        l.debug "Converting #{@constructor?.name} '#{@dstFilename}' with '#{converter.name}'..." if l.deb 70
-
-        # convert @filename to @dstFilename (i.e the previous @dstFilename from converter.dstFilename(), intially @filename)
-        if _.isFunction converter.convFilename
-          @dstFilename = converter.convFilename @dstFilename, @srcFilename, @
-          l.debug "... @dstFilename is '#{@dstFilename}'" if l.deb 95
-
-        try
-          @converted = converter.convert.call @, @ # store return value at @converted
-                                                   # and if its non-empty String, save it at @dstFilepath
-          @hasChanged = true
-        catch err
-          @hasErrors = true
-          l.err uerr = "Error converting #{@constructor?.name} '#{@filename}' with converter '#{converter?.name}'.", err
-          if not @bundle.build.continue
-            throw new UError uerr, {nested:err, stack:true}
-
     @hasErrors = false
+    for resConv in @converters when convFilter(resConv)
+      try
+        if _.isFunction resConv.convert
+          l.debug "Converting #{@constructor?.name} '#{@dstFilename}' with '#{resConv.name}'..." if l.deb 40
+          @converted = resConv.convert @ # store return value at @converted
+
+        # convert @srcFilename to @dstFilename (actually the previous @dstFilename, intially @srcFilename)
+        if _.isFunction resConv.convFilename
+          @dstFilename = resConv.convFilename @dstFilename, @srcFilename, @
+          l.debug "... @dstFilename is '#{@dstFilename}'" if l.deb 70
+
+        @hasChanged = true
+      catch err
+        @hasErrors = true
+        throw new UError """
+           Error converting #{@constructor?.name} '#{@srcFilename}' with resConv '#{resConv?.name}'.""", {nested:err}
+      
+      break if resConv.isTerminal
+
     return @hasChanged
 
-  reset:-> super; delete @converted
+  readOptions = {encoding: 'utf8', flag: 'r'}
+  read: (filename=@srcFilename, options=readOptions)->
+    _.defaults options, readOptions if options isnt readOptions
+    filename = upath.join @bundle?.path or '', filename
+    try
+      fs.readFileSync filename, options
+    catch err
+      @hasErrors = true
+      @bundle.handleError UError "Error reading file '#{filename}'", nested:err
+      undefined
+
+  save: (filename=@dstFilename, content=@converted, options)->
+    @constructor.save upath.join(@bundle?.build?.dstPath or '', filename), content, options
+
+  saveOptions = {encoding: 'utf8', mode: 438, flag: 'w'}
+  @save: (filename, content, options=saveOptions)->
+    _.defaults options, saveOptions if options isnt saveOptions
+    l.debug("Saving file '#{filename}'...") if l.deb 95
+    @bundle.handleError new UError "Error saving - no filename" if !filename
+    @bundle.handleError new UError "Error saving - no content" if !content
+
+    try
+      if not fs.existsSync upath.dirname(filename)
+        l.verbose "Creating directory '#{upath.dirname filename}'"
+        wrench.mkdirSyncRecursive upath.dirname(filename)
+
+      fs.writeFileSync filename, content, options
+      l.verbose "Saved file '#{filename}'"
+      return true
+    catch err
+      l.er uerr = "Can't save '#{filename}'", err
+      @bundle.handleError new UError uerr, nested:err
 
 module.exports = FileResource

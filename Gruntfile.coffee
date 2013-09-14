@@ -26,20 +26,6 @@ gruntFunction = (grunt) ->
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
-    shell:
-      coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
-      coffeeSpec: command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
-      coffeeWatch: command: "coffee -cbw -o ./build ./source"
-      mocha: command: "mocha #{buildSpecDir} --recursive --bail --reporter spec"
-      doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
-      # chmod +x urequireCmd.js
-
-      options: # subtasks inherit options but can override them
-        verbose: true
-        failOnError: true
-        stdout: true
-        stderr: true
-
     copy:
       specResources:
         files: [
@@ -63,7 +49,7 @@ gruntFunction = (grunt) ->
         src: ['<%= options.buildDir %>/urequireCmd.js' ]
         dest: '<%= options.buildDir %>/urequireCmd.js'
 
-      VERSIONurequire:                # add a runtime l.VERSION to _B.Logger's prototype
+      VERSIONurequire:
         options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
         src: [ '<%= options.buildDir %>/urequire.js']
         dest:  '<%= options.buildDir %>/urequire.js'
@@ -74,13 +60,39 @@ gruntFunction = (grunt) ->
         "<%= options.buildSpecDir %>/**/*.*"
       ]
 
+    watch:
+      dev:
+        files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
+        tasks: ['mocha']
+      copyWiki:
+        files: ["#{sourceDir}/**/*.*"]
+        tasks: ['copy:wiki']
+
+    shell:
+      coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
+      coffeeSpec: command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
+      coffeeWatch: command: "coffee -cbw -o ./build ./source"
+      chmod: command:
+        if process.platform is 'linux' # change urequireCmd.js to executable - linux only
+          "chmod +x 'build/code/urequireCmd.js'"
+        else "@echo " #do nothing
+      mocha: command: "mocha #{buildSpecDir} --recursive " # --reporter spec --bail
+      doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
+      dev: command: "mocha #{sourceSpecDir} --recursive --compilers coffee:coffee-script --reporter spec"
+#      draft: command: "coffee source/code/DRAFT.coffee"
+
+      options: # subtasks inherit options but can override them
+        verbose: true
+        failOnError: true
+        stdout: true
+        stderr: true
+
   ### shortcuts generation ###
   splitTasks = (tasks)-> if !_.isString tasks then tasks else (_.filter tasks.split(' '), (v)-> v)
 
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
-
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-     "default": "build test"
+     "default": "clean build chmod test"
      "build":   "shell:coffee concat copy:wiki"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
@@ -91,7 +103,7 @@ gruntFunction = (grunt) ->
      # generic shortcuts
      "cl":      "clean"
      "b":       "build"
-     "d":       "deploy"
+     "d":       "concat:bin chmod"
      "m":       "mocha"
      "t":       "test"
 
@@ -102,11 +114,15 @@ gruntFunction = (grunt) ->
      "alt-t": "t"
   }
 
+  grunt.loadNpmTasks task for task in [
+    'grunt-contrib-clean'
+    'grunt-contrib-concat'
+    'grunt-contrib-copy'
+    'grunt-contrib-watch'
+    'grunt-shell'
+  ]
+
   grunt.initConfig gruntConfig
-  grunt.loadNpmTasks 'grunt-contrib-clean'
-  grunt.loadNpmTasks 'grunt-contrib-concat'
-  grunt.loadNpmTasks 'grunt-contrib-copy'
-  grunt.loadNpmTasks 'grunt-shell'
 
   null
 
