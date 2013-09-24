@@ -1,8 +1,49 @@
 # uRequire v0.6.0
 
-### The JavaScript Universal Module Converter
+## The JavaScript Universal Module & Resource Converter
 
-All documentation is moved to the wiki and http://urequire.org
+All documentation is moved to the [wiki](https://github.com/anodynos/uRequire/wiki) and http://urequire.org
+
+Dont forget to `star(this)` with your love above :-)
+
+# Some Introduction
+
+`praise.to("Modular").forEach(['Development', 'Deployment']);`
+
+## Why use modules like AMD, Common/JS or Harmony/ES6 ?
+
+Write modular code, with clearly stated dependencies.
+
+Code for humans to follow, that is maintainable & reusable.
+
+The damnation of authoring Javascript as one huge file or concatenating must end!
+Are you still concatenating .js files ?
+
+## Why use uRequire ?
+
+Module formats are incompatible in all terms: **syntax, execution environment, capabilities, dependency/path resolution, plugins, semantics** etc.
+
+You want the power, goodies & standards assurance from all.
+
+But write in just one or a **Universal Module Format**!
+
+Be able to convert from any format, to any other.
+uRequire does exactly this! If you have sensibly `define`d it, u`Require` will find it.
+
+## What will uRequire do ?
+
+Help you **write modular Javascript code once, run everywhere**.
+
+Avoid boilerplate, just use the richness of modular development.
+
+**In-memory Convert Resources**, with the 1st and only Modules & Dependencies aware builder.
+
+Manipulate the Modules while building: **inject, remove, replace Dependencies & code**.
+Voila, execute in all runtimes: **Web/Script, Web/AMD, nodejs**!
+
+`focus.on("Da JS Code").then({convert:"anything"}).then({execute:"everywhere"});`
+
+Continue reading at http://urequire.org
 
 # License
 The MIT License

@@ -538,11 +538,15 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
          """
          ['**/*.teacup']
          do ->
-            require.extensions['.teacup'] = require.extensions['.coffee']  # register extension once, to require as a node module
-            (r)->                                                          # our `convert()` function
-              template = r.requireUncached r.srcRealpath                   # Clear nodejs caching with `requireUncached` helper & get the `realpath` of module's location.
-              (require 'teacup').render template                           # just return rendered string - requires `teacup` on demand from your project's 'node_modules'
-         '.html'                                                           # starting with '.' is an extension replacement
+            require.extensions['.teacup'] = 
+                require.extensions['.coffee']              # register extension once, as a node/coffee module
+            (r)->                                          # our `convert()` function
+              template = r.requireUncached r.srcRealpath   # Clear nodejs caching with `requireUncached` helper 
+                                                           # and get the `realpath` of module's location.
+              (require 'teacup').render template           # require `teacup` on demand from project's 
+                                                           # `node_modules` and return rendered string
+                                                            
+         '.html'                                           # starting with '.' is an extension replacement
       ]
 
 # Finito 
