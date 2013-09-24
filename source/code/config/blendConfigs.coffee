@@ -142,6 +142,14 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
 
+      debugLevel: '|': '*': (prop, src)->
+        dl = src[prop] * 1
+        if _.isNumber(dl) and not _.isNaN(dl)
+          dl
+        else
+          l.warn 'Non Number debugLevel: ', src[prop]
+          0
+
       # 'optimize' ? in 3 different ways
       # todo: spec it
       optimize: '|':

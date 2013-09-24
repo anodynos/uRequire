@@ -122,10 +122,7 @@ FileResource = (function(_super) {
     return this.hasChanged;
   };
 
-  readOptions = {
-    encoding: 'utf8',
-    flag: 'r'
-  };
+  readOptions = 'utf-8';
 
   FileResource.prototype.read = function(filename, options) {
     var err, _ref1;
@@ -144,7 +141,7 @@ FileResource = (function(_super) {
     } catch (_error) {
       err = _error;
       this.hasErrors = true;
-      this.bundle.handleError(UError("Error reading file '" + filename + "'", {
+      this.bundle.handleError(new UError("Error reading file '" + filename + "'", {
         nested: err
       }));
       return void 0;
@@ -162,11 +159,7 @@ FileResource = (function(_super) {
     return this.constructor.save(upath.join(((_ref1 = this.bundle) != null ? (_ref2 = _ref1.build) != null ? _ref2.dstPath : void 0 : void 0) || '', filename), content, options);
   };
 
-  saveOptions = {
-    encoding: 'utf8',
-    mode: 438,
-    flag: 'w'
-  };
+  saveOptions = 'utf-8';
 
   FileResource.save = function(filename, content, options) {
     var err, uerr;

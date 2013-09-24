@@ -92,8 +92,8 @@ gruntFunction = (grunt) ->
 
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-     "default": "clean build chmod test"
-     "build":   "shell:coffee concat copy:wiki"
+     "default": "clean build test"
+     "build":   "shell:coffee concat chmod copy:wiki"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
      # some shortcuts

@@ -598,10 +598,10 @@ class Bundle extends BundleBase
     errorMessages = error.message || error + ''
     while error.nested
       error = error.nested
-      errorMessages += '\n' + error.message
+      errorMessages += '\n' + error?.message
     l.er errorMessages
 
-  handleError: (error)->
+  handleError: (error=new UError "Undefined or null error!")->
     @errorsCount++
     if error.quit
       throw error # 'gracefully' quit: caught by bundleBuilder.buildBundle

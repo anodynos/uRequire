@@ -760,12 +760,15 @@ Bundle = (function(_super) {
     errorMessages = error.message || error + '';
     while (error.nested) {
       error = error.nested;
-      errorMessages += '\n' + error.message;
+      errorMessages += '\n' + (error != null ? error.message : void 0);
     }
     return l.er(errorMessages);
   };
 
   Bundle.prototype.handleError = function(error) {
+    if (error == null) {
+      error = new UError("Undefined or null error!");
+    }
     this.errorsCount++;
     if (error.quit) {
       throw error;

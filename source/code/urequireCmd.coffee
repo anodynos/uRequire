@@ -17,7 +17,6 @@ toArray = (val)->
 config = {}
 
 urequireCommander
-#  .version(( JSON.parse require('fs').readFileSync "#{__dirname}/../../package.json", 'utf-8' ).version)
 #  .usage('<templateName> <path> [options]')
   .version(VERSION) # 'var version = xxx' written by grunt's banner
   .option('-o, --dstPath <dstPath>', 'Output converted files onto this directory')
@@ -118,8 +117,7 @@ if _.isEmpty config
   l.log "uRequire version #{VERSION}"
 else
   if config.debugLevel?
-    _B.Logger.addDebugPathLevel 'urequire', config.debugLevel
-    l.debug 0, "Setting cmd _B.Logger.addDebugPathLevel('urequire', #{config.debugLevel})"
+    _B.Logger.addDebugPathLevel 'urequire', config.debugLevel * 1 # cast to Number or NaN
 
   if config.verbose
     l.verbose 'uRequireCmd called with cmdConfig=\n', config

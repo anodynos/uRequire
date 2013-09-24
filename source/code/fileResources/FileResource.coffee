@@ -74,7 +74,7 @@ class FileResource extends BundleFile
 
     return @hasChanged
 
-  readOptions = {encoding: 'utf8', flag: 'r'}
+  readOptions = 'utf-8' # compatible with node 0.8 #{encoding: 'utf-8', flag: 'r'}
   read: (filename=@srcFilename, options=readOptions)->
     _.defaults options, readOptions if options isnt readOptions
     filename = upath.join @bundle?.path or '', filename
@@ -82,13 +82,13 @@ class FileResource extends BundleFile
       fs.readFileSync filename, options
     catch err
       @hasErrors = true
-      @bundle.handleError UError "Error reading file '#{filename}'", nested:err
+      @bundle.handleError new UError "Error reading file '#{filename}'", nested:err
       undefined
 
   save: (filename=@dstFilename, content=@converted, options)->
     @constructor.save upath.join(@bundle?.build?.dstPath or '', filename), content, options
 
-  saveOptions = {encoding: 'utf8', mode: 438, flag: 'w'}
+  saveOptions = 'utf-8' # compatible with node 0.8 {encoding: 'utf-8', mode: 438, flag: 'w'}
   @save: (filename, content, options=saveOptions)->
     _.defaults options, saveOptions if options isnt saveOptions
     l.debug("Saving file '#{filename}'...") if l.deb 95

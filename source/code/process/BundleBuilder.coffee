@@ -13,6 +13,7 @@ UError = require '../utils/UError'
 Bundle = require './Bundle'
 Build = require './Build'
 
+{VERSION} = require('../urequire')
 ###
   Load config :
     * check options
@@ -21,17 +22,16 @@ Build = require './Build'
 ###
 class BundleBuilder
   constructor: (@configs, deriveLoader)->
+    l.debug 5, 'uRequire v' + VERSION + ' loading config files...'
 
-    configs.push MasterDefaultsConfig # add as the last one - the defaults on which we lay our more specifics
-    @config = blendConfigs configs, deriveLoader
-    _.defaults @config.bundle, {filez: ['**/*.*']} # hard coded default
-    # we now have our 'final' USER config
+    configs.push MasterDefaultsConfig               # add as the last one - the defaults on which we lay our more specifics
+    @config = blendConfigs configs, deriveLoader    # our 'final' @config
+    _.defaults @config.bundle, {filez: ['**/*.*']}  # the only(!) hard coded default
 
     @setDebugVerbose()
+    l.debug "Final config (with master defaults):\n", @config if l.deb 10
 
-    l.verbose 'uRequire v' + require('../urequire').VERSION + ' initializing...'
-    l.debug "Final config (with master defaults):\n", @config if l.deb 20
-
+    l.verbose 'uRequire v' + VERSION + ' initializing...'
     # check & fix different formats or quit if we have anomalies
     if @isCheckAndFixPaths() and @isCheckTemplate()
       try
@@ -60,7 +60,7 @@ class BundleBuilder
         @build.newBuild()
         @bundle.buildChangedResources @build, filenames
       catch err
-        if err.quit
+        if err?.quit
           l.er 'Quiting building bundle - err is:', err
         else # we should not have come here
           l.er 'Uncaught exception @ bundle.buildChangedResources', err

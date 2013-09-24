@@ -217,6 +217,20 @@ bundleBuildBlender = new _B.DeepCloneBlender([
           }
         }
       },
+      debugLevel: {
+        '|': {
+          '*': function(prop, src) {
+            var dl;
+            dl = src[prop] * 1;
+            if (_.isNumber(dl) && !_.isNaN(dl)) {
+              return dl;
+            } else {
+              l.warn('Non Number debugLevel: ', src[prop]);
+              return 0;
+            }
+          }
+        }
+      },
       optimize: {
         '|': {
           Boolean: function(prop, src, dst) {
