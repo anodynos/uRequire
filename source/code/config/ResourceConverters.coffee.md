@@ -30,7 +30,7 @@ Each file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) is match
 
 When a file (`resource`) changes, it goes through each matched ResourceConverter instance (`rc`) - always in the order defined in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) - effectively `rc.convert()`-ing  `resource.source` to `resource.converted` at each subsequent step. 
 
-The result of each `rc.convert()` (i.e `resource.converted`) is the input to the next matched RC's `rc.convert()`. The whole process is usually **in memory only**, with only the 1st read() and last save() being on the file system.
+The result of each `rc.convert()` (i.e `resource.converted`) is the input to the next matched RC's `rc.convert()`. The whole process is usually **in memory only**, with only the 1st [`read()`](resourceconverters.coffee#fileresource-methods) and last [`save()`](resourceconverters.coffee#fileresource-methods) being on the file system.
 
 ## Defining in `bundle.resources`
 

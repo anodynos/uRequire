@@ -57,14 +57,15 @@ module.exports = Build = (function(_super) {
     Build.__super__.constructor.apply(this, arguments);
     _.extend(this, buildCfg);
     this.count = 0;
-    if (!this.out) {
-      this.out = FileResource.save;
-    }
     if (this.template.name === 'combined') {
       this.combinedFile = upath.changeExt(this.dstPath, '.js');
       this.dstPath = "" + this.combinedFile + "___temp";
       if (l.deb(30)) {
         l.debug("Setting `build.combinedFile` = " + this.combinedFile + " and `build.dstPath` = " + this.dstPath);
+      }
+      if (this.out) {
+        l.warn("`build.out` is deleted due to `combined` template being used - r.js doesn't work in memory yet.");
+        delete this.out;
       }
     }
   }

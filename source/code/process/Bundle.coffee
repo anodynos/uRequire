@@ -347,12 +347,15 @@ class Bundle extends BundleBase
           l.er "Not saving '#{res.dstFilename}' (resource '#{res.srcFilename}') cause it has errors."
         else
           if res.converted and _.isString(res.converted) # only non-empty Strings are written
-            if _.isFunction @build.out # @todo:5 else if String, output to this file ?
-              try
-                @build.out res.dstFilepath, res.converted
-              catch err
-                res.hasErrors = true
-                @bundle.handleError err
+            try
+              if _.isFunction @build.out
+                @build.out res.dstFilename, res.converted
+              else
+                res.save()
+            catch err
+              res.hasErrors = true
+              @handleError new UError """
+                Error while #{if _.isFunction(@build.out) then '`build.out()`-ing' else '`save()`-ing'} resource '#{res.dstFilename}'.""", nested: err
           else
             l.debug 80, "Not saving #{res.dstFilename} cause its not a non-empty String."
 

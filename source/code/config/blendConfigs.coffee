@@ -255,7 +255,7 @@ blendConfigs = (configsArray, deriveLoader)->
     else
       (derive)-> #default deriveLoader
         if _.isString derive
-          l.debug "Loading config file: '#{derive}'"
+          l.debug 5, "Loading config file: '#{derive}'"
           if cfgObject = require fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
             return cfgObject
         else

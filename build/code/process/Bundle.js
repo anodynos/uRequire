@@ -485,14 +485,18 @@ Bundle = (function(_super) {
           l.er("Not saving '" + res.dstFilename + "' (resource '" + res.srcFilename + "') cause it has errors.");
         } else {
           if (res.converted && _.isString(res.converted)) {
-            if (_.isFunction(this.build.out)) {
-              try {
-                this.build.out(res.dstFilepath, res.converted);
-              } catch (_error) {
-                err = _error;
-                res.hasErrors = true;
-                this.bundle.handleError(err);
+            try {
+              if (_.isFunction(this.build.out)) {
+                this.build.out(res.dstFilename, res.converted);
+              } else {
+                res.save();
               }
+            } catch (_error) {
+              err = _error;
+              res.hasErrors = true;
+              this.handleError(new UError("Error while " + (_.isFunction(this.build.out) ? '`build.out()`-ing' : '`save()`-ing') + " resource '" + res.dstFilename + "'.", {
+                nested: err
+              }));
             }
           } else {
             l.debug(80, "Not saving " + res.dstFilename + " cause its not a non-empty String.");

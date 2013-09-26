@@ -1,4 +1,4 @@
-# uRequire v0.6.0
+# uRequire v0.6.1
 
 ## The JavaScript Universal Module & Resource Converter
 

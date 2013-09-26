@@ -356,7 +356,7 @@ blendConfigs = function(configsArray, deriveLoader) {
   deriveLoader = _.isFunction(deriveLoader) ? deriveLoader : function(derive) {
     var cfgObject;
     if (_.isString(derive)) {
-      l.debug("Loading config file: '" + derive + "'");
+      l.debug(5, "Loading config file: '" + derive + "'");
       if (cfgObject = require(fs.realpathSync(derive))) {
         return cfgObject;
       }

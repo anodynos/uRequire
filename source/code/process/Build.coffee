@@ -34,7 +34,6 @@ class Build extends _B.CalcCachedProperties
     super
     _.extend @, buildCfg
     @count = 0
-    @out = FileResource.save unless @out #todo: check 'out' - what's out there ?
 
     # setup 'combinedFile' on 'combined' template
     # (i.e where to output AMD-like templates & where the combined .js file)
@@ -42,6 +41,10 @@ class Build extends _B.CalcCachedProperties
       @combinedFile = upath.changeExt @dstPath, '.js'
       @dstPath = "#{@combinedFile}___temp"
       l.debug("Setting `build.combinedFile` = #{@combinedFile} and `build.dstPath` = #{@dstPath}") if l.deb 30
+
+      if @out
+        l.warn "`build.out` is deleted due to `combined` template being used - r.js doesn't work in memory yet."
+        delete @out
 
   @templates = ['UMD', 'AMD', 'nodejs', 'combined']
 

@@ -571,6 +571,19 @@ Optimizes output files (i.e it minifies/compresses them for production).
       optimize: false
       _optimizers: ['uglify2', 'uglify']
 
+
+## build: out:
+
+Callback to pass you the 'converted' content & `dstFilename`, instead of saving to fs under `dstPath/dstFilename` via [`FileResource.save()`](resourceconverters.coffee#fileresource-methods).
+
+Mind you, its not working on the 'combined' template, cause r.js optimizer doesn't yet work *in-memory*.
+
+@type `function (dstFilename, converted){}`
+
+@optional
+
+@default undefined - uses [`FileResource.save()`](resourceconverters.coffee#fileresource-methods) instead.
+
 ## build.done
 
 This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build.
