@@ -16,8 +16,9 @@
  "keywords": [
     "javascript",
     "convert", "commonjs", "AMD", "UMD",
-    "module", "converter",
-    "requirejs","require", "define"
+    "dependencies", "module", "converter", "conversion",
+    "requirejs","require", "define",
+    "resources", "assets", "pipeline", "workflow"
  ],
  "repository": {
   "type": "git",

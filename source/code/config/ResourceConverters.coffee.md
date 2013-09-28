@@ -227,7 +227,7 @@ needed internally to decide whether the file has changed at all (at watch events
   }
   ```
 
-    Note: As of uRequire 0.6, generating SourceMaps while converting Modules with Template (UMD / AMD / nodejs / combined) [**is not implemented**](https://github.com/anodynos/uRequire/issues/24). Its only useful for compiling coffee to .js with an [RC like this](https://github.com/anodynos/uRequire/issues/24).
+  Note: As of uRequire 0.6, generating SourceMaps while converting Modules with Template (UMD / AMD / nodejs / combined) [**is not implemented**](https://github.com/anodynos/uRequire/issues/24). Its only useful for compiling coffee to .js with an [RC like this](https://github.com/anodynos/uRequire/issues/24).
 
 ##### Utility functions
 
