@@ -1,30 +1,36 @@
-**Resource Converters** is a powerful, generic and extendible **in-memory conversions workflow**, that is expressive and flexible to cater for all common conversions needs (eg coffeescript, Livescript, coffeecup, less, jade etc).
+**Resource Converters** is a powerful, generic and extendible **in-memory conversions workflow** or **in-memory assets pipeline**, that is expressive and flexible to cater for all common conversions needs (eg coffeescript, Livescript, coffeecup, less, jade etc).
 
-## Literate Coffescript
-
-This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code*, just like [MasterDefaultsConfig](MasterDefaultsConfig.coffee#Literate-Coffeescript).
-
-NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverters.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.
+*note: This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code*, just like [MasterDefaultsConfig](MasterDefaultsConfig.coffee#Literate-Coffeescript). This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverters.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.*
 
 ## What is a ResourceConverter ?
 
-A **ResourceConverter (RC)** is the buidling block of uRequire's *conversions workflow* system. An RC is a simplistic declaration and callback wrapping of a compiler/transpiler or any other converter/conversion. Each RC performs a conversion from one resource format (eg *coffeescript*, *teacup*) to another **converted** format (eg *javascript*, *html*), for all [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez) that also match its own [`ResourceConverter.filez`](#Inside-a-Resource-Converter).
+A **ResourceConverter (RC)** is the *buidling block* of uRequire's *conversions workflow* system. An RC is a simplistic declaration and callback wrapping of a compiler/transpiler or any other converter/conversion. Each RC instance performs a conversion from one resource format (eg *coffeescript*, *teacup*) to another **converted** format (eg *javascript*, *html*), for all [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez) that also match its own [`ResourceConverter.filez`](#Inside-a-Resource-Converter).
 
-The **ResourceConverter workflow** has the following principles :
+## **ResourceConverter workflow** principles
 
-  * **simple callback API** that enables any kind of conversion, even with *one-liners*. This is an actual ResourceConverter :
+### **Simple authoring**...
+
+...as a callback API that enables any kind of conversion, even with *one-liners*. This is an actual ResourceConverter :
    
    `[ '$coco', [ '**/*.co'], function(r){return require('coco').compile(r.source)}, '.js']`
    
   Authoring an RC is very simple and has a [formal spec](#Inside-a-Resource-Converter) and [space saving shortcuts](#the-alternative-even-shorter-way). 
 
-  * focus to an **in-memory conversions pipeline**, with an **only-when-needed** workflow, where each file is processed/converted/saved/copied *only when it really needs to* (very useful when used with [build.watch](MasterDefaultsConfig.coffee#build.watch) or grunt's watch).
+### **Blazing fast**...
 
-  * DRY (Dont Repeat Yourself) via the *seamlessly integrated* [uRequire's configuration](MasterDefaultsConfig.coffee) settings, such as [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez), [bundle.path](MasterDefaultsConfig.coffee#bundle.path), [build.dstPath](MasterDefaultsConfig.coffee#build.dstPath) etc, unobtrusively loading & saving with the leanest possible configuration. It also works smoothly with `build.watch` and the whole uRequire building workflow/process.
+...with focus to an **in-memory conversions workflow**, with an **only-when-needed** asset processing pipeline, where each file is processed/converted/saved/copied *only when it really needs to* (very useful when used with [build.watch](MasterDefaultsConfig.coffee#build.watch) or grunt's watch).
 
-  * Provide the first **module & dependencies aware build system**, with advanced [module manipulation features](#Manipulating-Modules) such as injecting or replacing dependencies, matching and replacing/removing AST code fragments and more coming.
+### **DRY (Dont Repeat Yourself)**...
 
-## How does it work ?
+...via the *seamlessly integrated* [uRequire's configuration](MasterDefaultsConfig.coffee) settings shared among all your conversion pipelines . such as [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez), [bundle.path](MasterDefaultsConfig.coffee#bundle.path), [build.dstPath](MasterDefaultsConfig.coffee#build.dstPath) etc, unobtrusively loading & saving with the leanest possible configuration. Check [an example](MasterDefaultsConfig.coffee#examples).
+
+### **Dependencies Matter**... 
+...uRequire provides the first **module & dependencies aware build system**, with advanced [module manipulation features](#Manipulating-Modules) such as injecting or replacing dependencies, matching and replacing/removing AST/String code fragments and more coming.
+
+### **Transparent Power**...
+...RCs empower any conversion (and most common ones that would otherwise require their own 'plugin'). In uRequire, many common tasks like **compilation** (currently Coffeescript, Livescript, coco, IcedCoffeeScript), **concatenation and banners** (i.e concat) or even **injections** of text/code fragments, minification (such as uglify), **copying** of resources, or *passing* them through arbitrary callbacks are all integrated [in one neat DRY configuration](MasterDefaultsConfig.coffee#examples).
+
+## How do Resource Coverters work ?
 
 Each file in [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez) is matched against each ResourceConverter [`filez`](#Inside-a-Resource-Converter) in the order defined in your [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources) of your config. Each RC that matches a file, marks it as a `resource` that needs conversion with it, in the order defined in [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources). *Files that are not matched by any RC are still useful for declarative binary copy*.
 
@@ -220,6 +226,8 @@ needed internally to decide whether the file has changed at all (at watch events
       */"
   }
   ```
+
+    Note: As of uRequire 0.6, generating SourceMaps while converting Modules with Template (UMD / AMD / nodejs / combined) [**is not implemented**](https://github.com/anodynos/uRequire/issues/24). Its only useful for compiling coffee to .js with an [RC like this](https://github.com/anodynos/uRequire/issues/24).
 
 ##### Utility functions
 

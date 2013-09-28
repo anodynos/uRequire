@@ -2,7 +2,7 @@
 
 The *master & defaults* configuration file of *uRequire*.
 
-## Literate Coffescript
+## Note: Literate Coffescript
 
 This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. The code blocks shown are the actual code used at runtime, i.e each key declares its self and sets a default value.
 
@@ -572,7 +572,7 @@ Optimizes output files (i.e it minifies/compresses them for production).
       _optimizers: ['uglify2', 'uglify']
 
 
-## build: out:
+## build.out
 
 Callback to pass you the 'converted' content & `dstFilename`, instead of saving to fs under `dstPath/dstFilename` via [`FileResource.save()`](resourceconverters.coffee#fileresource-methods).
 
@@ -599,3 +599,89 @@ Clean all files & folders from `build.dstPath` before each non-watched, non-part
 @todo: NOT IMPLEMENTED
 
       clean: undefined
+
+# Examples
+
+Taken from the [Grunt config with comments](https://github.com/anodynos/uBerscore/blob/master/Gruntfile.coffee) of [uBerscore](github.com/anodynos/uBerscore), which also powers uRequire.
+
+The `'urequire:uberscore'` task:
+
+  * filters some `filez`
+  * converts each module in `path` to UMD
+  * everything saved at `dstPath`
+  * copies all other files there
+  * injects deps in each module
+  * exports a global `window._B` with a `noConflict()`
+  * injects a VERSION string inside the body of a file *
+  * adds a banner (after UMD template conversion)
+
+```coffeescript
+urequire: {
+  uberscore:
+    filez: ['**/*.*', '!draft/*.*']
+    path: "#{sourceDir}"
+    dstPath: "#{buildDir}"
+    copy: [/./]
+    dependencies: exports:
+      bundle: ['lodash', 'agreement/isAgree']
+      root: 'uberscore': '_B'
+    resources: [
+      [ '~+inject:VERSION', ['uberscore.coffee'], (m)-> m.beforeBody = "var VERSION='#{pkg.version}';"]
+      [ '!banner:uberscore', ['uberscore.js'], (r)->"#{banner}\n#{r.converted}" ]
+    ]
+}
+```
+
+The `'urequire:min'` task :
+
+  * derives all from the above `'uberscore'`, with the following differences
+  * filters some more `filez`
+  * converts to a single `uberscore-min.js` with `combined` template (r.js/almond)
+  * uglifies the combined file with some `uglify2` settings
+  * injects different deps in each module
+  * manipulates each module:
+   * removes some matched code 'skeletons'
+   * replaces some deps in arrays, `require`s etc
+   * removes some code and a dependency from a specific file.
+
+```coffeescript
+# min:
+   derive: ['uberscore']
+   filez: ['!blending/deepExtend.coffee']
+   dstPath: './build/dist/uberscore-min.js'
+   template: 'combined'
+   main: 'uberscore'
+   optimize: {uglify2: output: beautify: true}
+   dependencies: exports:  bundle: [[null], 'underscore', 'agreement/isAgree']
+   resources: [
+     [
+       '+remove:debug/deb & deepExtend', [/./]
+#       # as comments cause literate coffeescript considers indented lines as code, even in ` ` ` blocks
+#       (m)->
+#         for code in ['if (l.deb()){}', 'if (this.l.deb()){}', 'l.debug()', 'this.l.debug()']
+#           m.replaceCode code
+#
+#         m.replaceDep 'lodash', 'underscore'
+#
+#         if m.dstFilename is 'uberscore.js'
+#           m.replaceCode { type: 'Property', key: {type: 'Identifier', name: 'deepExtend'}}
+#           m.replaceDep 'blending/deepExtend'
+     ]
+   ]
+###
+```
+
+Finally we easily configure our `grunt-contrib-watch` tasks
+
+```
+watch:
+  UMD:
+    files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
+    tasks: ['urequire:UMD' , 'urequire:spec', 'mocha', 'run']
+
+  min:
+    files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
+    tasks: ['urequire:min', 'urequire:specCombined', 'concat:specCombinedFakeModuleMin', 'mochaDev', 'run']
+
+  options: spawn: false
+```
