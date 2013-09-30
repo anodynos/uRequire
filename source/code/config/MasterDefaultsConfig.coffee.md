@@ -15,54 +15,107 @@ NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/ma
 A `config` determines a `bundle` and a `build` that uRequire will process. A config is an object with the expected keys and can be used as:
 
 * **File based**, using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module file that exports the `config` object. The file can actually be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
+ The value of an 'XXX' ['derive'](#derive)d parent in a file-based config can be another file `configFilename.yml`, relative to the 1st children's path. @todo: make relative to each children's path).
 
-* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire` grunt task. @todo: diffs ?
+* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The main difference is that a XXX ['derive'](#derive)d parent in grunt-urequire config can be another `urequire:XXX` task, and if none is found then its assumed to be a filename, relative to grunt's config.
 
 * Within your tool's code, [using `urequire.BundleBuilder`](Using-uRequire#Using-within-your-code).
-
-@todo: doc this better
 
 ## Versatility
 
 uRequire configs are extremely versatile:
 
-* it understands keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](MasterDefaultsConfig.coffee#bundle-build)
+* understands keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](MasterDefaultsConfig.coffee#bundle-build)
 
-* it provides short-cuts, to convert simple declarations to more complex ones.
+* provides short-cuts, to convert simple declarations to more complex ones.
 
-* it has a unique inheritance scheme for 'deriving' from parent configs.
+* has a unique inheritance scheme for 'deriving' from parent configs.
 
 ## Deriving
 
-A config can _inherit_ the values of a parent config, in other words it can be _derived_ from it. Its similar to how a subclass *overrides* a parent class (but much more flexible. @todo: explain why).
+A config can **inherit** the values of a parent config, in other words it can be **derived** from it. Its similar to how a subclass *overrides* a parent class in classical OO [(but much better)](#Deeper-Behavior).
+
+### Parents & Children
 
 For example if you have a child `DevelopementConfig` derived from a parent `ProductionConfig`, then the child will inherit all the values/defaults and perhaps override (or ammend, append etc) the values of the parent. A child can inherit from one or more Parents, with precedence given to whichever parent comes first.
 
-Ultimately all configs are derived from `MasterDefaultsConfig` (this file) which holds all default values.
+Ultimately all configs are derived from `MasterDefaultsConfig` (this file) which holds all default *parent-y* values.
 
-## @tags legend
+### Deeper Behavior
 
-Each key description might have some of these tags:
+Derivation is but much more flexible that simple OO inheritance in classical OO platforms :
 
-* @derive: describes how values are derived from other parent configs. Some *standard* derivations are listed here:
+  * It inherits deeply all keys, i.e `{a:b1:0, b4:4}` <--deriveFromParent-- `{a:{b1:1, b2:2}}` gives `{a:{b1:1, b2:2, b4:4}}`
 
-   * *ArrayizePush*:
-   Child items (on derived configs) are appended *after* the ones higher up.
-   The types for both src & dst are either `Array<Anything>` or `Anything` (but Array) which is arrayized first. To reset the inherited array, use `[null]` as the 1st item of your child array.
+  * At each key of the deep derivation, there might be a different **behavior** for how to *blend* or *integrate* with the parent's existing data - eg [see ArrayizePush in @derive](#ArrayizePush).
 
-   * *ArrayizeUniquePush*: Just like *ArrayizePush*, but only === unique items are pushed.
 
-* @stability: (1-5) a [nodejs-like stability](http://nodejs.org/api/documentation.html#documentation_stability_index) of the setting. If not stated, its assumed to be a "3 - Stable".
+# @ tags legend
 
-* @optional - setting this key is optional, unless otherwise specified.
+Each key description might have some of these tags, starting with @:
 
-* @todo: this file is documentation & code. `@todo`s should be part of any code and a great chance to highlight future directions! Also watch out for **NOT IMPLEMENTED** features - its still v0.x!
+## @derive
 
-* @type The value types that are valid - usually there is a lot of flexibility of the types of values you can use.
+Describes the derive behavior, i.e how values are derived from other parent configs.
 
-* @alias usually DEPRECATED (but still supported) ones.
+**Standard derivation behaviors** are listed here:
 
-* @note Any other note that requires attention
+#### ArrayizePush
+
+Both source and destination values are [_B.arrayize](https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co)-ed first.
+
+Then the items on child configs are pushed *after* the ones higher up.
+
+For example consider key `bundle.filez` (that has the **arrayizePush derive behavior**).
+
+* parent config `bundle:filez: ['**.**', '!DRAFT/*.*']`
+
+* child config `bundle:filez: ['!vendor/*.*]`
+
+* blended config: `bundle: filez: ['**.**', '!DRAFT/*.*', '!vendor/*.*]`. Use your imagination for the possiblities.
+
+###### type
+
+The type for both src & dst (child and parent respectively) are either `Array<Anything>` or `Anything` (but Array, which is arrayized first).
+
+###### reset parent
+
+To reset the inherited parent array (always in your new destination array), use `[null]` as the 1st item of your child array. For example
+
+* parent config `bundle:filez: ['**.**', '!DRAFT/*.*']`
+
+* child config `bundle:filez: [[null], 'vendorOnly/*.*]`
+
+* blended config: `bundle: filez: ['vendorOnly/*.*]`.
+
+@todo: use a function callback on child, that receives parent value (& a clone:-) and returns the resulted blended array.
+
+##### ArrayizeUniquePush
+
+Just like [*ArrayizePush*](#ArrayizePush), but only === unique items are pushed to the result array.
+
+
+### @stability: (1-5)
+A [nodejs-like stability](http://nodejs.org/api/documentation.html#documentation_stability_index) of the setting. If not stated, its assumed to be a "3 - Stable".
+
+### @optional
+
+setting this key is optional, unless otherwise specified.
+
+### @todo:
+This file is documentation & code. `@todo`s should be part of any code and a great chance to highlight future directions! Also watch out for **NOT IMPLEMENTED** features - its still v0.x!
+
+### @type
+
+A description of valid value type(s) - usually there is a lot of flexibility of the types of values you can use.
+
+### @alias
+
+Usually DEPRECATED (but still supported) keys.
+
+### @note
+
+Any other note that requires attention
 
 ## bundle & build
 
@@ -140,12 +193,18 @@ All files that somehow participate in the `bundle` are specified here.
 
 @example 
 ```
-bundle: {filez: [
-    '**/recources/*.*', '!dummy.json', /\.someExtension$/i, 
-    '!', /\.excludeExtension$/i, (filename)-> filename is 'includedFile.ext']}
+bundle: {
+  filez: [
+    '**/recources/*.*'
+    '!dummy.json'
+    /\.someExtension$/i
+    '!', /\.excludeExtension$/i
+    (filename)-> filename is 'includedFile.ext'
+  ]
+}
 ```
 
-@derive: [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend).
+@derive: [ArrayizePush](#ArrayizePush).
 
 @note all files are relative to [bundle.path](#bundle.path)
 
@@ -177,7 +236,7 @@ Read all about them in [**ResourceConverters.coffee**](ResourceConverters.coffee
 
 @optional unless you want to add you own *Resource Converters* for your conversion needs.
 
-@derive [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend). You can use [null] as the 1st item to reset inherited array items (i.e the ResourceConverters defined in parent configs).
+@derive [ArrayizePush](#ArrayizePush). You can use [null] as the 1st item to reset inherited array items (i.e the ResourceConverters defined in parent configs).
 
 @stability: 3 - Stable
 
@@ -190,17 +249,30 @@ Read all about them in [**ResourceConverters.coffee**](ResourceConverters.coffee
 * a 'String' name search of a previously registered RC, eg `'teacup'`.
 
 * a function that returns an RC. This function is called with the 1st argument & `this` with a *searchOrMaterialize*  function that takes a String name (or an Array-spec) of an RC and returns a looked up (or materialized RC). For example:
-```
-resources: [
-    ...
-    function(){ 
-        rc = this("RCname4").clone();  // lookup & clone RC (best use rc.clone(), to get proper instance)
-        rc.name = '$MyRCname4';        // change its name & type to 'module' (via '$' flag)
-        rc.filez.push('!**/DRAFT*.*'); // add some file specs to `filez`
-        return rc;                     // return the new RC.
-    }   
-    ...
-]
+
+```javascript
+// example - not part of coffee.md source
+// as comments cause literate coffeescript considers
+// indented lines as code, even in ` ` ` blocks
+//
+// resources: [
+//  ...
+//  function(){
+//    // lookup & clone RC (best use rc.clone(), to get proper instance)
+//    rc = this("RCname4").clone();
+//
+//    // change its name & type to 'module' (via '$' flag)
+//    // a shortcut to this is `rc = this("$RCname4").clone();`,
+//    // which searches and changes name.
+//    rc.name = '$MyRCname4';
+//
+//    // add some file specs to `filez`
+//    rc.filez.push('!**/DRAFT*.*');
+//    // return the new RC.
+//    return rc;
+//  }
+//  ...
+//  ]
 ```      
     
 If the function returns null or undefined, its not added to the Array.
@@ -211,24 +283,37 @@ If the function returns null or undefined, its not added to the Array.
 
 A dummy example follows (in coffeescript) :
 ```
-resources: [   #example - not part of coffee.md source
-  # search registered RC 'teacup' & use as-is
-  'teacup'                                      
+# example - not part of coffee.md source
+resources:
+[
+# search registered RC 'teacup' & use as-is
+'teacup'
 
-  # search, clone, change, return in one line
-  -> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
+# search, clone, change, return in one line
+-> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
 
-  # define a new RC, with the fancy [] RC-spec
-  ['$coocoo', [ '**/*.coo'], ((r)-> require('coocoo').compile r.source), '.js']
-  
-  # define a new RC, with the grandaddy {} RC-spec
-  {
-   name: 'kookoo'
-   type: 'module'
-   filez: [ '**/*.koo']
-   convert: (r)-> require('kookoo').compile r.source
-   convFilename: '.js'
-  }
+# define a new RC, with the fancy [] RC-spec
+['$coco', ['**/*.co'], ((r)-> require('coco').compile r.source), '.js']
+
+# define a new RC, with the grandaddy {} RC-spec
+{
+ name: 'kookoo'
+ type: 'module'
+ filez: [ '**/*.koo']
+ convert: (r)-> require('kookoo').compile r.source
+ convFilename: '.js'
+}
+
+# define a new RC, and reuse an existing
+# with the magic search-create-alter function
+# passed as `this` (@ in coffeescript)
+->
+  # lookup an existing
+  kookoo = @ 'kookoo'
+
+  # generate a new one, that uses `kookoo.convert`
+  # and return it (note coffeescript returns last expression)
+  @ ['$doodoo', [ '**/*.doo'], kookoo.convert, '.js']
 ]
 ```
 
@@ -250,7 +335,7 @@ Copy (binary & sync) of all non-resource [bundle.filez](MasterDefaultsConfig.cof
 
 @type see [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez)
 
-@derive [ArrayizePush](MasterDefaultsConfig.coffee#tags-legend).
+@derive [ArrayizePush](#ArrayizePush).
 
 @alias `copyNonResources` DEPRECATED
 
@@ -286,7 +371,7 @@ Its the same as using the `node!` fake plugin, eg `require('node!my_fs')`, but p
 
 @type String or Array<String>
 
-@derive [ArrayizeUniquePush](MasterDefaultsConfig.coffee#tags-legend).
+@derive [ArrayizeUniquePush](#ArrayizeUniquePush).
 
 @example `node: ['myUtil', 'my_fs']`
 
@@ -328,7 +413,7 @@ Alternative @type: `depsVars` type is used in many other places (eg [`bundle.dep
 
  * String: eg `'dep'`, with just one dep, again with inferred binding variable(s).
 
-@derive Each dependency name/key of child configs is added to the resulted object, if not already there. Its variables are then [ArrayizeUniquePush](MasterDefaultsConfig.coffee#tags-legend)-ed onto the array. 
+@derive Each dependency name/key of child configs is added to the resulted object, if not already there. Its variables are then [ArrayizeUniquePush](#ArrayizeUniquePush)-ed onto the array.
 
 For example with a parent `{myDep1: ['myDep1Var1', 'myDep1Var2']}` and a child `{myDep1: ['myDep1Var1', 'myDep1Var3'], myDep2: 'myDep2Var'}` the result derived object will be `{myDep1: ['myDep1Var1', 'myDep1Var2', 'myDep1Var3'], myDep2: ['myDep2Var']}`.
 
@@ -616,20 +701,25 @@ The `'urequire:uberscore'` task:
   * adds a banner (after UMD template conversion)
 
 ```coffeescript
-urequire: {
-  uberscore:
-    filez: ['**/*.*', '!draft/*.*']
-    path: "#{sourceDir}"
-    dstPath: "#{buildDir}"
-    copy: [/./]
-    dependencies: exports:
-      bundle: ['lodash', 'agreement/isAgree']
-      root: 'uberscore': '_B'
-    resources: [
-      [ '~+inject:VERSION', ['uberscore.coffee'], (m)-> m.beforeBody = "var VERSION='#{pkg.version}';"]
-      [ '!banner:uberscore', ['uberscore.js'], (r)->"#{banner}\n#{r.converted}" ]
-    ]
-}
+uberscore:
+  filez: ['**/*.*', '!draft/*.*']
+  path: "#{sourceDir}"
+  dstPath: "#{buildDir}"
+  copy: [/./]
+  dependencies: exports:
+    bundle: ['lodash', 'agreement/isAgree']
+    root: 'uberscore': '_B'
+
+  resources: [
+     # as comments cause literate coffeescript considers
+     # indented lines as code, even in ` ` ` blocks
+
+#    [ '~+inject:VERSION', ['uberscore.coffee'],
+#      (m)-> m.beforeBody = "var VERSION='#{pkg.version}';"]
+#
+#    [ '!banner:uberscore', ['uberscore.js'],
+#      (r)->"#{banner}\n#{r.converted}" ]
+  ]
 ```
 
 The `'urequire:min'` task :
@@ -638,7 +728,7 @@ The `'urequire:min'` task :
   * filters some more `filez`
   * converts to a single `uberscore-min.js` with `combined` template (r.js/almond)
   * uglifies the combined file with some `uglify2` settings
-  * injects different deps in each module
+  * injects **different deps** in each module than its parent
   * manipulates each module:
    * removes some matched code 'skeletons'
    * replaces some deps in arrays, `require`s etc
@@ -652,21 +742,29 @@ The `'urequire:min'` task :
    template: 'combined'
    main: 'uberscore'
    optimize: {uglify2: output: beautify: true}
-   dependencies: exports:  bundle: [[null], 'underscore', 'agreement/isAgree']
+   dependencies: exports: bundle: [
+     [null], 'underscore', 'agreement/isAgree']
    resources: [
-     [
-       '+remove:debug/deb & deepExtend', [/./]
-#       # as comments cause literate coffeescript considers indented lines as code, even in ` ` ` blocks
+#       # as comments cause literate coffeescript considers
+#       # indented lines as code, even in ` ` ` blocks
+#     [
+#       '+remove:debug/deb & deepExtend', [/./]
+#
 #       (m)->
-#         for code in ['if (l.deb()){}', 'if (this.l.deb()){}', 'l.debug()', 'this.l.debug()']
+#         for code in ['if (l.deb()){}', 'if (this.l.deb()){}',
+#                      'l.debug()', 'this.l.debug()']
 #           m.replaceCode code
 #
 #         m.replaceDep 'lodash', 'underscore'
 #
 #         if m.dstFilename is 'uberscore.js'
-#           m.replaceCode { type: 'Property', key: {type: 'Identifier', name: 'deepExtend'}}
+#           m.replaceCode {
+#             type: 'Property'
+#             key: {type: 'Identifier', name: 'deepExtend'}
+#           }
+#
 #           m.replaceDep 'blending/deepExtend'
-     ]
+#    ]
    ]
 ###
 ```
@@ -681,7 +779,8 @@ watch:
 
   min:
     files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
-    tasks: ['urequire:min', 'urequire:specCombined', 'concat:specCombinedFakeModuleMin', 'mochaDev', 'run']
+    tasks: ['urequire:min', 'urequire:specCombined',
+            'concat:specCombinedFakeModuleMin', 'mochaDev', 'run']
 
   options: spawn: false
 ```

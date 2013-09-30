@@ -62,7 +62,11 @@ bundle: resources : [
   
   "RCname3"
 
-  function(){ rc = this("RCname4").clone(); rc.filez.push '!**/DRAFT*.*'; return rc} 
+  function(){
+    rc = this("RCname4").clone();
+    rc.filez.push '!**/DRAFT*.*';
+    return rc;
+  }
 ]
 
 ```
@@ -219,11 +223,14 @@ needed internally to decide whether the file has changed at all (at watch events
   sourceMapInfo will be:
 
   ```
-  { file:"file.js", sourceRoot:"../../source/code", sources:["file.coffee"],
-  sourceMappingURL="
-      /*
-      //@ sourceMappingURL=file.js.map
-      */"
+  sourceMapInfo: {
+    file: "file.js",
+    sourceRoot: "../../source/code"
+    sources: ["file.coffee"]
+    sourceMappingURL="
+        /*
+        //@ sourceMappingURL=file.js.map
+        */"
   }
   ```
 
@@ -295,7 +302,7 @@ Paradoxically, a *FileResource* instance has instance methods to `read()` and `s
 
  You can use `read()` on demand from within `convert()`, for example:  
  ```
-    convert: function(fileResource){ return 'Banner' + fileResource.read()}
+ convert: function(fileResource){return 'Banner' + fileResource.read()}
  ```
 
  Note: Use the static `resource.constructor.read()` method to skip default `filename` & `bundle.path` appending.
