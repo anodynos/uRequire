@@ -15,9 +15,9 @@ NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/ma
 A `config` determines a `bundle` and a `build` that uRequire will process. A config is an object with the expected keys and can be used as:
 
 * **File based**, using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module file that exports the `config` object. The file can actually be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
- The value of an 'XXX' ['derive'](#derive)d parent in a file-based config can be another file `configFilename.yml`, relative to the 1st children's path. @todo: make relative to each children's path).
+ The value of an 'XXX' ['derive'](#deriving)d parent in a file-based config can be another file (eg `configFilename.yml`), relative to the 1st children's path. @todo: make relative to each children's path).
 
-* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The main difference is that a XXX ['derive'](#derive)d parent in grunt-urequire config can be another `urequire:XXX` task, and if none is found then its assumed to be a filename, relative to grunt's config.
+* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The main difference is that a XXX ['derive'](#deriving)d parent in grunt-urequire config can be another `urequire:XXX` task, and if none is found then its assumed to be a filename, relative to grunt's config.
 
 * Within your tool's code, [using `urequire.BundleBuilder`](Using-uRequire#Using-within-your-code).
 
@@ -711,8 +711,9 @@ uberscore:
     root: 'uberscore': '_B'
 
   resources: [
-     # as comments cause literate coffeescript considers
-     # indented lines as code, even in ` ` ` blocks
+
+#    # as comments cause literate coffeescript considers
+#    # indented lines as code, even in ` ` ` blocks
 
 #    [ '~+inject:VERSION', ['uberscore.coffee'],
 #      (m)-> m.beforeBody = "var VERSION='#{pkg.version}';"]
@@ -745,8 +746,10 @@ The `'urequire:min'` task :
    dependencies: exports: bundle: [
      [null], 'underscore', 'agreement/isAgree']
    resources: [
-#       # as comments cause literate coffeescript considers
-#       # indented lines as code, even in ` ` ` blocks
+
+#     # as comments cause literate coffeescript considers
+#     # indented lines as code, even in ` ` ` blocks
+
 #     [
 #       '+remove:debug/deb & deepExtend', [/./]
 #

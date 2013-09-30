@@ -415,8 +415,11 @@ For example :
 resources: [
   ...
   [
-    '+remove:debug/deb', [/./]                              
-    function(modyle){ modyle.replaceCode('if (l.deb()){}');}                      
+    '+remove:debug/deb', [/./]
+
+    # perform the replacement / deletion
+    # note: return value is ignored in '+' `isBeforeTemplate` RCs
+    (modyle)-> modyle.replaceCode 'if (l.deb()){}'
   ]
   ...  
 ]
@@ -440,7 +443,10 @@ will remove all code that matches the `'if (l.deb()){}'` skeleton.
 
 For example 
 ```
-  module.injectDeps({ 'lodash':'_', 'models/Person':['persons', 'personsModel']})
+  module.injectDeps({
+    'lodash': '_',
+    'models/Person': ['persons', 'personsModel']
+  });
 ```  
 
 The deps are (the keys of the object) are always given in [bundleRelative](#bundlerelative-vs-filerelative-paths) format.
@@ -468,22 +474,33 @@ The following code [(that is actually part of uRequire's code)](#Literate-Coffes
 This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-Converter):
 
         {
-          name: '$javascript'             # '$' flag denotes `type: 'module'`.
+          # name - with a '$' flag to denote `type: 'module'`.
+          name: '$javascript'
 
-          descr: "Dummy js converter, does nothing much but marking `.js` files as `Module`s."
+          descr: "Dummy js converter, justs marks `.js` files as `Module`s."
 
-          filez: [                        # type is `bundle.filez`, matches files RC is attached to
-            '**/*.js'                     # minimatch string, with exclusions as '!**/*temp.*'
-                                          # RegExps work as well, with[.., `'!', /myRegExp/`] for exclusions
+          # type is `bundle.filez`, matches files RC deals with
+          filez: [
+            # minimatch string, with exclusions as '!**/*temp.*'
+            '**/*.js'
+
+            # RegExps as well, with[.., `'!', /myRegExp/`] for exclusions
             /.*\.(javascript)$/
+
+
+            # a `function(filename){}` also valid, with '!' for exclusion
           ]
 
-          convert: (r)-> r.source         # javascript needs no compilation - just return source as is
+          # javascript needs no compilation - returns source as is
+          # could have `undefined` in its place
+          convert: (r)-> r.source
 
-          convFilename: (srcFilename)->   # convert .js | .javascript to .js
+          # convert .js | .javascript to .js
+          convFilename: (srcFilename)->
             (require '../paths/upath').changeExt srcFilename, 'js'
 
-          type: 'module'                  # not needed, we have '$' flag to denote `type: 'module'`
+          # not needed, we have '$' flag to denote `type: 'module'`
+          type: 'module'
 
           # these are defaults, can be omitted
           isAfterTemplate: false
@@ -496,34 +513,57 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
 This RC is using an [] instead of {}. Key names of RC are assumed from their posision in the array:
 
         [
-          '$coffee-script'                                           # `name` & flags as a String at pos 0
+          # `name` & flags as a String at pos 0
+          '$coffee-script'
 
-                                                                     # `descr` at pos 1
-          "Coffeescript compiler, using the locally installed 'coffee-script' npm package. Uses `bare:true`."
+          # `descr` at pos 1
+          "Coffeescript compiler, using locally installed 'coffee-script'."
 
-          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]           # `filez` [] at pos 2
+          # `filez` [] at pos 2
+          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]
 
-          (r)->                                                      # `convert` Function at pos 3
-             coffee = require 'coffee-script'                        # 'coffee-script' must be in 'node_modules'
-             coffee.compile r.source                                 # return converted source
+          # `convert` Function at pos 3
+          (r)->
+             # 'coffee-script' must be in 'node_modules',
+             # only if any 'coffee' file matches
+             coffee = require 'coffee-script'
 
-          (srcFn)->                                                  # `convFilename` Function at pos 4
-            coffeeExtensions = /.*\.(coffee\.md|litcoffee|coffee)$/  # RexExp for all coffeescript extensions
-            ext = srcFn.replace coffeeExtensions , "$1"              # retrieve matched extension
-            srcFn.replace (new RegExp ext+'$'), 'js'                 # replace it and return new filename
+             # return converted source
+             coffee.compile r.source
+
+          # `convFilename` Function at pos 4
+          (srcFn)->
+
+            # RexExp for all coffeescript extensions
+            coffeeExtensions =   /.*\.(coffee\.md|litcoffee|coffee)$/
+
+            # retrieve matched extension
+            ext = srcFn.replace coffeeExtensions , "$1"
+
+            # replace it and return new filename
+            srcFn.replace (new RegExp ext+'$'), 'js'
         ]
 
 ### The alternative, even shorter `[]` way
 
         [
-          '$LiveScript'                                    # `name` at pos 0
-          [ '**/*.ls']                                     # if pos 1 is Array, its `filez` (& undefined `descr`)
-          (r)->(require 'LiveScript').compile r.source     # `convert` Function at pos 2
-          '.js'                                            # if `convFilename` is String starting with '.',
-        ]                                                  # it denotes an extension replacement of `dstFilename`
-                                                           # if `~` flag is used, eg `~.js`, ext replacement is applied on `srcFilename`
+          '$LiveScript'
 
-### The shortest way ever, a one-liner converter!
+          # if pos 1 is Array, its `filez` (& undefined `descr`)
+          [ '**/*.ls']
+
+          # `convert` Function at pos 2
+          (r)->(require 'LiveScript').compile r.source
+
+          # if `convFilename` is String starting with '.',
+          # it denotes an extension replacement of `dstFilename`
+          # if `~` flag was used, eg `~.js`, ext replacement
+          # would be applied on `srcFilename`
+          '.js'
+        ]
+
+
+### The shortest way ever, one-liner, no comments converters!
 
         [ '$iced-coffee-script', [ '**/*.iced'], ((r)-> require('iced-coffee-script').compile r.source), '.js']
 
@@ -549,19 +589,28 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
          '@~teacup'
          """
           Renders teacup as nodejs modules (exporting the template function or a `renderable`), to HTML.
-          FileResource means the file's source is not read/refreshed.
+          `FileResource` means the file's source is not read on resource.refresh().
          """
          ['**/*.teacup']
+
+         # our `convert()` function is a Immediate Function Invocation
+         # that returns the real `convert` fn.
          do ->
-            require.extensions['.teacup'] = 
-                require.extensions['.coffee']              # register extension once, as a node/coffee module
-            (r)->                                          # our `convert()` function
-              template = r.requireUncached r.srcRealpath   # Clear nodejs caching with `requireUncached` helper 
-                                                           # and get the `realpath` of module's location.
-              (require 'teacup').render template           # require `teacup` on demand from project's 
-                                                           # `node_modules` and return rendered string
-                                                            
-         '.html'                                           # starting with '.' is an extension replacement
+            # register extension once, as a node/coffee module
+            require.extensions['.teacup'] = require.extensions['.coffee']
+
+            # our real, IFI returned `convert()` function
+            (r)->
+              # Clear nodejs caching with `requireUncached` helper
+              # and get the `realpath` of module's location.
+              template = r.requireUncached r.srcRealpath
+
+              # require `teacup` on demand from project's `node_modules`
+              # and return rendered string
+              (require 'teacup').render template
+
+         # starting with '.' is an extension replacement
+         '.html'
       ]
 
 # Finito 
@@ -569,6 +618,9 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
 Just export default and extra RCs and go grab a cup of coffee!
 
     module.exports = {
-      defaultResourceConverters       # used as is by `bundle.resources`
-      extraResourceConverters         # registered on `ResourceConverter` registry, instantiated on demand.
+      # used as is by `bundle.resources`
+      defaultResourceConverters
+
+      # registered on `ResourceConverter` registry, instantiated on demand.
+      extraResourceConverters
     }
