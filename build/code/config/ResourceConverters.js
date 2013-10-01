@@ -61,33 +61,35 @@ extraResourceConverters = {
       };
     })(), '.html'
   ],
-  execSync: (function() {
-    var execSync;
-    execSync = require('execSync');
-    return [
-      '@~execSync', [], function(r) {
-        var command, procFilename, result;
-        procFilename = this.srcMain ? r.bundle.path + '/' + this.srcMain : r.srcFilepath;
-        command = (function() {
-          if (_.isString(this.cmd)) {
-            return "" + this.cmd + " " + procFilename;
-          } else {
-            if (_.isFunction(this.cmd)) {
-              return this.cmd(procFilename);
+  execSync: function() {
+    return (function() {
+      var execSync;
+      execSync = require('execSync');
+      return [
+        '@~execSync', [], function(r) {
+          var command, procFilename, result;
+          procFilename = this.srcMain ? r.bundle.path + '/' + this.srcMain : r.srcFilepath;
+          command = (function() {
+            if (_.isString(this.cmd)) {
+              return "" + this.cmd + " " + procFilename;
             } else {
-              throw "execSync derived ResourceConverter '" + this.name + "'\n`cmd` is not String or Function. `cmd` = " + this.cmd;
+              if (_.isFunction(this.cmd)) {
+                return this.cmd(procFilename);
+              } else {
+                throw "execSync derived ResourceConverter '" + this.name + "'\n`cmd` is not String or Function. `cmd` = " + this.cmd;
+              }
             }
+          }).call(this);
+          l.debug(50, 'execSync.exec: "' + command + '"');
+          result = execSync.exec(command);
+          if (result.code !== 0) {
+            throw result.stdout;
           }
-        }).call(this);
-        l.debug(50, 'execSync.exec: "' + command + '"');
-        result = execSync.exec(command);
-        if (result.code !== 0) {
-          throw result.stdout;
+          return result.stdout;
         }
-        return result.stdout;
-      }
-    ];
-  })(),
+      ];
+    })();
+  },
   lessc: function() {
     return _.extend((this('@execSync')).clone(), {
       name: 'lessc',

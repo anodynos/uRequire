@@ -50,7 +50,6 @@
   "escodegen": "0.0.x",
   "esmangle": "0.0.x",
   "esprima": "1.0.x",
-  "execSync": "1.0.x",
   "gaze": "0.4.x",
   "glob-expand": "0.0.2",
   "minimatch": "~0.2.12",

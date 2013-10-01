@@ -629,7 +629,13 @@ There **is a special `srcMain` mode** integrated with uRequire: if there is a pr
 filename that is really processed, instead of the actual changed file. It results to a single file conversion, saved as 'dstFilename'.
 Useful if your want to convert `main.less` only, whenever any of your `./layout/*.less` files change - see below for an example.
 
-      execSync: do ->
+Note: this RC uses the 'execSync' npm package, which IS NOT in urequire's dependencies (windows headaches) - add it to your project's.
+
+      # Use an enclosing function to make it lazy,
+      # cause 'execSync' is deliberatelly not in package.json
+      # RC registry takes care of nested functions
+      execSync: -> do->
+
         # keep these in the closure of the IFI
         execSync = require('execSync')
 
