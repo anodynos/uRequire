@@ -1,7 +1,7 @@
 {
  "name": "urequire",
  "description": "Convert AMD & commonjs modules to commonjs, AMD, UMD or single `.js` and run/test on nodejs, Browser/AMD or Browser/Script.",
- "version": "0.6.1-02",
+ "version": "0.6.2",
  "homepage": "http://urequire.org",
  "author": {
   "name": "Agelos Pikoulas",
@@ -25,14 +25,16 @@
   "url": "git://github.com/anodynos/urequire"
  },
  "bugs": {
-   "url": "git://github.com/anodynos/uBerscore/issues",
+   "url": "http://github.com/anodynos/uRequire/issues",
    "email": "agelos.pikoulas@gmail.com"
  },
  "bin": {
   "urequire": "./build/code/urequireCmd.js"
  },
  "main": "./build/code/urequire.js",
- "test": "mocha build/spec --recursive --bail --reporter spec",
+ "scripts": {
+   "test": "mocha"
+ },
  "directories": {
   "doc": "./doc",
   "dist": "./build"
@@ -48,6 +50,7 @@
   "escodegen": "0.0.x",
   "esmangle": "0.0.x",
   "esprima": "1.0.x",
+  "execSync": "1.0.x",
   "gaze": "0.4.x",
   "glob-expand": "0.0.2",
   "minimatch": "~0.2.12",
@@ -64,6 +67,7 @@
   "grunt-contrib-copy": "0.4.x",
   "grunt-contrib-concat": "0.1.x",
   "grunt-shell": "~0.3.x",
-  "grunt-contrib-watch": "~0.5.3"
+  "grunt-contrib-watch": "~0.5.3",
+  "mocha":"1.13.x"
  }
 }

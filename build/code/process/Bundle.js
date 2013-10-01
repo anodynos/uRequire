@@ -270,7 +270,7 @@ Bundle = (function(_super) {
 
 
   Bundle.prototype.loadOrRefreshResources = function(filenames) {
-    var bf, dstFilename, err, filename, isNew, lastResourcesWithClazz, matchedConverters, resConv, resourceClass, sameDstFile, _i, _j, _len, _len1, _ref, _ref1,
+    var bf, dstFilename, err, filename, isNew, lastResourcesWithClazz, lastSrcMain, matchedConverters, resConv, resourceClass, sameDstFile, _i, _j, _len, _len1, _ref, _ref1,
       _this = this;
     if (filenames == null) {
       filenames = this.filenames;
@@ -281,8 +281,9 @@ Bundle = (function(_super) {
     for (_i = 0, _len = filenames.length; _i < _len; _i++) {
       filename = filenames[_i];
       isNew = false;
-      if (!this.files[filename]) {
+      if (!(bf = this.files[filename])) {
         isNew = true;
+        lastSrcMain = void 0;
         matchedConverters = [];
         dstFilename = filename;
         _ref = this.resources;
@@ -291,6 +292,9 @@ Bundle = (function(_super) {
           if (isFileInSpecs((resConv.isMatchSrcFilename ? filename : dstFilename), resConv.filez)) {
             if (_.isFunction(resConv.convFilename)) {
               dstFilename = resConv.convFilename(dstFilename, filename);
+            }
+            if (resConv.srcMain) {
+              lastSrcMain = resConv.srcMain;
             }
             matchedConverters.push(resConv);
           }
@@ -302,17 +306,20 @@ Bundle = (function(_super) {
         if (l.deb(80)) {
           l.debug("New *" + resourceClass.name + "*: '" + filename + "'");
         }
-        this.files[filename] = new resourceClass({
+        bf = this.files[filename] = new resourceClass({
           bundle: this,
           srcFilename: filename,
-          converters: matchedConverters
+          converters: matchedConverters,
+          srcMain: lastSrcMain
         });
-      } else {
-        if (l.deb(80)) {
-          l.debug("Refreshing existing resource: '" + filename + "'");
-        }
       }
-      bf = this.files[filename];
+      if (bf.srcMain && this.build.current[bf.srcMain]) {
+        l.debug(60, "Skipping refresh/conversion(s) of '" + bf.srcFilename + "', as part of converted @srcMain='" + bf.srcMain + "'.");
+        continue;
+      }
+      if (l.deb(80)) {
+        l.debug("Refreshing " + bf.constructor.name + ": '" + filename + "'");
+      }
       try {
         if (bf.refresh()) {
           this.build.addChangedBundleFile(filename, bf);
@@ -341,7 +348,10 @@ Bundle = (function(_super) {
           bf.hasErrors = false;
         }
       }
-      if (isNew) {
+      if (bf.srcMain) {
+        this.build.current[bf.srcMain] = true;
+      }
+      if (isNew && !bf.srcMain) {
         if (sameDstFile = _.find(this.files, function(f) {
           return (f.dstFilename === bf.dstFilename) && (f !== bf);
         })) {
@@ -482,7 +492,7 @@ Bundle = (function(_super) {
           continue;
         }
         if (res.hasErrors) {
-          l.er("Not saving '" + res.dstFilename + "' (resource '" + res.srcFilename + "') cause it has errors.");
+          l.er("Not saving with errors: '" + res.dstFilename + "' (srcFilename = '" + res.srcFilename + "').");
         } else {
           if (res.converted && _.isString(res.converted)) {
             try {
@@ -499,7 +509,7 @@ Bundle = (function(_super) {
               }));
             }
           } else {
-            l.debug(80, "Not saving " + res.dstFilename + " cause its not a non-empty String.");
+            l.debug(80, "Not saving non-String: '" + res.srcFilename + "' as '" + res.dstFilename + "'.");
           }
         }
         res.hasChanged = false;

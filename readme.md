@@ -1,4 +1,6 @@
-# uRequire v0.6.1
+# uRequire v0.6.2
+
+[![Build Status](https://travis-ci.org/anodynos/uRequire.png)](https://travis-ci.org/anodynos/uRequire)
 
 ## The JavaScript Universal Module & Resource Converter
 

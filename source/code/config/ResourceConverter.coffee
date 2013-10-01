@@ -37,27 +37,26 @@ class ResourceConverter
       return {}
 
   update: (rc)->
-    _.extend @, rc
+    if rc isnt @
+      _.extend @, rc
 
-    # checks
-    if @isModule # isModule is DEPRACATED but still supported (till 0.5 ?) #@todo: cater for `@isModule === false`
-      l.warn "DEPRACATED key 'isModule' found in ResourcesConverter with `name: '#{rc.name}'`. Use `type: 'module'` instead."
-      rc.type = 'module'
+      # checks
+      if @isModule # isModule is DEPRACATED but still supported (till 0.5 ?) #@todo: cater for `@isModule === false`
+        l.warn "DEPRACATED key 'isModule' found in ResourcesConverter with `name: '#{rc.name}'`. Use `type: 'module'` instead."
+        rc.type = 'module'
 
-    # defaults
-    @descr or= "No descr for ResourceConverter '#{@name}'"
-    @isTerminal ?= false
-    @isAfterTemplate ?= false
-    @isBeforeTemplate ?= false
-    @isMatchSrcFilename ?= false
-
-#    l.log "Returning new RC '#{@name}' with clazz.name = #{@clazz?.name}"
+      # defaults
+      @descr or= "No descr for ResourceConverter '#{@name}'"
+      @isTerminal ?= false
+      @isAfterTemplate ?= false
+      @isBeforeTemplate ?= false
+      @isMatchSrcFilename ?= false
+    @
 
   clone: ->
     # make sure it's initializd properly
     rc = _.pick @, ['name', 'descr', 'filez', 'convert', 'isTerminal', 'isAfterTemplate', 'isMatchSrcFilename', 'type']
-    rc.convFilename = @[' convFilename'] # get the original convFilename (eg '.js')
-
+    rc.convFilename = @[' convFilename'] if @[' convFilename'] # get the original convFilename (eg '.js')
     new ResourceConverter rc
 
   # turn name, type & convFilename into getter/setter properties, so they can be updated
@@ -75,11 +74,11 @@ class ResourceConverter
           nameFlagsActions[flag] @
           name = name[1..]  # remove 1st char
 
-        #rename on registry
         oldName = @[' name']
-        if registry[oldName]
-          delete registry[oldName]
-          registry[name] = @
+        if (ResourceConverter.registry[oldName] is @) and (name isnt oldName)
+          l.warn "Renaming RC '#{oldName}' to '#{name}' on ResourceConverter.registry."
+          delete ResourceConverter.registry[oldName]
+          ResourceConverter.registry[name] = @
 
         @[' name'] = name # human display value & value holder
 
@@ -89,116 +88,110 @@ class ResourceConverter
       get: -> @[' type']
       set: (type)->
         if type not in types = ['bundle', 'file', 'text', 'module']
-          l.er uerr = "invalid resourceConverter.type '#{type}' - must be in [#{types.join ','}]"
+          l.er uerr = "Invalid resourceConverter.type '#{type}' - must be in [#{types.join ','}]"
           throw new UError uerr
 
         @[' type'] = type # human display value & value holder
 
-        # set and hide clazz
-        Object.defineProperty @, 'clazz',
-          enumerable: false
-          configurable: true
-          value: switch type
-            #note late loading cause of some circular deps on specs
-            when 'bundle' then require '../fileResources/BundleFile'
-            when 'file' then require '../fileResources/FileResource'
-            when 'text' then require '../fileResources/TextResource'
-            when 'module' then require '../fileResources/Module'
+    clazz:
+      get:->
+        switch @type
+          #note late loading cause of some circular deps on specs
+          when 'bundle' then require '../fileResources/BundleFile'
+          when 'file' then require '../fileResources/FileResource'
+          when 'text' then require '../fileResources/TextResource'
+          when 'module' then require '../fileResources/Module'
 
     # changes the `convFilename` to a function if a String
     convFilename:
+      enumerable: true
       get: -> @_convFilename
       set: (cf)->
-        @[' convFilename'] = cf # display original value
+        if cf
+          @[' convFilename'] = cf # display original value
 
-        if _.isString cf
-          # consume flags
-          if cf[0] is '~'
-            cf = cf[1..]
-            isSrcFilename = true
+          if _.isString cf
+            if cf[0] is '~' # consume flags
+              cf = cf[1..]
+              isSrcFilename = true
 
-          if cf[0] is '.'
-            # change filename extension
-            cf =
-              do (ext=cf)->
-                (dstFilename, srcFilename)->
-                  # By default it replaces `dstFilename`, with `~` flag it replaces `srcFilename`
-                  upath.changeExt (if isSrcFilename then srcFilename else dstFilename), ext
+            if cf[0] is '.' # change filename extension
+              cf =
+                do (ext=cf)->
+                  (dstFilename, srcFilename)-> # replaces `dstFilename`, with `~` flag it replaces `srcFilename`
+                    upath.changeExt (if isSrcFilename then srcFilename else dstFilename), ext
 
-          else # a fn that returns the `convFilename` String
-            cf = do (filename=cf)-> -> filename
+            else # a fn that returns the `convFilename` String
+              cf = do (filename=cf)-> -> filename
 
-        else # some checks
-          if not (_.isFunction(cf) or _.isUndefined(cf))
-            l.er uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined."
-            throw new UError uerr, nested:err
+          else # some checks
+            if not (_.isFunction(cf) or _.isUndefined(cf))
+              l.er uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined."
+              throw new UError uerr, nested:err
 
-        # set and hide value holder
-        Object.defineProperty @, '_convFilename', {value:cf, enumerable:false, configurable:true}
-
+          # set and hide value holder @todo: NOT WORKING
+          #Object.defineProperty @, '_convFilename', {value:cf, enumerable:false, configurable:true}
+          @_convFilename = cf
 
   ### ResourceConverters Registry functions ###
+  @registry = require('./ResourceConverters').extraResourceConverters
 
-  registry = require('./ResourceConverters').extraResourceConverters
-  @registry = registry #@todo: export safely
+  # A higly argument overloaded function:
+  #
+  # Searches and returns an RC by name (string). Flags on searchName update found RC.
+  # Add an non-existent RC
+  # Finds and updates an existing/registered RC (by an RC or rc spec)
+  #
+  # @param rc :
+  #   String name - eg 'coffee-script' or '#coffee-script' which finds and applies flags to found RC
+  #   ResourceConverter instance, which updates the one found if it exists by the same name
+  #   formal or informal spec (Object or Array notation), instantiated as RC instance, update existing if it exists.
+  #
+  # @return The new or found and/or Updated ResourceConverter instance.
+  @searchRegisterUpdate: (rc)->
+    if _.isString rc
+      name = rc
+      # strip nameFlags for searchNameOrRC's sake
+      while name[0] in nameFlags then name = name[1..]  
+      # lookup registry with name (without flags)
+      if rcResult = ResourceConverter.registry[name]
+        if not (rcResult instanceof ResourceConverter)
+          rcResult = ResourceConverter.registry[name] = new ResourceConverter rcResult
+          #l.warn "Instantiated a registered, non instance ResourceConverter while searching for '#{searchNameOrRC}'."
 
-  #add or update the given RC (formal ResourceConverter or an informal descr)
-  #@return The new or Updated ResourceConverter instance
-  @register: (rc)->
-    rcInReg = rc = new ResourceConverter rc
-    if rc and !_.isEmpty(rc)
-      # Check the registry for existing RC (instance or RC-spec) under 'name'
-      if rcInReg = registry[rc.name] # find by rc.name
-        if not (rcInReg instanceof ResourceConverter)
-          rcInReg = registry[rc.name] = new ResourceConverter rcInReg
-          #l.warn "Instantiated a registered, but non-RC instance ResourceConverter '#{rcInReg.name}'."
-
-        rcInReg.update rc # always update with passed rc
-        #l.warn "Updated existing ResourceConverter #{rcInReg.name}'."
-
-      else # not found by rc.name - create & register a new one
-        rcInReg = rc
-        registry[rcInReg.name] = rcInReg
-        #l.warn "Instantiated and registered a *new* ResourceConverter '#{rcInReg.name}'"
-
-    rcInReg
-
-  # search by String name, returns RC if found, registers otherwise
-  @search: (searchNameOrRC)=>
-    if !_.isString searchNameOrRC
-      return @register searchNameOrRC
-
-    name = searchNameOrRC
-
-    # strip nameFlags for searchNameOrRC's sake
-    while name[0] in nameFlags then name = name[1..]
-
-    # lookup registry with name (without flags)
-    if rcInReg = registry[name]
-
-      if not (rcInReg instanceof ResourceConverter)
-        rcInReg = registry[name] = new ResourceConverter rcInReg
-        #l.warn "Instantiated a registered, non instance ResourceConverter while searching for '#{searchNameOrRC}'."
-
-      # set found RC's 'name' to 'searchNameOrRC', to apply nameFlags in one go!
-      rcInReg.name = searchNameOrRC
+        rcResult.name = rc # apply nameFlags of rc String
+      else
+        throw new UError "ResourceConverter not found in registry with name = #{name}, searchNameOrRC = #{searchNameOrRC}"
 
     else
-      throw new UError "ResourceConverter not found in registry with name = #{name}, searchNameOrRC = #{searchNameOrRC}"
+      if not (rc instanceof ResourceConverter)
+        rcResult = rc = new ResourceConverter rc
 
-    rcInReg
+      if rc and !_.isEmpty(rc)
+        # Check the registry for existing RC (instance or RC-spec) under 'name'
+        if rcFound = ResourceConverter.registry[rc.name] # find by rc.name
+          if not (rcFound instanceof ResourceConverter)
+            rcFound = new ResourceConverter rcFound
+            #l.warn "Instantiated a registered, but non-RC instance ResourceConverter '#{rcResult.name}'."
 
+          rcResult = ResourceConverter.registry[rc.name] = rcFound.update rc # always update with passed rc
+          #l.warn "Updated existing ResourceConverter #{rcResult.name}'."
+
+        else # not found by rc.name - create & register a new one
+          rcResult = ResourceConverter.registry[rcResult.name] = rc
+          #l.warn "Instantiated and registered a *new* ResourceConverter '#{rcResult.name}'"
+    rcResult
 
   # @param rc either the {}, [] or  -> representation of an RC
   # @return the {} representation of an RC
   getResourceConverterObject = (rc)->
 
     if _.isFunction rc
-      rc = rc.call ResourceConverter.search, ResourceConverter.search
+      rc = rc.call ResourceConverter.searchRegisterUpdate, ResourceConverter.searchRegisterUpdate
       return getResourceConverterObject rc                              # returned rc might still be a ->, [] or {}
 
     if _.isString rc
-      return getResourceConverterObject ResourceConverter.search rc
+      return getResourceConverterObject ResourceConverter.searchRegisterUpdate rc
 
     if _.isArray rc
       if _.isString(rc[1]) and                                          # possibly a `descr` @ pos 1, if followed

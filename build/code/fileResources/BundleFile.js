@@ -133,7 +133,7 @@ BundleFile = (function() {
         compStats = ['mtime', 'size'];
         if (_.isEqual(_.pick(srcStats, compStats), _.pick(fs.statSync(dstFile), compStats))) {
           if (l.deb(80)) {
-            l.debug("NOT copying same src & dst files: srcFile='" + srcFile + "', dstFile='" + dstFile + "'");
+            l.debug("NOT copying same: srcFile='" + srcFile + "', dstFile='" + dstFile + "'");
           }
           return false;
         }

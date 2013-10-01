@@ -91,7 +91,7 @@ class BundleFile
       if fs.existsSync dstFile
         compStats = ['mtime', 'size']
         if _.isEqual (_.pick srcStats, compStats), (_.pick fs.statSync(dstFile), compStats)
-          l.debug("NOT copying same src & dst files: srcFile='#{srcFile}', dstFile='#{dstFile}'") if l.deb 80
+          l.debug("NOT copying same: srcFile='#{srcFile}', dstFile='#{dstFile}'") if l.deb 80
           return false
 
     l.debug("copy {src='#{srcFile}', dst='#{dstFile}'}") if l.deb 40

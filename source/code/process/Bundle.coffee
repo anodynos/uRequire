@@ -190,8 +190,9 @@ class Bundle extends BundleBase
     for filename in filenames
       isNew = false
 
-      if not @files[filename] # a new filename
+      if not bf = @files[filename] # a new filename
         isNew = true
+        lastSrcMain = undefined
         matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
         dstFilename = filename
 
@@ -201,10 +202,12 @@ class Bundle extends BundleBase
         # - until a terminal converter found
         for resConv in @resources
           if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+
             # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
             if _.isFunction resConv.convFilename
               dstFilename = resConv.convFilename dstFilename, filename
 
+            lastSrcMain = resConv.srcMain if resConv.srcMain
             matchedConverters.push resConv
 
         # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
@@ -212,12 +215,18 @@ class Bundle extends BundleBase
         resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
 
         l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
-        @files[filename] = new resourceClass {bundle:@, srcFilename: filename, converters: matchedConverters}
-      else
-        l.debug "Refreshing existing resource: '#{filename}'" if l.deb 80
+        bf = @files[filename] = new resourceClass {
+          bundle:@
+          srcFilename: filename
+          converters: matchedConverters
+          srcMain: lastSrcMain
+        }
 
-      # refresh old or new resource
-      bf = @files[filename]
+      if bf.srcMain and @build.current[bf.srcMain]
+        l.debug 60, "Skipping refresh/conversion(s) of '#{bf.srcFilename}', as part of converted @srcMain='#{bf.srcMain}'."
+        continue
+
+      l.debug "Refreshing #{bf.constructor.name}: '#{filename}'" if l.deb 80
       try
         if bf.refresh() # updates Resource.hasChanged
           @build.addChangedBundleFile filename, bf
@@ -239,7 +248,9 @@ class Bundle extends BundleBase
               l.er "Cant delete destination file '#{bf.dstFilepath}'."
           bf.hasErrors = false # dont count as error any more
 
-      if isNew # check there is no same dstFilename
+      @build.current[bf.srcMain] = true if bf.srcMain
+
+      if isNew and not bf.srcMain # check there is no same dstFilename, unless they belong to an 'srcMain' group
         if sameDstFile = (_.find @files, (f)=> (f.dstFilename is bf.dstFilename) and (f isnt bf))
           bf.hasErrors = 'duplicate'
           @handleError new UError """
@@ -344,7 +355,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
       for fn, res of @fileResources when res.hasChanged
         if res.hasErrors
-          l.er "Not saving '#{res.dstFilename}' (resource '#{res.srcFilename}') cause it has errors."
+          l.er "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
         else
           if res.converted and _.isString(res.converted) # only non-empty Strings are written
             try
@@ -357,7 +368,7 @@ class Bundle extends BundleBase
               @handleError new UError """
                 Error while #{if _.isFunction(@build.out) then '`build.out()`-ing' else '`save()`-ing'} resource '#{res.dstFilename}'.""", nested: err
           else
-            l.debug 80, "Not saving #{res.dstFilename} cause its not a non-empty String."
+            l.debug 80, "Not saving non-String: '#{res.srcFilename}' as '#{res.dstFilename}'."
 
         res.hasChanged = false # @todo: multiple builds - note at @build instead of res
     null

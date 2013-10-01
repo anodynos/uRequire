@@ -17,6 +17,9 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
   bundleBuildBlender
 } = blendConfigs
 
+
+{areEqual, areLike, areRLike, untrust} = require '../helpers'
+
 arrayizePushBlender = new _B.ArrayizePushBlender
 
 ResourceConverter = require '../../code/config/ResourceConverter'
@@ -49,7 +52,7 @@ resources =  [
 
   [
     '@~AFileResource' #a FileResource (@) isMatchSrcFilename:true (~)
-    '**/*.ext'       # this is a `filez`, not a descr if pos 1 isString & pos 2 not a String|Array|RegExp
+    '**/*.ext'        # this is a `filez`, not a descr if pos 1 isString & pos 2 not a String|Array|RegExp
     (source)-> source
   ]
 
@@ -77,6 +80,7 @@ expectedResources = [
      ]
     convert: resources[0][2]
     ' convFilename': resources[0][3]
+    _convFilename: resources[0][3]
     ' type': 'module'
     isTerminal: false
     isAfterTemplate: false
@@ -90,6 +94,7 @@ expectedResources = [
     filez: '**/*._*'
     convert: resources[1][3]
     ' convFilename': resources[1][4]
+    _convFilename: resources[1][4]
     isTerminal: false
     isAfterTemplate: true
     isBeforeTemplate: false
@@ -113,7 +118,7 @@ expectedResources = [
     descr: 'No descr for ResourceConverter \'AFileResource\''
     filez: '**/*.ext'
     convert: resources[3][2]
-    ' convFilename': resources[3][3]
+    #' convFilename': resources[3][3]
     ' type': 'file'
     #clazz: FileResource
     isTerminal: false
@@ -307,7 +312,7 @@ describe 'blendConfigs & its Blenders: ', ->
   describe "blending config with ResourceConverters :", ->
     it "converts array of RC-specs' into array of RC-instances", ->
       resultRCs = blendConfigs [{resources}]
-      expect(resultRCs.bundle.resources).to.deep.equal expectedResources
+      expect(areEqual resultRCs.bundle.resources, expectedResources).to.be.true
 
   describe "dependenciesBindingsBlender converts to proper dependenciesBinding structure", ->
     it "converts undefined to an empty {}", ->
@@ -492,7 +497,7 @@ describe 'blendConfigs & its Blenders: ', ->
 #        expect(configs).to.deep.equal configsClone
 
       it "correctly derives from many & nested user configs:", ->
-        expect(blended).to.be.deep.equal
+        expect(areEqual blended,
           bundle:
             path: "source/code"
             main: "index"
@@ -523,6 +528,7 @@ describe 'blendConfigs & its Blenders: ', ->
             dstPath: "build/code"
             debugLevel: 90
             template: name: "UMD"
+        ).to.be.true
 
       it "all {} in bundle.resources are instanceof ResourceConverter :", ->
         expect(resConv instanceof ResourceConverter).to.be.true for resConv in blended.bundle.resources

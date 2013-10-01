@@ -97,7 +97,7 @@ FileResource = (function(_super) {
       try {
         if (_.isFunction(resConv.convert)) {
           if (l.deb(40)) {
-            l.debug("Converting " + ((_ref2 = this.constructor) != null ? _ref2.name : void 0) + " '" + this.dstFilename + "' with '" + resConv.name + "'...");
+            l.debug("Converting " + ((_ref2 = this.constructor) != null ? _ref2.name : void 0) + " srcFn='" + this.srcFilename + "', dstFn='" + this.dstFilename + "' with RC='" + resConv.name + "'...");
           }
           this.converted = resConv.convert(this);
         }

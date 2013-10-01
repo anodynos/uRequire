@@ -30,6 +30,7 @@ expectedRc = {
   filez: ['**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i, '!**/*.amd.coffee'],
   convert: rcSpec1[2],
   ' convFilename': rcSpec1[3],
+  _convFilename: rcSpec1[3],
   isTerminal: false,
   isAfterTemplate: false,
   isBeforeTemplate: false,
@@ -91,31 +92,58 @@ describe('ResourceConverter creation, cloning & updating:', function() {
     _fn(rc, rcIdx);
   }
   null;
-  return describe("ResourceConverter registry (static `registry` {} & `register` & `search` functions):", function() {
+  describe("ResourceConverter .clone():", function() {
+    var rc1Clone;
+    rc1Clone = rc1.clone();
+    return it("is equal with original", function() {
+      expect(_.isEqual(rc1, rc1Clone));
+      expect(rc1.convert === rc1Clone.convert);
+      expect(rc1.convFilename === rc1Clone.convFilename);
+      return expect(rc1Clone.convFilename('bla.coffee') === 'bla.js');
+    });
+  });
+  return describe("ResourceConverter.registry :", function() {
     var foundRc, newRc, rcClone;
     rc = rcClone = newRc = foundRc = void 0;
     describe("Registering ResourceConverters basics:", function() {
       it("Creates correct instance from rcSpec", function() {
-        rc = newRc = ResourceConverter.register(rcSpec1);
+        return rc = newRc = ResourceConverter.searchRegisterUpdate(rcSpec1);
+      });
+      it("identical clones only update ", function() {
         rcClone = rc.clone();
-        return expect(rc).to.deep.equal(expectedRc);
+        expect(rc !== rcClone).to.be["true"];
+        expect(rc).to.deep.equal(expectedRc);
+        expect(rcClone).to.deep.equal(expectedRc);
+        newRc = ResourceConverter.searchRegisterUpdate(rcClone);
+        return expect(newRc).to.equal(rc);
+      });
+      it("The instance is registered", function() {
+        expect(ResourceConverter.registry[rc.name]).to.be.equal(rc);
+        expect(ResourceConverter.searchRegisterUpdate(rc.name) === rc);
+        return expect(ResourceConverter.searchRegisterUpdate(rcSpec1) === rc);
       });
       it("Updates instance from another instance", function() {
-        rc = ResourceConverter.register(rcClone);
+        rc = ResourceConverter.searchRegisterUpdate(rcClone);
         expect(rc).to.not.be.equal(rcClone);
         expect(rc).to.be.equal(newRc);
         return expect(rc).to.deep.equal(expectedRc);
       });
       it("Updates instance from another instance, returned from a function", function() {
-        rc = ResourceConverter.register(function() {
+        rc = ResourceConverter.searchRegisterUpdate(function() {
           return rcClone;
         });
         expect(rc).to.not.be.equal(rcClone);
         expect(rc).to.be.equal(newRc);
         return expect(rc).to.deep.equal(expectedRc);
       });
-      return it("Updates instance from a rcSpec, returned from a function", function() {
-        rc = ResourceConverter.register(rcSpec1);
+      return it("Updates instance from a rcSpec, returned from nested functions", function() {
+        rc = ResourceConverter.searchRegisterUpdate(function() {
+          return function() {
+            return function() {
+              return rcSpec1;
+            };
+          };
+        });
         expect(rc).to.not.be.equal(rcSpec1);
         expect(rc).to.be.equal(newRc);
         return expect(rc).to.deep.equal(expectedRc);
@@ -123,19 +151,19 @@ describe('ResourceConverter creation, cloning & updating:', function() {
     });
     describe("Searching for ResourceConverters:", function() {
       it("The instance is retrieved via `search by name`", function() {
-        foundRc = ResourceConverter.search(rc.name);
+        foundRc = ResourceConverter.searchRegisterUpdate(rc.name);
         expect(foundRc).to.be.equal(rc);
         return expect(foundRc).to.deep.equal(expectedRc);
       });
-      it("The instance is retrieved on 'register', passing a function with `search by name` as context", function() {
-        foundRc = ResourceConverter.register(function() {
+      it("The instance is retrieved passing a function with `search by name` as context", function() {
+        foundRc = ResourceConverter.searchRegisterUpdate(function() {
           return this(rc.name);
         });
         expect(foundRc).to.be.equal(rc);
         return expect(foundRc).to.deep.equal(expectedRc);
       });
       it("some funky ->->->", function() {
-        foundRc = ResourceConverter.register(function() {
+        foundRc = ResourceConverter.searchRegisterUpdate(function() {
           return function() {
             return function() {
               return function() {
@@ -154,19 +182,19 @@ describe('ResourceConverter creation, cloning & updating:', function() {
           isAfterTemplate: true,
           ' type': 'text'
         });
-        foundRc = ResourceConverter.register(function() {
+        foundRc = ResourceConverter.searchRegisterUpdate(function() {
           return this(flagsToApply + rc.name);
         });
         expect(foundRc).to.be.equal(rc);
         return expect(foundRc).to.deep.equal(expectedRcWithAppliedFlags);
       });
       it("Searching via an Array, returns a registered RC", function() {
-        foundRc = ResourceConverter.search(rcSpec1);
+        foundRc = ResourceConverter.searchRegisterUpdate(rcSpec1);
         expect(foundRc).to.be.equal(rc);
         return expect(foundRc).to.deep.equal(expectedRc);
       });
       it("Registering a function that returns an Array, returns a registered RC", function() {
-        foundRc = ResourceConverter.register(function() {
+        foundRc = ResourceConverter.searchRegisterUpdate(function() {
           return this(rcSpec1);
         });
         expect(foundRc).to.be.equal(rc);
@@ -177,7 +205,7 @@ describe('ResourceConverter creation, cloning & updating:', function() {
         rcspec = _.clone(rcSpec1, true);
         rcspec[0] = '$Livescript';
         rcspec[1] = ['**/*.ls'];
-        foundRc = ResourceConverter.search(function() {
+        foundRc = ResourceConverter.searchRegisterUpdate(function() {
           return function() {
             return this(rcspec);
           };
@@ -185,48 +213,41 @@ describe('ResourceConverter creation, cloning & updating:', function() {
         expect(foundRc).to.not.be.equal(rc);
         expect(foundRc instanceof ResourceConverter).to.be["true"];
         foundRc.name = '#LivescriptTextResource';
-        return expect(foundRc).to.deep.equal({
+        expect(foundRc).to.deep.equal({
           ' type': 'text',
           ' name': 'LivescriptTextResource',
           descr: 'No descr for ResourceConverter \'Livescript\'',
           filez: ['**/*.ls'],
           convert: rcSpec1[2],
           ' convFilename': rcSpec1[3],
+          _convFilename: rcSpec1[3],
           isTerminal: false,
           isAfterTemplate: false,
           isBeforeTemplate: false,
           isMatchSrcFilename: false
         });
+        return expect(foundRc.convFilename === rcSpec1[3]).to.be["true"];
       });
       return it("Searching for a non registered name throws error", function() {
-        var err;
-        try {
-          ResourceConverter.search('foo');
-        } catch (_error) {
-          err = _error;
-        }
-        return expect(err instanceof Error).to.be["true"];
+        return expect(function() {
+          return ResourceConverter.searchRegisterUpdate('foo');
+        }).to["throw"](Error);
       });
     });
     describe("Registering ResourceConverters behavior: ", function() {
-      it("Registration with same name, updates (but not overwrites) instance", function() {
-        newRc = ResourceConverter.register(rcSpec1);
-        expect(newRc).to.be.equal(rc);
-        return expect(newRc).to.deep.equal(rcClone);
-      });
       it("Registering a renamed already registered instance, renames its registry key", function() {
-        ResourceConverter.register(function() {
+        ResourceConverter.searchRegisterUpdate(function() {
           return _.extend(this(rc.name), {
             name: 'someOtherNewName'
           });
         });
         expect(ResourceConverter.registry['someOtherNewName']).to.equal(newRc);
-        return expect(ResourceConverter.search('someOtherNewName')).to.equal(newRc);
+        return expect(ResourceConverter.searchRegisterUpdate('someOtherNewName')).to.equal(newRc);
       });
       it("Renaming a registered instance, renames its registry key", function() {
         newRc.name = 'someOtherName';
         expect(ResourceConverter.registry['someOtherName']).to.equal(newRc);
-        return expect(ResourceConverter.search('someOtherName')).to.equal(newRc);
+        return expect(ResourceConverter.searchRegisterUpdate('someOtherName')).to.equal(newRc);
       });
       return it.skip("Two more RC are added to registry", function() {
         return expect(_.keys(ResourceConverter.registry).length).to.equal(initialRegistryKeys.length + 2);
@@ -235,11 +256,11 @@ describe('ResourceConverter creation, cloning & updating:', function() {
     return describe("accepts null and undefined, they just dont get registered", function() {
       it("accepts null", function() {
         expect(new ResourceConverter(null)).to.deep.equal({});
-        return expect(ResourceConverter.register(null)).to.deep.equal({});
+        return expect(ResourceConverter.searchRegisterUpdate(null)).to.deep.equal({});
       });
       return it("accepts undefined", function() {
         expect(new ResourceConverter(void 0)).to.deep.equal({});
-        return expect(ResourceConverter.register(void 0)).to.deep.equal({});
+        return expect(ResourceConverter.searchRegisterUpdate(void 0)).to.deep.equal({});
       });
     });
   });

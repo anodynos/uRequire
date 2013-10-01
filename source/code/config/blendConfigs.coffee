@@ -112,7 +112,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           if _.isEqual rc, [null] # cater for [null] reset array signpost for arrayizePusher
             rcs.push rc
           else
-            rc = ResourceConverter.register rc
+            rc = ResourceConverter.searchRegisterUpdate rc
             if rc and !_.isEmpty(rc)
               rcs.push rc
 

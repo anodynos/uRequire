@@ -13,7 +13,7 @@ upath = require('../paths/upath');
 UError = require('../utils/UError');
 
 ResourceConverter = (function() {
-  var getResourceConverterObject, nameFlags, nameFlagsActions, registry;
+  var getResourceConverterObject, nameFlags, nameFlagsActions;
 
   function ResourceConverter(rc) {
     rc = getResourceConverterObject(rc);
@@ -25,28 +25,35 @@ ResourceConverter = (function() {
   }
 
   ResourceConverter.prototype.update = function(rc) {
-    _.extend(this, rc);
-    if (this.isModule) {
-      l.warn("DEPRACATED key 'isModule' found in ResourcesConverter with `name: '" + rc.name + "'`. Use `type: 'module'` instead.");
-      rc.type = 'module';
+    if (rc !== this) {
+      _.extend(this, rc);
+      if (this.isModule) {
+        l.warn("DEPRACATED key 'isModule' found in ResourcesConverter with `name: '" + rc.name + "'`. Use `type: 'module'` instead.");
+        rc.type = 'module';
+      }
+      this.descr || (this.descr = "No descr for ResourceConverter '" + this.name + "'");
+      if (this.isTerminal == null) {
+        this.isTerminal = false;
+      }
+      if (this.isAfterTemplate == null) {
+        this.isAfterTemplate = false;
+      }
+      if (this.isBeforeTemplate == null) {
+        this.isBeforeTemplate = false;
+      }
+      if (this.isMatchSrcFilename == null) {
+        this.isMatchSrcFilename = false;
+      }
     }
-    this.descr || (this.descr = "No descr for ResourceConverter '" + this.name + "'");
-    if (this.isTerminal == null) {
-      this.isTerminal = false;
-    }
-    if (this.isAfterTemplate == null) {
-      this.isAfterTemplate = false;
-    }
-    if (this.isBeforeTemplate == null) {
-      this.isBeforeTemplate = false;
-    }
-    return this.isMatchSrcFilename != null ? this.isMatchSrcFilename : this.isMatchSrcFilename = false;
+    return this;
   };
 
   ResourceConverter.prototype.clone = function() {
     var rc;
     rc = _.pick(this, ['name', 'descr', 'filez', 'convert', 'isTerminal', 'isAfterTemplate', 'isMatchSrcFilename', 'type']);
-    rc.convFilename = this[' convFilename'];
+    if (this[' convFilename']) {
+      rc.convFilename = this[' convFilename'];
+    }
     return new ResourceConverter(rc);
   };
 
@@ -66,9 +73,10 @@ ResourceConverter = (function() {
           name = name.slice(1);
         }
         oldName = this[' name'];
-        if (registry[oldName]) {
-          delete registry[oldName];
-          registry[name] = this;
+        if ((ResourceConverter.registry[oldName] === this) && (name !== oldName)) {
+          l.warn("Renaming RC '" + oldName + "' to '" + name + "' on ResourceConverter.registry.");
+          delete ResourceConverter.registry[oldName];
+          ResourceConverter.registry[name] = this;
         }
         return this[' name'] = name;
       }
@@ -80,66 +88,63 @@ ResourceConverter = (function() {
       set: function(type) {
         var types, uerr;
         if (__indexOf.call(types = ['bundle', 'file', 'text', 'module'], type) < 0) {
-          l.er(uerr = "invalid resourceConverter.type '" + type + "' - must be in [" + (types.join(',')) + "]");
+          l.er(uerr = "Invalid resourceConverter.type '" + type + "' - must be in [" + (types.join(',')) + "]");
           throw new UError(uerr);
         }
-        this[' type'] = type;
-        return Object.defineProperty(this, 'clazz', {
-          enumerable: false,
-          configurable: true,
-          value: (function() {
-            switch (type) {
-              case 'bundle':
-                return require('../fileResources/BundleFile');
-              case 'file':
-                return require('../fileResources/FileResource');
-              case 'text':
-                return require('../fileResources/TextResource');
-              case 'module':
-                return require('../fileResources/Module');
-            }
-          })()
-        });
+        return this[' type'] = type;
+      }
+    },
+    clazz: {
+      get: function() {
+        switch (this.type) {
+          case 'bundle':
+            return require('../fileResources/BundleFile');
+          case 'file':
+            return require('../fileResources/FileResource');
+          case 'text':
+            return require('../fileResources/TextResource');
+          case 'module':
+            return require('../fileResources/Module');
+        }
       }
     },
     convFilename: {
+      enumerable: true,
       get: function() {
         return this._convFilename;
       },
       set: function(cf) {
         var isSrcFilename, uerr;
-        this[' convFilename'] = cf;
-        if (_.isString(cf)) {
-          if (cf[0] === '~') {
-            cf = cf.slice(1);
-            isSrcFilename = true;
-          }
-          if (cf[0] === '.') {
-            cf = (function(ext) {
-              return function(dstFilename, srcFilename) {
-                return upath.changeExt((isSrcFilename ? srcFilename : dstFilename), ext);
-              };
-            })(cf);
+        if (cf) {
+          this[' convFilename'] = cf;
+          if (_.isString(cf)) {
+            if (cf[0] === '~') {
+              cf = cf.slice(1);
+              isSrcFilename = true;
+            }
+            if (cf[0] === '.') {
+              cf = (function(ext) {
+                return function(dstFilename, srcFilename) {
+                  return upath.changeExt((isSrcFilename ? srcFilename : dstFilename), ext);
+                };
+              })(cf);
+            } else {
+              cf = (function(filename) {
+                return function() {
+                  return filename;
+                };
+              })(cf);
+            }
           } else {
-            cf = (function(filename) {
-              return function() {
-                return filename;
-              };
-            })(cf);
+            if (!(_.isFunction(cf) || _.isUndefined(cf))) {
+              l.er(uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined.");
+              throw new UError(uerr, {
+                nested: err
+              });
+            }
           }
-        } else {
-          if (!(_.isFunction(cf) || _.isUndefined(cf))) {
-            l.er(uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined.");
-            throw new UError(uerr, {
-              nested: err
-            });
-          }
+          return this._convFilename = cf;
         }
-        return Object.defineProperty(this, '_convFilename', {
-          value: cf,
-          enumerable: false,
-          configurable: true
-        });
       }
     }
   });
@@ -147,55 +152,49 @@ ResourceConverter = (function() {
   /* ResourceConverters Registry functions*/
 
 
-  registry = require('./ResourceConverters').extraResourceConverters;
+  ResourceConverter.registry = require('./ResourceConverters').extraResourceConverters;
 
-  ResourceConverter.registry = registry;
-
-  ResourceConverter.register = function(rc) {
-    var rcInReg;
-    rcInReg = rc = new ResourceConverter(rc);
-    if (rc && !_.isEmpty(rc)) {
-      if (rcInReg = registry[rc.name]) {
-        if (!(rcInReg instanceof ResourceConverter)) {
-          rcInReg = registry[rc.name] = new ResourceConverter(rcInReg);
+  ResourceConverter.searchRegisterUpdate = function(rc) {
+    var name, rcFound, rcResult, _ref;
+    if (_.isString(rc)) {
+      name = rc;
+      while (_ref = name[0], __indexOf.call(nameFlags, _ref) >= 0) {
+        name = name.slice(1);
+      }
+      if (rcResult = ResourceConverter.registry[name]) {
+        if (!(rcResult instanceof ResourceConverter)) {
+          rcResult = ResourceConverter.registry[name] = new ResourceConverter(rcResult);
         }
-        rcInReg.update(rc);
+        rcResult.name = rc;
       } else {
-        rcInReg = rc;
-        registry[rcInReg.name] = rcInReg;
+        throw new UError("ResourceConverter not found in registry with name = " + name + ", searchNameOrRC = " + searchNameOrRC);
       }
-    }
-    return rcInReg;
-  };
-
-  ResourceConverter.search = function(searchNameOrRC) {
-    var name, rcInReg, _ref;
-    if (!_.isString(searchNameOrRC)) {
-      return ResourceConverter.register(searchNameOrRC);
-    }
-    name = searchNameOrRC;
-    while (_ref = name[0], __indexOf.call(nameFlags, _ref) >= 0) {
-      name = name.slice(1);
-    }
-    if (rcInReg = registry[name]) {
-      if (!(rcInReg instanceof ResourceConverter)) {
-        rcInReg = registry[name] = new ResourceConverter(rcInReg);
-      }
-      rcInReg.name = searchNameOrRC;
     } else {
-      throw new UError("ResourceConverter not found in registry with name = " + name + ", searchNameOrRC = " + searchNameOrRC);
+      if (!(rc instanceof ResourceConverter)) {
+        rcResult = rc = new ResourceConverter(rc);
+      }
+      if (rc && !_.isEmpty(rc)) {
+        if (rcFound = ResourceConverter.registry[rc.name]) {
+          if (!(rcFound instanceof ResourceConverter)) {
+            rcFound = new ResourceConverter(rcFound);
+          }
+          rcResult = ResourceConverter.registry[rc.name] = rcFound.update(rc);
+        } else {
+          rcResult = ResourceConverter.registry[rcResult.name] = rc;
+        }
+      }
     }
-    return rcInReg;
+    return rcResult;
   };
 
   getResourceConverterObject = function(rc) {
     var convFilename, convert, descr, filez, name, uerr, _ref, _ref1;
     if (_.isFunction(rc)) {
-      rc = rc.call(ResourceConverter.search, ResourceConverter.search);
+      rc = rc.call(ResourceConverter.searchRegisterUpdate, ResourceConverter.searchRegisterUpdate);
       return getResourceConverterObject(rc);
     }
     if (_.isString(rc)) {
-      return getResourceConverterObject(ResourceConverter.search(rc));
+      return getResourceConverterObject(ResourceConverter.searchRegisterUpdate(rc));
     }
     if (_.isArray(rc)) {
       if (_.isString(rc[1]) && (_.isArray(rc[2]) || _.isString(rc[2]) || _.isRegExp(rc[2]))) {
@@ -252,6 +251,6 @@ ResourceConverter = (function() {
 
   return ResourceConverter;
 
-}).call(this);
+})();
 
 module.exports = ResourceConverter;

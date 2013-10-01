@@ -56,10 +56,11 @@ class FileResource extends BundleFile
     for resConv in @converters when convFilter(resConv)
       try
         if _.isFunction resConv.convert
-          l.debug "Converting #{@constructor?.name} '#{@dstFilename}' with '#{resConv.name}'..." if l.deb 40
+          l.debug "Converting #{@constructor?.name} srcFn='#{@srcFilename}', dstFn='#{@dstFilename}' with RC='#{resConv.name}'..." if l.deb 40
           @converted = resConv.convert @ # store return value at @converted
 
-        # convert @srcFilename to @dstFilename (actually the previous @dstFilename, intially @srcFilename)
+        # convert @srcFilename to @dstFilename
+        # (actually convert the previous @dstFilename -intially @srcFilename- to the new @dstFilename)
         if _.isFunction resConv.convFilename
           @dstFilename = resConv.convFilename @dstFilename, @srcFilename, @
           l.debug "... @dstFilename is '#{@dstFilename}'" if l.deb 70

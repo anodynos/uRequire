@@ -43,6 +43,14 @@ gruntFunction = (grunt) ->
           dest: "../uRequire.wiki/"
         ]
 
+      glink:
+        files: [
+          expand: true
+          cwd: "build/code/"
+          src: ["**/*.js"]
+          dest: "../glink/node_modules/urequire/build/code/"
+        ]
+
     concat:
       bin:
         options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
@@ -64,9 +72,15 @@ gruntFunction = (grunt) ->
       dev:
         files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
         tasks: ['mocha']
+
       copyWiki:
         files: ["#{sourceDir}/**/*.*"]
         tasks: ['copy:wiki']
+
+      copyGlink:
+        files: ["#{buildDir}/**/*.*"]
+        tasks: ['copy:glink']
+
 
     shell:
       coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"

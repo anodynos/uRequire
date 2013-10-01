@@ -308,7 +308,7 @@ Paradoxically, a *FileResource* instance has instance methods to `read()` and `s
  Note: Use the static `resource.constructor.read()` method to skip default `filename` & `bundle.path` appending.
 
 * `save()`: a `function(filename, content, options)` that saves the contents to the destination file. It takes **three optional arguments**: 
-* 
+
  * `filename`, appended to `build.dstPath` and defaults to `resource.dstFilename`
 
  * `content`, the (String) contents to be saved, defaults to `resource.converted`
@@ -316,6 +316,9 @@ Paradoxically, a *FileResource* instance has instance methods to `read()` and `s
  *  `options` hash which is passed to [`fs.writeFileSync`](http://nodejs.org/api/fs.html#fs_fs_writefilesync_filename_data_options) with 'utf8' as default encoding.
  
  Use the static `resource.constructor.save()` that has no `dstPath` appending and default values (only 'utf8' is default)
+
+* `srcMain`: If an RC has an `srcMain`, it is copied to each FileResource matched. The role of `srcMain` is to group all matching RC `filez` together, noting that its the `srcMain` that really needs processing (eg `main.less`). Resources with an `srcMain` can have the same `dstFilename`. It is still in its infancy but look at the [External Processes](#External-Processes) for a working example.
+
 _____
 ### TextResource extends FileResource
 
@@ -573,7 +576,7 @@ This RC is using an [] instead of {}. Key names of RC are assumed from their pos
 
 How do we get such flexibility with both [] & {} formats? Check [ResourceConverter.coffee](https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverter.coffee)
 
-### Extra Resource Converters
+## Extra Resource Converters
 
 We register some **Extra Resource Converters** on registry with `name` as key.
 
@@ -582,6 +585,9 @@ The registry is populated with all Default and user-defined RCs.
 The registry allows to easily **look up, clone, change, reuse or even call functions** of registered RCs.
 
 To save loading & processing time, these RC-specs aren't instantiated as proper RC instances and not added to [bundle.resources](MasterDefaultsConfig.coffee#bundle.resources) until they are retrieved/used in a user's config `bundle.resources`. 
+
+    _ = require 'lodash'
+    l = new (require 'uberscore').Logger 'urequire/ResourceConverters'
 
     extraResourceConverters =
 
@@ -612,6 +618,89 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
          # starting with '.' is an extension replacement
          '.html'
       ]
+
+## External Processes
+
+The `execSync` extra RC is a helper, that can be used as-is or cloned to alter its behavior.
+
+It mainly converts (a changed FileResource) through an **external sync process** that outputs its result on stdout.
+
+There **is a special `srcMain` mode** integrated with uRequire: if there is a property 'srcMain' on this RC, this is the only
+filename that is really processed, instead of the actual changed file. It results to a single file conversion, saved as 'dstFilename'.
+Useful if your want to convert `main.less` only, whenever any of your `./layout/*.less` files change - see below for an example.
+
+      execSync: do ->
+        # keep these in the closure of the IFI
+        execSync = require('execSync')
+
+        # return an Array spec, its fine with RC's registry
+        [
+          # a FileResource, as we dont read source - matches srcFilename for safety
+          '@~execSync'
+
+          [] # no filez are matched by this `abstract` RC
+
+          (r)->
+            procFilename =
+              if @srcMain
+                r.bundle.path + '/' + @srcMain
+              else
+                r.srcFilepath
+
+            command =
+              if _.isString @cmd
+                "#{@cmd} #{procFilename}"
+              else
+                if _.isFunction @cmd
+                  @cmd procFilename
+                else
+                  throw """
+                    execSync derived ResourceConverter '#{@name}'
+                    `cmd` is not String or Function. `cmd` = #{@cmd}
+                  """
+
+            l.debug 50, 'execSync.exec: "' + command + '"'
+            result = execSync.exec command
+
+            throw result.stdout if result.code isnt 0
+            result.stdout
+        ]
+
+LESS (via lessc) comes as an example using `execSync` & `srcMain`:
+
+      lessc: ->
+        # lookup 'execSync', clone it and extend it
+        _.extend (@ '@execSync').clone(),
+          # give a unique name
+          name: 'lessc'
+          # filez that participate in this srcMain group
+          filez: 'less/*.*'
+          # the name of the external process - srcMain is simply appended to it
+          cmd: 'lessc'
+          # the filename to be processed once at each build, when any filez change
+          srcMain: 'less/main.less'
+          # the destination file of the group
+          convFilename: 'css/main.css'
+
+Another Example (not part of `extraResourceConverters`):
+
+```
+[
+ 'lessc'
+...
+ ->
+   _.extend (@ '@execSync').clone(),
+     name: 'lessc-bootstrap'
+     filez: 'less/bootstrap/*.*'
+     # cmd as callback is called with `srcMain`,
+     # resulting to the execSync cmd string.
+     cmd: (filename)-> 'lessc --compress ' + filename
+     srcMain: 'less/bootstrap/bootstrap.less'
+     convFilename: 'lessTocss/bootstrap/bootstrap.css'
+
+...
+]
+```
 
 # Finito 
 

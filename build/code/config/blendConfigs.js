@@ -157,7 +157,7 @@ bundleBuildBlender = new _B.DeepCloneBlender([
               if (_.isEqual(rc, [null])) {
                 rcs.push(rc);
               } else {
-                rc = ResourceConverter.register(rc);
+                rc = ResourceConverter.searchRegisterUpdate(rc);
                 if (rc && !_.isEmpty(rc)) {
                   rcs.push(rc);
                 }
