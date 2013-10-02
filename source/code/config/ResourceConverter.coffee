@@ -54,8 +54,8 @@ class ResourceConverter
     @
 
   clone: ->
-    # make sure it's initializd properly
-    rc = _.pick @, ['name', 'descr', 'filez', 'convert', 'isTerminal', 'isAfterTemplate', 'isMatchSrcFilename', 'type']
+    # make sure it's initialized to an RC instance
+    rc = _.clone @, true
     rc.convFilename = @[' convFilename'] if @[' convFilename'] # get the original convFilename (eg '.js')
     new ResourceConverter rc
 

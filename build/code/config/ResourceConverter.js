@@ -50,7 +50,7 @@ ResourceConverter = (function() {
 
   ResourceConverter.prototype.clone = function() {
     var rc;
-    rc = _.pick(this, ['name', 'descr', 'filez', 'convert', 'isTerminal', 'isAfterTemplate', 'isMatchSrcFilename', 'type']);
+    rc = _.clone(this, true);
     if (this[' convFilename']) {
       rc.convFilename = this[' convFilename'];
     }
