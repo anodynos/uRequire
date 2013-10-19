@@ -34,7 +34,7 @@ module.exports =
       }
     """
 
-    runTimeDiscovery: """
+    runtimeInfo: """
       var __isAMD = (typeof define === 'function' && define.amd),
           __isNode = (typeof exports === 'object'),
           __isWeb = !__isNode;

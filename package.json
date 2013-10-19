@@ -1,7 +1,7 @@
 {
  "name": "urequire",
  "description": "Convert AMD & commonjs modules to commonjs, AMD, UMD or single `.js` and run/test on nodejs, Browser/AMD or Browser/Script.",
- "version": "0.6.2-01",
+ "version": "0.6.3",
  "homepage": "http://urequire.org",
  "author": {
   "name": "Agelos Pikoulas",

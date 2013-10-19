@@ -121,6 +121,12 @@ class ModuleGeneratorTemplates extends Template
         """
       else ''
 
+
+    runtimeInfoPrint: get: ->
+      if @module.bundle.build.runtimeInfo
+        @runtimeInfo + '\n'
+      else ''
+
   ### private ###
   _rootExportsNoConflict: (factoryFn, rootName='root')-> """
     var __umodule = #{factoryFn};
@@ -148,9 +154,8 @@ class ModuleGeneratorTemplates extends Template
     * Uses `NodeRequirer` to perform `require`s.
   ###
   UMD: ->
-    @headerBanner + " - template: 'UMD'\n" +
-    @_functionIFI(
-      @runTimeDiscovery + '\n' +
+    fullBody =
+      @runtimeInfoPrint +
       @preDefineIFIBodyPrint + '\n' +
       @_functionIFI("""
          if (typeof exports === 'object') {
@@ -170,7 +175,8 @@ class ModuleGeneratorTemplates extends Template
                 else
                   @_function(
                     @_rootExportsNoConflict("factory(#{@parametersPrint})"),
-                    @parametersPrint)
+                    @parametersPrint
+                  )
                 });
           }
         """,
@@ -178,7 +184,9 @@ class ModuleGeneratorTemplates extends Template
         'root', 'this',
         'factory', @_function(@factoryBodyAMD, @parametersPrint)
       )
-    ) + ';'
+
+    @headerBanner + " - template: 'UMD'\n" +
+      (if @module.bundle.build.bare then fullBody else @_functionIFI fullBody) + ';'
 
 
   ### AMD template
@@ -186,23 +194,29 @@ class ModuleGeneratorTemplates extends Template
       Runs only on WEB/AMD/RequireJs (and hopefully soon in node through uRequire'd *driven* RequireJS).
   ###
   AMD: ->
-    @headerBanner + " - template: 'AMD'\n" +
-    @_functionIFI(@runTimeDiscovery + @preDefineIFIBodyPrint + @_AMD_plain_define()) + ';'
+    fullBody =
+      @runtimeInfoPrint +
+      @preDefineIFIBodyPrint +
+      @_AMD_plain_define()
 
-  _AMD_plain_define:->"""
+    @headerBanner + " - template: 'AMD'\n" +
+      (if @module.bundle.build.bare then fullBody else @_functionIFI fullBody) + ';'
+
+  # not adding @preDefineIFIBodyPrint, they are added by whoever uses this.
+  # 'combined' template merges them and add them once on combined enclosing function
+  _AMD_plain_define: -> """
     define(#{@moduleNamePrint}#{@defineArrayDepsPrint}
       #{
         #our factory function
         @_function(
-          # codeBody
+          # factory Body
           if (_.isEmpty @module.flags.rootExports) or @module.bundle?.noRootExports # 'standard' AMD format
             @factoryBodyAMD
           else # ammend to export window = @module.flags.rootExports
             @_rootExportsNoConflict(
-              @_functionIFI(@factoryBodyAMD,
-                    @parametersPrint, @parametersPrint)
-              ,
-              'window') # rootName
+              @_functionIFI(@factoryBodyAMD, @parametersPrint, @parametersPrint),
+              'window'# rootName
+            )
           ,
           # our factory function declaration params
           @parametersPrint)
@@ -214,8 +228,8 @@ class ModuleGeneratorTemplates extends Template
 
   nodejs: ->
     paramPrintCount = 0
-    """
-      #{@headerBanner} - template: 'nodejs'
+
+    fullBody = """
       #{@preDefineIFIBodyPrint}
       #{
         if _.any(@module.nodeDeps, (dep)->not dep.isSystem) then "\nvar " else ''}#{
@@ -224,8 +238,11 @@ class ModuleGeneratorTemplates extends Template
             param} = require(#{dep.name(quote:true)})"
         ).join(',\n')
       };
-      #{@runTimeDiscovery}
+      #{@runtimeInfoPrint}
       #{@factoryBodyNodejs}
     """
+
+    @headerBanner + " - template: 'nodejs'" +
+      (if @module.bundle.build.bare isnt false then fullBody else @_functionIFI fullBody) + ';'
 
 module.exports = ModuleGeneratorTemplates

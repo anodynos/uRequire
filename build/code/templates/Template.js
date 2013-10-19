@@ -45,7 +45,7 @@ module.exports = Template = (function() {
     })()).join(',')) + ") {\n  " + codeBody + "\n}";
   };
 
-  Template.prototype.runTimeDiscovery = "var __isAMD = (typeof define === 'function' && define.amd),\n    __isNode = (typeof exports === 'object'),\n    __isWeb = !__isNode;\n";
+  Template.prototype.runtimeInfo = "var __isAMD = (typeof define === 'function' && define.amd),\n    __isNode = (typeof exports === 'object'),\n    __isWeb = !__isNode;\n";
 
   return Template;
 

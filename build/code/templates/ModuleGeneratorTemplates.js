@@ -117,6 +117,15 @@ ModuleGeneratorTemplates = (function(_super) {
           return '';
         }
       }
+    },
+    runtimeInfoPrint: {
+      get: function() {
+        if (this.module.bundle.build.runtimeInfo) {
+          return this.runtimeInfo + '\n';
+        } else {
+          return '';
+        }
+      }
     }
   });
 
@@ -165,8 +174,8 @@ ModuleGeneratorTemplates = (function(_super) {
 
 
   ModuleGeneratorTemplates.prototype.UMD = function() {
-    var nDep, _ref;
-    return this.headerBanner + " - template: 'UMD'\n" + this._functionIFI(this.runTimeDiscovery + '\n' + this.preDefineIFIBodyPrint + '\n' + this._functionIFI("if (typeof exports === 'object') {\n   var nr = new (require('urequire').NodeRequirer) ('" + this.module.path + "', module, __dirname, '" + this.module.webRootMap + "');\n   module.exports = factory(nr.require" + (this.module.kind === 'nodejs' ? ', exports, module' : '') + (((function() {
+    var fullBody, nDep, _ref;
+    fullBody = this.runtimeInfoPrint + this.preDefineIFIBodyPrint + '\n' + this._functionIFI("if (typeof exports === 'object') {\n   var nr = new (require('urequire').NodeRequirer) ('" + this.module.path + "', module, __dirname, '" + this.module.webRootMap + "');\n   module.exports = factory(nr.require" + (this.module.kind === 'nodejs' ? ', exports, module' : '') + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.nodeDeps;
       _results = [];
@@ -181,7 +190,8 @@ ModuleGeneratorTemplates = (function(_super) {
         }
       }
       return _results;
-    }).call(this)).join('')) + ");\n } else if (typeof define === 'function' && define.amd) {\n     define(" + this.moduleNamePrint + this.defineArrayDepsPrint + ((_.isEmpty(this.module.flags.rootExports)) || ((_ref = this.module.bundle) != null ? _ref.noRootExports : void 0) ? 'factory' : this._function(this._rootExportsNoConflict("factory(" + this.parametersPrint + ")"), this.parametersPrint)) + ");\n }", 'root', 'this', 'factory', this._function(this.factoryBodyAMD, this.parametersPrint))) + ';';
+    }).call(this)).join('')) + ");\n } else if (typeof define === 'function' && define.amd) {\n     define(" + this.moduleNamePrint + this.defineArrayDepsPrint + ((_.isEmpty(this.module.flags.rootExports)) || ((_ref = this.module.bundle) != null ? _ref.noRootExports : void 0) ? 'factory' : this._function(this._rootExportsNoConflict("factory(" + this.parametersPrint + ")"), this.parametersPrint)) + ");\n }", 'root', 'this', 'factory', this._function(this.factoryBodyAMD, this.parametersPrint));
+    return this.headerBanner + " - template: 'UMD'\n" + (this.module.bundle.build.bare ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
   /* AMD template
@@ -191,7 +201,9 @@ ModuleGeneratorTemplates = (function(_super) {
 
 
   ModuleGeneratorTemplates.prototype.AMD = function() {
-    return this.headerBanner + " - template: 'AMD'\n" + this._functionIFI(this.runTimeDiscovery + this.preDefineIFIBodyPrint + this._AMD_plain_define()) + ';';
+    var fullBody;
+    fullBody = this.runtimeInfoPrint + this.preDefineIFIBodyPrint + this._AMD_plain_define();
+    return this.headerBanner + " - template: 'AMD'\n" + (this.module.bundle.build.bare ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
   ModuleGeneratorTemplates.prototype._AMD_plain_define = function() {
@@ -204,9 +216,9 @@ ModuleGeneratorTemplates = (function(_super) {
   };
 
   ModuleGeneratorTemplates.prototype.nodejs = function() {
-    var dep, param, paramPrintCount, pi;
+    var dep, fullBody, param, paramPrintCount, pi;
     paramPrintCount = 0;
-    return "" + this.headerBanner + " - template: 'nodejs'\n" + this.preDefineIFIBodyPrint + "\n" + (_.any(this.module.nodeDeps, function(dep) {
+    fullBody = "" + this.preDefineIFIBodyPrint + "\n" + (_.any(this.module.nodeDeps, function(dep) {
       return !dep.isSystem;
     }) ? "\nvar " : '') + (((function() {
       var _i, _len, _ref, _results;
@@ -221,7 +233,8 @@ ModuleGeneratorTemplates = (function(_super) {
         }
       }
       return _results;
-    }).call(this)).join(',\n')) + ";\n" + this.runTimeDiscovery + "\n" + this.factoryBodyNodejs;
+    }).call(this)).join(',\n')) + ";\n" + this.runtimeInfoPrint + "\n" + this.factoryBodyNodejs;
+    return this.headerBanner + " - template: 'nodejs'" + (this.module.bundle.build.bare !== false ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
   return ModuleGeneratorTemplates;

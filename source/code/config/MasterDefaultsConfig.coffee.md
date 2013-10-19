@@ -656,6 +656,36 @@ Optimizes output files (i.e it minifies/compresses them for production).
       optimize: false
       _optimizers: ['uglify2', 'uglify']
 
+## build.runtimeInfo
+
+Adds `__isAMD`, `__isNode` & `__isWeb` variables to your modules, so you can easily determine the execution environment your module is running in at runtime.
+
+@note combined template always has these variables available on the enclosing function cause it needs them!
+
+@default true
+
+      runtimeInfo: true
+
+## build.bare
+
+Like coffeescript `--bare`:
+
+* if its false, it encloses each module in an Immediate Function Invocation (IFI):
+
+  ```
+  (function () {
+    .....
+  }).call(this);
+  ```
+* if its `true` it doesnt.
+
+The IFI (top-level function safety wrapper) is used to to prevent leaking and have all variables as local to the module etc.
+
+@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IFI, whereas the modules themselves are plain `define(...)` calls.
+
+@default undefined: The 'AMD' & 'UMD' templates are by default enclosed whereas the 'nodejs' template is by default NOT enclosed. Use `true` or `false` to change the default behavior.
+
+      bare: undefined
 
 ## build.out
 

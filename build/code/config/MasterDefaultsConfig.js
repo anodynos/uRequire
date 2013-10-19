@@ -42,6 +42,8 @@ module.exports = MasterDefaultsConfig = {
     "continue": false,
     optimize: false,
     _optimizers: ['uglify2', 'uglify'],
+    runtimeInfo: true,
+    bare: void 0,
     done: function(doneVal) {
       return console.log("done() is missing and I got a " + doneVal + " on the default done()");
     },
