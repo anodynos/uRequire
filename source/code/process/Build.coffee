@@ -46,7 +46,7 @@ class Build extends _B.CalcCachedProperties
         l.warn "`build.out` is deleted due to `combined` template being used - r.js doesn't work in memory yet."
         delete @out
 
-  @templates = ['UMD', 'AMD', 'nodejs', 'combined']
+  @templates = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
 
   newBuild:->
     @startDate = new Date();

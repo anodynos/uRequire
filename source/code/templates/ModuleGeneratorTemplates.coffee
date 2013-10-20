@@ -127,66 +127,80 @@ class ModuleGeneratorTemplates extends Template
         @runtimeInfo + '\n'
       else ''
 
+    isRootExports: get: -> not (_.isEmpty(@module.flags.rootExports) or @module.bundle?.noRootExports)
+
   ### private ###
-  _rootExportsNoConflict: (factoryFn, rootName='root')-> """
-    var __umodule = #{factoryFn};
+  _rootExportsNoConflict: (rootName='root')-> """  
     #{
       if @module.flags.noConflict
-        ("#{if i is 0 then 'var ' else '    '}old_#{exp} = #{rootName}.#{exp}" for exp, i in @module.flags.rootExports).join(',\n') + ';'
+        ("#{if i is 0 then 'var ' else '    '}__old__#{exp} = #{rootName}.#{exp}" for exp, i in @module.flags.rootExports).join(',\n') + ';'
       else ''
     }
 
-    #{("#{rootName}.#{exportedVar} = __umodule" for exportedVar in @module.flags.rootExports).join(';\n') };
+    #{("#{rootName}.#{exportedVar} = __umodule__" for exportedVar in @module.flags.rootExports).join(';\n') };
 
     """ + (
       if @module.flags.noConflict
-        "__umodule.noConflict = " + @_function("""
-              #{("  #{rootName}.#{exp} = old_#{exp}" for exp in @module.flags.rootExports).join(';\n')};
-              return __umodule;
+        "__umodule__.noConflict = " + @_function("""
+              #{("  #{rootName}.#{exp} = __old__#{exp}" for exp in @module.flags.rootExports).join(';\n')};
+              return __umodule__;
             """)
       else
         ''
-    ) + "\nreturn __umodule;"
+    ) + "\nreturn __umodule__;"
 
 
   ###
     UMD template - runs AS-IS on both Web/AMD and nodejs (having 'npm install urequire').
     * Uses `NodeRequirer` to perform `require`s.
   ###
-  UMD: ->
+  UMD: -> @headerBanner + " - template: 'UMD'\n" + @_UMD()
+
+  UMDplain: -> @headerBanner + " - template: 'UMDplain'\n" + @_UMD false
+
+  _UMD: (isNodeRequirer=true)->
+    nr = if isNodeRequirer then "nr." else ""
+
     fullBody =
       @runtimeInfoPrint +
       @preDefineIFIBodyPrint + '\n' +
       @_functionIFI("""
+         #{if @isRootExports then "var rootExport = #{@_function @_rootExportsNoConflict(), 'root, __umodule__'};"  else ''}
+
          if (typeof exports === 'object') {
-            var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, __dirname, '#{@module.webRootMap}');
-            module.exports = factory(nr.require#{
+            #{
+              if isNodeRequirer
+                "var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, __dirname, '#{@module.webRootMap}');"
+              else ""
+            }
+            module.exports = #{
+                if @isRootExports then 'rootExport(global, ' else ''
+              }factory(#{nr}require#{
               if (@module.kind is 'nodejs') then ', exports, module' else ''}#{
               (for nDep in @module.nodeDeps
                 if nDep.isSystem
                   ', ' + nDep.name()
                 else
-                  ", nr.require(#{nDep.name(quote:true)})"
-              ).join('')});
+                  ", #{nr}require(#{nDep.name(quote:true)})"
+              ).join ''})#{if @isRootExports then ')' else ''};
           } else if (typeof define === 'function' && define.amd) {
               define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
-                if (_.isEmpty @module.flags.rootExports) or @module.bundle?.noRootExports
+                if not @isRootExports
                   'factory'
                 else
                   @_function(
-                    @_rootExportsNoConflict("factory(#{@parametersPrint})"),
+                    # @_rootExportsNoConflict("factory(#{@parametersPrint})"),
+                    "return rootExport(window, factory(#{@parametersPrint}));",
                     @parametersPrint
                   )
                 });
           }
         """,
         # parameters + values to our IFI
-        'root', 'this',
         'factory', @_function(@factoryBodyAMD, @parametersPrint)
       )
 
-    @headerBanner + " - template: 'UMD'\n" +
-      (if @module.bundle.build.bare then fullBody else @_functionIFI fullBody) + ';'
+    (if @module.bundle.build.bare then fullBody else @_functionIFI fullBody) + ';'
 
 
   ### AMD template
@@ -210,13 +224,11 @@ class ModuleGeneratorTemplates extends Template
         #our factory function
         @_function(
           # factory Body
-          if (_.isEmpty @module.flags.rootExports) or @module.bundle?.noRootExports # 'standard' AMD format
+          if not @isRootExports
             @factoryBodyAMD
-          else # ammend to export window = @module.flags.rootExports
-            @_rootExportsNoConflict(
-              @_functionIFI(@factoryBodyAMD, @parametersPrint, @parametersPrint),
-              'window'# rootName
-            )
+          else
+            "var __umodule__ = " + @_functionIFI(@factoryBodyAMD, @parametersPrint, @parametersPrint) + ";\n" +
+            @_rootExportsNoConflict 'window'
           ,
           # our factory function declaration params
           @parametersPrint)
@@ -240,9 +252,10 @@ class ModuleGeneratorTemplates extends Template
       };
       #{@runtimeInfoPrint}
       #{@factoryBodyNodejs}
+      #{if @isRootExports then "var __umodule__ = module.exports;\n #{@_rootExportsNoConflict 'global'}" else ''}
     """
 
-    @headerBanner + " - template: 'nodejs'" +
+    @headerBanner + " - template: 'nodejs'\n" +
       (if @module.bundle.build.bare isnt false then fullBody else @_functionIFI fullBody) + ';'
 
 module.exports = ModuleGeneratorTemplates

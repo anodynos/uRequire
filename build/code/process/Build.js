@@ -70,7 +70,7 @@ module.exports = Build = (function(_super) {
     }
   }
 
-  Build.templates = ['UMD', 'AMD', 'nodejs', 'combined'];
+  Build.templates = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined'];
 
   Build.prototype.newBuild = function() {
     this.startDate = new Date();

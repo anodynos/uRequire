@@ -126,24 +126,30 @@ ModuleGeneratorTemplates = (function(_super) {
           return '';
         }
       }
+    },
+    isRootExports: {
+      get: function() {
+        var _ref;
+        return !(_.isEmpty(this.module.flags.rootExports) || ((_ref = this.module.bundle) != null ? _ref.noRootExports : void 0));
+      }
     }
   });
 
   /* private*/
 
 
-  ModuleGeneratorTemplates.prototype._rootExportsNoConflict = function(factoryFn, rootName) {
+  ModuleGeneratorTemplates.prototype._rootExportsNoConflict = function(rootName) {
     var exp, exportedVar, i;
     if (rootName == null) {
       rootName = 'root';
     }
-    return ("var __umodule = " + factoryFn + ";\n" + (this.module.flags.noConflict ? ((function() {
+    return ("  \n" + (this.module.flags.noConflict ? ((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.flags.rootExports;
       _results = [];
       for (i = _i = 0, _len = _ref.length; _i < _len; i = ++_i) {
         exp = _ref[i];
-        _results.push("" + (i === 0 ? 'var ' : '    ') + "old_" + exp + " = " + rootName + "." + exp);
+        _results.push("" + (i === 0 ? 'var ' : '    ') + "__old__" + exp + " = " + rootName + "." + exp);
       }
       return _results;
     }).call(this)).join(',\n') + ';' : '') + "\n\n" + (((function() {
@@ -152,19 +158,19 @@ ModuleGeneratorTemplates = (function(_super) {
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         exportedVar = _ref[_i];
-        _results.push("" + rootName + "." + exportedVar + " = __umodule");
+        _results.push("" + rootName + "." + exportedVar + " = __umodule__");
       }
       return _results;
-    }).call(this)).join(';\n')) + ";\n") + (this.module.flags.noConflict ? "__umodule.noConflict = " + this._function("" + (((function() {
+    }).call(this)).join(';\n')) + ";\n") + (this.module.flags.noConflict ? "__umodule__.noConflict = " + this._function("" + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.flags.rootExports;
       _results = [];
       for (_i = 0, _len = _ref.length; _i < _len; _i++) {
         exp = _ref[_i];
-        _results.push("  " + rootName + "." + exp + " = old_" + exp);
+        _results.push("  " + rootName + "." + exp + " = __old__" + exp);
       }
       return _results;
-    }).call(this)).join(';\n')) + ";\nreturn __umodule;") : '') + "\nreturn __umodule;";
+    }).call(this)).join(';\n')) + ";\nreturn __umodule__;") : '') + "\nreturn __umodule__;";
   };
 
   /*
@@ -174,8 +180,20 @@ ModuleGeneratorTemplates = (function(_super) {
 
 
   ModuleGeneratorTemplates.prototype.UMD = function() {
-    var fullBody, nDep, _ref;
-    fullBody = this.runtimeInfoPrint + this.preDefineIFIBodyPrint + '\n' + this._functionIFI("if (typeof exports === 'object') {\n   var nr = new (require('urequire').NodeRequirer) ('" + this.module.path + "', module, __dirname, '" + this.module.webRootMap + "');\n   module.exports = factory(nr.require" + (this.module.kind === 'nodejs' ? ', exports, module' : '') + (((function() {
+    return this.headerBanner + " - template: 'UMD'\n" + this._UMD();
+  };
+
+  ModuleGeneratorTemplates.prototype.UMDplain = function() {
+    return this.headerBanner + " - template: 'UMDplain'\n" + this._UMD(false);
+  };
+
+  ModuleGeneratorTemplates.prototype._UMD = function(isNodeRequirer) {
+    var fullBody, nDep, nr;
+    if (isNodeRequirer == null) {
+      isNodeRequirer = true;
+    }
+    nr = isNodeRequirer ? "nr." : "";
+    fullBody = this.runtimeInfoPrint + this.preDefineIFIBodyPrint + '\n' + this._functionIFI("" + (this.isRootExports ? "var rootExport = " + (this._function(this._rootExportsNoConflict(), 'root, __umodule__')) + ";" : '') + "\n\nif (typeof exports === 'object') {\n   " + (isNodeRequirer ? "var nr = new (require('urequire').NodeRequirer) ('" + this.module.path + "', module, __dirname, '" + this.module.webRootMap + "');" : "") + "\n   module.exports = " + (this.isRootExports ? 'rootExport(global, ' : '') + "factory(" + nr + "require" + (this.module.kind === 'nodejs' ? ', exports, module' : '') + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.nodeDeps;
       _results = [];
@@ -184,14 +202,14 @@ ModuleGeneratorTemplates = (function(_super) {
         if (nDep.isSystem) {
           _results.push(', ' + nDep.name());
         } else {
-          _results.push(", nr.require(" + (nDep.name({
+          _results.push(", " + nr + "require(" + (nDep.name({
             quote: true
           })) + ")");
         }
       }
       return _results;
-    }).call(this)).join('')) + ");\n } else if (typeof define === 'function' && define.amd) {\n     define(" + this.moduleNamePrint + this.defineArrayDepsPrint + ((_.isEmpty(this.module.flags.rootExports)) || ((_ref = this.module.bundle) != null ? _ref.noRootExports : void 0) ? 'factory' : this._function(this._rootExportsNoConflict("factory(" + this.parametersPrint + ")"), this.parametersPrint)) + ");\n }", 'root', 'this', 'factory', this._function(this.factoryBodyAMD, this.parametersPrint));
-    return this.headerBanner + " - template: 'UMD'\n" + (this.module.bundle.build.bare ? fullBody : this._functionIFI(fullBody)) + ';';
+    }).call(this)).join('')) + ")" + (this.isRootExports ? ')' : '') + ";\n } else if (typeof define === 'function' && define.amd) {\n     define(" + this.moduleNamePrint + this.defineArrayDepsPrint + (!this.isRootExports ? 'factory' : this._function("return rootExport(window, factory(" + this.parametersPrint + "));", this.parametersPrint)) + ");\n }", 'factory', this._function(this.factoryBodyAMD, this.parametersPrint));
+    return (this.module.bundle.build.bare ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
   /* AMD template
@@ -207,8 +225,7 @@ ModuleGeneratorTemplates = (function(_super) {
   };
 
   ModuleGeneratorTemplates.prototype._AMD_plain_define = function() {
-    var _ref;
-    return "define(" + this.moduleNamePrint + this.defineArrayDepsPrint + "\n  " + (this._function((_.isEmpty(this.module.flags.rootExports)) || ((_ref = this.module.bundle) != null ? _ref.noRootExports : void 0) ? this.factoryBodyAMD : this._rootExportsNoConflict(this._functionIFI(this.factoryBodyAMD, this.parametersPrint, this.parametersPrint), 'window'), this.parametersPrint)) + "\n);";
+    return "define(" + this.moduleNamePrint + this.defineArrayDepsPrint + "\n  " + (this._function(!this.isRootExports ? this.factoryBodyAMD : "var __umodule__ = " + this._functionIFI(this.factoryBodyAMD, this.parametersPrint, this.parametersPrint) + ";\n" + this._rootExportsNoConflict('window'), this.parametersPrint)) + "\n);";
   };
 
   ModuleGeneratorTemplates.prototype.combined = function() {
@@ -233,8 +250,8 @@ ModuleGeneratorTemplates = (function(_super) {
         }
       }
       return _results;
-    }).call(this)).join(',\n')) + ";\n" + this.runtimeInfoPrint + "\n" + this.factoryBodyNodejs;
-    return this.headerBanner + " - template: 'nodejs'" + (this.module.bundle.build.bare !== false ? fullBody : this._functionIFI(fullBody)) + ';';
+    }).call(this)).join(',\n')) + ";\n" + this.runtimeInfoPrint + "\n" + this.factoryBodyNodejs + "\n" + (this.isRootExports ? "var __umodule__ = module.exports;\n " + (this._rootExportsNoConflict('global')) : '');
+    return this.headerBanner + " - template: 'nodejs'\n" + (this.module.bundle.build.bare !== false ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
   return ModuleGeneratorTemplates;
