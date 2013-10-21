@@ -130,15 +130,13 @@ class ModuleGeneratorTemplates extends Template
     isRootExports: get: -> not (_.isEmpty(@module.flags.rootExports) or @module.bundle?.noRootExports)
 
   ### private ###
-  _rootExportsNoConflict: (rootName='root')-> """  
-    #{
-      if @module.flags.noConflict
-        ("#{if i is 0 then 'var ' else '    '}__old__#{exp} = #{rootName}.#{exp}" for exp, i in @module.flags.rootExports).join(',\n') + ';'
-      else ''
-    }
-
-    #{("#{rootName}.#{exportedVar} = __umodule__" for exportedVar in @module.flags.rootExports).join(';\n') };
-
+  _rootExportsNoConflict: (rootName='root')->
+    """#{
+        if @module.flags.noConflict
+          ("#{if i is 0 then 'var ' else '    '}__old__#{exp} = #{rootName}.#{exp}" for exp, i in @module.flags.rootExports).join(',\n') + ';'
+        else ''
+      }
+      #{("#{rootName}.#{exportedVar} = __umodule__" for exportedVar in @module.flags.rootExports).join(';\n') };
     """ + (
       if @module.flags.noConflict
         "__umodule__.noConflict = " + @_function("""
@@ -148,7 +146,6 @@ class ModuleGeneratorTemplates extends Template
       else
         ''
     ) + "\nreturn __umodule__;"
-
 
   ###
     UMD template - runs AS-IS on both Web/AMD and nodejs (having 'npm install urequire').
@@ -189,7 +186,6 @@ class ModuleGeneratorTemplates extends Template
                   'factory'
                 else
                   @_function(
-                    # @_rootExportsNoConflict("factory(#{@parametersPrint})"),
                     "return rootExport(window, factory(#{@parametersPrint}));",
                     @parametersPrint
                   )

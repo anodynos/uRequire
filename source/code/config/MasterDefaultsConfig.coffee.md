@@ -555,25 +555,44 @@ Output on the same directory as the _source_ [`bundle.path`](MasterDefaultsConfi
 
 ## build.template
 
-A string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'AMD', 'nodejs', 'combined']
+A string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
 
 @see *Conversion Templates* in docs.
 
       template: 'UMD'
 
-## build.watch
+## build.runtimeInfo
 
-Watch for changes in bundle files and reprocess/re output *only* those changed files.
+Adds `__isAMD`, `__isNode` & `__isWeb` variables to your modules, so you can easily determine the execution environment your module is running in.
 
-The *watch feature* of uRequire works with:
+For example they can be used to select a different execution branch, depending on where the module is executing. Make sure to add modules that are nodejs-only to [`bundle.dependencies.node`](#bundle.dependencies.node) so they aren't loaded in AMD (i.e not added to `define()` dependency array).
 
-* Standalone urequireCmd, setting `watch: true` or -w flag.
+@note combined template always has these variables available on the enclosing function cause it needs them!
 
-* Instead of `watch:true`, you use [grunt-urequire >=0.6.x](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.5.x](https://github.com/gruntjs/grunt-contrib-watch).
+@default true
 
-@note at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
+      runtimeInfo: true
 
-      watch: false
+## build.bare
+
+Like coffeescript `--bare`:
+
+* if its false, it encloses each module in an Immediate Function Invocation (IFI):
+
+  ```
+  (function () {
+    .....
+  }).call(this);
+  ```
+* if its `true` it doesnt.
+
+The IFI (top-level function safety wrapper) is used to to prevent leaking and have all variables as local to the module etc.
+
+@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IFI, whereas the modules themselves are plain `define(...)` calls.
+
+@default undefined: The 'AMD' & 'UMD' templates are by default enclosed whereas the 'nodejs' template is by default NOT enclosed. Use `true` or `false` to change the default behavior.
+
+      bare: undefined
 
 ## build.noRootExports
 
@@ -605,9 +624,23 @@ With `scanAllow:true` you can allow `require('')` scan @ runtime, *for source mo
 
 ## build.allNodeRequires
 
-Pre-require all deps on node, even if they aren't mapped to any  parameters, just like in AMD deps []. Hence it preserves the same loading order as on Web/AMD, with a trade off of a possible slower starting up (they are cached nevertheless, so you gain speed later).
+Pre-require all `require('')` deps on node, even if they aren't mapped to any  parameters, just like they are pre-loaded as AMD `define()` array deps. It preserves the same loading order as on Web/AMD, with a trade off of a possible slower starting up (they are cached nevertheless, so you gain speed later).
 
       allNodeRequires: false
+
+## build.watch
+
+Watch for changes in bundle files and reprocess/re output *only* those changed files.
+
+The *watch feature* of uRequire works with:
+
+* Standalone urequireCmd, setting `watch: true` or -w flag.
+
+* Instead of `watch:true`, you use [grunt-urequire >=0.6.x](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.5.x](https://github.com/gruntjs/grunt-contrib-watch).
+
+@note at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
+
+      watch: false
 
 ## build.verbose
 
@@ -656,42 +689,11 @@ Optimizes output files (i.e it minifies/compresses them for production).
       optimize: false
       _optimizers: ['uglify2', 'uglify']
 
-## build.runtimeInfo
-
-Adds `__isAMD`, `__isNode` & `__isWeb` variables to your modules, so you can easily determine the execution environment your module is running in at runtime.
-
-@note combined template always has these variables available on the enclosing function cause it needs them!
-
-@default true
-
-      runtimeInfo: true
-
-## build.bare
-
-Like coffeescript `--bare`:
-
-* if its false, it encloses each module in an Immediate Function Invocation (IFI):
-
-  ```
-  (function () {
-    .....
-  }).call(this);
-  ```
-* if its `true` it doesnt.
-
-The IFI (top-level function safety wrapper) is used to to prevent leaking and have all variables as local to the module etc.
-
-@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IFI, whereas the modules themselves are plain `define(...)` calls.
-
-@default undefined: The 'AMD' & 'UMD' templates are by default enclosed whereas the 'nodejs' template is by default NOT enclosed. Use `true` or `false` to change the default behavior.
-
-      bare: undefined
-
 ## build.out
 
-Callback to pass you the 'converted' content & `dstFilename`, instead of saving to fs under `dstPath/dstFilename` via [`FileResource.save()`](resourceconverters.coffee#fileresource-methods).
+Callback to pass you the 'converted' content & `dstFilename` of each resource/module, instead of saving to fs under `dstPath/dstFilename` via [`FileResource.save()`](resourceconverters.coffee#fileresource-methods).
 
-Mind you, its not working on the 'combined' template, cause r.js optimizer doesn't yet work *in-memory*.
+Mind you, its not working on the resources when 'combined' template is used, cause r.js optimizer doesn't yet work *in-memory*.
 
 @type `function (dstFilename, converted){}`
 
@@ -703,7 +705,7 @@ Mind you, its not working on the 'combined' template, cause r.js optimizer doesn
 
 This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build.
 
-@todo: **NOT IMPLEMENTED** for user configs!
+@todo: **NOT TESTED** in user configs!
 
       done: (doneVal)-> console.log "done() is missing and I got a #{doneVal} on the default done()"
 
