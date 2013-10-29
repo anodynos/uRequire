@@ -121,10 +121,19 @@ class ModuleGeneratorTemplates extends Template
         """
       else ''
 
-
     runtimeInfoPrint: get: ->
       if @module.bundle.build.runtimeInfo
         @runtimeInfo + '\n'
+      else ''
+
+    useStrictPrint: get:->
+      if @module.bundle.build.useStrict
+        "'use strict';\n"
+      else ''
+
+    globalWindowPrint: get: ->
+      if @module.bundle.build.globalWindow
+        "if (typeof exports === 'object') {window = global} else {global = window}\n"
       else ''
 
     isRootExports: get: -> not (_.isEmpty(@module.flags.rootExports) or @module.bundle?.noRootExports)
@@ -142,7 +151,7 @@ class ModuleGeneratorTemplates extends Template
         "__umodule__.noConflict = " + @_function("""
               #{("  #{rootName}.#{exp} = __old__#{exp}" for exp in @module.flags.rootExports).join(';\n')};
               return __umodule__;
-            """)
+            """) + ';'
       else
         ''
     ) + "\nreturn __umodule__;"
@@ -159,7 +168,9 @@ class ModuleGeneratorTemplates extends Template
     nr = if isNodeRequirer then "nr." else ""
 
     fullBody =
+      @useStrictPrint +
       @runtimeInfoPrint +
+      @globalWindowPrint +
       @preDefineIFIBodyPrint + '\n' +
       @_functionIFI("""
          #{if @isRootExports then "var rootExport = #{@_function @_rootExportsNoConflict(), 'root, __umodule__'};"  else ''}
@@ -205,7 +216,9 @@ class ModuleGeneratorTemplates extends Template
   ###
   AMD: ->
     fullBody =
+      @useStrictPrint +
       @runtimeInfoPrint +
+      @globalWindowPrint +
       @preDefineIFIBodyPrint +
       @_AMD_plain_define()
 
@@ -238,7 +251,10 @@ class ModuleGeneratorTemplates extends Template
     paramPrintCount = 0
 
     fullBody = """
+      #{@useStrictPrint}
       #{@preDefineIFIBodyPrint}
+      #{@runtimeInfoPrint}
+      #{@globalWindowPrint}
       #{
         if _.any(@module.nodeDeps, (dep)->not dep.isSystem) then "\nvar " else ''}#{
         (for param, pi in @module.parameters when not (dep = @module.nodeDeps[pi]).isSystem
@@ -246,7 +262,6 @@ class ModuleGeneratorTemplates extends Template
             param} = require(#{dep.name(quote:true)})"
         ).join(',\n')
       };
-      #{@runtimeInfoPrint}
       #{@factoryBodyNodejs}
       #{if @isRootExports then "var __umodule__ = module.exports;\n #{@_rootExportsNoConflict 'global'}" else ''}
     """

@@ -594,6 +594,30 @@ The IFI (top-level function safety wrapper) is used to to prevent leaking and ha
 
       bare: undefined
 
+## build.useStrict
+
+Add the famous `'use strict';` at the begining of each module, so you dont have to type it at each one.
+For the 'combined' template its not added at each module, and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(
+
+
+@default false
+
+      useStrict: false
+
+## build.globalWindow
+
+Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. Essentially it adds
+```
+"if (typeof exports === 'object'){window = global} else {global = window}"
+```
+at the begining of each module. It works independently of [`build.runtimeInfo`](#build.runtimeInfo).
+
+@default true
+
+@note the `global === window` functionality is always true in 'combined' template - `false`-ing it makes no difference!
+
+      globalWindow: true
+
 ## build.noRootExports
 
 When true, it ignores all rootExports {& noConflict()} defined in all module files (eg `{rootExports: ['persons', 'personsModel']}` in top of 'mymodule.js'.

@@ -127,6 +127,24 @@ ModuleGeneratorTemplates = (function(_super) {
         }
       }
     },
+    useStrictPrint: {
+      get: function() {
+        if (this.module.bundle.build.useStrict) {
+          return "'use strict';\n";
+        } else {
+          return '';
+        }
+      }
+    },
+    globalWindowPrint: {
+      get: function() {
+        if (this.module.bundle.build.globalWindow) {
+          return "if (typeof exports === 'object') {window = global} else {global = window}\n";
+        } else {
+          return '';
+        }
+      }
+    },
     isRootExports: {
       get: function() {
         var _ref;
@@ -143,7 +161,7 @@ ModuleGeneratorTemplates = (function(_super) {
     if (rootName == null) {
       rootName = 'root';
     }
-    return ("  \n" + (this.module.flags.noConflict ? ((function() {
+    return ("" + (this.module.flags.noConflict ? ((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.flags.rootExports;
       _results = [];
@@ -152,7 +170,7 @@ ModuleGeneratorTemplates = (function(_super) {
         _results.push("" + (i === 0 ? 'var ' : '    ') + "__old__" + exp + " = " + rootName + "." + exp);
       }
       return _results;
-    }).call(this)).join(',\n') + ';' : '') + "\n\n" + (((function() {
+    }).call(this)).join(',\n') + ';' : '') + "\n" + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.flags.rootExports;
       _results = [];
@@ -161,7 +179,7 @@ ModuleGeneratorTemplates = (function(_super) {
         _results.push("" + rootName + "." + exportedVar + " = __umodule__");
       }
       return _results;
-    }).call(this)).join(';\n')) + ";\n") + (this.module.flags.noConflict ? "__umodule__.noConflict = " + this._function("" + (((function() {
+    }).call(this)).join(';\n')) + ";") + (this.module.flags.noConflict ? "__umodule__.noConflict = " + this._function("" + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.flags.rootExports;
       _results = [];
@@ -170,7 +188,7 @@ ModuleGeneratorTemplates = (function(_super) {
         _results.push("  " + rootName + "." + exp + " = __old__" + exp);
       }
       return _results;
-    }).call(this)).join(';\n')) + ";\nreturn __umodule__;") : '') + "\nreturn __umodule__;";
+    }).call(this)).join(';\n')) + ";\nreturn __umodule__;") + ';' : '') + "\nreturn __umodule__;";
   };
 
   /*
@@ -193,7 +211,7 @@ ModuleGeneratorTemplates = (function(_super) {
       isNodeRequirer = true;
     }
     nr = isNodeRequirer ? "nr." : "";
-    fullBody = this.runtimeInfoPrint + this.preDefineIFIBodyPrint + '\n' + this._functionIFI("" + (this.isRootExports ? "var rootExport = " + (this._function(this._rootExportsNoConflict(), 'root, __umodule__')) + ";" : '') + "\n\nif (typeof exports === 'object') {\n   " + (isNodeRequirer ? "var nr = new (require('urequire').NodeRequirer) ('" + this.module.path + "', module, __dirname, '" + this.module.webRootMap + "');" : "") + "\n   module.exports = " + (this.isRootExports ? 'rootExport(global, ' : '') + "factory(" + nr + "require" + (this.module.kind === 'nodejs' ? ', exports, module' : '') + (((function() {
+    fullBody = this.useStrictPrint + this.runtimeInfoPrint + this.globalWindowPrint + this.preDefineIFIBodyPrint + '\n' + this._functionIFI("" + (this.isRootExports ? "var rootExport = " + (this._function(this._rootExportsNoConflict(), 'root, __umodule__')) + ";" : '') + "\n\nif (typeof exports === 'object') {\n   " + (isNodeRequirer ? "var nr = new (require('urequire').NodeRequirer) ('" + this.module.path + "', module, __dirname, '" + this.module.webRootMap + "');" : "") + "\n   module.exports = " + (this.isRootExports ? 'rootExport(global, ' : '') + "factory(" + nr + "require" + (this.module.kind === 'nodejs' ? ', exports, module' : '') + (((function() {
       var _i, _len, _ref, _results;
       _ref = this.module.nodeDeps;
       _results = [];
@@ -220,7 +238,7 @@ ModuleGeneratorTemplates = (function(_super) {
 
   ModuleGeneratorTemplates.prototype.AMD = function() {
     var fullBody;
-    fullBody = this.runtimeInfoPrint + this.preDefineIFIBodyPrint + this._AMD_plain_define();
+    fullBody = this.useStrictPrint + this.runtimeInfoPrint + this.globalWindowPrint + this.preDefineIFIBodyPrint + this._AMD_plain_define();
     return this.headerBanner + " - template: 'AMD'\n" + (this.module.bundle.build.bare ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
@@ -235,7 +253,7 @@ ModuleGeneratorTemplates = (function(_super) {
   ModuleGeneratorTemplates.prototype.nodejs = function() {
     var dep, fullBody, param, paramPrintCount, pi;
     paramPrintCount = 0;
-    fullBody = "" + this.preDefineIFIBodyPrint + "\n" + (_.any(this.module.nodeDeps, function(dep) {
+    fullBody = "" + this.useStrictPrint + "\n" + this.preDefineIFIBodyPrint + "\n" + this.runtimeInfoPrint + "\n" + this.globalWindowPrint + "\n" + (_.any(this.module.nodeDeps, function(dep) {
       return !dep.isSystem;
     }) ? "\nvar " : '') + (((function() {
       var _i, _len, _ref, _results;
@@ -250,7 +268,7 @@ ModuleGeneratorTemplates = (function(_super) {
         }
       }
       return _results;
-    }).call(this)).join(',\n')) + ";\n" + this.runtimeInfoPrint + "\n" + this.factoryBodyNodejs + "\n" + (this.isRootExports ? "var __umodule__ = module.exports;\n " + (this._rootExportsNoConflict('global')) : '');
+    }).call(this)).join(',\n')) + ";\n" + this.factoryBodyNodejs + "\n" + (this.isRootExports ? "var __umodule__ = module.exports;\n " + (this._rootExportsNoConflict('global')) : '');
     return this.headerBanner + " - template: 'nodejs'\n" + (this.module.bundle.build.bare !== false ? fullBody : this._functionIFI(fullBody)) + ';';
   };
 
