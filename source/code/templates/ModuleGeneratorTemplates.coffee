@@ -131,11 +131,6 @@ class ModuleGeneratorTemplates extends Template
         "'use strict';\n"
       else ''
 
-    globalWindowPrint: get: ->
-      if @module.bundle.build.globalWindow
-        "if (typeof exports === 'object') {window = global} else {global = window}\n"
-      else ''
-
     isRootExports: get: -> not (_.isEmpty(@module.flags.rootExports) or @module.bundle?.noRootExports)
 
   ### private ###
@@ -170,7 +165,6 @@ class ModuleGeneratorTemplates extends Template
     fullBody =
       @useStrictPrint +
       @runtimeInfoPrint +
-      @globalWindowPrint +
       @preDefineIFIBodyPrint + '\n' +
       @_functionIFI("""
          #{if @isRootExports then "var rootExport = #{@_function @_rootExportsNoConflict(), 'root, __umodule__'};"  else ''}
@@ -207,8 +201,19 @@ class ModuleGeneratorTemplates extends Template
         'factory', @_function(@factoryBodyAMD, @parametersPrint)
       )
 
-    (if @module.bundle.build.bare then fullBody else @_functionIFI fullBody) + ';'
+    @_fullBodyBareIFIGW fullBody
 
+  _fullBodyBareIFIGW: (fullBody)->
+    (
+      if @module.bundle.build.bare
+        fullBody
+      else
+        if not @module.bundle.build.globalWindow
+          @_functionIFI fullBody
+        else
+          root = "(typeof exports === 'object' ? global : window)"
+          @_functionIFI fullBody, 'window', root, 'global', root
+     ) + ';'
 
   ### AMD template
       Simple `define(['dep'], function(dep){...body...}})`
@@ -218,12 +223,10 @@ class ModuleGeneratorTemplates extends Template
     fullBody =
       @useStrictPrint +
       @runtimeInfoPrint +
-      @globalWindowPrint +
       @preDefineIFIBodyPrint +
       @_AMD_plain_define()
 
-    @headerBanner + " - template: 'AMD'\n" +
-      (if @module.bundle.build.bare then fullBody else @_functionIFI fullBody) + ';'
+    @headerBanner + " - template: 'AMD'\n" + @_fullBodyBareIFIGW fullBody
 
   # not adding @preDefineIFIBodyPrint, they are added by whoever uses this.
   # 'combined' template merges them and add them once on combined enclosing function
@@ -254,7 +257,6 @@ class ModuleGeneratorTemplates extends Template
       #{@useStrictPrint}
       #{@preDefineIFIBodyPrint}
       #{@runtimeInfoPrint}
-      #{@globalWindowPrint}
       #{
         if _.any(@module.nodeDeps, (dep)->not dep.isSystem) then "\nvar " else ''}#{
         (for param, pi in @module.parameters when not (dep = @module.nodeDeps[pi]).isSystem
@@ -266,7 +268,6 @@ class ModuleGeneratorTemplates extends Template
       #{if @isRootExports then "var __umodule__ = module.exports;\n #{@_rootExportsNoConflict 'global'}" else ''}
     """
 
-    @headerBanner + " - template: 'nodejs'\n" +
-      (if @module.bundle.build.bare isnt false then fullBody else @_functionIFI fullBody) + ';'
+    @headerBanner + " - template: 'nodejs'\n" + @_fullBodyBareIFIGW fullBody
 
 module.exports = ModuleGeneratorTemplates

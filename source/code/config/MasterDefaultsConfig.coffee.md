@@ -577,28 +577,30 @@ For example they can be used to select a different execution branch, depending o
 
 Like coffeescript `--bare`:
 
-* if its false, it encloses each module in an Immediate Function Invocation (IFI):
+* if its false (*the default*), it encloses each module in an Immediate Function Invocation (IFI):
 
   ```
   (function () {
     .....
   }).call(this);
   ```
+
 * if its `true` it doesnt.
 
-The IFI (top-level function safety wrapper) is used to to prevent leaking and have all variables as local to the module etc.
+The IFI (top-level function safety wrapper) is used to prevent leaking and have all variables as local to the module and to provide the [`build.globalWindow`](#build.globalWindow) functionality.
 
-@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IFI, whereas the modules themselves are plain `define(...)` calls.
+@note if `bare` is true, [`build.globalWindow`](#build.globalWindow) **functionality is disabled**.
 
-@default undefined: The 'AMD' & 'UMD' templates are by default enclosed whereas the 'nodejs' template is by default NOT enclosed. Use `true` or `false` to change the default behavior.
+@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IFI, `windows === global` is always true and the modules themselves are plain `define(...)` calls.
 
-      bare: undefined
+@default false
+
+      bare: false
 
 ## build.useStrict
 
 Add the famous `'use strict';` at the begining of each module, so you dont have to type it at each one.
 For the 'combined' template its not added at each module, and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(
-
 
 @default false
 
@@ -606,11 +608,7 @@ For the 'combined' template its not added at each module, and it currently can't
 
 ## build.globalWindow
 
-Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. Essentially it adds
-```
-"if (typeof exports === 'object'){window = global} else {global = window}"
-```
-at the begining of each module. It works independently of [`build.runtimeInfo`](#build.runtimeInfo).
+Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. It works independently of [`build.runtimeInfo`](#build.runtimeInfo) but **it doesn't work if [`build.bare`](#build.bare) is `true`**. It uses the IFI that's enclosing modules to pass 'window' or 'global' respectively.
 
 @default true
 

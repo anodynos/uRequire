@@ -34,7 +34,7 @@ module.exports = MasterDefaultsConfig = {
     forceOverwriteSources: false,
     template: 'UMD',
     runtimeInfo: true,
-    bare: void 0,
+    bare: false,
     useStrict: false,
     globalWindow: true,
     noRootExports: false,

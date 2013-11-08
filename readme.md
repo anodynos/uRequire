@@ -1,9 +1,11 @@
-# uRequire v0.6.5
+# uRequire v0.6.6
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.png)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
 
 ## The JavaScript Universal Module & Resource Converter
+
+Convert AMD & commonjs modules to commonjs, AMD, UMD or single `.js` and run/test on nodejs, Web/AMD or Web/Script.
 
 All documentation is moved to the [wiki](https://github.com/anodynos/uRequire/wiki) and http://urequire.org
 
