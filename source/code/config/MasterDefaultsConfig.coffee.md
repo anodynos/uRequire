@@ -480,13 +480,13 @@ in which case the variable names these dependencies bind with (and are exported 
 
 #### bundle.dependencies.exports.root
 
-Make a module be available GLOBALY (i.e `window` object) under varName(s), same as in (Exporting-Modules)[Exporting-Modules]).
+Make a module be available GLOBALY (i.e `window` & `global` object) under `varName`(s), same as in [Exporting-Modules](Exporting-Modules).
 
-Access via plain `varName` works both in browser and nodejs. On browser its attached as a property to `window` object, in nodejs its attached to the 'global' object with the same effect: accessing it via its name from everywhere. 
+Access via plain `varName` works both in browser *and* nodejs.
+* On browser its attached as a property to `window` object
+* On nodejs its attached to the `global` object with the same effect: accessing it via its name from everywhere.
 
-Both 'window' and 'global' objects exist as an alias of each other on the 'combined' template.
-
-When `dependencies.exports.root` is used (instead of precise (Exporting-Modules)[Exporting-Modules]), `noConflict` is always true.
+When `dependencies.exports.root` is used (instead of precise [Exporting-Modules](Exporting-Modules), `noConflict` is always true.
 
 @example
 
@@ -496,7 +496,9 @@ is like having a
 
   `({rootExports: ['persons', 'personsModel'], noConflict:true});`
 
-in module 'models/PersonModel'.
+in module 'models/PersonModel' as described in [Exporting-Modules](Exporting-Modules).
+
+@note both `window` and `global` objects exist as an alias of each other on the ['combined' template](combined-template) or when [`build.globalWindow`](#build.globalWindow) is true (by default).
 
           root:{}
 
