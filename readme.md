@@ -9,7 +9,12 @@ Convert AMD & commonjs modules to commonjs, AMD, UMD or single `.js` and run/tes
 
 All documentation is moved to the [wiki](https://github.com/anodynos/uRequire/wiki) and http://urequire.org
 
-Dont forget to `star(this)` with your love above :-)
+# Support uRequire
+
+* `@goto('http://github.com/anodynos/urequire').then -> @star()` with your love :-)
+
+* [![Flattr donate button](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=anodynos&url=http%3A%2F%2Furequire.org "Donate to uRequire using Flattr")
+[![PayPayl donate button](https://www.paypalobjects.com/en_AU/i/btn/btn_donate_SM.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=XZGDQKS96XGP8&lc=GR&item_name=uRequire%2eorg&currency_code=EUR&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted "Donate to uRequire using Paypal")
 
 # Some Introduction
 
