@@ -149,14 +149,13 @@ FileResource = (function(_super) {
   };
 
   FileResource.prototype.save = function(filename, content, options) {
-    var _ref1, _ref2;
     if (filename == null) {
       filename = this.dstFilename;
     }
     if (content == null) {
       content = this.converted;
     }
-    return this.constructor.save(upath.join(((_ref1 = this.bundle) != null ? (_ref2 = _ref1.build) != null ? _ref2.dstPath : void 0 : void 0) || '', filename), content, options);
+    return this.constructor.save(upath.join(this.dstPath, filename), content, options);
   };
 
   saveOptions = 'utf-8';

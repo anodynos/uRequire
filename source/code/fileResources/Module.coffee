@@ -41,6 +41,17 @@ class Module extends TextResource
 
   @escodegenOptions: @::escodegenOptions
 
+  # override @dstFilename, save modules in build.template._combinedFileTemp if it exists
+  Object.defineProperties @::,
+    dstPath: get:->
+      if @bundle?.build.template._combinedFileTemp
+        @bundle.build.template._combinedFileTemp
+      else
+        if @bundle?.build.dstPath
+          @bundle.build.dstPath
+        else
+          ''
+
   ###
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
     & call `@adjust()` if so.

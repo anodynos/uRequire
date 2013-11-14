@@ -337,7 +337,7 @@ Bundle = (function(_super) {
           l.verbose("Missing file " + bf.srcFilepath + " - removing bundle file " + filename);
           delete this.files[filename];
           if (bf.dstExists && bf.hasErrors !== 'duplicate') {
-            l.verbose("Deleting file in `build.dstPath`: " + bf.dstFilepath);
+            l.verbose("Deleting file: " + bf.dstFilepath);
             try {
               fs.unlinkSync(bf.dstFilepath);
             } catch (_error) {
@@ -397,16 +397,16 @@ Bundle = (function(_super) {
         }
         if (this.build.template.name === 'combined') {
           if (!l.deb(debugLevelSkipTempDeletion)) {
-            l.debug(40, "Deleting temporary directory '" + this.build.dstPath + "'.");
+            l.debug(40, "Deleting temporary directory '" + this.build.template._combinedFileTemp + "'.");
             try {
-              wrench.rmdirSyncRecursive(this.build.dstPath);
+              wrench.rmdirSyncRecursive(this.build.template._combinedFileTemp);
             } catch (_error) {
               err = _error;
-              l.debug(40, "Can't delete temp dir '" + this.build.dstPath + "' - perhaps it doesnt exist.");
+              l.debug(40, "Can't delete temp dir '" + this.build.template._combinedFileTemp + "' - perhaps it doesnt exist.");
             }
           }
           debugLevelSkipTempDeletion = 0;
-          l.warn("Partial/watch build with 'combined' template wont DELETE '" + this.build.dstPath + "' - when you quit 'watch'-ing, delete it your self!");
+          l.warn("Partial/watch build with 'combined' template wont DELETE '" + this.build.template._combinedFileTemp + "' - when you quit 'watch'-ing, delete it your self!");
         }
         this.buildChangedResources(this.build, this.filenames);
         return;
@@ -599,22 +599,22 @@ Bundle = (function(_super) {
     _ref = almondTemplates.dependencyFiles;
     for (depfilename in _ref) {
       genCode = _ref[depfilename];
-      TextResource.save(upath.join(this.build.dstPath, depfilename + '.js'), genCode);
+      TextResource.save(upath.join(this.build.template._combinedFileTemp, depfilename + '.js'), genCode);
     }
     this.copyAlmondJs();
     this.copyWebMapDeps();
     try {
-      fs.unlinkSync(this.build.combinedFile);
+      fs.unlinkSync(this.build.template.combinedFile);
     } catch (_error) {
       err = _error;
     }
     rjsConfig = {
       paths: _.extend(almondTemplates.paths, this.getRequireJSConfig().paths),
       wrap: almondTemplates.wrap,
-      baseUrl: this.build.dstPath,
+      baseUrl: this.build.template._combinedFileTemp,
       include: [this.main],
       deps: _.keys(this.nodeOnlyDepsVars),
-      out: this.build.combinedFile,
+      out: this.build.template.combinedFile,
       name: 'almond'
     };
     if (rjsConfig.optimize = this.build.optimize) {
@@ -640,29 +640,29 @@ Bundle = (function(_super) {
         l.debug('@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse);
       }
       l.debug(60, 'Checking r.js output file...');
-      if (fs.existsSync(_this.build.combinedFile)) {
-        l.ok("Combined file '" + _this.build.combinedFile + "' written successfully for build #" + _this.build.count + ", rjs.optimize took " + ((new Date() - rjsStartDate) / 1000) + "secs .");
+      if (fs.existsSync(_this.build.template.combinedFile)) {
+        l.ok("Combined file '" + _this.build.template.combinedFile + "' written successfully for build #" + _this.build.count + ", rjs.optimize took " + ((new Date() - rjsStartDate) / 1000) + "secs .");
         if (!_.isEmpty(_this.globalDepsVars)) {
           if ((!_this.build.watch) || l.deb(50)) {
-            l.verbose("Global bindinds: make sure the following global dependencies:\n", _this.globalDepsVars, "\n\nare available when combined script '" + _this.build.combinedFile + "' is running on:\n\na) nodejs: they should exist as a local `nodes_modules`.\n\nb) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)\n\nc) Web/Script: the binded variables (eg '_' or '$')\n   must be a globally loaded (i.e `window.$`) BEFORE loading '" + _this.build.combinedFile + "'");
+            l.verbose("Global bindinds: make sure the following global dependencies:\n", _this.globalDepsVars, "\n\nare available when combined script '" + _this.build.template.combinedFile + "' is running on:\n\na) nodejs: they should exist as a local `nodes_modules`.\n\nb) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)\n\nc) Web/Script: the binded variables (eg '_' or '$')\n   must be a globally loaded (i.e `window.$`) BEFORE loading '" + _this.build.template.combinedFile + "'");
           }
         }
         if (!(l.deb(debugLevelSkipTempDeletion) || _this.build.watch)) {
-          l.debug(40, "Deleting temporary directory '" + _this.build.dstPath + "'.");
-          wrench.rmdirSyncRecursive(_this.build.dstPath);
+          l.debug(40, "Deleting temporary directory '" + _this.build.template._combinedFileTemp + "'.");
+          wrench.rmdirSyncRecursive(_this.build.template._combinedFileTemp);
         } else {
-          l.debug("NOT Deleting temporary directory '" + _this.build.dstPath + "', due to build.watch || debugLevel >= " + debugLevelSkipTempDeletion + ".");
+          l.debug("NOT Deleting temporary directory '" + _this.build.template._combinedFileTemp + "', due to build.watch || debugLevel >= " + debugLevelSkipTempDeletion + ".");
         }
         _this.build.report(_this);
         return _this.build.done(_this.doneOK);
       } else {
-        l.er("Combined file '" + _this.build.combinedFile + "' NOT written - this should not have happened, requirejs reported success.\nCheck requirejs's build response:\n", buildResponse);
+        l.er("Combined file '" + _this.build.template.combinedFile + "' NOT written - this should not have happened, requirejs reported success.\nCheck requirejs's build response:\n", buildResponse);
         _this.build.report(_this);
         return _this.build.done(false);
       }
     }, function(errorResponse) {
       _this.build.report(_this);
-      l.er('@requirejs.optimize errorResponse: ', errorResponse, "\n\nCombined file '" + _this.build.combinedFile + "' NOT written.\"\n\n  Some remedy:\n\n   a) Is your *bundle.main = '" + _this.main + "'* or *bundle.name = '" + _this.name + "'* properly defined ?\n      - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.\n      - 'name' is what 'main' defaults to, if its a module.\n\n   b) Perhaps you have a missing dependcency ?\n      r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.\n\n   c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).\n      *Note this prevents uRequire from finishing properly / printing this message!*\n\n   Note that you can check the AMD-ish files used in temporary directory '" + _this.build.dstPath + "'.\n\n   More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m\n", rjsConfig);
+      l.er('@requirejs.optimize errorResponse: ', errorResponse, "\n\nCombined file '" + _this.build.template.combinedFile + "' NOT written.\"\n\n  Some remedy:\n\n   a) Is your *bundle.main = '" + _this.main + "'* or *bundle.name = '" + _this.name + "'* properly defined ?\n      - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.\n      - 'name' is what 'main' defaults to, if its a module.\n\n   b) Perhaps you have a missing dependcency ?\n      r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.\n\n   c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).\n      *Note this prevents uRequire from finishing properly / printing this message!*\n\n   Note that you can check the AMD-ish files used in temporary directory '" + _this.build.template._combinedFileTemp + "'.\n\n   More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m\n", rjsConfig);
       return _this.build.done(false);
     });
   };
@@ -737,7 +737,7 @@ Bundle = (function(_super) {
   Bundle.prototype.copyAlmondJs = function() {
     var err;
     try {
-      return BundleFile.copy("" + __dirname + "/../../../node_modules/almond/almond.js", upath.join(this.build.dstPath, 'almond.js'));
+      return BundleFile.copy("" + __dirname + "/../../../node_modules/almond/almond.js", upath.join(this.build.template._combinedFileTemp, 'almond.js'));
     } catch (_error) {
       err = _error;
       return this.build.handleError(new UError("uRequire: error copying almond.js from uRequire's installation node_modules - is it installed ?\nTried: '" + __dirname + "/../../../node_modules/almond/almond.js'", {
@@ -747,7 +747,7 @@ Bundle = (function(_super) {
   };
 
   /*
-   Copy all bundle's webMap dependencies to dstPath
+   Copy all bundle's webMap dependencies to build.template._combinedFileTemp
    @todo: use path.join
    @todo: should copy dep.plugin & dep.resourceName separatelly
   */
@@ -763,7 +763,7 @@ Bundle = (function(_super) {
       _results = [];
       for (_i = 0, _len = webRootDeps.length; _i < _len; _i++) {
         depName = webRootDeps[_i];
-        _results.push(l.er("NOT IMPLEMENTED: copyWebMapDeps " + this.webRoot + depName + ", " + this.build.dstPath + depName));
+        _results.push(l.er("NOT IMPLEMENTED: copyWebMapDeps " + this.webRoot + depName + ", " + this.build.template._combinedFileTemp + depName));
       }
       return _results;
     }

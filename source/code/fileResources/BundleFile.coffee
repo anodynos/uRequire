@@ -48,7 +48,8 @@ class BundleFile
     srcExists: get:-> fs.existsSync @srcFilepath
 
     # @dstFilename populated after each refresh/conversion (or a default on constructor)
-    dstFilepath: get:-> upath.join @bundle?.build?.dstPath or '', @dstFilename # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
+    dstPath: get:-> @bundle?.build?.dstPath or ''
+    dstFilepath: get:-> upath.join @dstPath, @dstFilename # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
     dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
 

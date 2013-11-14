@@ -141,20 +141,24 @@ class BundleBuilder
     if pathsOk
       if @config.build.forceOverwriteSources
         @config.build.dstPath = @config.bundle.path
-        l.verbose "Forced output to '#{@config.build.dstPath}'"
+        l.verbose "forceOverwriteSources: dstPath set to '#{@config.build.dstPath}'"
       else
-        if not @config.build.dstPath
+        if not (@config.build.dstPath or
+          ((@config.build.template.name is 'combined') and @config.build.template.combinedFile)
+        )
           l.er """
-            Quitting build, no --dstPath specified.
+            Quitting build:
+              * no --dstPath / `build.dstPath` specified.
+              #{if @config.build.template.name is 'combined' then "* no `build.template.combinedFile` specified" else ''}
             Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
           pathsOk = false
-        else
-          if upath.normalize(@config.build.dstPath) is upath.normalize(@config.bundle.path)
-            l.er """
-              Quitting build, dstPath === path.
-              Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
-              """
-            pathsOk = false
+
+        if @config.build.dstPath and upath.normalize(@config.build.dstPath) is upath.normalize(@config.bundle.path)
+          l.er """
+            Quitting build, dstPath === path.
+            Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
+            """
+          pathsOk = false
 
     pathsOk
 

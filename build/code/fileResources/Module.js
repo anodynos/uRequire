@@ -75,6 +75,23 @@ Module = (function(_super) {
 
   Module.escodegenOptions = Module.prototype.escodegenOptions;
 
+  Object.defineProperties(Module.prototype, {
+    dstPath: {
+      get: function() {
+        var _ref1, _ref2;
+        if ((_ref1 = this.bundle) != null ? _ref1.build.template._combinedFileTemp : void 0) {
+          return this.bundle.build.template._combinedFileTemp;
+        } else {
+          if ((_ref2 = this.bundle) != null ? _ref2.build.dstPath : void 0) {
+            return this.bundle.build.dstPath;
+          } else {
+            return '';
+          }
+        }
+      }
+    }
+  });
+
   /*
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
     & call `@adjust()` if so.

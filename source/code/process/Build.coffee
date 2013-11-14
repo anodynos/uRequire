@@ -38,9 +38,23 @@ class Build extends _B.CalcCachedProperties
     # setup 'combinedFile' on 'combined' template
     # (i.e where to output AMD-like templates & where the combined .js file)
     if (@template.name is 'combined')
-      @combinedFile = upath.changeExt @dstPath, '.js'
-      @dstPath = "#{@combinedFile}___temp"
-      l.debug("Setting `build.combinedFile` = #{@combinedFile} and `build.dstPath` = #{@dstPath}") if l.deb 30
+      if not @template.combinedFile # assume '@dstPath' is valid
+        @template.combinedFile = @dstPath
+        @dstPath = upath.dirname @dstPath
+
+        l.verbose """
+            `build.template` is 'combined' and `build.template.combinedFile` is undefined:
+            Setting `build.template.combinedFile` = '#{@template.combinedFile}' from `build.dstPath`
+            and `build.dstPath` = '#{@dstPath}' (keeping only path.dirname)."""
+
+      @template.combinedFile = upath.changeExt @template.combinedFile, '.js'
+      @template._combinedFileTemp = "#{@template.combinedFile}___temp"
+
+      if not @dstPath # one '@combinedFile' is defined
+        @dstPath = upath.dirname @template.combinedFile
+        l.verbose """
+          `build.template` is 'combined' and `build.dstPath` is undefined:
+           Setting `build.dstPath` = '#{@dstPath}' from `build.template.combinedFile` = '#{@template.combinedFile}'"""
 
       if @out
         l.warn "`build.out` is deleted due to `combined` template being used - r.js doesn't work in memory yet."

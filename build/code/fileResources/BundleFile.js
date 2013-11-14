@@ -79,10 +79,15 @@ BundleFile = (function() {
         return fs.existsSync(this.srcFilepath);
       }
     },
-    dstFilepath: {
+    dstPath: {
       get: function() {
         var _ref, _ref1;
-        return upath.join(((_ref = this.bundle) != null ? (_ref1 = _ref.build) != null ? _ref1.dstPath : void 0 : void 0) || '', this.dstFilename);
+        return ((_ref = this.bundle) != null ? (_ref1 = _ref.build) != null ? _ref1.dstPath : void 0 : void 0) || '';
+      }
+    },
+    dstFilepath: {
+      get: function() {
+        return upath.join(this.dstPath, this.dstFilename);
       }
     },
     dstRealpath: {

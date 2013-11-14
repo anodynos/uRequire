@@ -87,7 +87,7 @@ class FileResource extends BundleFile
       undefined
 
   save: (filename=@dstFilename, content=@converted, options)->
-    @constructor.save upath.join(@bundle?.build?.dstPath or '', filename), content, options
+    @constructor.save upath.join(@dstPath, filename), content, options
 
   saveOptions = 'utf-8' # compatible with node 0.8 {encoding: 'utf-8', mode: 438, flag: 'w'}
   @save: (filename, content, options=saveOptions)->

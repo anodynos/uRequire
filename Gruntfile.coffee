@@ -26,6 +26,23 @@ gruntFunction = (grunt) ->
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
+    clean:
+      build: [
+        "<%= options.buildDir %>/**/*.*"
+        "<%= options.buildSpecDir %>/**/*.*"
+      ]
+
+    concat:
+      bin:
+        options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
+        src: ['<%= options.buildDir %>/urequireCmd.js' ]
+        dest: '<%= options.buildDir %>/urequireCmd.js'
+
+      VERSIONurequire:
+        options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
+        src: [ '<%= options.buildDir %>/urequire.js']
+        dest:  '<%= options.buildDir %>/urequire.js'
+
     copy:
       specResources:
         files: [
@@ -43,31 +60,6 @@ gruntFunction = (grunt) ->
           dest: "../uRequire.wiki/"
         ]
 
-      glink:
-        files: [
-          expand: true
-          cwd: "build/code/"
-          src: ["**/*.js"]
-          dest: "../glink/node_modules/urequire/build/code/"
-        ]
-
-    concat:
-      bin:
-        options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
-        src: ['<%= options.buildDir %>/urequireCmd.js' ]
-        dest: '<%= options.buildDir %>/urequireCmd.js'
-
-      VERSIONurequire:
-        options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
-        src: [ '<%= options.buildDir %>/urequire.js']
-        dest:  '<%= options.buildDir %>/urequire.js'
-
-    clean:
-      build: [
-        "<%= options.buildDir %>/**/*.*"
-        "<%= options.buildSpecDir %>/**/*.*"
-      ]
-
     watch:
       dev:
         files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
@@ -77,11 +69,6 @@ gruntFunction = (grunt) ->
         files: ["#{sourceDir}/**/*.*"]
         tasks: ['copy:wiki']
 
-      copyGlink:
-        files: ["#{buildDir}/**/*.*"]
-        tasks: ['copy:glink']
-
-
     shell:
       coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
       coffeeSpec: command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
@@ -90,7 +77,7 @@ gruntFunction = (grunt) ->
         if process.platform is 'linux' # change urequireCmd.js to executable - linux only
           "chmod +x 'build/code/urequireCmd.js'"
         else "@echo " #do nothing
-      mocha: command: "mocha #{buildSpecDir} --recursive " # --reporter spec --bail
+      mocha: command: "mocha #{buildSpecDir} --recursive --reporter spec --bail"
       doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
       dev: command: "mocha #{sourceSpecDir} --recursive --compilers coffee:coffee-script --reporter spec"
 #      draft: command: "coffee source/code/DRAFT.coffee"
@@ -107,7 +94,7 @@ gruntFunction = (grunt) ->
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
      "default": "clean build test"
-     "build":   "shell:coffee concat chmod copy:wiki"
+     "build":   "shell:coffee concat chmod copy"
      "test":    "shell:coffeeSpec copy:specResources mocha"
 
      # some shortcuts

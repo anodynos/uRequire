@@ -58,10 +58,16 @@ module.exports = Build = (function(_super) {
     _.extend(this, buildCfg);
     this.count = 0;
     if (this.template.name === 'combined') {
-      this.combinedFile = upath.changeExt(this.dstPath, '.js');
-      this.dstPath = "" + this.combinedFile + "___temp";
-      if (l.deb(30)) {
-        l.debug("Setting `build.combinedFile` = " + this.combinedFile + " and `build.dstPath` = " + this.dstPath);
+      if (!this.template.combinedFile) {
+        this.template.combinedFile = this.dstPath;
+        this.dstPath = upath.dirname(this.dstPath);
+        l.verbose("`build.template` is 'combined' and `build.template.combinedFile` is undefined:\nSetting `build.template.combinedFile` = '" + this.template.combinedFile + "' from `build.dstPath`\nand `build.dstPath` = '" + this.dstPath + "' (keeping only path.dirname).");
+      }
+      this.template.combinedFile = upath.changeExt(this.template.combinedFile, '.js');
+      this.template._combinedFileTemp = "" + this.template.combinedFile + "___temp";
+      if (!this.dstPath) {
+        this.dstPath = upath.dirname(this.template.combinedFile);
+        l.verbose("`build.template` is 'combined' and `build.dstPath` is undefined:\n Setting `build.dstPath` = '" + this.dstPath + "' from `build.template.combinedFile` = '" + this.template.combinedFile + "'");
       }
       if (this.out) {
         l.warn("`build.out` is deleted due to `combined` template being used - r.js doesn't work in memory yet.");

@@ -559,9 +559,40 @@ Output on the same directory as the _source_ [`bundle.path`](MasterDefaultsConfi
 
 ## build.template
 
-A string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
+The Template to use to convert each module (or 'combined' template which drives an r.js/almond conversion into one file).
+
+@type
+
+  * The simple usage, just the name of the template as a string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
+
+  * An options hash (optional, only for 'combined' currently) - example:
+```
+template: {
+  // the String name of the template
+  name: 'combined',
+
+  // for the 'combined' template only, you can declare the `combinedFile`,
+  // if its different (or instead of) [`build.dstPath`](#build.dstPath).
+  combinedFile: 'build/someOtherPath/combinedModulesFilename.js'
+}
+```
+
+@note: `'combinedFile'` and [`build.dstPath`](#build.dstPath) derive from each other, if either is undefined:
+* In this example, if `build.dstPath` is undefined, it will default to `'build/someOtherPath/'`
+* If `combinedFile` is undefined, it will use [`build.dstPath`](#build.dstPath) with a '.js' appended.
+* if both are undefined uRequire will quit (unless [`forceOverwriteSources`](#build.forceOverwriteSources) is true).
+
+@example
+```
+// simple example
+template: 'UMDplain'
+```
+or see @type example before
+
 
 @see *Conversion Templates* in docs.
+
+@default 'UMD'
 
       template: 'UMD'
 
@@ -604,7 +635,8 @@ The IFI (top-level function safety wrapper) is used to prevent leaking and have 
 ## build.useStrict
 
 Add the famous `'use strict';` at the begining of each module, so you dont have to type it at each one.
-For the 'combined' template its not added at each module, and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(
+
+@note: For the 'combined' template its not added at each module **and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(**
 
 @default false
 

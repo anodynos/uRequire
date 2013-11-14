@@ -241,7 +241,7 @@ class Bundle extends BundleBase
           l.verbose "Missing file #{bf.srcFilepath} - removing bundle file #{filename}"
           delete @files[filename]
           if bf.dstExists and bf.hasErrors isnt 'duplicate'
-            l.verbose "Deleting file in `build.dstPath`: #{bf.dstFilepath}"
+            l.verbose "Deleting file: #{bf.dstFilepath}"
             try
                 fs.unlinkSync bf.dstFilepath
             catch err
@@ -287,13 +287,13 @@ class Bundle extends BundleBase
         file.reset() for fn, file of @files
         if @build.template.name is 'combined'
           if not l.deb(debugLevelSkipTempDeletion)
-            l.debug 40, "Deleting temporary directory '#{@build.dstPath}'."
+            l.debug 40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'."
             try
-              wrench.rmdirSyncRecursive @build.dstPath
+              wrench.rmdirSyncRecursive @build.template._combinedFileTemp
             catch err
-              l.debug 40, "Can't delete temp dir '#{@build.dstPath}' - perhaps it doesnt exist."
+              l.debug 40, "Can't delete temp dir '#{@build.template._combinedFileTemp}' - perhaps it doesnt exist."
           debugLevelSkipTempDeletion = 0 # dont delete ___temp while watching
-          l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.dstPath}' - when you quit 'watch'-ing, delete it your self!"
+          l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
 
         @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
         return # dont run again!
@@ -374,7 +374,7 @@ class Bundle extends BundleBase
     null
 
   # All @files (i.e bundle.filez) that ARE NOT `FileResource`s and below (i.e are plain `BundleFile`s)
-  # are copied to build.dstPath.
+  # are copied to build.dstPath
   copyChangedBundleFiles: ->
     if !_.isEmpty @copyBundleFiles
       l.debug """\n-
@@ -439,22 +439,22 @@ class Bundle extends BundleBase
 
     almondTemplates = new AlmondOptimizationTemplate @
     for depfilename, genCode of almondTemplates.dependencyFiles
-      TextResource.save upath.join(@build.dstPath, depfilename+'.js'), genCode
+      TextResource.save upath.join(@build.template._combinedFileTemp, depfilename+'.js'), genCode
 
     @copyAlmondJs()
     @copyWebMapDeps()
 
     try
-      fs.unlinkSync @build.combinedFile
+      fs.unlinkSync @build.template.combinedFile
     catch err
 
     rjsConfig =
       paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
       wrap: almondTemplates.wrap
-      baseUrl: @build.dstPath
+      baseUrl: @build.template._combinedFileTemp
       include: [@main]
       deps: _.keys @nodeOnlyDepsVars # we include the 'fake' AMD files 'getNodeOnly_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
-      out: @build.combinedFile
+      out: @build.template.combinedFile
       name: 'almond'
 
     if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
@@ -475,35 +475,35 @@ class Bundle extends BundleBase
       (buildResponse)=>
         l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
         l.debug(60, 'Checking r.js output file...')
-        if fs.existsSync @build.combinedFile
-          l.ok "Combined file '#{@build.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
+        if fs.existsSync @build.template.combinedFile
+          l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
 
           if not _.isEmpty @globalDepsVars
             if (not @build.watch) or l.deb 50
               l.verbose "Global bindinds: make sure the following global dependencies:\n", @globalDepsVars,
                 """\n
-                are available when combined script '#{@build.combinedFile}' is running on:
+                are available when combined script '#{@build.template.combinedFile}' is running on:
 
                 a) nodejs: they should exist as a local `nodes_modules`.
 
                 b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
 
                 c) Web/Script: the binded variables (eg '_' or '$')
-                   must be a globally loaded (i.e `window.$`) BEFORE loading '#{@build.combinedFile}'
+                   must be a globally loaded (i.e `window.$`) BEFORE loading '#{@build.template.combinedFile}'
                 """
 
-          # delete dstPath, used as temp directory with individual AMD files
+          # delete _combinedFileTemp, used as temp directory with individual AMD files
           if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
-            l.debug(40, "Deleting temporary directory '#{@build.dstPath}'.")
-            wrench.rmdirSyncRecursive @build.dstPath
+            l.debug(40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'.")
+            wrench.rmdirSyncRecursive @build.template._combinedFileTemp
           else
-            l.debug("NOT Deleting temporary directory '#{@build.dstPath}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
+            l.debug("NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
 
           @build.report @
           @build.done @doneOK
         else
           l.er """
-            Combined file '#{@build.combinedFile}' NOT written - this should not have happened, requirejs reported success.
+            Combined file '#{@build.template.combinedFile}' NOT written - this should not have happened, requirejs reported success.
             Check requirejs's build response:\n
           """, buildResponse
           @build.report @
@@ -513,7 +513,7 @@ class Bundle extends BundleBase
         @build.report @
 
         l.er '@requirejs.optimize errorResponse: ', errorResponse, """\n
-        Combined file '#{@build.combinedFile}' NOT written."
+        Combined file '#{@build.template.combinedFile}' NOT written."
 
           Some remedy:
 
@@ -527,7 +527,7 @@ class Bundle extends BundleBase
            c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
               *Note this prevents uRequire from finishing properly / printing this message!*
 
-           Note that you can check the AMD-ish files used in temporary directory '#{@build.dstPath}'.
+           Note that you can check the AMD-ish files used in temporary directory '#{@build.template._combinedFileTemp}'.
 
            More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
 
@@ -583,10 +583,10 @@ class Bundle extends BundleBase
     toCode PreDefineIFI_statements
   
   copyAlmondJs: ->
-    try # copy almond.js from GLOBAL/urequire/node_modules -> dstPath
+    try # copy almond.js from GLOBAL/urequire/node_modules -> build.template._combinedFileTemp
       BundleFile.copy(
         "#{__dirname}/../../../node_modules/almond/almond.js" # from
-        upath.join(@build.dstPath, 'almond.js')            # to
+        upath.join(@build.template._combinedFileTemp, 'almond.js')            # to
       )
     catch err
       @build.handleError new UError """
@@ -595,7 +595,7 @@ class Bundle extends BundleBase
       """, nested:err
 
   ###
-   Copy all bundle's webMap dependencies to dstPath
+   Copy all bundle's webMap dependencies to build.template._combinedFileTemp
    @todo: use path.join
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
@@ -605,8 +605,8 @@ class Bundle extends BundleBase
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
 #        BundleFile.copy     "#{@webRoot}#{depName}",         # from
-#                            "#{@build.dstPath}#{depName}"    # to
-        l.er "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.dstPath}#{depName}"
+#                            "#{@build.template._combinedFileTemp}#{depName}"    # to
+        l.er "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.template._combinedFileTemp}#{depName}"
 
   logNestedErrorMessages = (error)->
     errorMessages = error.message || error + ''
