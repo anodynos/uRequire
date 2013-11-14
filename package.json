@@ -33,7 +33,7 @@
  },
  "main": "./build/code/urequire.js",
  "scripts": {
-   "test": "node_modules/mocha/bin/mocha build/spec --recursive --reporter spec --bail"
+   "test": "node_modules/.bin/mocha build/spec --recursive --reporter spec --bail"
  },
  "directories": {
   "doc": "./doc",
