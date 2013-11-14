@@ -4,10 +4,11 @@ expect = chai.expect
 
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/ResourceConverter-spec'
-
 _ = require 'lodash'
 
 ResourceConverter = require '../../code/config/ResourceConverter'
+
+{deepEqual, likeAB, likeBA} = require '../helpers'
 
 rcSpec1 = [
   '$Coffeescript' # a title of the resource (a module since starting with $)
@@ -48,44 +49,54 @@ describe 'ResourceConverter creation, cloning & updating:', ->
     do (rc, rcIdx)->
       describe "ResourceConverter creation & updates (for #{if rcIdx then 'clone() #'+rcIdx else 'original instance'}):", ->
 
-        it "created correct RC instance from an rc-spec", ->
-          expect(rc).to.deep.equal expectedRc
-          expect(rc.clazz.name).to.equal 'Module'
-          expect(rc.type).to.equal 'module'
-          expect(rc.convFilename).to.equal rcSpec1[3]
+        describe "creates correct RC instance from an rc-spec:", ->
+          it "deep equal", ->
+            deepEqual rc, expectedRc
 
-        it "all clones are equal", -> expect(rc).to.deep.equal rc.clone()
+          it "clazz.name", ->
+            expect(rc.clazz.name).to.equal 'Module'
 
-        it "updating `type` on instance, updates hidden clazz field", ->
-          rc.type = 'text'
-          expect(rc[' type']).to.equal 'text'
-          expect(rc['type']).to.equal 'text'
-          expect(rc.clazz.name).to.equal 'TextResource'
+          it "type", ->
+            expect(rc.type).to.equal 'module'
 
-        it "updating `name` on instance, updates all relevant fields", ->
-          rc.name = '$~!aNewName'
-          expect(rc.clazz.name).to.equal 'Module'
-          expect(rc.type).to.equal 'module'
-          expect(rc[' type']).to.equal 'module'
-          expect(rc.isAfterTemplate).to.equal true
+          it "convFilename", ->
+            expect(rc.convFilename).to.equal rcSpec1[3]
 
-        it "updating `convFilename` as a '.changeExt' String, updates relevant fields", ->
-          rc.convFilename = '.javascript'
-          expect(rc[' convFilename']).to.equal '.javascript'
-          expect(rc.convFilename).to.be.a.Function
-          expect(rc.convFilename).to.not.be.equal rcSpec1[2]
-          expect(rc.convFilename 'myFilename.coffee').to.equal 'myFilename.javascript'
+          it "all clones are equal", ->
+            deepEqual rc, rc.clone()
 
-        it "updating `convFilename` as a '.changeExt' String (srcFilename), updates relevant fields", ->
-          rc.convFilename = '~.javascript'
-          expect(rc[' convFilename']).to.equal '~.javascript'  # display value is the original
-          expect(rc.convFilename).to.be.a.Function
-          expect(rc.convFilename).to.not.be.equal rcSpec1[2]
-          expect(rc.convFilename 'myFilename.coffee', 'mySrcFilename.coffee').to.equal 'mySrcFilename.javascript'
+        describe "updating:", ->
+          it "`type` on instance, updates hidden clazz field", ->
+            rc.type = 'text'
+            expect(rc[' type']).to.equal 'text'
+            expect(rc['type']).to.equal 'text'
+            expect(rc.clazz.name).to.equal 'TextResource'
 
-        it.skip "No RC added to registry", -> #skip because of mocha runs test out of order!
-          expect(_.keys(ResourceConverter.registry).length).to.equal initialRegistryKeys.length
-          expect(_B.isEqualArraySet (_.keys ResourceConverter.registry), initialRegistryKeys).to.be.true # need set check
+          it "`name` on instance, updates all relevant fields", ->
+            rc.name = '$~!aNewName'
+            expect(rc.name).to.equal 'aNewName'
+            expect(rc.clazz.name).to.equal 'Module'
+            expect(rc.type).to.equal 'module'
+            expect(rc[' type']).to.equal 'module'
+            expect(rc.isAfterTemplate).to.equal true
+
+          it "`convFilename` as a '.changeExt' String, updates relevant fields", ->
+            rc.convFilename = '.javascript'
+            expect(rc[' convFilename']).to.equal '.javascript'
+            expect(rc.convFilename).to.be.a.Function
+            expect(rc.convFilename).to.not.be.equal rcSpec1[2]
+            expect(rc.convFilename 'myFilename.coffee').to.equal 'myFilename.javascript'
+
+          it "`convFilename` as a '.changeExt' String (srcFilename), updates relevant fields", ->
+            rc.convFilename = '~.javascript'
+            expect(rc[' convFilename']).to.equal '~.javascript'  # display value is the original
+            expect(rc.convFilename).to.be.a.Function
+            expect(rc.convFilename).to.not.be.equal rcSpec1[2]
+            expect(rc.convFilename 'myFilename.coffee', 'mySrcFilename.coffee').to.equal 'mySrcFilename.javascript'
+
+          it.skip "No RC added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
+            expect(_.keys(ResourceConverter.registry).length).to.equal initialRegistryKeys.length
+            expect(_B.isEqualArraySet (_.keys ResourceConverter.registry), initialRegistryKeys).to.be.true # need set check
   null
 
   describe "ResourceConverter .clone():", ->
@@ -108,11 +119,10 @@ describe 'ResourceConverter creation, cloning & updating:', ->
       it "identical clones only update ", ->
         rcClone = rc.clone()
         expect(rc isnt rcClone).to.be.true
-        expect(rc).to.deep.equal expectedRc
-        expect(rcClone).to.deep.equal expectedRc
+        deepEqual rc, expectedRc
+        deepEqual rcClone, expectedRc
         newRc = ResourceConverter.searchRegisterUpdate rcClone
         expect(newRc).to.equal rc
-
 
       it "The instance is registered", ->
         expect(ResourceConverter.registry[rc.name]).to.be.equal rc
@@ -123,53 +133,53 @@ describe 'ResourceConverter creation, cloning & updating:', ->
         rc = ResourceConverter.searchRegisterUpdate rcClone
         expect(rc).to.not.be.equal rcClone
         expect(rc).to.be.equal newRc
-        expect(rc).to.deep.equal expectedRc
+        deepEqual rc, expectedRc
 
       it "Updates instance from another instance, returned from a function", ->
         rc = ResourceConverter.searchRegisterUpdate -> rcClone
         expect(rc).to.not.be.equal rcClone
         expect(rc).to.be.equal newRc
-        expect(rc).to.deep.equal expectedRc
+        deepEqual rc, expectedRc
 
       it "Updates instance from a rcSpec, returned from nested functions", ->
         rc = ResourceConverter.searchRegisterUpdate -> -> -> rcSpec1
         expect(rc).to.not.be.equal rcSpec1
         expect(rc).to.be.equal newRc
-        expect(rc).to.deep.equal expectedRc
+        deepEqual rc, expectedRc
 
     describe "Searching for ResourceConverters:", ->
 
       it "The instance is retrieved via `search by name`", ->
         foundRc = ResourceConverter.searchRegisterUpdate rc.name
         expect(foundRc).to.be.equal rc
-        expect(foundRc).to.deep.equal expectedRc
+        deepEqual foundRc, expectedRc
 
       it "The instance is retrieved passing a function with `search by name` as context", ->
         foundRc = ResourceConverter.searchRegisterUpdate -> @ rc.name
         expect(foundRc).to.be.equal rc
-        expect(foundRc).to.deep.equal expectedRc
+        deepEqual foundRc, expectedRc
 
       it "some funky ->->->", ->
         foundRc = ResourceConverter.searchRegisterUpdate -> -> -> -> @ rc.name
         expect(foundRc).to.be.equal rc
-        expect(foundRc).to.deep.equal expectedRc
+        deepEqual foundRc, expectedRc
 
       it "Searched instance is updated via search flags", ->
         flagsToApply = '!#'
         expectedRcWithAppliedFlags = _.extend _.clone(expectedRc, true), {isAfterTemplate:true, ' type': 'text'}
         foundRc = ResourceConverter.searchRegisterUpdate -> @ flagsToApply + rc.name
         expect(foundRc).to.be.equal rc
-        expect(foundRc).to.deep.equal expectedRcWithAppliedFlags
+        deepEqual foundRc, expectedRcWithAppliedFlags
 
       it "Searching via an Array, returns a registered RC", ->
         foundRc = ResourceConverter.searchRegisterUpdate rcSpec1
         expect(foundRc).to.be.equal rc
-        expect(foundRc).to.deep.equal expectedRc
+        deepEqual foundRc, expectedRc
 
       it "Registering a function that returns an Array, returns a registered RC", ->
         foundRc = ResourceConverter.searchRegisterUpdate -> @ rcSpec1
         expect(foundRc).to.be.equal rc
-        expect(foundRc).to.deep.equal expectedRc
+        deepEqual foundRc, expectedRc
 
       it "Searching via an Array spec of a new RC, returns a newly creatred/registered RC", ->
         rcspec = _.clone(rcSpec1, true)
@@ -179,7 +189,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
         expect(foundRc).to.not.be.equal rc
         expect(foundRc instanceof ResourceConverter).to.be.true
         foundRc.name = '#LivescriptTextResource'
-        expect(foundRc).to.deep.equal
+        deepEqual foundRc,
           ' type': 'text'
           ' name': 'LivescriptTextResource'
           descr: 'No descr for ResourceConverter \'Livescript\''
@@ -209,16 +219,16 @@ describe 'ResourceConverter creation, cloning & updating:', ->
         expect(ResourceConverter.registry['someOtherName']).to.equal newRc
         expect(ResourceConverter.searchRegisterUpdate 'someOtherName').to.equal newRc
 
-      it.skip "Two more RC are added to registry", -> #skip because of mocha runs test out of order!
+      it.skip "Two more RC are added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
         expect(_.keys(ResourceConverter.registry).length).to.equal initialRegistryKeys.length + 2
 
     describe "accepts null and undefined, they just dont get registered", ->
 
       it "accepts null", ->
-        expect(new ResourceConverter null).to.deep.equal {}
-        expect(ResourceConverter.searchRegisterUpdate null).to.deep.equal {}
+        deepEqual new ResourceConverter(null), {}
+        deepEqual ResourceConverter.searchRegisterUpdate(null), {}
 
       it "accepts undefined", ->
-        expect(new ResourceConverter undefined).to.deep.equal {}
-        expect(ResourceConverter.searchRegisterUpdate undefined).to.deep.equal {}
+        deepEqual new ResourceConverter(undefined), {}
+        deepEqual ResourceConverter.searchRegisterUpdate(undefined), {}
 

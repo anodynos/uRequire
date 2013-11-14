@@ -4,6 +4,8 @@ expect = chai.expect
 
 _ = require 'lodash'
 
+{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+
 isFileInSpecs = require '../../code/utils/isFileInSpecs'
 
 files = [
@@ -32,9 +34,8 @@ fileSpecs = [
 describe 'isFileInSpecs', ->
   it "correctly expands files", ->
     filteredFiles = _.filter files, (f)-> isFileInSpecs f, fileSpecs
-    expect(
-      filteredFiles
-    ).to.deep.equal [
+    deepEqual filteredFiles,
+      [
         'file.txt'
         'path/file.coffee'
         'draft/mydraft.coffee'

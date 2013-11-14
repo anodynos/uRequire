@@ -9,7 +9,15 @@ _B = require 'uberscore'
 l = new _B.Logger 'spec/fileResources/Module-spec'
 #_B.Logger.addDebugPathLevel 'urequire', 100
 
-{areEqual, areLike, areRLike, untrust} = require '../helpers'
+{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+
+# replace depStrings @ indexes with a String() having 'untrusted:true` property
+untrust = (indexes, depsStrings)->
+  for idx in indexes
+    depsStrings[idx] = new String depsStrings[idx]
+    depsStrings[idx].untrusted = true
+    depsStrings[idx].inspect = -> @toString() + ' (untrusted in test)'
+  depsStrings
 
 coffee = require 'coffee-script'
 esprima = require 'esprima'
@@ -66,26 +74,23 @@ describe "Module:", ->
     describe "NON-AMD modules:", ->
 
       it "identifies non-AMD/UMD module as nodejs", ->
-        expect(
-          areRLike moduleInfo("""
-            function dosomething(someVar) {
-              abc(['underscore', 'depdir1/dep1'], function(_, dep1) {
-                 dep1 = new dep1();
-                 var someVar = require('someDep');
-                 return dep1.doit();
-              });
-            }
-            """
-          ),
-          ext_requireDeps: [ 'someDep' ]
-          ext_requireVars: [ 'someVar' ]
-          kind: 'nodejs'
-          factoryBody: 'function dosomething(someVar){abc(["underscore","depdir1/dep1"],function(_,dep1){dep1=new dep1();var someVar=require("someDep");return dep1.doit();});}'
+        likeBA moduleInfo("""
+          function dosomething(someVar) {
+            abc(['underscore', 'depdir1/dep1'], function(_, dep1) {
+               dep1 = new dep1();
+               var someVar = require('someDep');
+               return dep1.doit();
+            });
+          }
+          """
+        ),
+        ext_requireDeps: [ 'someDep' ]
+        ext_requireVars: [ 'someVar' ]
+        kind: 'nodejs'
+        factoryBody: 'function dosomething(someVar){abc(["underscore","depdir1/dep1"],function(_,dep1){dep1=new dep1();var someVar=require("someDep");return dep1.doit();});}'
 
-        ).to.be.true
-
-      it.skip "TODO: should identify a UMD module", ->
-        expect(moduleInfo """
+      it.skip "TODO: should identify a UMD (!?) module", ->
+        deepEqual moduleInfo("""
           (function (root, factory) {
               "use strict";
               if (typeof exports === 'object') {
@@ -97,48 +102,47 @@ describe "Module:", ->
           })(this, function (require) {
             doSomething();
           });
-          """).to.deep.equal kind: 'UMD'
+          """
+        ),
+          kind: 'UMD'
+          XXXX: 'what?'
 
     describe "AMD modules :", ->
-
       describe "AMD define() signature:", ->
-
         describe "basic signature cases:", ->
 
           it "recognises define() with a single Function expression", ->
-            expect(moduleInfo 'define(function(){return {foo:"bar"};})').to.deep.equal
+            deepEqual moduleInfo('define(function(){return {foo:"bar"};})'),
               kind: 'AMD'
               factoryBody: 'return{foo:"bar"};'
 
           it "recognises define() with a single Function expression & params", ->
-            expect(
-              moduleInfo 'define(function(require, exports, module){return {foo:"bar"};})'
-            ).to.deep.equal
+            deepEqual moduleInfo('define(function(require, exports, module){return {foo:"bar"};})'),
               kind: 'AMD'
               ext_defineFactoryParams: ['require', 'exports', 'module']
               factoryBody: 'return{foo:"bar"};'
 
           it "recognises define() with dependency array, Function expression & corresponding params", ->
-            expect(
-              moduleInfo """
-                define(['underscore', 'depdir1/Dep1'], function(_, Dep1) {
-                  dep1 = new Dep1();
-                  return dep1.doit();
-                });
-                """).to.deep.equal
+            deepEqual moduleInfo("""
+              define(['underscore', 'depdir1/Dep1'], function(_, Dep1) {
+                dep1 = new Dep1();
+                return dep1.doit();
+              });
+              """
+            ),
               kind: 'AMD'
               ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
               ext_defineFactoryParams: [ '_', 'Dep1' ]
               factoryBody: 'dep1=new Dep1();return dep1.doit();'
 
           it "recognises define() with String literal, dependency array and Function expression with corresponding params", ->
-            expect(
-              moduleInfo """
+            deepEqual moduleInfo("""
                 define('mymodule', ['underscore', 'depdir1/Dep1'], function(_, Dep1) {
                   dep1 = new Dep1();
                   return dep1.doit();
                 });
-                """).to.deep.equal
+                """
+            ),
               kind: 'AMD'
               name: 'mymodule'
               ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
@@ -159,13 +163,12 @@ describe "Module:", ->
         describe "Deals with more array dependencies or parameters: ", ->
 
           it "reads more deps than params", ->
-            expect(
-              moduleInfo """
-                define('mymodule', ['underscore', 'depdir1/Dep1', 'deps/missingDepVar'], function(_, Dep1) {
-                  dep1 = new Dep1();
-                  return dep1.doit();
-                });
-                """).to.deep.equal
+            deepEqual moduleInfo("""
+              define('mymodule', ['underscore', 'depdir1/Dep1', 'deps/missingDepVar'], function(_, Dep1) {
+                dep1 = new Dep1();
+                return dep1.doit();
+              });"""
+            ),
               kind: 'AMD'
               name: 'mymodule'
               ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1', 'deps/missingDepVar' ]
@@ -173,13 +176,12 @@ describe "Module:", ->
               factoryBody: 'dep1=new Dep1();return dep1.doit();'
 
           it "reads more params than deps", ->
-            expect(
-              moduleInfo """
-                define('mymodule', ['underscore'], function(_, Dep1, Dep2) {
-                  dep1 = new Dep1();
-                  return dep1.doit();
-                });
-                """).to.deep.equal
+            deepEqual moduleInfo("""
+              define('mymodule', ['underscore'], function(_, Dep1, Dep2) {
+                dep1 = new Dep1();
+                return dep1.doit();
+              });"""
+            ),
               kind: 'AMD'
               name: 'mymodule'
               ext_defineArrayDeps: [ 'underscore']
@@ -189,10 +191,9 @@ describe "Module:", ->
       describe "recognizes coffeescript & family immediate Function Invocation (IFI) : ", ->
 
         it "removes IFI & gets generated code as preDefineIFIBody", ->
-          expect(
-            moduleInfo coffee.compile """
-              define ['dep1', 'dep2'], (depVar1, depVar2)-> for own p of {} then return {}"""
-          ).to.deep.equal
+          deepEqual moduleInfo(
+            coffee.compile "define ['dep1', 'dep2'], (depVar1, depVar2)-> for own p of {} then return {}"
+          ),
             kind: 'AMD'
             ext_defineArrayDeps: ['dep1', 'dep2']
             ext_defineFactoryParams: ['depVar1', 'depVar2']
@@ -200,21 +201,21 @@ describe "Module:", ->
             preDefineIFIBody: 'var __hasProp={}.hasOwnProperty;'
 
         it "ignore specific code before define (eg amdefine) & extracts `urequire:` flags", ->
+          deepEqual moduleInfo(
+            coffee.compile """
+              define = require("amdefine")(module) if typeof define isnt "function"
 
-          expect(moduleInfo coffee.compile """
-            define = require("amdefine")(module) if typeof define isnt "function"
+              if typeof define isnt "function" then define = require("amdefine")(module)
 
-            if typeof define isnt "function" then define = require("amdefine")(module)
+              urequire: rootExports: "myLib"
 
-            urequire: rootExports: "myLib"
+              onlyThisGoesInto_preDefineIFIBody = true
 
-            onlyThisGoesInto_preDefineIFIBody = true
-
-            define "myModule", ["underscore", "depdir1/dep1"], (_, dep1) ->
-              dep1 = new dep1()
-              dep1.doit()
-            """
-          ).to.deep.equal
+              define "myModule", ["underscore", "depdir1/dep1"], (_, dep1) ->
+                dep1 = new dep1()
+                dep1.doit()
+              """
+          ),
             ext_defineArrayDeps: [ 'underscore', 'depdir1/dep1' ]
             ext_defineFactoryParams: [ '_', 'dep1' ]
             flags: rootExports: 'myLib'
@@ -224,9 +225,7 @@ describe "Module:", ->
             preDefineIFIBody: 'onlyThisGoesInto_preDefineIFIBody=true;'
 
         it "recognises body of commonJs/nodeJs modules & flags, but ommits flags & preDefineIFIBody ", ->
-
-          expect(moduleInfo coffee.compile """
-
+          deepEqual moduleInfo(coffee.compile """
             urequire: {rootExports: "myLib", someUknownFlag: "yeah!"}
 
             _ = require "underscore"
@@ -235,7 +234,7 @@ describe "Module:", ->
             dep1 = new dep1()
             module.exports = dep1.doit()
             """
-          ).to.deep.equal
+          ),
             ext_requireDeps: [ 'underscore', 'depdir1/dep1' ]
             ext_requireVars: [ '_', 'dep1' ]
             flags: {rootExports: 'myLib', someUknownFlag: "yeah!"}
@@ -348,10 +347,10 @@ describe "Module:", ->
 
             parameters: [ '_', 'dep1' ]
 
-          expect(areEqual mod.info(), expected).to.be.true
+          deepEqual mod.info(), expected
 
         it "should retrieve module's deps & corresponding vars/params via getDepsVars()", ->
-          expect(areEqual mod.getDepsVars(),
+          deepEqual mod.getDepsVars(),
             underscore: [ '_', 'underscore' ]
             'depdir1/dep1': [ 'dep1' ]
             finalRequire: [ 'finale' ]
@@ -363,7 +362,6 @@ describe "Module:", ->
             asyncDepOk: [ 'asyncDepOk' ]
             '"async"+crap2': [ 'asyncCrap2' ]
             '"crap"+i': ['crap']
-          ).to.be.true
 
       describe "trusted and untrusted require('myDep') & require(['myDep'], function(){}) dependencies #2:", ->
         js = "(function(){" + """
@@ -497,7 +495,7 @@ describe "Module:", ->
           mod.prepare()
           mod.adjust()
 
-          expect(areEqual mod.info(), expected).to.be.true
+          deepEqual mod.info(), expected
 
         it "should re-extract, deleting adjusted/resolved info", ->
           modInfo = mod.extract().info()
@@ -505,15 +503,15 @@ describe "Module:", ->
             expect(modInfo[rd]).to.be.undefined
           expect(modInfo.parameters).to.be.undefined
           exp = _.omit expected, (v,k)-> (k is 'parameters') or (k in mod.keys_resolvedDependencies)
-          expect(areEqual modInfo, exp).to.be.true
+          deepEqual modInfo, exp
 
         it "should re-adjust with the exact results:", ->
           mod.prepare()
           mod.adjust()
-          expect(areEqual mod.info(), expected).to.be.true
+          deepEqual mod.info(), expected
 
         it "should retrieve module's deps & corresponding vars/params via getDepsVars()", ->
-          expect(mod.getDepsVars()).to.deep.equal
+          deepEqual mod.getDepsVars(),
             arrayDep1: [ 'arrayDepVar1' ]
             '"arrayDepUntrusted"+crap': [ 'arrayVarUntrusted' ]
             arrayDep2: [ 'arrayDepVar2' ]
@@ -619,7 +617,7 @@ describe "Module:", ->
       ]
 
     it "has the correct injected & replaced deps", ->
-      expect(areEqual mod.info(), expected).to.be.true
+      deepEqual mod.info(), expected
 
   describe "Replacing & deleting code:", ->
     js =   """

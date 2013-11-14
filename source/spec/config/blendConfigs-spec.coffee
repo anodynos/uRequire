@@ -1,10 +1,5 @@
-chai = require 'chai'
-assert = chai.assert
-expect = chai.expect
-
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/blendConfigs-spec'
-
 _ = require 'lodash'
 
 blendConfigs = require '../../code/config/blendConfigs'
@@ -17,11 +12,11 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
   bundleBuildBlender
 } = blendConfigs
 
-
-{areEqual, areLike, areRLike, untrust} = require '../helpers'
+{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 
+#ResourceConverter = requireUncached require.resolve '../../code/config/ResourceConverter'
 ResourceConverter = require '../../code/config/ResourceConverter'
 
 resources =  [
@@ -142,10 +137,8 @@ expectedResources = [
 
 describe '`MasterDefaultsConfig` consistency', ->
   it "No same name keys in bundle & build ", ->
-    expect(
-      _B.isDisjoint _.keys(MasterDefaultsConfig.bundle),
+    ok _B.isDisjoint _.keys(MasterDefaultsConfig.bundle),
                     _.keys(MasterDefaultsConfig.build)
-    ).to.be.true
 
 describe 'blendConfigs & its Blenders: ', ->
 
@@ -175,10 +168,10 @@ describe 'blendConfigs & its Blenders: ', ->
     result = moveKeysBlender.blend rootLevelKeys
 
     it "result is NOT the srcObject", ->
-      expect(result).to.not.equal rootLevelKeys
+      notEqual result, rootLevelKeys
 
     it "Copies keys from the 'root' of src, to either `dst.bundle` or `dst.build`, depending on where keys are on `MasterDefaultsConfig`", ->
-      expect(result).to.deep.equal
+      deepEqual result,
           bundle:
             name: 'myBundle'
             main: 'myLib'
@@ -202,8 +195,7 @@ describe 'blendConfigs & its Blenders: ', ->
 
 
     it "it gives precedence to items in 'bundle' and 'build' hashes, over root items.", ->
-      expect(
-        moveKeysBlender.blend(
+      deepEqual moveKeysBlender.blend(
           main: 'myMainLib'
           bundle: # 'bundle' and 'build' hashes have precedence over root items
             main: 'myLib'
@@ -211,24 +203,22 @@ describe 'blendConfigs & its Blenders: ', ->
           dstPath: "/some/OTHER/path"
           build: # 'bundle' and 'build' hashes have precedence over root items
             dstPath: "/some/path"
-        )
-      ).to.deep.equal
+          )
+        ,
           bundle:
             main: 'myLib'
           build:
             dstPath: "/some/path"
 
     it "ignores root keys deemed irrelevant (not exist on `MasterDefaultsConfig`'s `.build` or `.bundle`.)", ->
-      expect(
-        moveKeysBlender.blend(
-          iRReLeVaNt_key_is_Ignored: true
-          name: 'myBundle'
-          bundle: # root items have precedence over 'bundle' and 'build' hashes.
-            bundle_iRReLeVaNt_key_is_NOT_Ignored: true
-            path: "/some/path"
-
-        )
-      ).to.deep.equal
+      deepEqual moveKeysBlender.blend(
+            iRReLeVaNt_key_is_Ignored: true
+            name: 'myBundle'
+            bundle: # root items have precedence over 'bundle' and 'build' hashes.
+              bundle_iRReLeVaNt_key_is_NOT_Ignored: true
+              path: "/some/path"
+          )
+        ,
           bundle:
             bundle_iRReLeVaNt_key_is_NOT_Ignored: true
             name: 'myBundle'
@@ -248,7 +238,7 @@ describe 'blendConfigs & its Blenders: ', ->
             bundleExports: {lodash:'_'}
             _knownVariableNames: {jquery:'$'}
 
-      expect(depracatedKeysBlender.blend oldCfg).to.be.deep.equal
+      deepEqual depracatedKeysBlender.blend(oldCfg),
         bundle:
           path: 'source/code'
           main: 'index'
@@ -264,106 +254,102 @@ describe 'blendConfigs & its Blenders: ', ->
     describe "template is a String:", ->
 
       it "converts to {name:'TheString'} ", ->
-        expect(templateBlender.blend 'UMD').to.deep.equal {name: 'UMD'}
+        deepEqual templateBlender.blend('UMD'), {name: 'UMD'}
 
       it "converts & blends to {name:'TheString'} ", ->
-        expect(
-          templateBlender.blend(
+        deepEqual templateBlender.blend(
             {} # useless
             {name:'UMD', otherRandomOption: 'someRandomValue'}
             {}
             'UMD'
-          )
-        ).to.deep.equal
-          name: 'UMD'
-          otherRandomOption: 'someRandomValue'
+            )
+          ,
+            name: 'UMD'
+            otherRandomOption: 'someRandomValue'
 
       it "resets dest Object if src name is changed", ->
-        expect(
-          templateBlender.blend(
+        deepEqual templateBlender.blend(
             {}
             {name: 'UMD', otherRandomOption: 'someRandomValue'}
             {}
             'combined'
-          )
-        ).to.deep.equal name: 'combined'
+            )
+          ,
+            name: 'combined'
 
     describe "template is {}:", ->
       it "blends to existing ", ->
-        expect(
-          templateBlender.blend(
+        deepEqual templateBlender.blend(
             {}
             {name: 'UMD', otherRandomOption: 'someRandomValue'}
             {}
             {name: 'UMD'}
           )
-        ).to.deep.equal {name: 'UMD', otherRandomOption: 'someRandomValue'}
+        ,
+          name: 'UMD'
+          otherRandomOption: 'someRandomValue'
 
       it "resets dest Object if template.name is changed", ->
-        expect(
-          templateBlender.blend(
+        deepEqual templateBlender.blend(
             {}
             {name: 'UMD', otherRandomOption: 'someRandomValue'}
             {}
             {name: 'combined'}
           )
-        ).to.deep.equal {name: 'combined'}
+        ,
+          name: 'combined'
 
   describe "blending config with ResourceConverters :", ->
     it "converts array of RC-specs' into array of RC-instances", ->
       resultRCs = blendConfigs [{resources}]
-      expect(areEqual resultRCs.bundle.resources, expectedResources).to.be.true
+      deepEqual resultRCs.bundle.resources, expectedResources
 
   describe "dependenciesBindingsBlender converts to proper dependenciesBinding structure", ->
     it "converts undefined to an empty {}", ->
-      expect(
-        dependenciesBindingsBlender.blend undefined
-      ).to.deep.equal {}
+      deepEqual dependenciesBindingsBlender.blend(undefined), {}
 
     it "converts String: `'lodash'`  --->   `{lodash:[]}`", ->
-      expect(
-        dependenciesBindingsBlender.blend 'lodash'
-      ).to.deep.equal {lodash:[]}
+      deepEqual dependenciesBindingsBlender.blend('lodash'), {lodash:[]}
+      deepEqual dependenciesBindingsBlender.blend(
+        undefined, 'lodash', 'jquery'
+      ),
+        lodash:[], jquery:[]
 
-      expect(
-        dependenciesBindingsBlender.blend undefined, 'lodash', 'jquery'
-      ).to.deep.equal {lodash:[], jquery:[]}
-
-      expect(
-        dependenciesBindingsBlender.blend {knockout:['ko']}, 'lodash', 'jquery', undefined
-      ).to.deep.equal {knockout:['ko'], lodash:[], jquery:[]}
+      deepEqual dependenciesBindingsBlender.blend(
+        {knockout:['ko']}, 'lodash', 'jquery', undefined
+      ),
+        knockout:['ko'], lodash:[], jquery:[]
 
     it "converts Array<String>: `['lodash', 'jquery']` ---> `{lodash:[], jquery:[]}`", ->
-      expect(
-        dependenciesBindingsBlender.blend ['lodash', 'jquery']
-      ).to.deep.equal {lodash: [], jquery: []}
+      deepEqual dependenciesBindingsBlender.blend(
+        ['lodash', 'jquery']
+      ),
+        {lodash: [], jquery: []}
 
-      expect(
-        dependenciesBindingsBlender.blend {lodash: '_', knockout:['ko']}, ['lodash', 'jquery']
-      ).to.deep.equal {lodash: ['_'], knockout:['ko'], jquery: []}
+      deepEqual dependenciesBindingsBlender.blend(
+        {lodash: '_', knockout:['ko']}, ['lodash', 'jquery']
+      ),
+        lodash: ['_'], knockout:['ko'], jquery: []
 
     it "converts Object {lodash:['_'], jquery: '$'}` = {lodash:['_'], jquery: ['$']}`", ->
-      expect(
-        dependenciesBindingsBlender.blend
-          lodash: ['_'] #as is
-          jquery: '$'   #arrayized
-      ).to.deep.equal
+      deepEqual dependenciesBindingsBlender.blend(
+        lodash: ['_'] #as is
+        jquery: '$'   #arrayized
+      ),
         lodash:['_']
         jquery: ['$']
 
     it "blends {lodash:['_'], jquery: ['$']} <-- {knockout:['ko'], jquery: ['jQuery']}`", ->
-      expect(
-        dependenciesBindingsBlender.blend {lodash:'_', jquery: ['$', 'jquery']},
-                                          {knockout:['ko', 'Knockout'], jquery: 'jQuery'}
-      ).to.deep.equal {
+      deepEqual dependenciesBindingsBlender.blend(
+        {lodash:'_', jquery: ['$', 'jquery']},
+        {knockout:['ko', 'Knockout'], jquery: 'jQuery'}
+      ),
         lodash: ['_']
         knockout: ['ko', 'Knockout']
         jquery: ['$', 'jquery', 'jQuery']
-      }
 
     it "converts from all in chain ", ->
-      expect(
-        dependenciesBindingsBlender.blend(
+      deepEqual dependenciesBindingsBlender.blend(
           {},
           'myLib',
           {lodash:['_'], jquery: '$'}
@@ -371,8 +357,7 @@ describe 'blendConfigs & its Blenders: ', ->
           jquery: 'jQuery'
           'urequire'
           'uberscore': ['rules']
-        )
-      ).to.deep.equal
+        ),
           myLib: []
           lodash: ['_']
           jquery: ['$', 'jQuery']
@@ -386,34 +371,33 @@ describe 'blendConfigs & its Blenders: ', ->
     describe "`bundle: dependencies`:", ->
 
       it "exports.bundle String depBindings is turned to {dep:[]}", ->
-        expect(
-          blendConfigs [ dependencies: exports: bundle: 'lodash']
-        ).to.deep.equal
+        deepEqual blendConfigs(
+          [ dependencies: exports: bundle: 'lodash' ]
+        ),
           bundle: dependencies: exports: bundle: 'lodash': []
 
       it "exports: bundle Array<String> depBindings is turned to {dep1:[], dep2:[]}", ->
-        expect(
-          a = blendConfigs [ dependencies: exports: bundle: ['lodash', 'jquery']]
-        ).to.deep.equal
+        deepEqual blendConfigs(
+          [ dependencies: exports: bundle: ['lodash', 'jquery']]
+        ),
           bundle: dependencies: exports: bundle:
             'lodash': []
             'jquery': []
 
       it "exports: bundle {} - depBindings is `arrayize`d", ->
-        expect(
-          a = blendConfigs [ dependencies: exports: bundle: {'lodash': '_'} ]
-        ).to.deep.equal
+        deepEqual blendConfigs(
+          [ dependencies: exports: bundle: {'lodash': '_'} ]
+        ),
           bundle: dependencies: exports: bundle: {'lodash': ['_']}
 
       it "exports: bundle {} - depBinding reseting its array", ->
-        expect(
-          blendConfigs [
+        deepEqual blendConfigs([
             {}
             {dependencies: exports: bundle: {'uberscore': [[null], '_B']}}
             {}
             {dependencies: exports: bundle: {'uberscore': ['uberscore', 'uuuuB']}}
           ]
-        ).to.deep.equal
+        ),
           bundle: dependencies: exports: bundle: {'uberscore': ['_B']}
 
 
@@ -493,11 +477,11 @@ describe 'blendConfigs & its Blenders: ', ->
       configsClone = _.clone configs, true
       blended = blendConfigs configs
 
-#      it "blending doesn't mutate source configs:", ->
-#        expect(configs).to.deep.equal configsClone
+      it "blending doesn't mutate source configs:", ->
+        deepEqual configs, configsClone
 
       it "correctly derives from many & nested user configs:", ->
-        expect(areEqual blended,
+        deepEqual blended,
           bundle:
             path: "source/code"
             main: "index"
@@ -528,13 +512,14 @@ describe 'blendConfigs & its Blenders: ', ->
             dstPath: "build/code"
             debugLevel: 90
             template: name: "UMD"
-        ).to.be.true
+
 
       it "all {} in bundle.resources are instanceof ResourceConverter :", ->
-        expect(resConv instanceof ResourceConverter).to.be.true for resConv in blended.bundle.resources
+        for resConv in blended.bundle.resources
+          ok resConv instanceof ResourceConverter
 
       it "`bundle.resources` are reset with [null] as 1st item", ->
         freshResources = blendConfigs [{resources:[ [null], expectedResources[0]]}, blended]
         blended.bundle.resources = [expectedResources[0]]
-        expect(freshResources).to.be.deep.equal blended
+        deepEqual freshResources, blended
 

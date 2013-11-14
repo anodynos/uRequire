@@ -1,9 +1,16 @@
 _ = require 'lodash'
 chai = require 'chai'
-assert = chai.assert
 expect = chai.expect
 
-{areEqual, areLike, areRLike, untrust} = require '../helpers'
+{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+
+# replace depStrings @ indexes with a String() having 'untrusted:true` property
+untrust = (indexes, depsStrings)->
+  for idx in indexes
+    depsStrings[idx] = new String depsStrings[idx]
+    depsStrings[idx].untrusted = true
+    depsStrings[idx].inspect = -> @toString() + ' (untrusted in test)'
+  depsStrings
 
 Dependency = require "../../code/fileResources/Dependency"
 
@@ -299,11 +306,11 @@ describe "Dependency:", ->
       system = ( d.name() for d in dependencies when d.isSystem )
       untrusted = ( d.name() for d in dependencies when d.isUntrusted )
 
-      expect(
-        areEqual {bundleRelative, fileRelative, global,
+
+      deepEqual {bundleRelative, fileRelative, global,
           external, notFoundInBundle, webRootMap, system, untrusted
-        }, expected
-      ).to.be.true
+      }, expected
+
 
     it "using dep.type:", ->
       fileRelative = ( d.name relative:'file' for d in dependencies )
@@ -315,8 +322,7 @@ describe "Dependency:", ->
       system = ( d.name() for d in dependencies when d.type is 'system' )
       untrusted = ( d.name() for d in dependencies when d.type is 'untrusted' )
 
-      expect(
-        areEqual {bundleRelative, fileRelative, global,
+
+      deepEqual {bundleRelative, fileRelative, global,
           external, notFoundInBundle, webRootMap, system, untrusted
-        }, expected
-      ).to.be.true
+      }, expected

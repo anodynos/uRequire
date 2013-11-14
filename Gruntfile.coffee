@@ -61,9 +61,9 @@ gruntFunction = (grunt) ->
         ]
 
     watch:
-      dev:
+      specs:
         files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
-        tasks: ['mocha']
+        tasks: ['mochaCmd']
 
       copyWiki:
         files: ["#{sourceDir}/**/*.*"]
@@ -77,10 +77,8 @@ gruntFunction = (grunt) ->
         if process.platform is 'linux' # change urequireCmd.js to executable - linux only
           "chmod +x 'build/code/urequireCmd.js'"
         else "@echo " #do nothing
-      mocha: command: "mocha #{buildSpecDir} --recursive --reporter spec --bail"
-      doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
-      dev: command: "mocha #{sourceSpecDir} --recursive --compilers coffee:coffee-script --reporter spec"
-#      draft: command: "coffee source/code/DRAFT.coffee"
+      mochaCmd: command: "mocha #{buildSpecDir} --recursive --reporter spec --bail"
+      #doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
 
       options: # subtasks inherit options but can override them
         verbose: true
@@ -95,7 +93,7 @@ gruntFunction = (grunt) ->
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
      "default": "clean build test"
      "build":   "shell:coffee concat chmod copy"
-     "test":    "shell:coffeeSpec copy:specResources mocha"
+     "test":    "shell:coffeeSpec copy:specResources mochaCmd"
 
      # some shortcuts
      "cf":      "shell:coffee"
@@ -105,7 +103,7 @@ gruntFunction = (grunt) ->
      "cl":      "clean"
      "b":       "build"
      "d":       "concat:bin chmod"
-     "m":       "mocha"
+     "m":       "mochaCmd"
      "t":       "test"
 
      # IDE shortcuts

@@ -3,6 +3,8 @@ chai = require 'chai'
 assert = chai.assert
 expect = chai.expect
 
+{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+
 AlmondOptimizationTemplate = require "../../code/templates/AlmondOptimizationTemplate"
 
 describe "AlmondOptimizationTemplate:", ->
@@ -13,14 +15,13 @@ describe "AlmondOptimizationTemplate:", ->
       nodeOnlyDepsVars: {}
       exportsBundleDepsVars:{}
 
-    expect(new AlmondOptimizationTemplate bundle).to.deep.equal
+    deepEqual new AlmondOptimizationTemplate(bundle),
       bundle: bundle
       exportsBundleGlobalParams: []
       exportsBundleGlobalDeps: []
       exportsBundleNonGlobalsDepsVars: {}
       globalNonExportsBundleDepsVars: {}
       defineAMDDeps: []
-
 
   describe "handling of globals & exports.bundle & nodeonly deps.", ->
     bundle =
@@ -39,7 +40,7 @@ describe "AlmondOptimizationTemplate:", ->
     ao = new AlmondOptimizationTemplate bundle
 
     it "identifies what deps and vars are" , ->
-      expect(ao).to.deep.equal
+      deepEqual ao,
         bundle: bundle
         exportsBundleGlobalParams: [ '_', '_lodash_' ],
         exportsBundleGlobalDeps: [ 'lodash', 'lodash' ],
@@ -48,15 +49,13 @@ describe "AlmondOptimizationTemplate:", ->
         defineAMDDeps: [ 'lodash', 'lodash', 'jquery' ]
 
     it "creates stubs for grabbing global deps from global or node", ->
-      expect(
-        _B.isEqualArraySet(
+      ok _B.isEqualArraySet(
           _.keys(ao.dependencyFiles),
           ['getGlobal_lodash', 'getGlobal_jquery', 'getNodeOnly_util', 'getNodeOnly_fs']
         )
-      ).to.be.true
 
     it "creates corresponding paths for stubs", ->
-      expect(ao.paths).to.deep.equal
+      deepEqual ao.paths,
         lodash: 'getGlobal_lodash'
         jquery: 'getGlobal_jquery'
         util: 'getNodeOnly_util'
