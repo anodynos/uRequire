@@ -3,6 +3,9 @@
 /source/
 /grunt*
 /build/spec/
+/build/code/DRAFT/*
 /.npmignore
 /*.bat
-*draft*
+/.travis.yml
+/.gitignore
+

@@ -5,7 +5,7 @@ var Template,
 module.exports = Template = (function() {
   function Template() {}
 
-  Template.prototype._functionIFI = function() {
+  Template.prototype._functionIIFE = function() {
     var codeBody, i, param, paramValuePairs, value;
     codeBody = arguments[0], paramValuePairs = 2 <= arguments.length ? __slice.call(arguments, 1) : [];
     return "(function (" + (((function() {
@@ -18,7 +18,7 @@ module.exports = Template = (function() {
         }
       }
       return _results;
-    })()).join(',')) + ") {\n  " + codeBody + "\n}).call(this" + (paramValuePairs.length >= 1 ? ', ' : '') + (((function() {
+    })()).join(', ')) + ") {\n  " + codeBody + "\n}).call(this" + (paramValuePairs.length > 0 ? ', ' : '') + (((function() {
       var _i, _len, _results;
       _results = [];
       for (i = _i = 0, _len = paramValuePairs.length; _i < _len; i = ++_i) {
@@ -28,7 +28,7 @@ module.exports = Template = (function() {
         }
       }
       return _results;
-    })()).join(',')) + ")";
+    })()).join(', ')) + ")";
   };
 
   Template.prototype._function = function() {
@@ -42,7 +42,7 @@ module.exports = Template = (function() {
         _results.push(param);
       }
       return _results;
-    })()).join(',')) + ") {\n  " + codeBody + "\n}";
+    })()).join(', ')) + ") {\n  " + codeBody + "\n}";
   };
 
   Template.prototype.runtimeInfo = "var __isAMD = (typeof define === 'function' && define.amd),\n    __isNode = (typeof exports === 'object'),\n    __isWeb = !__isNode;\n";

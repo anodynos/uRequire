@@ -1,7 +1,7 @@
 chai = require 'chai'
 expect = chai.expect
 
-{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require './helpers'
+{deepEqual, like, likeBA, ok, equal, notEqual} = require './spec-helpers'
 
 _ = require 'lodash'
 fs = require('fs')

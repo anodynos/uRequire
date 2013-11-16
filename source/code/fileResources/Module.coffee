@@ -89,7 +89,7 @@ class Module extends TextResource
   # keep a reference to our data, easy to init & export
   AST_data: [
     'AST_top', 'AST_body', 'AST_factoryBody'
-    'AST_preDefineIFINodes', 'AST_requireReplacementLiterals'
+    'AST_preDefineIIFENodes', 'AST_requireReplacementLiterals'
   ]
 
   keys_depsAndVarsArrays: [
@@ -110,7 +110,7 @@ class Module extends TextResource
       @keys_depsAndVarsArrays,
       @keys_resolvedDependencies, [
         'flags', 'name', 'kind', 'path'
-        'factoryBody', 'preDefineIFIBody', 'parameters']
+        'factoryBody', 'preDefineIIFEBody', 'parameters']
       ]
       if !_.isEmpty @[p]
         if _.isArray @[p]
@@ -196,39 +196,39 @@ class Module extends TextResource
     catch err
       throw new UError "*esprima.parse* error while parsing top Module's javascript.", nested:err
 
-    # retrieve bare body, i.e without coffeescript IFI (function(){..body..}).call(this);
+    # retrieve bare body, i.e without coffeescript IIFE (function(){..body..}).call(this);
     if isLikeCode('(function(){}).call()', @AST_top.body[0]) or
        isLikeCode('(function(){}).apply()', @AST_top.body[0])
       @AST_body = @AST_top.body[0].expression.callee.object.body.body
-      @AST_preDefineIFINodes = []   # store all nodes preceding IFIied define()
+      @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
     else
       if isLikeCode '(function(){})()', @AST_top.body[0]
         @AST_body = @AST_top.body[0].expression.callee.body.body
-        @AST_preDefineIFINodes = []   # store all nodes preceding IFIied define()
+        @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
       else
         @AST_body = @AST_top.body
 
-    # we now have our @AST_body, with no IFI
+    # we now have our @AST_body, with no IIFE
     defines = [] # should contain max one define()
     for bodyNode, idx in @AST_body
       # look for a) single define call b) flags
-      # store preDefineIFINodes, but exclude flags and amdefine :-)
+      # store preDefineIIFENodes, but exclude flags and amdefine :-)
       if bodyNode.expression and isLikeCode 'define()', bodyNode
         defines.push bodyNode.expression
         if defines.length > 1
-          throw new UError "Each AMD file shoule have one (top-level or IFI) define call - found #{defines.length} `define` calls"
+          throw new UError "Each AMD file shoule have one (top-level or IIFE) define call - found #{defines.length} `define` calls"
       else
-        # grab flags - dont add to @AST_preDefineIFINodes
+        # grab flags - dont add to @AST_preDefineIIFENodes
         if isLikeCode '({urequire:{}})', bodyNode
           @flags = (eval @toCode bodyNode).urequire
         else
-          # omit 'amdefine' from @AST_preDefineIFINodes
+          # omit 'amdefine' from @AST_preDefineIIFENodes
           if not (isLikeCode('var define;', bodyNode)  or
              isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
              isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
              not isLikeCode(';', bodyNode) and
-             (defines.length is 0) and @AST_preDefineIFINodes # if no define found yet & were in IFI
-               @AST_preDefineIFINodes.push bodyNode
+             (defines.length is 0) and @AST_preDefineIIFENodes # if no define found yet & were in IIFE
+               @AST_preDefineIIFENodes.push bodyNode
 
     # AMD module
     if defines.length is 1
@@ -254,16 +254,16 @@ class Module extends TextResource
       @kind = 'nodejs'
 
       @AST_factoryBody =
-        if _.isEmpty @AST_preDefineIFINodes
+        if _.isEmpty @AST_preDefineIIFENodes
           @AST_body
         else
-          @AST_preDefineIFINodes #use instead of @AST_body, as it ommits flags
+          @AST_preDefineIIFENodes #use instead of @AST_body, as it ommits flags
 
-      delete @AST_preDefineIFINodes
+      delete @AST_preDefineIIFENodes
 
     _B.traverse @AST_factoryBody, @requireFinder # store info from `require()` calls
 
-    l.debug "'#{@srcFilename}' extracted module .info():\n", _.omit @info(), ['factoryBody', 'preDefineIFIBody'] if l.deb 90
+    l.debug "'#{@srcFilename}' extracted module .info():\n", _.omit @info(), ['factoryBody', 'preDefineIIFEBody'] if l.deb 90
     @
 
   # leave basic extracted as is, but create the Dependency arrays actually used on template
@@ -520,6 +520,19 @@ class Module extends TextResource
     @moduleTemplate or= new ModuleGeneratorTemplates @
     @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
 
+    # apply `optimize` (i.e minification) - uglify2 only
+    if @build.template.name isnt 'combined'
+      if @build.optimize
+        if @build.optimize is 'uglify2'
+          l.verbose "Optimizing '#{@path}' with UglifyJS2..."
+          @UglifyJS2 or= require 'uglify-js'
+          (options = @build.uglify2 or {}).fromString = true
+          @converted = (@UglifyJS2.minify @converted, options).code
+        else
+          l.warn "Not using `build.optimize` with '#{@build.optimize}' - only 'uglify2' works for Modules."
+
+    @converted
+
   Object.defineProperties @::,
     path: get:-> upath.trimExt @srcFilename if @srcFilename # filename (bundleRelative) without extension eg `models/PersonModel`
 
@@ -528,7 +541,7 @@ class Module extends TextResource
       if @kind isnt 'AMD' then fb else fb[1..fb.length-2].trim()
 
     # 'body' / statements BEFORE define (coffeescript & family gencode `__extend`, `__slice` etc)
-    'preDefineIFIBody': get:-> @toCode @AST_preDefineIFINodes if @AST_preDefineIFINodes
+    'preDefineIIFEBody': get:-> @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
 
   # returns the AST of the 1st statement/expression if its a String, as-is otherwise
   # @todo: return whole body / all statements

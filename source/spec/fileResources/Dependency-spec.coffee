@@ -2,7 +2,7 @@ _ = require 'lodash'
 chai = require 'chai'
 expect = chai.expect
 
-{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
 untrust = (indexes, depsStrings)->

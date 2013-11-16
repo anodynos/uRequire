@@ -9,7 +9,7 @@ _B = require 'uberscore'
 l = new _B.Logger 'spec/fileResources/Module-spec'
 #_B.Logger.addDebugPathLevel 'urequire', 100
 
-{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
 untrust = (indexes, depsStrings)->
@@ -188,9 +188,9 @@ describe "Module:", ->
               ext_defineFactoryParams: [ '_', 'Dep1', 'Dep2']
               factoryBody: 'dep1=new Dep1();return dep1.doit();'
 
-      describe "recognizes coffeescript & family immediate Function Invocation (IFI) : ", ->
+      describe "recognizes coffeescript & family immediate Function Invocation (IIFE) : ", ->
 
-        it "removes IFI & gets generated code as preDefineIFIBody", ->
+        it "removes IIFE & gets generated code as preDefineIIFEBody", ->
           deepEqual moduleInfo(
             coffee.compile "define ['dep1', 'dep2'], (depVar1, depVar2)-> for own p of {} then return {}"
           ),
@@ -198,7 +198,7 @@ describe "Module:", ->
             ext_defineArrayDeps: ['dep1', 'dep2']
             ext_defineFactoryParams: ['depVar1', 'depVar2']
             factoryBody: 'var p,_ref;_ref={};for(p in _ref){if(!__hasProp.call(_ref,p))continue;return{};}',
-            preDefineIFIBody: 'var __hasProp={}.hasOwnProperty;'
+            preDefineIIFEBody: 'var __hasProp={}.hasOwnProperty;'
 
         it "ignore specific code before define (eg amdefine) & extracts `urequire:` flags", ->
           deepEqual moduleInfo(
@@ -209,7 +209,7 @@ describe "Module:", ->
 
               urequire: rootExports: "myLib"
 
-              onlyThisGoesInto_preDefineIFIBody = true
+              onlyThisGoesInto_preDefineIIFEBody = true
 
               define "myModule", ["underscore", "depdir1/dep1"], (_, dep1) ->
                 dep1 = new dep1()
@@ -222,9 +222,9 @@ describe "Module:", ->
             name: 'myModule'
             kind: 'AMD'
             factoryBody: 'dep1=new dep1();return dep1.doit();'
-            preDefineIFIBody: 'onlyThisGoesInto_preDefineIFIBody=true;'
+            preDefineIIFEBody: 'onlyThisGoesInto_preDefineIIFEBody=true;'
 
-        it "recognises body of commonJs/nodeJs modules & flags, but ommits flags & preDefineIFIBody ", ->
+        it "recognises body of commonJs/nodeJs modules & flags, but ommits flags & preDefineIIFEBody ", ->
           deepEqual moduleInfo(coffee.compile """
             urequire: {rootExports: "myLib", someUknownFlag: "yeah!"}
 
@@ -458,7 +458,7 @@ describe "Module:", ->
           name: 'modName'
           kind: 'AMD'
           factoryBody: 'var depVar3=require("dep3");var anArray=[];anArray[0]=require("depAssignedToMemberExpression");require("untrustedRequireDep"+crap);var depVar4;depVar4=require("dep4");if(true){require("depUnassingedToVar");}require(dep9=require("dep9"));require(["asyncArrayDep1","asyncArrayUntrusted"+crap,"asyncArrayDep2"],function(asyncArrayVar1,asyncArrayUntrustedVar,asyncArrayVar2){return asyncArrayVar1+asyncArrayVar2;});return{the:"module"};'
-          preDefineIFIBody: 'var a="alpha"+function(){return"A";}();var b="beta";'
+          preDefineIIFEBody: 'var a="alpha"+function(){return"A";}();var b="beta";'
 
           # prepared/adjusted info
 

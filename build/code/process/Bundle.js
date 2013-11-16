@@ -671,15 +671,15 @@ Bundle = (function(_super) {
     return {};
   };
 
-  Object.defineProperty(Bundle.prototype, 'mergedPreDefineIFINodesCode', {
+  Object.defineProperty(Bundle.prototype, 'mergedPreDefineIIFENodesCode', {
     get: function() {
-      var PreDefineIFI_Declarations, PreDefineIFI_statements, addbodyNode, isLikeCode, m, mod, node, toAst, toCode, _i, _len, _ref, _ref1;
+      var PreDefineIIFE_Declarations, PreDefineIIFE_statements, addbodyNode, isLikeCode, m, mod, node, toAst, toCode, _i, _len, _ref, _ref1;
       isLikeCode = Module.isLikeCode, toCode = Module.toCode, toAst = Module.toAst;
       if (l.deb(80)) {
-        l.debug("Merging pre-Define IFI declarations and statements from all " + (_.keys(this.modules).length) + " @modules, into a common section.");
+        l.debug("Merging pre-Define IIFE declarations and statements from all " + (_.keys(this.modules).length) + " @modules, into a common section.");
       }
-      PreDefineIFI_Declarations = [];
-      PreDefineIFI_statements = [];
+      PreDefineIIFE_Declarations = [];
+      PreDefineIIFE_statements = [];
       addbodyNode = function(node) {
         var decl, dublicateDecl, _i, _len, _ref, _results;
         if (node.type === 'VariableDeclaration') {
@@ -687,19 +687,19 @@ Bundle = (function(_super) {
           _results = [];
           for (_i = 0, _len = _ref.length; _i < _len; _i++) {
             decl = _ref[_i];
-            if (!_.any(PreDefineIFI_Declarations, function(fd) {
+            if (!_.any(PreDefineIIFE_Declarations, function(fd) {
               return _.isEqual(decl, fd);
             })) {
-              if (dublicateDecl = _.find(PreDefineIFI_Declarations, function(fd) {
+              if (dublicateDecl = _.find(PreDefineIIFE_Declarations, function(fd) {
                 return isLikeCode({
                   type: decl.type,
                   id: decl.id
                 }, fd);
               })) {
-                _results.push(this.handleError(new UError("Duplicate var declaration while merging pre-Define IFI statements:\n\n" + (toCode(decl)) + "\n\nis a duplicate of\n\n" + (toCode(dublicateDecl)))));
+                _results.push(this.handleError(new UError("Duplicate var declaration while merging pre-Define IIFE statements:\n\n" + (toCode(decl)) + "\n\nis a duplicate of\n\n" + (toCode(dublicateDecl)))));
               } else {
-                l.debug(90, "Merging pre-Define IFI statements - Adding declaration of '" + decl.id.name + "'");
-                _results.push(PreDefineIFI_Declarations.push(decl));
+                l.debug(90, "Merging pre-Define IIFE statements - Adding declaration of '" + decl.id.name + "'");
+                _results.push(PreDefineIIFE_Declarations.push(decl));
               }
             } else {
               _results.push(void 0);
@@ -707,30 +707,30 @@ Bundle = (function(_super) {
           }
           return _results;
         } else {
-          if (!_.any(PreDefineIFI_statements, function(fd) {
+          if (!_.any(PreDefineIIFE_statements, function(fd) {
             return _.isEqual(node, fd);
           })) {
-            return PreDefineIFI_statements.push(node);
+            return PreDefineIIFE_statements.push(node);
           }
         }
       };
       _ref = this.modules;
       for (m in _ref) {
         mod = _ref[m];
-        _ref1 = mod.AST_preDefineIFINodes || [];
+        _ref1 = mod.AST_preDefineIIFENodes || [];
         for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
           node = _ref1[_i];
           addbodyNode(node);
         }
       }
-      if (!_.isEmpty(PreDefineIFI_Declarations)) {
-        PreDefineIFI_statements.unshift({
+      if (!_.isEmpty(PreDefineIIFE_Declarations)) {
+        PreDefineIIFE_statements.unshift({
           type: 'VariableDeclaration',
-          declarations: PreDefineIFI_Declarations,
+          declarations: PreDefineIIFE_Declarations,
           kind: 'var'
         });
       }
-      return toCode(PreDefineIFI_statements);
+      return toCode(PreDefineIIFE_statements);
     }
   });
 

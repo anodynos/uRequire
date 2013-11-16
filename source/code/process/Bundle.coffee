@@ -541,21 +541,21 @@ class Bundle extends BundleBase
 #        text: "requirejs_plugins/text"
 #        json: "requirejs_plugins/json"
 
-  Object.defineProperty @::, 'mergedPreDefineIFINodesCode', get: ->
+  Object.defineProperty @::, 'mergedPreDefineIIFENodesCode', get: ->
     {isLikeCode, toCode, toAst} = Module
 
-    l.debug "Merging pre-Define IFI declarations and statements from all #{_.keys(@modules).length} @modules, into a common section." if l.deb 80
+    l.debug "Merging pre-Define IIFE declarations and statements from all #{_.keys(@modules).length} @modules, into a common section." if l.deb 80
 
-    PreDefineIFI_Declarations = []
-    PreDefineIFI_statements = []
+    PreDefineIIFE_Declarations = []
+    PreDefineIIFE_statements = []
 
     addbodyNode = (node)->
       if node.type is 'VariableDeclaration'
         for decl in node.declarations
-          if not _.any(PreDefineIFI_Declarations, (fd)-> _.isEqual decl, fd)
-            if dublicateDecl = _.find(PreDefineIFI_Declarations, (fd)-> isLikeCode {type:decl.type, id:decl.id}, fd)
+          if not _.any(PreDefineIIFE_Declarations, (fd)-> _.isEqual decl, fd)
+            if dublicateDecl = _.find(PreDefineIIFE_Declarations, (fd)-> isLikeCode {type:decl.type, id:decl.id}, fd)
               @handleError new UError """
-                Duplicate var declaration while merging pre-Define IFI statements:
+                Duplicate var declaration while merging pre-Define IIFE statements:
 
                 #{toCode(decl)}
 
@@ -564,23 +564,23 @@ class Bundle extends BundleBase
                 #{toCode(dublicateDecl)}
               """
             else
-              l.debug 90, "Merging pre-Define IFI statements - Adding declaration of '#{decl.id.name}'"
-              PreDefineIFI_Declarations.push decl
+              l.debug 90, "Merging pre-Define IIFE statements - Adding declaration of '#{decl.id.name}'"
+              PreDefineIIFE_Declarations.push decl
       else
-        if not _.any(PreDefineIFI_statements, (fd)-> _.isEqual node, fd)
-          PreDefineIFI_statements.push node
+        if not _.any(PreDefineIIFE_statements, (fd)-> _.isEqual node, fd)
+          PreDefineIIFE_statements.push node
 
     for m, mod of @modules
-      for node in (mod.AST_preDefineIFINodes or [])
+      for node in (mod.AST_preDefineIIFENodes or [])
         addbodyNode node
 
-    if not _.isEmpty PreDefineIFI_Declarations
-      PreDefineIFI_statements.unshift
+    if not _.isEmpty PreDefineIIFE_Declarations
+      PreDefineIIFE_statements.unshift
         type: 'VariableDeclaration'
-        declarations: PreDefineIFI_Declarations
+        declarations: PreDefineIIFE_Declarations
         kind: 'var'
 
-    toCode PreDefineIFI_statements
+    toCode PreDefineIIFE_statements
   
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> build.template._combinedFileTemp

@@ -1,4 +1,4 @@
 /.idea/
 /node_modules/
-*draft*
-*DRAFT*
+/source/code/DRAFT/
+/build/code/DRAFT/

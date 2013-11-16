@@ -59,9 +59,9 @@ class AlmondOptimizationTemplate extends Template
 
           var window = global, __nodeRequire = (__isNode ? require : void 0);
 
-          #{if p = @bundle.mergedPreDefineIFINodesCode
-              "// uRequire: start of mergedPreDefineIFINodesCode \n " + p +
-              "\n  // uRequire: end of mergedPreDefineIFINodesCode"
+          #{if p = @bundle.mergedPreDefineIIFENodesCode
+              "// uRequire: start of mergedPreDefineIIFENodesCode \n " + p +
+              "\n  // uRequire: end of mergedPreDefineIIFENodesCode"
             else ''}
 
           var factory = function(#{@exportsBundleGlobalParams.join ', '}) {

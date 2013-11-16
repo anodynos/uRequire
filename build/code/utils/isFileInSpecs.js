@@ -7,13 +7,13 @@ _B = require('uberscore');
 
 minimatch = require('minimatch');
 
-isFileInSpecs = function(file, filez) {
+isFileInSpecs = function(filename, filez) {
   var agreement, agrees, excludeIdx, finalAgree, idx, _i, _len, _ref;
   finalAgree = false;
   _ref = _B.arrayize(filez);
   for (idx = _i = 0, _len = _ref.length; _i < _len; idx = ++_i) {
     agreement = _ref[idx];
-    agrees = _.isString(agreement) ? agreement[0] === '!' ? (agreement === '!' ? excludeIdx = idx + 1 : excludeIdx = idx, minimatch(file, agreement.slice(1))) : minimatch(file, agreement) : _.isRegExp(agreement) ? !!file.match(agreement) : _.isFunction(agreement) ? agreement(file) : void 0;
+    agrees = _.isString(agreement) ? agreement[0] === '!' ? (agreement === '!' ? excludeIdx = idx + 1 : excludeIdx = idx, minimatch(filename, agreement.slice(1))) : minimatch(filename, agreement) : _.isRegExp(agreement) ? !!filename.match(agreement) : _.isFunction(agreement) ? agreement(filename) : void 0;
     if (agrees) {
       if (idx === excludeIdx) {
         finalAgree = false;

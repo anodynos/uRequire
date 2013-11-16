@@ -1,6 +1,6 @@
 /*!
 * urequire - version 0.6.7
-* Compiled on 2013-11-14
+* Compiled on 2013-11-17
 * git://github.com/anodynos/urequire
 * Copyright(c) 2013 Agelos Pikoulas (agelos.pikoulas@gmail.com )
 * Licensed MIT http://www.opensource.org/licenses/mit-license.php

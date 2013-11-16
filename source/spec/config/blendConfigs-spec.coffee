@@ -12,7 +12,7 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
   bundleBuildBlender
 } = blendConfigs
 
-{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 

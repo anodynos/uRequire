@@ -3,6 +3,8 @@ _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/ModuleGeneratorTemplates'
 
+isFileInSpecs = require '../utils/isFileInSpecs'
+
 pathRelative = require('../paths/pathRelative')
 Template = require './Template'
 
@@ -37,10 +39,16 @@ Template = require './Template'
 #
 #     factoryBody: The code that returns the module (the body of the function that's the last param of `define()`) or the whole body of the commonjs `require()` module.
 #
-#     preDefineIFIBody: The code with an IFI, before the `define()` call (i.e coffeescripts __extends etc)
+#     preDefineIIFEBody: The code with an IIFE, before the `define()` call (i.e coffeescripts __extends etc)
 #
 #     webRootMap: path of where to map '/' when running on node, relative to bundleRoot (starting with '.'), absolute OS path otherwise.
 #  }
+
+isTruthyOrIsFileInSpecs = (configValue, filename)->
+  configValue and (
+    !_.isArray(configValue) or
+    (_.isArray(configValue) and isFileInSpecs(filename, configValue))
+  )
 
 class ModuleGeneratorTemplates extends Template
 
@@ -104,7 +112,7 @@ class ModuleGeneratorTemplates extends Template
       #{@beforeBody}
       #{@bodyStartBanner}
       #{ if @module.kind is 'AMD'
-          "module.exports = #{@_functionIFI @module.factoryBody};"
+          "module.exports = #{@_functionIIFE @module.factoryBody};"
         else
           @module.factoryBody
       }
@@ -112,22 +120,22 @@ class ModuleGeneratorTemplates extends Template
       #{@afterBody}
     """
 
-    preDefineIFIBodyPrint: get:->
-      if @module.preDefineIFIBody
+    preDefineIIFEBodyPrint: get:->
+      if @module.preDefineIIFEBody
         """
-          // uRequire v#{VERSION}: START of preDefineIFIBody - statements/declarations before define(), enclosed in an IFI (function(){})().
-          #{@module.preDefineIFIBody}
-          // uRequire v#{VERSION}: END of preDefineIFIBody\n
+          // uRequire v#{VERSION}: START of preDefineIIFEBody - statements/declarations before define(), enclosed in an IIFE (function(){})().
+          #{@module.preDefineIIFEBody}
+          // uRequire v#{VERSION}: END of preDefineIIFEBody\n
         """
       else ''
 
     runtimeInfoPrint: get: ->
-      if @module.bundle.build.runtimeInfo
+      if isTruthyOrIsFileInSpecs @module.bundle.build.runtimeInfo, @module.dstFilename
         @runtimeInfo + '\n'
       else ''
 
     useStrictPrint: get:->
-      if @module.bundle.build.useStrict
+      if isTruthyOrIsFileInSpecs @module.bundle.build.useStrict, @module.dstFilename
         "'use strict';\n"
       else ''
 
@@ -165,8 +173,8 @@ class ModuleGeneratorTemplates extends Template
     fullBody =
       @useStrictPrint +
       @runtimeInfoPrint +
-      @preDefineIFIBodyPrint + '\n' +
-      @_functionIFI("""
+      @preDefineIIFEBodyPrint + '\n' +
+      @_functionIIFE("""
          #{if @isRootExports then "var rootExport = #{@_function @_rootExportsNoConflict(), 'root, __umodule__'};"  else ''}
 
          if (typeof exports === 'object') {
@@ -197,22 +205,22 @@ class ModuleGeneratorTemplates extends Template
                 });
           }
         """,
-        # parameters + values to our IFI
+        # parameters + values to our IIFE
         'factory', @_function(@factoryBodyAMD, @parametersPrint)
       )
 
-    @_fullBodyBareIFIGW fullBody
+    @_fullBodyBareIIFEGW fullBody
 
-  _fullBodyBareIFIGW: (fullBody)->
+  _fullBodyBareIIFEGW: (fullBody)->
     (
-      if @module.bundle.build.bare
+      if isTruthyOrIsFileInSpecs @module.bundle.build.bare, @module.dstFilename
         fullBody
       else
-        if not @module.bundle.build.globalWindow
-          @_functionIFI fullBody
-        else
+        if isTruthyOrIsFileInSpecs @module.bundle.build.globalWindow, @module.dstFilename
           root = "(typeof exports === 'object' ? global : window)"
-          @_functionIFI fullBody, 'window', root, 'global', root
+          @_functionIIFE fullBody, 'window', root, 'global', root
+        else
+          @_functionIIFE fullBody
      ) + ';'
 
   ### AMD template
@@ -223,12 +231,12 @@ class ModuleGeneratorTemplates extends Template
     fullBody =
       @useStrictPrint +
       @runtimeInfoPrint +
-      @preDefineIFIBodyPrint +
+      @preDefineIIFEBodyPrint +
       @_AMD_plain_define()
 
-    @headerBanner + " - template: 'AMD'\n" + @_fullBodyBareIFIGW fullBody
+    @headerBanner + " - template: 'AMD'\n" + @_fullBodyBareIIFEGW fullBody
 
-  # not adding @preDefineIFIBodyPrint, they are added by whoever uses this.
+  # not adding @preDefineIIFEBodyPrint, they are added by whoever uses this.
   # 'combined' template merges them and add them once on combined enclosing function
   _AMD_plain_define: -> """
     define(#{@moduleNamePrint}#{@defineArrayDepsPrint}
@@ -239,7 +247,7 @@ class ModuleGeneratorTemplates extends Template
           if not @isRootExports
             @factoryBodyAMD
           else
-            "var __umodule__ = " + @_functionIFI(@factoryBodyAMD, @parametersPrint, @parametersPrint) + ";\n" +
+            "var __umodule__ = " + @_functionIIFE(@factoryBodyAMD, @parametersPrint, @parametersPrint) + ";\n" +
             @_rootExportsNoConflict 'window'
           ,
           # our factory function declaration params
@@ -255,7 +263,7 @@ class ModuleGeneratorTemplates extends Template
 
     fullBody = """
       #{@useStrictPrint}
-      #{@preDefineIFIBodyPrint}
+      #{@preDefineIIFEBodyPrint}
       #{@runtimeInfoPrint}
       #{
         if _.any(@module.nodeDeps, (dep)->not dep.isSystem) then "\nvar " else ''}#{
@@ -268,6 +276,6 @@ class ModuleGeneratorTemplates extends Template
       #{if @isRootExports then "var __umodule__ = module.exports;\n #{@_rootExportsNoConflict 'global'}" else ''}
     """
 
-    @headerBanner + " - template: 'nodejs'\n" + @_fullBodyBareIFIGW fullBody
+    @headerBanner + " - template: 'nodejs'\n" + @_fullBodyBareIIFEGW fullBody
 
 module.exports = ModuleGeneratorTemplates

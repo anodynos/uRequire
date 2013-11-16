@@ -599,13 +599,13 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
          """
          ['**/*.teacup']
 
-         # our `convert()` function is a Immediate Function Invocation
+         # our `convert()` function is a IIFE
          # that returns the real `convert` fn.
          do ->
             # register extension once, as a node/coffee module
             require.extensions['.teacup'] = require.extensions['.coffee']
 
-            # our real, IFI returned `convert()` function
+            # our real, IIFE returned `convert()` function
             (r)->
               # Clear nodejs caching with `requireUncached` helper
               # and get the `realpath` of module's location.
@@ -636,7 +636,7 @@ Note: this RC uses the 'execSync' npm package, which IS NOT in urequire's depend
       # RC registry takes care of nested functions
       execSync: -> do->
 
-        # keep these in the closure of the IFI
+        # keep these in the closure of the IIFE
         execSync = require('execSync')
 
         # return an Array spec, its fine with RC's registry

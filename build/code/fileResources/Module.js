@@ -142,7 +142,7 @@ Module = (function(_super) {
     return delete this.parameters;
   };
 
-  Module.prototype.AST_data = ['AST_top', 'AST_body', 'AST_factoryBody', 'AST_preDefineIFINodes', 'AST_requireReplacementLiterals'];
+  Module.prototype.AST_data = ['AST_top', 'AST_body', 'AST_factoryBody', 'AST_preDefineIIFENodes', 'AST_requireReplacementLiterals'];
 
   Module.prototype.keys_depsAndVarsArrays = ['ext_defineArrayDeps', 'ext_defineFactoryParams', 'ext_requireDeps', 'ext_requireVars', 'ext_asyncRequireDeps', 'ext_asyncFactoryParams'];
 
@@ -152,7 +152,7 @@ Module = (function(_super) {
     var info, p, _i, _len, _ref1,
       _this = this;
     info = {};
-    _ref1 = _.flatten([this.keys_depsAndVarsArrays, this.keys_resolvedDependencies, ['flags', 'name', 'kind', 'path', 'factoryBody', 'preDefineIFIBody', 'parameters']]);
+    _ref1 = _.flatten([this.keys_depsAndVarsArrays, this.keys_resolvedDependencies, ['flags', 'name', 'kind', 'path', 'factoryBody', 'preDefineIIFEBody', 'parameters']]);
     for (_i = 0, _len = _ref1.length; _i < _len; _i++) {
       p = _ref1[_i];
       if (!_.isEmpty(this[p])) {
@@ -277,11 +277,11 @@ Module = (function(_super) {
     }
     if (isLikeCode('(function(){}).call()', this.AST_top.body[0]) || isLikeCode('(function(){}).apply()', this.AST_top.body[0])) {
       this.AST_body = this.AST_top.body[0].expression.callee.object.body.body;
-      this.AST_preDefineIFINodes = [];
+      this.AST_preDefineIIFENodes = [];
     } else {
       if (isLikeCode('(function(){})()', this.AST_top.body[0])) {
         this.AST_body = this.AST_top.body[0].expression.callee.body.body;
-        this.AST_preDefineIFINodes = [];
+        this.AST_preDefineIIFENodes = [];
       } else {
         this.AST_body = this.AST_top.body;
       }
@@ -293,14 +293,14 @@ Module = (function(_super) {
       if (bodyNode.expression && isLikeCode('define()', bodyNode)) {
         defines.push(bodyNode.expression);
         if (defines.length > 1) {
-          throw new UError("Each AMD file shoule have one (top-level or IFI) define call - found " + defines.length + " `define` calls");
+          throw new UError("Each AMD file shoule have one (top-level or IIFE) define call - found " + defines.length + " `define` calls");
         }
       } else {
         if (isLikeCode('({urequire:{}})', bodyNode)) {
           this.flags = (eval(this.toCode(bodyNode))).urequire;
         } else {
-          if (!(isLikeCode('var define;', bodyNode) || isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) || isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) && !isLikeCode(';', bodyNode) && (defines.length === 0) && this.AST_preDefineIFINodes) {
-            this.AST_preDefineIFINodes.push(bodyNode);
+          if (!(isLikeCode('var define;', bodyNode) || isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) || isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) && !isLikeCode(';', bodyNode) && (defines.length === 0) && this.AST_preDefineIIFENodes) {
+            this.AST_preDefineIIFENodes.push(bodyNode);
           }
         }
       }
@@ -326,12 +326,12 @@ Module = (function(_super) {
       this.AST_factoryBody = args[args.length - 1].body;
     } else {
       this.kind = 'nodejs';
-      this.AST_factoryBody = _.isEmpty(this.AST_preDefineIFINodes) ? this.AST_body : this.AST_preDefineIFINodes;
-      delete this.AST_preDefineIFINodes;
+      this.AST_factoryBody = _.isEmpty(this.AST_preDefineIIFENodes) ? this.AST_body : this.AST_preDefineIIFENodes;
+      delete this.AST_preDefineIIFENodes;
     }
     _B.traverse(this.AST_factoryBody, this.requireFinder);
     if (l.deb(90)) {
-      l.debug("'" + this.srcFilename + "' extracted module .info():\n", _.omit(this.info(), ['factoryBody', 'preDefineIFIBody']));
+      l.debug("'" + this.srcFilename + "' extracted module .info():\n", _.omit(this.info(), ['factoryBody', 'preDefineIIFEBody']));
     }
     return this;
   };
@@ -643,13 +643,27 @@ Module = (function(_super) {
   };
 
   Module.prototype.convertWithTemplate = function(build) {
+    var options;
     this.build = build;
     l.verbose("Converting '" + this.path + "' with template = '" + this.build.template.name + "'");
     if (l.deb(60)) {
       l.debug("'" + this.path + "' adjusted module.info() with keys_resolvedDependencies = \n", _.pick(this.info(), _.flatten([this.keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags'])));
     }
     this.moduleTemplate || (this.moduleTemplate = new ModuleGeneratorTemplates(this));
-    return this.converted = this.moduleTemplate[this.build.template.name]();
+    this.converted = this.moduleTemplate[this.build.template.name]();
+    if (this.build.template.name !== 'combined') {
+      if (this.build.optimize) {
+        if (this.build.optimize === 'uglify2') {
+          l.verbose("Optimizing '" + this.path + "' with UglifyJS2...");
+          this.UglifyJS2 || (this.UglifyJS2 = require('uglify-js'));
+          (options = this.build.uglify2 || {}).fromString = true;
+          this.converted = (this.UglifyJS2.minify(this.converted, options)).code;
+        } else {
+          l.warn("Not using `build.optimize` with '" + this.build.optimize + "' - only 'uglify2' works for Modules.");
+        }
+      }
+    }
+    return this.converted;
   };
 
   Object.defineProperties(Module.prototype, {
@@ -671,10 +685,10 @@ Module = (function(_super) {
         }
       }
     },
-    'preDefineIFIBody': {
+    'preDefineIIFEBody': {
       get: function() {
-        if (this.AST_preDefineIFINodes) {
-          return this.toCode(this.AST_preDefineIFINodes);
+        if (this.AST_preDefineIIFENodes) {
+          return this.toCode(this.AST_preDefineIIFENodes);
         }
       }
     }

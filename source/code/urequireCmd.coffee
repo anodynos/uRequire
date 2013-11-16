@@ -31,7 +31,7 @@ urequireCommander
   .option('-O, --optimize', 'Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.', undefined)
   .option('-C, --continue', 'Dont bail out while processing (module processing/conversion errors)', undefined)
   .option('-w, --watch', "Watch for file changes in `bundle.path` & reprocess them. Note: new dirs are ignored", undefined)
-  .option('-b, --bare', "Don't enclose AMD/UMD modules in Immediate Function Invocation (safety wraper).", undefined)
+  .option('-b, --bare', "Don't enclose AMD/UMD modules in Immediately Invoked Function Expression (safety wraper).", undefined)
   .option('-f, --filez', "NOT IMPLEMENTED (in CLI - use a config file or grunt-urequire). Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's", toArray)
   .option('-j, --jsonOnly', 'NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools', undefined)
   .option('-e, --verifyExternals', 'NOT IMPLEMENTED. Verify external dependencies exist on file system.', undefined)

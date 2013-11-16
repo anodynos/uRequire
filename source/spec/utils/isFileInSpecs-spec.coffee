@@ -4,7 +4,7 @@ expect = chai.expect
 
 _ = require 'lodash'
 
-{deepEqual, likeAB, likeBA, ok, equal, notEqual} = require '../helpers'
+{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
 
 isFileInSpecs = require '../../code/utils/isFileInSpecs'
 

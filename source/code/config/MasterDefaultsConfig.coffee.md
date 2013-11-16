@@ -604,6 +604,12 @@ For example they can be used to select a different execution branch, depending o
 
 @note combined template always has these variables available on the enclosing function cause it needs them!
 
+@type
+
+  * boolean or truthy
+
+  * Array of [`bundle.filez`](#bundle.filez) specs, for modules to have it or not
+
 @default true
 
       runtimeInfo: true
@@ -612,7 +618,7 @@ For example they can be used to select a different execution branch, depending o
 
 Like coffeescript `--bare`:
 
-* if its false (*the default*), it encloses each module in an Immediate Function Invocation (IFI):
+* if its false (*the default*), it encloses each module in an Immediately Invoked Function Expression (IIFE):
 
   ```
   (function () {
@@ -622,11 +628,17 @@ Like coffeescript `--bare`:
 
 * if its `true` it doesnt.
 
-The IFI (top-level function safety wrapper) is used to prevent leaking and have all variables as local to the module and to provide the [`build.globalWindow`](#build.globalWindow) functionality.
+The IIFE (top-level function safety wrapper) is used to prevent leaking and have all variables as local to the module and to provide the [`build.globalWindow`](#build.globalWindow) functionality.
 
 @note if `bare` is true, [`build.globalWindow`](#build.globalWindow) **functionality is disabled**.
 
-@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IFI, `windows === global` is always true and the modules themselves are plain `define(...)` calls.
+@note It doesn't apply to 'combined' template: your modules & almond are always enclosed in a single IIFE, `windows === global` is always true and the modules themselves are plain `define(...)` calls.
+
+@type
+
+  * boolean or truthy
+
+  * Array of [`bundle.filez`](#bundle.filez) specs, for modules to have it or not
 
 @default false
 
@@ -636,6 +648,12 @@ The IFI (top-level function safety wrapper) is used to prevent leaking and have 
 
 Add the famous `'use strict';` at the begining of each module, so you dont have to type it at each one.
 
+@type
+
+  * boolean or truthy
+
+  * Array of [`bundle.filez`](#bundle.filez) specs, for modules to have it or not
+
 @note: For the 'combined' template its not added at each module **and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(**
 
 @default false
@@ -644,7 +662,17 @@ Add the famous `'use strict';` at the begining of each module, so you dont have 
 
 ## build.globalWindow
 
-Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. It works independently of [`build.runtimeInfo`](#build.runtimeInfo) but **it doesn't work if [`build.bare`](#build.bare) is `true`**. It uses the IFI that's enclosing modules to pass 'window' or 'global' respectively.
+Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. It works independently of [`build.runtimeInfo`](#build.runtimeInfo) but **it doesn't work if [`build.bare`](#build.bare) is `true`**. It uses the IIFE that's enclosing modules to pass 'window' or 'global' respectively.
+
+@type
+
+  * boolean or truthy
+
+  * Array of [`bundle.filez`](#bundle.filez) specs, for modules to have it or not
+
+@example
+
+  globalWindow: ['index.js', 'libs/**/*.*']
 
 @default true
 
@@ -732,17 +760,30 @@ For example ignore a coffeescript compile error, and just do all the other modul
 
 Optimizes output files (i.e it minifies/compresses them for production).
 
-@options
+@type
 
-* *false*: no optimization (r.js build.js optimize: 'none')
+* *false*: no optimization.
 
-* *true*: uses sane defaults of 'uglify2' to minify through r.js
+* *true*: uses sane defaults of 'uglify2' to minify/compress.
 
-* 'uglify' / 'uglify2': specifically select either with their r.js default settings.
+* 'uglify2' / 'uglify': specifically select either (with default settings).
+  **@note: 'uglify' works ONLY for `combined` template, delegating options to `r.js`.**
 
-* [r.js optimize object] like ['uglify'](https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L138-154) or ['uglify2'](https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L161-176) for example `optimize: {uglify2: output: {beautify: true}, compress: {...}, warnings: true}`
+* Object - just like ['uglify'](https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L138-154) or ['uglify2'](https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L161-176).
 
-@todo: PARTIALLY IMPLEMENTED - Only working for `combined` template, delegating the option to `r.js`. 
+@example
+
+* `optimize: true` - simplest, minifies with 'uglify2' defaults.
+
+* Passing options to uglify2, works the same on all templates & r.js optimization.
+
+```
+  optimize:
+    uglify2:
+      output: beautify: true
+      compress: false
+      mangle: false
+```
 
       optimize: false
       _optimizers: ['uglify2', 'uglify']

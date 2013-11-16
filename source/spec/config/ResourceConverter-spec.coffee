@@ -8,7 +8,7 @@ _ = require 'lodash'
 
 ResourceConverter = require '../../code/config/ResourceConverter'
 
-{deepEqual, likeAB, likeBA} = require '../helpers'
+{deepEqual, like, likeBA} = require '../spec-helpers'
 
 rcSpec1 = [
   '$Coffeescript' # a title of the resource (a module since starting with $)
