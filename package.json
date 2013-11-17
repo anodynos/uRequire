@@ -57,6 +57,7 @@
   "requirejs": "2.1.x",
   "uberscore": "0.0.14",
   "underscore.string":"*",
+  "uglify-js": "2.x.x",
   "wrench": "1.4.x"
  },
  "devDependencies": {
