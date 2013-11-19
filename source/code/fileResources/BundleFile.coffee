@@ -22,7 +22,7 @@ class BundleFile
     @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
 
   refresh:-> # check for filesystem timestamp etc
-    if not fs.existsSync @srcFilepath
+    if not @srcExists
       throw new UError "BundleFile missing '#{@srcFilepath}'"
     else
       stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']

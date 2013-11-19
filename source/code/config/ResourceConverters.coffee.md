@@ -468,7 +468,7 @@ The deps are (the keys of the object) are always given in [bundleRelative](#bund
 
 # Default Resource Converters
 
-The following code [(that is actually part of uRequire's code)](#Literate-Coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module'` (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
+The following code [(that is actually part of uRequire's code)](#note:-literate-coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module'` (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
 
     defaultResourceConverters = [
 

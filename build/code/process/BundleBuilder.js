@@ -173,22 +173,27 @@ BundleBuilder = (function() {
           pathsOk = false;
         }
       } else {
-        l.er("Quitting build, no path specified.\nUse -h for help");
+        l.er("Quitting build, no path specified. Use -h for help.");
         pathsOk = false;
       }
     }
     if (pathsOk) {
-      if (this.config.build.forceOverwriteSources) {
-        this.config.build.dstPath = this.config.bundle.path;
-        l.verbose("forceOverwriteSources: dstPath set to '" + this.config.build.dstPath + "'");
+      if (!fs.existsSync(this.config.bundle.path)) {
+        l.er("Quitting build, `bundle.path` '" + this.config.bundle.path + "' not fs.exists.");
+        pathsOk = false;
       } else {
-        if (!(this.config.build.dstPath || ((this.config.build.template.name === 'combined') && this.config.build.template.combinedFile))) {
-          l.er("Quitting build:\n  * no --dstPath / `build.dstPath` specified.\n  " + (this.config.build.template.name === 'combined' ? "* no `build.template.combinedFile` specified" : '') + "\nUse -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).");
-          pathsOk = false;
-        }
-        if (this.config.build.dstPath && upath.normalize(this.config.build.dstPath) === upath.normalize(this.config.bundle.path)) {
-          l.er("Quitting build, dstPath === path.\nUse -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).");
-          pathsOk = false;
+        if (this.config.build.forceOverwriteSources) {
+          this.config.build.dstPath = this.config.bundle.path;
+          l.verbose("forceOverwriteSources: dstPath set to '" + this.config.build.dstPath + "'");
+        } else {
+          if (!(this.config.build.dstPath || ((this.config.build.template.name === 'combined') && this.config.build.template.combinedFile))) {
+            l.er("Quitting build:\n  * no --dstPath / `build.dstPath` specified.\n  " + (this.config.build.template.name === 'combined' ? "* no `build.template.combinedFile` specified" : '') + "\nUse -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).");
+            pathsOk = false;
+          }
+          if (this.config.build.dstPath && upath.normalize(this.config.build.dstPath) === upath.normalize(this.config.bundle.path)) {
+            l.er("Quitting build, dstPath === path.\nUse -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).");
+            pathsOk = false;
+          }
         }
       }
     }

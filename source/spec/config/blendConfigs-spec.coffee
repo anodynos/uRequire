@@ -400,7 +400,6 @@ describe 'blendConfigs & its Blenders: ', ->
         ),
           bundle: dependencies: exports: bundle: {'uberscore': ['_B']}
 
-
     describe "Nested & derived configs:", ->
       configs = [
           {}
@@ -417,6 +416,12 @@ describe 'blendConfigs & its Blenders: ', ->
           copy: /./
           dstPath: "build/code"
           template: 'UMD'
+
+          # test arraysPushOrOverwrite
+          useStrict: false
+          globalWindow: ['globalWindow-child.js']
+          bare: true
+          runtimeInfo: ['runtimeInfo-child.js']
         ,
           bundle:
             path: "source/code"
@@ -425,11 +430,12 @@ describe 'blendConfigs & its Blenders: ', ->
             ignore: [/^draft/]        # negated with '!' and added at pos 2 & 3
             dependencies:
               node: 'util'
-              exports: bundle:
-                uberscore: [[null], '_B'] #reseting existing (derived/inherited) array, allowing only '_B'
-
+              exports:
+                bundle:
+                  uberscore: [[null], '_B'] #reseting existing (derived/inherited) array, allowing only '_B'
+                root:
+                  'index': 'globalVal'
           verbose: true
-
           derive:
             debugLevel: 90
         ,
@@ -454,7 +460,13 @@ describe 'blendConfigs & its Blenders: ', ->
         ,
           {dependencies:bundleExports: 'dummyDep'}
         ,
-          {}
+          template: 'AMD'
+          
+          # test arraysPushOrOverwrite
+          useStrict: true          
+          globalWindow: [[null], 'globalWindow-inherited.js']
+          bare: ['bare-inherited-and-ignored2.js']
+          runtimeInfo: ['runtimeInfo-inherited.js']
         ,
           derive: [
               dependencies:
@@ -471,6 +483,11 @@ describe 'blendConfigs & its Blenders: ', ->
               dependencies:
                 exports: bundle: 'spec-data': 'dataInDerive2'
               verbose: false
+              
+              # test arraysPushOrOverwrite
+              globalWindow: ['globalWindow-reseted.js']
+              bare: ['bare-inherited-and-ignored.js']
+              runtimeInfo: false
           ]
       ]
 
@@ -496,14 +513,17 @@ describe 'blendConfigs & its Blenders: ', ->
             resources: expectedResources
             dependencies:
               node: ['util', 'fs']
-              exports: bundle:
-                'spec-data': ['dataInDerive2', 'dataInDerive1', 'data' ]
-                chai: ['chai']
-                uberscore: ['_B']
-                lodash: ['_']
-                backbone: ['Backbone', 'BB']
-                unusedDep: []
-                dummyDep: []
+              exports:
+                bundle:
+                  'spec-data': ['dataInDerive2', 'dataInDerive1', 'data' ]
+                  chai: ['chai']
+                  uberscore: ['_B']
+                  lodash: ['_']
+                  backbone: ['Backbone', 'BB']
+                  unusedDep: []
+                  dummyDep: []
+                root:
+                  'index': ['globalVal']
               depsVars:
                 uberscore: ['_B']
 
@@ -512,7 +532,12 @@ describe 'blendConfigs & its Blenders: ', ->
             dstPath: "build/code"
             debugLevel: 90
             template: name: "UMD"
-
+            
+            # test arraysPushOrOverwrite
+            useStrict: false
+            globalWindow: ['globalWindow-inherited.js', 'globalWindow-child.js']
+            bare: true
+            runtimeInfo: ['runtimeInfo-inherited.js', 'runtimeInfo-child.js']
 
       it "all {} in bundle.resources are instanceof ResourceConverter :", ->
         for resConv in blended.bundle.resources

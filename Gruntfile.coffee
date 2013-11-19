@@ -61,13 +61,9 @@ gruntFunction = (grunt) ->
         ]
 
     watch:
-      specs:
+      dev: #requires `coffeeWatch` running to compile changed only files! We need a changed-only-files coffee task!
         files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
-        tasks: ['mochaCmd']
-
-      copyWiki:
-        files: ["#{sourceDir}/**/*.*"]
-        tasks: ['copy:wiki']
+        tasks: ['copy:wiki', 'mochaCmd']
 
     shell:
       coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"

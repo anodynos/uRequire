@@ -98,35 +98,56 @@ addIgnoreToFilezAsExclude = (cfg)->
 
 bundleBuildBlender = new _B.DeepCloneBlender [
   {
-    order: ['path', 'src']
+    order: ['path', 'src', 'dst']
+
+    arrayizePush: (prop, src, dst)->
+      arrayizePusher.blend dst[prop], src[prop]
+
+    arraysPushOrOverwrite: (prop, src, dst)->
+      if _.isArray(dst[prop]) and _.isArray(src[prop])
+        arrayizePusher.blend dst[prop], src[prop] #takes care of 'parent reset'
+      else
+        src[prop] # just copy src[prop] over to dst[prop]
+
+    # both src[prop] & dst[prop] are arrays
+    arrayPush: (prop, src, dst)->
+      dst[prop].push item for item in src[prop]
+      dst[prop]
+
+    dependenciesBindings: (prop, src, dst)->
+      dependenciesBindingsBlender.blend dst[prop], src[prop]
 
     bundle:
 
-      filez: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
+      filez: '|' : '*': 'arrayizePush'
 
-      copy: '|' : '*': (prop, src, dst)-> arrayizePusher.blend dst[prop], src[prop]
+      copy: '|' : '*': 'arrayizePush'
 
-      resources: '|' : '*': (prop, src, dst)->
-        rcs = []
-        for rc in src[prop]
-          if _.isEqual rc, [null] # cater for [null] reset array signpost for arrayizePusher
-            rcs.push rc
-          else
-            rc = ResourceConverter.searchRegisterUpdate rc
-            if rc and !_.isEmpty(rc)
+      resources: '|' :
+        '*': (prop, src)->
+          throw new Error "`bundle.resources` must be an array - was : ", src[prop]
+        '[]': (prop, src, dst)->
+          rcs = []
+          for rc in src[prop]
+            if _.isEqual rc, [null] # cater for [null] reset array signpost for arrayizePusher
               rcs.push rc
+            else
+              rc = ResourceConverter.searchRegisterUpdate rc
+              if rc and !_.isEmpty(rc)
+                rcs.push rc
 
-        arrayizePusher.blend dst[prop], rcs
+          arrayizePusher.blend dst[prop], rcs
 
       dependencies:
 
-        node: '|': '*': (prop, src, dst)-> arrayizeUniquePusher.blend dst[prop], src[prop]
+        node: '|': '*': (prop, src, dst)->
+          arrayizeUniquePusher.blend dst[prop], src[prop]
 
         exports:
 
           bundle: '|': '*': 'dependenciesBindings'
 
-          root: '|': '*': (prop, src)-> src[prop]
+          root: '|': '*': 'dependenciesBindings'
 
         replace: '|': '*': 'dependenciesBindings' # paradoxically, its compatible albeit a different meaning!
 
@@ -134,10 +155,12 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
         _knownDepsVars: '|': '*': 'dependenciesBindings'
 
-    dependenciesBindings: (prop, src, dst)->
-      dependenciesBindingsBlender.blend dst[prop], src[prop]
-
     build:
+
+      useStrict: '|': 'arraysPushOrOverwrite'
+      bare: '|': 'arraysPushOrOverwrite'
+      globalWindow: '|': 'arraysPushOrOverwrite'
+      runtimeInfo: '|': 'arraysPushOrOverwrite'
 
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
@@ -147,8 +170,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         if _.isNumber(dl) and not _.isNaN(dl)
           dl
         else
-          l.warn 'Non Number debugLevel: ', src[prop]
-          0
+          l.warn 'Not a Number debugLevel: ', src[prop], ' - defaulting to 1.'
+          1
 
       # 'optimize' ? in 3 different ways
       # todo: spec it
@@ -236,7 +259,7 @@ templateBlender = new _B.DeepCloneBlender [
 
   # our src[prop] template is an Object - should be {name: 'UMD', '...': '...'}
   # blend as is but reset dst object if template has changed!
-  'Object': 'templateSetter'
+  '{}': 'templateSetter'
 
   templateSetter: (prop, src, dst)->
     dst[prop] = {} if (src[prop].name isnt dst[prop]?.name) and
@@ -256,18 +279,15 @@ blendConfigs = (configsArray, deriveLoader)->
       (derive)-> #default deriveLoader
         if _.isString derive
           l.debug 5, "Loading config file: '#{derive}'"
-          if cfgObject = require fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
-            return cfgObject
+          try
+            if cfgObject = require fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
+              return cfgObject
+          catch err
+            l.er errMsg = "Error loading configuration: Can't load '#{derive}'.", err
+            throw new UError errMsg, nested: err
         else
           if _.isObject derive
             return derive
-
-        # if its hasnt returned, we're in error
-        l.er """
-          Error loading configuration files:
-            derive """, derive, """ is a not a valid filename
-            while processing derive array ['#{derive.join "', '"}']"
-          """
 
   _blendDerivedConfigs finalCfg, configsArray, deriveLoader
   finalCfg

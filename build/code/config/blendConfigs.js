@@ -130,25 +130,46 @@ _optimizers = MasterDefaultsConfig.build._optimizers;
 
 bundleBuildBlender = new _B.DeepCloneBlender([
   {
-    order: ['path', 'src'],
+    order: ['path', 'src', 'dst'],
+    arrayizePush: function(prop, src, dst) {
+      return arrayizePusher.blend(dst[prop], src[prop]);
+    },
+    arraysPushOrOverwrite: function(prop, src, dst) {
+      if (_.isArray(dst[prop]) && _.isArray(src[prop])) {
+        return arrayizePusher.blend(dst[prop], src[prop]);
+      } else {
+        return src[prop];
+      }
+    },
+    arrayPush: function(prop, src, dst) {
+      var item, _i, _len, _ref;
+      _ref = src[prop];
+      for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+        item = _ref[_i];
+        dst[prop].push(item);
+      }
+      return dst[prop];
+    },
+    dependenciesBindings: function(prop, src, dst) {
+      return dependenciesBindingsBlender.blend(dst[prop], src[prop]);
+    },
     bundle: {
       filez: {
         '|': {
-          '*': function(prop, src, dst) {
-            return arrayizePusher.blend(dst[prop], src[prop]);
-          }
+          '*': 'arrayizePush'
         }
       },
       copy: {
         '|': {
-          '*': function(prop, src, dst) {
-            return arrayizePusher.blend(dst[prop], src[prop]);
-          }
+          '*': 'arrayizePush'
         }
       },
       resources: {
         '|': {
-          '*': function(prop, src, dst) {
+          '*': function(prop, src) {
+            throw new Error("`bundle.resources` must be an array - was : ", src[prop]);
+          },
+          '[]': function(prop, src, dst) {
             var rc, rcs, _i, _len, _ref;
             rcs = [];
             _ref = src[prop];
@@ -183,9 +204,7 @@ bundleBuildBlender = new _B.DeepCloneBlender([
           },
           root: {
             '|': {
-              '*': function(prop, src) {
-                return src[prop];
-              }
+              '*': 'dependenciesBindings'
             }
           }
         },
@@ -206,10 +225,19 @@ bundleBuildBlender = new _B.DeepCloneBlender([
         }
       }
     },
-    dependenciesBindings: function(prop, src, dst) {
-      return dependenciesBindingsBlender.blend(dst[prop], src[prop]);
-    },
     build: {
+      useStrict: {
+        '|': 'arraysPushOrOverwrite'
+      },
+      bare: {
+        '|': 'arraysPushOrOverwrite'
+      },
+      globalWindow: {
+        '|': 'arraysPushOrOverwrite'
+      },
+      runtimeInfo: {
+        '|': 'arraysPushOrOverwrite'
+      },
       template: {
         '|': {
           '*': function(prop, src, dst) {
@@ -225,8 +253,8 @@ bundleBuildBlender = new _B.DeepCloneBlender([
             if (_.isNumber(dl) && !_.isNaN(dl)) {
               return dl;
             } else {
-              l.warn('Non Number debugLevel: ', src[prop]);
-              return 0;
+              l.warn('Not a Number debugLevel: ', src[prop], ' - defaulting to 1.');
+              return 1;
             }
           }
         }
@@ -339,7 +367,7 @@ templateBlender = new _B.DeepCloneBlender([
         name: src[prop]
       });
     },
-    'Object': 'templateSetter',
+    '{}': 'templateSetter',
     templateSetter: function(prop, src, dst) {
       var _ref;
       if ((src[prop].name !== ((_ref = dst[prop]) != null ? _ref.name : void 0)) && !_.isUndefined(src[prop].name)) {
@@ -354,18 +382,25 @@ blendConfigs = function(configsArray, deriveLoader) {
   var finalCfg;
   finalCfg = {};
   deriveLoader = _.isFunction(deriveLoader) ? deriveLoader : function(derive) {
-    var cfgObject;
+    var cfgObject, err, errMsg;
     if (_.isString(derive)) {
       l.debug(5, "Loading config file: '" + derive + "'");
-      if (cfgObject = require(fs.realpathSync(derive))) {
-        return cfgObject;
+      try {
+        if (cfgObject = require(fs.realpathSync(derive))) {
+          return cfgObject;
+        }
+      } catch (_error) {
+        err = _error;
+        l.er(errMsg = "Error loading configuration: Can't load '" + derive + "'.", err);
+        throw new UError(errMsg, {
+          nested: err
+        });
       }
     } else {
       if (_.isObject(derive)) {
         return derive;
       }
     }
-    return l.er("Error loading configuration files:\n  derive ", derive, " is a not a valid filename\nwhile processing derive array ['" + (derive.join("', '")) + "']\"");
   };
   _blendDerivedConfigs(finalCfg, configsArray, deriveLoader);
   return finalCfg;

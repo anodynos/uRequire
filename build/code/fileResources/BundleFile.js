@@ -35,7 +35,7 @@ BundleFile = (function() {
 
   BundleFile.prototype.refresh = function() {
     var statProps, stats;
-    if (!fs.existsSync(this.srcFilepath)) {
+    if (!this.srcExists) {
       throw new UError("BundleFile missing '" + this.srcFilepath + "'");
     } else {
       stats = _.pick(fs.statSync(this.srcFilepath), statProps = ['mtime', 'size']);

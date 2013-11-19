@@ -506,7 +506,11 @@ describe('blendConfigs & its Blenders: ', function() {
           filez: ['**/*.coffee.md', '**/*.ls'],
           copy: /./,
           dstPath: "build/code",
-          template: 'UMD'
+          template: 'UMD',
+          useStrict: false,
+          globalWindow: ['globalWindow-child.js'],
+          bare: true,
+          runtimeInfo: ['runtimeInfo-child.js']
         }, {
           bundle: {
             path: "source/code",
@@ -518,6 +522,9 @@ describe('blendConfigs & its Blenders: ', function() {
               exports: {
                 bundle: {
                   uberscore: [[null], '_B']
+                },
+                root: {
+                  'index': 'globalVal'
                 }
               }
             }
@@ -550,7 +557,13 @@ describe('blendConfigs & its Blenders: ', function() {
           dependencies: {
             bundleExports: 'dummyDep'
           }
-        }, {}, {
+        }, {
+          template: 'AMD',
+          useStrict: true,
+          globalWindow: [[null], 'globalWindow-inherited.js'],
+          bare: ['bare-inherited-and-ignored2.js'],
+          runtimeInfo: ['runtimeInfo-inherited.js']
+        }, {
           derive: [
             {
               dependencies: {
@@ -580,7 +593,10 @@ describe('blendConfigs & its Blenders: ', function() {
                   }
                 }
               },
-              verbose: false
+              verbose: false,
+              globalWindow: ['globalWindow-reseted.js'],
+              bare: ['bare-inherited-and-ignored.js'],
+              runtimeInfo: false
             }
           ]
         }
@@ -609,6 +625,9 @@ describe('blendConfigs & its Blenders: ', function() {
                   backbone: ['Backbone', 'BB'],
                   unusedDep: [],
                   dummyDep: []
+                },
+                root: {
+                  'index': ['globalVal']
                 }
               },
               depsVars: {
@@ -622,7 +641,11 @@ describe('blendConfigs & its Blenders: ', function() {
             debugLevel: 90,
             template: {
               name: "UMD"
-            }
+            },
+            useStrict: false,
+            globalWindow: ['globalWindow-inherited.js', 'globalWindow-child.js'],
+            bare: true,
+            runtimeInfo: ['runtimeInfo-inherited.js', 'runtimeInfo-child.js']
           }
         });
       });
