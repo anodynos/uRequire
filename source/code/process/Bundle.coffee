@@ -2,7 +2,7 @@
 _ = require 'lodash'
 _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
-wrench = require 'wrench'
+rimraf = require 'rimraf'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/process/Bundle'
 globExpand = require 'glob-expand'
@@ -289,7 +289,7 @@ class Bundle extends BundleBase
           if not l.deb(debugLevelSkipTempDeletion)
             l.debug 40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'."
             try
-              wrench.rmdirSyncRecursive @build.template._combinedFileTemp
+              rimraf.sync @build.template._combinedFileTemp
             catch err
               l.debug 40, "Can't delete temp dir '#{@build.template._combinedFileTemp}' - perhaps it doesnt exist."
           debugLevelSkipTempDeletion = 0 # dont delete ___temp while watching
@@ -495,7 +495,7 @@ class Bundle extends BundleBase
           # delete _combinedFileTemp, used as temp directory with individual AMD files
           if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
             l.debug(40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'.")
-            wrench.rmdirSyncRecursive @build.template._combinedFileTemp
+            rimraf.sync @build.template._combinedFileTemp
           else
             l.debug("NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
 

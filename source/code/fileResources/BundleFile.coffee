@@ -4,7 +4,7 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/fileResources/BundleFile'
 
 Build = require '../process/Build'
-wrench = require "wrench"
+mkdirp = require "mkdirp"
 
 upath = require '../paths/upath'
 UError = require '../utils/UError'
@@ -103,7 +103,7 @@ class BundleFile
 
       if not (fs.existsSync upath.dirname(dstFile))
         l.verbose "Creating directory #{upath.dirname dstFile}"
-        wrench.mkdirSyncRecursive upath.dirname(dstFile)
+        mkdirp.sync upath.dirname(dstFile)
 
       fdw = fs.openSync(dstFile, 'w')
       bytesRead = 1
