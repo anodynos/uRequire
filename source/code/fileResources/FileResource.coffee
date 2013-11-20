@@ -1,7 +1,7 @@
 # externals
 _ = require 'lodash'
 fs = require 'fs'
-wrench = require 'wrench'
+mkdirp = require 'mkdirp'
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/fileResources/FileResource'
 
@@ -99,7 +99,7 @@ class FileResource extends BundleFile
     try
       if not fs.existsSync upath.dirname(filename)
         l.verbose "Creating directory '#{upath.dirname filename}'"
-        wrench.mkdirSyncRecursive upath.dirname(filename)
+        mkdirp.sync upath.dirname(filename)
 
       fs.writeFileSync filename, content, options
       l.verbose "Saved file '#{filename}'"

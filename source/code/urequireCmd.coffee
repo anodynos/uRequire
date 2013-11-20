@@ -1,6 +1,5 @@
 _ = require 'lodash'
 fs = require 'fs'
-wrench = require "wrench"
 _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/urequireCMD'
