@@ -4,7 +4,7 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/fileResources/BundleFile'
 
 Build = require '../process/Build'
-wrench = require "wrench"
+mkdirp = require "mkdirp"
 
 upath = require '../paths/upath'
 UError = require '../utils/UError'
@@ -81,7 +81,7 @@ class BundleFile
     BundleFile.copy upath.join(@bundle?.path or '', srcFilename),
                     upath.join(@bundle?.build?.dstPath or '', dstFilename)
 
-  # copyFile helper (missing from fs & wrench)
+  # copyFile helper (missing from fs)
   # @return true if copy was made, false if skipped (eg. same file)
   # copyFileSync based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/) @todo: improve !
   @copy: (srcFile, dstFile, overwrite='DUMMY')-> # @todo: overwrite: 'olderOrSizeDiff' (current default behavior) or 'all', 'none', 'older', 'sizeDiff'
@@ -103,7 +103,7 @@ class BundleFile
 
       if not (fs.existsSync upath.dirname(dstFile))
         l.verbose "Creating directory #{upath.dirname dstFile}"
-        wrench.mkdirSyncRecursive upath.dirname(dstFile)
+        mkdirp.sync upath.dirname(dstFile)
 
       fdw = fs.openSync(dstFile, 'w')
       bytesRead = 1
