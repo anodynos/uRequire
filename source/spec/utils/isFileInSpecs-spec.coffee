@@ -4,9 +4,10 @@ expect = chai.expect
 
 _ = require 'lodash'
 
-{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
+{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 
-isFileInSpecs = require '../../code/utils/isFileInSpecs'
+isFileInSpecs = require '../../code/config/isFileInSpecs'
 
 files = [
   'file.txt'

@@ -9,6 +9,8 @@ wrench = require "wrench"
 upath = require '../paths/upath'
 UError = require '../utils/UError'
 
+isFileInSpecs = '../config/isFileInSpecs'
+
 ###
   Represents any file in the bundle (that matched `bundle.filez`)
 ###
@@ -43,13 +45,13 @@ class BundleFile
     extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
 
     # @srcFilename: set at creation
-    srcFilepath: get: -> upath.join @bundle?.path or '', @srcFilename # source filename with path, eg `myproject/mybundle/mymodule.js`
+    srcFilepath: get: -> upath.join @bundle?.path or '', @srcFilename # source filename with `bundle.path`, eg `myproject/mybundle/mymodule.js`
     srcRealpath: get: -> "#{process.cwd()}/#{@srcFilepath}"
     srcExists: get:-> fs.existsSync @srcFilepath
 
     # @dstFilename populated after each refresh/conversion (or a default on constructor)
     dstPath: get:-> @bundle?.build?.dstPath or ''
-    dstFilepath: get:-> upath.join @dstPath, @dstFilename # destination filename with build.dstPath, eg `myBuildProject/mybundle/mymodule.js`
+    dstFilepath: get:-> upath.join @dstPath, @dstFilename # destination filename with `build.dstPath`, eg `myBuildProject/mybundle/mymodule.js`
     dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
 
@@ -74,7 +76,9 @@ class BundleFile
   # Helpers: available to bundleFile instance (passed as `convert()`) for convenience
   # They are defined as static, with an instance shortcut *with sane defaults*
   # They are all sync
-  
+#  isSrcFilenameInSpecs: (filespecs)-> isFileInSpecs @srcFilename, filespecs
+#  isDstFilenameInSpecs: (filespecs)-> isFileInSpecs @dstFilename, filespecs
+
   # Without params it copies (binary) the source file from `bundle.path`
   # to `build.dstPath`
   copy: (srcFilename=@srcFilename, dstFilename=@srcFilename)->

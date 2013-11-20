@@ -10,7 +10,6 @@ l = new _B.Logger 'urequire/config/ResourceConverter', 0 # config's `build.debug
 upath = require '../paths/upath'
 UError = require '../utils/UError'
 
-
 # ResourceConverter creates materialized RC instances
 # It contains setter factories on the instance
 # @note on properties conventions:

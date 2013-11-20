@@ -1,5 +1,5 @@
 _B = require 'uberscore'
-l = new _B.Logger 'spec/helpers'
+l = new _B.Logger 'spec-helpers'
 chai = require 'chai'
 expect = chai.expect
 
@@ -12,6 +12,7 @@ notEqual = (a, b)-> expect(a).to.not.equal(b)
 
 #A boolean assertion, equivalent to CommonJS’s assert.ok() and JUnit’s assertTrue(). Passes if the first argument is truthy.
 ok = (a)-> expect(a).to.be.ok
+notOk = (a)-> expect(a).to.be.not.ok
 
 tru = (a)-> expect(a).to.be.true
 fals = (a)-> expect(a).to.be.false
@@ -57,15 +58,16 @@ likeBA = (a,b)-> like(b,a) # reverse a,b
 notLikeBA = (a,b)-> notLike(b,a) # reverse a,b
 
 module.exports = {
-  equal, notEqual #strictEqual
-  tru, fals
-  ok              #truthy
+  equal, notEqual # strictEqual, ===
+  tru, fals       # true / false
+  ok, notOk       # truthy / falsey
 
-  deepEqual, notDeepEqual
+  deepEqual, notDeepEqual # _B.isEquals
+
+  # using _B.is[XXX] for XXX in[Equals, Exact, Iqual, Ixact]
   exact, notExact
   iqual, notIqual
   ixact, notIxact
-
-  like, notLike
-  likeBA, notLikeBA
+  like, notLike       # A is Like B
+  likeBA, notLikeBA   # B is Like A
 }

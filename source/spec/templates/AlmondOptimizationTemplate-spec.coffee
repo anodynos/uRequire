@@ -3,7 +3,8 @@ chai = require 'chai'
 assert = chai.assert
 expect = chai.expect
 
-{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
+{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 
 AlmondOptimizationTemplate = require "../../code/templates/AlmondOptimizationTemplate"
 

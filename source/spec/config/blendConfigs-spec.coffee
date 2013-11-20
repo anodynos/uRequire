@@ -12,8 +12,9 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
   bundleBuildBlender
 } = blendConfigs
 
-{deepEqual, like, likeBA, ok, equal, notEqual} = require '../spec-helpers'
 
+{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 arrayizePushBlender = new _B.ArrayizePushBlender
 
 #ResourceConverter = requireUncached require.resolve '../../code/config/ResourceConverter'
@@ -417,7 +418,7 @@ describe 'blendConfigs & its Blenders: ', ->
           dstPath: "build/code"
           template: 'UMD'
 
-          # test arraysPushOrOverwrite
+          # test arraysConcatOrOverwrite
           useStrict: false
           globalWindow: ['globalWindow-child.js']
           bare: true
@@ -462,7 +463,7 @@ describe 'blendConfigs & its Blenders: ', ->
         ,
           template: 'AMD'
           
-          # test arraysPushOrOverwrite
+          # test arraysConcatOrOverwrite
           useStrict: true          
           globalWindow: [[null], 'globalWindow-inherited.js']
           bare: ['bare-inherited-and-ignored2.js']
@@ -484,7 +485,7 @@ describe 'blendConfigs & its Blenders: ', ->
                 exports: bundle: 'spec-data': 'dataInDerive2'
               verbose: false
               
-              # test arraysPushOrOverwrite
+              # test arraysConcatOrOverwrite
               globalWindow: ['globalWindow-reseted.js']
               bare: ['bare-inherited-and-ignored.js']
               runtimeInfo: false
@@ -533,7 +534,7 @@ describe 'blendConfigs & its Blenders: ', ->
             debugLevel: 90
             template: name: "UMD"
             
-            # test arraysPushOrOverwrite
+            # test arraysConcatOrOverwrite
             useStrict: false
             globalWindow: ['globalWindow-inherited.js', 'globalWindow-child.js']
             bare: true

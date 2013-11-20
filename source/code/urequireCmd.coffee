@@ -9,10 +9,9 @@ urequireCommander = require 'commander'
 upath = require './paths/upath'
 Build = require './process/Build'
 
-
-# helpers
 toArray = (val)->
-  _.map val.split(','), (v)-> if _.isString(v) then v.trim() else v
+  _.map val.split(','), (v)->
+    if _.isString(v) then v.trim() else v
 
 config = {}
 

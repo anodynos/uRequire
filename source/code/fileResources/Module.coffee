@@ -4,6 +4,8 @@ _B = require 'uberscore'
 l = new _B.Logger 'urequire/fileResources/Module'#  100
 fs = require 'fs'
 
+_s = require 'underscore.string'
+
 esprima = require 'esprima'
 escodegen = require 'escodegen'
 
@@ -13,6 +15,8 @@ ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 TextResource = require './TextResource'
 Dependency = require "./Dependency"
 UError = require '../utils/UError'
+
+isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
 isLikeCode = (code1, code2)->
   code1 = esprima.parse(code1).body[0] if _.isString code1
@@ -51,6 +55,18 @@ class Module extends TextResource
           @bundle.build.dstPath
         else
           ''
+
+  for bof in ['useStrict', 'bare', 'globalWindow', 'runtimeInfo', 'allNodeRequires', 'noRootExports', 'scanAllow'] # @todo: find 'boolOrFilez' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+    do (bof)->
+      Object.defineProperty Module::, 'is'+ _s.capitalize(bof),
+        get: -> isTrueOrFileInSpecs @bundle.build[bof], @dstFilename
+        # @todo: enable setting it, after documenting (kept across multi builds)
+        # set: (val)-> @_[bof] =  val
+        # get: ->
+        #   if _.isUndefined @_[bof]
+        #     isTrueOrFileInSpecs @bundle.build[bof], @dstFilename
+        #   else
+        #     @_[bof]
 
   ###
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
@@ -346,9 +362,9 @@ class Module extends TextResource
         (reqDep.name(plugin:false) not in (@bundle?.dependencies?.node or [])) and
         (not _.any @defineArrayDeps, (dep)->dep.isEqual reqDep) # and not already there
           @defineArrayDeps.push reqDep
-          @nodeDeps.push reqDep if @build?.allNodeRequires
+          @nodeDeps.push reqDep if @isAllNodeRequires
 
-    if not (_.isEmpty(@defineArrayDeps) and @build?.scanAllow and not @flags.rootExports)
+    if not (_.isEmpty(@defineArrayDeps) and @isScanAllow and not @flags.rootExports)
       addToArrayDependencies reqDep for reqDep in @ext_requireDeps
     @
 

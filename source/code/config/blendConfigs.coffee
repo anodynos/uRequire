@@ -100,30 +100,25 @@ bundleBuildBlender = new _B.DeepCloneBlender [
   {
     order: ['path', 'src', 'dst']
 
-    arrayizePush: (prop, src, dst)->
+    arrayizeConcat: (prop, src, dst)->
       arrayizePusher.blend dst[prop], src[prop]
 
-    arraysPushOrOverwrite: (prop, src, dst)->
+    arraysConcatOrOverwrite: (prop, src, dst)->
       if _.isArray(dst[prop]) and _.isArray(src[prop])
         arrayizePusher.blend dst[prop], src[prop] #takes care of 'parent reset'
       else
         src[prop] # just copy src[prop] over to dst[prop]
-
-    # both src[prop] & dst[prop] are arrays
-    arrayPush: (prop, src, dst)->
-      dst[prop].push item for item in src[prop]
-      dst[prop]
 
     dependenciesBindings: (prop, src, dst)->
       dependenciesBindingsBlender.blend dst[prop], src[prop]
 
     bundle:
 
-      filez: '|' : '*': 'arrayizePush'
+      filez: '|': '*': 'arrayizeConcat'
 
-      copy: '|' : '*': 'arrayizePush'
+      copy: '|': '*': 'arrayizeConcat'
 
-      resources: '|' :
+      resources: '|':
         '*': (prop, src)->
           throw new Error "`bundle.resources` must be an array - was : ", src[prop]
         '[]': (prop, src, dst)->
@@ -156,11 +151,14 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         _knownDepsVars: '|': '*': 'dependenciesBindings'
 
     build:
-
-      useStrict: '|': 'arraysPushOrOverwrite'
-      bare: '|': 'arraysPushOrOverwrite'
-      globalWindow: '|': 'arraysPushOrOverwrite'
-      runtimeInfo: '|': 'arraysPushOrOverwrite'
+      # todo: generalize this :
+      useStrict: '|': 'arraysConcatOrOverwrite'
+      bare: '|': 'arraysConcatOrOverwrite'
+      globalWindow: '|': 'arraysConcatOrOverwrite'
+      runtimeInfo: '|': 'arraysConcatOrOverwrite'
+      allNodeRequires: '|': 'arraysConcatOrOverwrite'
+      noRootExports: '|': 'arraysConcatOrOverwrite'
+      scanAllow: '|': 'arraysConcatOrOverwrite'
 
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]

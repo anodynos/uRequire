@@ -388,7 +388,7 @@ Module 'uberscore.js' will get this string injected before its body, **but insid
  ```
 
   * or an **AST 'skeleton'** object (in [Mozzila Parser AST](https://developer.mozilla.org/en/SpiderMonkey/Parser_API)) like:
- ```coffeescript
+ ```coffee
  {
     type: 'IfStatement'
     test: 
@@ -442,17 +442,26 @@ will remove all code that matches the `'if (l.deb()){}'` skeleton.
 
  example: `m.replaceDep('models/Person', 'mockModels/PersonMock')`
 
-* `injectDeps(depVars)`: a method that injects one (or more) dependencies, along with one or more variables to bind with them on the module. Its taking only one argument, with the type of [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars).
+* `injectDeps(depVars)`: a method that injects one (or more) dependencies, along with one or more variables to bind with them on the module. Its taking only one argument of [depVars type](masterdefaultsconfig.coffee#depsvars-type).
 
-For example 
-```
-  module.injectDeps({
-    'lodash': '_',
-    'models/Person': ['persons', 'personsModel']
-  });
-```  
+  For example:
 
-The deps are (the keys of the object) are always given in [bundleRelative](#bundlerelative-vs-filerelative-paths) format.
+  ```
+    module.injectDeps({
+      'lodash': '_',
+      'models/Person': ['persons', 'personsModel']
+    });
+  ```
+
+  or
+
+  ```
+    module.injectDeps(['lodash', 'models/Person'])
+  ```
+
+  that [infers binding idenifiers](masterdefaultsconfig.coffee#inferred-binding-idenifiers).
+
+  The deps are (the keys of the object) are always given in [bundleRelative](#bundlerelative-vs-filerelative-paths) format.
 
  `injectDeps` is used internally to inject [`dependencies.exports.bundle`](MasterDefaultsConfig.coffee#bundle.dependencies.exports.bundle) - on templates other that `'combined'` that need it. 
 
@@ -460,11 +469,11 @@ The deps are (the keys of the object) are always given in [bundleRelative](#bund
 
  * not two same-named parameters are injected - the 'late arrivals' bindings are simply ignored (with a warning). So if a Module already has a a parameter `'_'` and you try to inject `'lodash':'_'`, it wont be injected at all.
 
- * Not injecting a self-dependency. If you are at module 'agreements/isAgree', trying to inject dependency 'agreements/isAgree' will be ignored (without a warning, only a debug message).
+ * Not injecting a self-dependency. If you are at module `'agreements/isAgree'`, trying to inject dependency `'agreements/isAgree'` will be ignored (without a warning, only a debug message).
 
- * For deps without a variable binding, eg `mod.injectDep({'models/Person':[]}):`, the variable bindings are inferred from the bundle (other modules that `myBindinedDepVar = require('dep')` or `define(['dep'], function(myBindinedDepVar){})` or [`bundle.dependencies.depsVars`](MasterDefaultsConfig.coffee#bundle.dependencies.depsVars) etc
+ * For deps without a variable binding, eg `mod.injectDep({'models/Person':[]}):`, the variable bindings are [inferred from the bundle](masterdefaultsconfig.coffee#inferred-binding-idenifiers) with a warning, or it halts if they can't be inferred.
 
- Note: uREquire doesn't enforce that the injected dependency is valid, for example whether it exists in the bundle.
+ Note: uRequire doesn't enforce that the injected dependency is valid, for example whether it exists in the bundle - but you 'll get an error report in the end.
 
 # Default Resource Converters
 
@@ -490,13 +499,12 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
             # RegExps as well, with[.., `'!', /myRegExp/`] for exclusions
             /.*\.(javascript)$/
 
-
             # a `function(filename){}` also valid, with '!' for exclusion
           ]
 
           # javascript needs no compilation - returns source as is
           # could have `undefined` in its place
-          convert: (r)-> r.source
+          convert: (modyle)-> modyle.source
 
           # convert .js | .javascript to .js
           convFilename: (srcFilename)->
@@ -526,13 +534,13 @@ This RC is using an [] instead of {}. Key names of RC are assumed from their pos
           [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]
 
           # `convert` Function at pos 3
-          (r)->
+          (m)->
              # 'coffee-script' must be in 'node_modules',
              # only if any 'coffee' file matches
              coffee = require 'coffee-script'
 
              # return converted source
-             coffee.compile r.source
+             coffee.compile m.source
 
           # `convFilename` Function at pos 4
           (srcFn)->
@@ -556,7 +564,7 @@ This RC is using an [] instead of {}. Key names of RC are assumed from their pos
           [ '**/*.ls']
 
           # `convert` Function at pos 2
-          (r)->(require 'LiveScript').compile r.source
+          (m)->(require 'LiveScript').compile m.source
 
           # if `convFilename` is String starting with '.',
           # it denotes an extension replacement of `dstFilename`

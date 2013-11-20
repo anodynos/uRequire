@@ -3,7 +3,7 @@ _B = require 'uberscore'
 
 l = new _B.Logger 'urequire/ModuleGeneratorTemplates'
 
-isFileInSpecs = require '../utils/isFileInSpecs'
+isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
 pathRelative = require('../paths/pathRelative')
 Template = require './Template'
@@ -43,12 +43,6 @@ Template = require './Template'
 #
 #     webRootMap: path of where to map '/' when running on node, relative to bundleRoot (starting with '.'), absolute OS path otherwise.
 #  }
-
-isTruthyOrIsFileInSpecs = (configValue, filename)->
-  configValue and (
-    !_.isArray(configValue) or
-    (_.isArray(configValue) and isFileInSpecs(filename, configValue))
-  )
 
 class ModuleGeneratorTemplates extends Template
 
@@ -130,16 +124,13 @@ class ModuleGeneratorTemplates extends Template
       else ''
 
     runtimeInfoPrint: get: ->
-      if isTruthyOrIsFileInSpecs @module.bundle.build.runtimeInfo, @module.dstFilename
-        @runtimeInfo + '\n'
-      else ''
+      if @module.isRuntimeInfo then @runtimeInfo + '\n' else ''
 
     useStrictPrint: get:->
-      if isTruthyOrIsFileInSpecs @module.bundle.build.useStrict, @module.dstFilename
-        "'use strict';\n"
-      else ''
+      if @module.isUseStric then "'use strict';\n" else ''
 
-    isRootExports: get: -> not (_.isEmpty(@module.flags.rootExports) or @module.bundle?.noRootExports)
+    isRootExports: get: ->
+       @module.isNoRootExports and (not _.isEmpty @module.flags.rootExports)
 
   ### private ###
   _rootExportsNoConflict: (rootName='root')->
@@ -213,10 +204,10 @@ class ModuleGeneratorTemplates extends Template
 
   _fullBodyBareIIFEGW: (fullBody)->
     (
-      if isTruthyOrIsFileInSpecs @module.bundle.build.bare, @module.dstFilename
+      if @module.isBare
         fullBody
       else
-        if isTruthyOrIsFileInSpecs @module.bundle.build.globalWindow, @module.dstFilename
+        if @module.isGlobalWindow
           root = "(typeof exports === 'object' ? global : window)"
           @_functionIIFE fullBody, 'window', root, 'global', root
         else

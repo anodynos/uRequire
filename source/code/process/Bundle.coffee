@@ -24,7 +24,7 @@ Module = require './../fileResources/Module'
 Build = require './Build'
 BundleBase = require './BundleBase'
 
-isFileInSpecs = require '../utils/isFileInSpecs'
+isFileInSpecs = require '../config/isFileInSpecs'
 
 debugLevelSkipTempDeletion = 50
 
