@@ -7,10 +7,11 @@ UError = require "../../code/utils/UError"
 _ = require 'lodash'
 _B = require 'uberscore'
 l = new _B.Logger 'spec/fileResources/Module-spec'
-#_B.Logger.addDebugPathLevel 'urequire', 100
 
+isLikeCode = require "../../code/codeUtils/isLikeCode"
+isEqualCode = require "../../code/codeUtils/isEqualCode"
 
-{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
@@ -24,7 +25,7 @@ untrust = (indexes, depsStrings)->
 coffee = require 'coffee-script'
 esprima = require 'esprima'
 
-escodegenOptions =
+codegenOptions =
   format:
     indent:
       style: ''
@@ -39,40 +40,11 @@ escodegenOptions =
     semicolons: true
 
 # helper: create Module, set its js, extract, delete empties, return info()
-moduleInfo = (js)-> (new Module {sourceCodeJs: js, escodegenOptions}).extract().info()
+moduleInfo = (js)->
+  (new Module {sourceCodeJs: js, codegenOptions}).extract().info()
 
 describe "Module:", ->
-
-  describe "Static functions :", ->
-
-    describe "`isLikeCode` compares code structure:", ->
-      {isLikeCode, isEqualCode} = Module
-      codes = _B.okv {},
-        '(function(){}).call()', '(function(someParam, anotherParam){var someVar = 1;}).call(this, that)',
-        '(function(){})()', '(function(param){}())',
-        'require()', "require('someDep')",
-        'if (l.deb()){}', "if(l.deb(90)){debug('Hello')}",
-        'if (l.deb()){} else {}', "if(l.deb(90)){debug('Hello')} else {debug('goodbuy')}",
-        "a = {}", "a = {a:1}"
-
-      count = 0
-      for code1, code2 of codes
-        count++
-        do (code1, code2, count)->
-          describe "compares two strings of javascript code ##{count}:", ->
-            it "is true if 1st is a 'subset' of 2nd, false otherwise ##{count}", ->
-              expect(isLikeCode code1, code2).to.be.true
-              expect(isLikeCode code2, code1).to.be.false
-
-              expect(isEqualCode code2, code1).to.be.false
-
-          describe 'accepts one string of code and one AST', ->
-            it "is true if 1st is a 'subset' of 2nd, false otherwise ##{count}", ->
-              expect(isLikeCode code1, esprima.parse(code2).body[0]).to.be.true
-              expect(isLikeCode esprima.parse(code1).body[0], code2).to.be.true
-
   describe "Extracting Module information :", ->
-
     describe "NON-AMD modules:", ->
 
       it "identifies non-AMD/UMD module as nodejs", ->
@@ -276,7 +248,7 @@ describe "Module:", ->
           });
         """
 
-        mod = new Module {sourceCodeJs: js, escodegenOptions: escodegenOptions}
+        mod = new Module {sourceCodeJs: js, codegenOptions: codegenOptions}
 
         it "should extract, prepare & adjust a module's info", ->
           mod.extract()
@@ -409,7 +381,7 @@ describe "Module:", ->
           );
           """ + "})();"
 
-        mod = new Module {sourceCodeJs: js, escodegenOptions: escodegenOptions}
+        mod = new Module {sourceCodeJs: js, codegenOptions: codegenOptions}
 
         expected =
           ext_defineArrayDeps: untrust [1, 4], [
@@ -543,7 +515,7 @@ describe "Module:", ->
 
     mod = (new Module {
       sourceCodeJs: js
-      escodegenOptions: escodegenOptions
+      codegenOptions: codegenOptions
       srcFilename: 'someDepDir/MyModule'
       bundle: dstFilenames: [
         'depDir1/Dep1.js'
@@ -639,7 +611,7 @@ describe "Module:", ->
       c = 3;
     """
 
-    mod = (new Module {sourceCodeJs: js, escodegenOptions}).extract()
+    mod = (new Module {sourceCodeJs: js, codegenOptions}).extract()
 
     it "replaces code via function, returning ast or String", ->
       cnt = 1
@@ -650,52 +622,46 @@ describe "Module:", ->
         else
           mod.toCode ast
 
-      expect(Module.isEqualCode(
-        "if (true){" + mod.toCode(mod.AST_top) + "}", """
-          if (true){
-            var b = 0;
-            if (l.deb(11)) {
-              b = 1;
-              if (l.deb(20) && true) {
-                b = 2;
-                if (l.deb(31)) {
-                  b = 3;
-                }
-              }
+      tru isEqualCode mod.toCode(mod.AST_top), """
+        var b = 0;
+        if (l.deb(11)) {
+          b = 1;
+          if (l.deb(20) && true) {
+            b = 2;
+            if (l.deb(31)) {
+              b = 3;
             }
-            if (l.deb(41)) {
-              b = 4;
-            }
-            c = 3;
           }
-        """)
-      ).to.be.true
+        }
+        if (l.deb(41)) {
+          b = 4;
+        }
+        c = 3;
+        """
 
     it "replaces code via String", ->
-      mod.replaceCode 'if (l.deb(31)){}', "if (l.deb(31)) { changed = 56; }"
-      expect(Module.isEqualCode(
-        "if (true){" + mod.toCode(mod.AST_top) + "}", """
-          if (true){
-            var b = 0;
-            if (l.deb(11)) {
-              b = 1;
-              if (l.deb(20) && true) {
-                b = 2;
-                if (l.deb(31)) {
-                  changed = 56;
-                }
-              }
+      mod.replaceCode 'if (l.deb(31)){}',
+                      "if (l.deb(62)) { changed = 56; }"
+
+      tru isEqualCode mod.toCode(mod.AST_top), """
+        var b = 0;
+        if (l.deb(11)) {
+          b = 1;
+          if (l.deb(20) && true) {
+            b = 2;
+            if (l.deb(62)) {
+              changed = 56;
             }
-            if (l.deb(41)) {
-              b = 4;
-            }
-            c = 3;
           }
-        """)
-      ).to.be.true
+        }
+        if (l.deb(41)) {
+          b = 4;
+        }
+        c = 3;
+        """
 
     it "deletes code if 2nd argument == null, traversing only outers", ->
       cnt = 0
       mod.replaceCode 'if (l.deb()){}', -> cnt++; null
-      expect(mod.toCode(mod.AST_top)).to.be.equal "var b=0;c=3;"
-      expect(cnt).to.equal 2
+      deepEqual mod.toCode(mod.AST_top), "var b=0;c=3;"
+      equal cnt, 2

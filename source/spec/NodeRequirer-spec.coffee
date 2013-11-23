@@ -1,8 +1,8 @@
 chai = require 'chai'
 expect = chai.expect
 
-{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require './spec-helpers'
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact,
+  iqual, notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA } = require './spec-helpers'
 
 _ = require 'lodash'
 fs = require('fs')
@@ -48,7 +48,7 @@ describe "NodeRequirer basics:", ->
     equal path, upath.normalize "#{__dirname}/path/fromBundleRoot/to/anotherModule"
 
   describe "resolves Dependency paths:", ->
-    it "global-looking Dependency", ->
+    it "local-looking Dependency", ->
       resolvedDeps = nr.resolvePaths new Dependency 'underscore', path:moduleNameBR
       for resDep in ['underscore', upath.normalize "#{__dirname}/underscore"]
         ok resDep in resolvedDeps

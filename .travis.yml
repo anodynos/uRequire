@@ -5,6 +5,5 @@ node_js:
   - 0.10
 
 before_script:
-  - npm install -g coffee-script
   - npm install -g grunt-cli
-  - grunt build shell:coffeeSpec copy:specResources
+  - grunt shell:coffee concat chmod copy:specResources

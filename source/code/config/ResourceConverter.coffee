@@ -47,9 +47,12 @@ class ResourceConverter
       # defaults
       @descr or= "No descr for ResourceConverter '#{@name}'"
       @isTerminal ?= false
-      @isAfterTemplate ?= false
-      @isBeforeTemplate ?= false
       @isMatchSrcFilename ?= false
+      # when to run
+      @isBeforeTemplate ?= false
+      @isAfterTemplate ?= false
+      @isAfterOptimize ?=false
+
     @
 
   clone: ->
@@ -217,9 +220,9 @@ class ResourceConverter
 
     '~': (rc)-> rc.isMatchSrcFilename = true
     '|': (rc)-> rc.isTerminal = true
-    '*': (rc)-> rc.isTerminal = false   # default, needed only for 0.4.x strip support
     '+': (rc)-> rc.isBeforeTemplate = true
     '!': (rc)-> rc.isAfterTemplate = true
+    '-': (rc)-> rc.isAfterOptimize = true
 
   nameFlags = _.keys nameFlagsActions
 

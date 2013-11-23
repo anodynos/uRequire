@@ -27,10 +27,10 @@ class DependenciesReporter
   ### simply interesting :-) ###
   DT = Dependency.TYPES
   _B.okv dependencyTypesMessages,
-    DT.global,
-      header: "Global-looking dependencies (those without fileRelative (eg `./`) & not present in bundle's root):"
+    DT.local,
+      header: "`local`-looking dependencies (those without fileRelative (eg `./`) & not present in bundle's root):"
       footer: """
-        Note: When executing on plain nodejs, globals are `require`d as is.
+        Note: When executing on plain nodejs, locals are `require`d as is.
               When executing on Web/AMD or uRequire/UMD they use `rjs.baseUrl`/`rjs.paths`, if present.
       """
 
@@ -59,12 +59,12 @@ class DependenciesReporter
 
   # Augments reportData, that ends up in this form
   #   {
-  #     global: { 'underscore': [ 'some/module', 'other/module' ] },
+  #     local: { 'underscore': [ 'some/module', 'other/module' ] },
   #     external: { '../../some/external/lib': [ 'some/module' ]}
   #   }
   #
   # @param {Object} resolvedDeps, eg
-  #     global: [ 'lodash' ]
+  #     local: [ 'lodash' ]
   #     external: [ '../../some/external/lib', '../../../anotherLib'' ]
   #     notFoundInBundle: [ '../lame/dir', 'another/lame/lib']
   #

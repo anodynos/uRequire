@@ -8,7 +8,7 @@ _ = require 'lodash'
 
 ResourceConverter = require '../../code/config/ResourceConverter'
 
-{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 
 rcSpec1 = [
@@ -35,9 +35,12 @@ expectedRc =
   ' convFilename': rcSpec1[3]   # display value
   _convFilename: rcSpec1[3]   # display value
   isTerminal: false
-  isAfterTemplate: false
-  isBeforeTemplate: false
   isMatchSrcFilename: false
+
+  #when to run
+  isBeforeTemplate: false
+  isAfterTemplate: false
+  isAfterOptimize: false
 
 describe 'ResourceConverter creation, cloning & updating:', ->
 
@@ -199,9 +202,10 @@ describe 'ResourceConverter creation, cloning & updating:', ->
           ' convFilename': rcSpec1[3]   # display value
           _convFilename: rcSpec1[3]
           isTerminal: false
-          isAfterTemplate: false
-          isBeforeTemplate: false
           isMatchSrcFilename: false
+          isBeforeTemplate: false
+          isAfterTemplate: false
+          isAfterOptimize: false
 
         expect(foundRc.convFilename is rcSpec1[3]).to.be.true
 

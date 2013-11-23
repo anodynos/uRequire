@@ -4,49 +4,42 @@ l = new _B.Logger 'urequire/AlmondOptimizationTemplate'
 Dependency = require '../fileResources/Dependency'
 Template = require './Template'
 
-module.exports =
+varSelector = (vars, finale = 'void 0')->
+  ("((typeof #{v}) !== 'undefined') ? #{v} : " for v in vars).join('\n') + finale
+      #if vars.length then finale else ''
 
-class AlmondOptimizationTemplate extends Template
+module.exports = class AlmondOptimizationTemplate extends Template
 
   constructor: (@bundle)->
-    ### globals & exports.bundle handling.
+    ### locals & exports.bundle handling. ###
 
-     Assuming
-
-       @bundle.globalDepsVars = {lodash: ['_'], jquery: ['$', 'jQuery']}
-       @bundle.exportsBundleDepsVars = {lodash: ['_', '_lodash_'], 'agreement/isAgree': ['isAgree', 'isAgree2']}
-
-    We need the following :
-    ###
-    # parameters the of factory: all variables of deps.exports.bundle that are global
-    # i.e what goes in `var factory = function(_, _lodash_){...`
-    @exportsBundleGlobalParams = []  #eg ['_', '_lodash_']
-
-    # corresponding dependencies the of factory :
-    # i.e   `define(['lodash', 'lodash', ...], factory);`
-    #   and
-    #       `module.exports = factory(require('lodash'), require('lodash'));`
-    @exportsBundleGlobalDeps = [] # eg ['lodash', 'lodash']
+    @localDeps = []
+    @localParams = []
+    @localArgs = []
 
     # decide type of each dependency in exports.bundle
-    for bundleDep, bundleDepVars of @bundle.exportsBundleDepsVars
-      bd  = new Dependency bundleDep, {path: '__rootOfBundle__', bundle:@bundle}
-      switch bd.type
-        when 'global' # mark it looks like a global
-          @bundle.globalDepsVars[bundleDep] = bundleDepVars if not @bundle.globalDepsVars[bundleDep]
-        #when 'bundle', 'notFoundInBundle', 'external', 'webRootMap', 'system' # do nothing @todo: what todo ?
+    @localDepsVars = {}
+    for dep, vars of @bundle.exportsBundle_depsVars
+      if (new Dependency dep, {path: '__rootOfBundle__', bundle:@bundle}).isLocal
+        @localDepsVars[dep] = vars
 
-    # set them up
-    for dep, depVars of @bundle.exportsBundleDepsVars when @bundle.globalDepsVars[dep]
-      for aVar in depVars
-        if aVar not in @exportsBundleGlobalParams
-          @exportsBundleGlobalParams.push aVar
-          @exportsBundleGlobalDeps.push dep
-    
-    @exportsBundleNonGlobalsDepsVars = _.pick @bundle.exportsBundleDepsVars, (vars, dep)=> not @bundle.globalDepsVars[dep]
+    for dep, vars of @bundle.localNonNode_depsVars
+      if not @localDepsVars[dep]
+        @localDepsVars[dep] = vars
 
-    @globalNonExportsBundleDepsVars = _.pick @bundle.globalDepsVars, (vars, dep)=> not @bundle.exportsBundleDepsVars[dep]
-    @defineAMDDeps = @exportsBundleGlobalDeps.concat _.keys @globalNonExportsBundleDepsVars
+    for dep, vars of @localDepsVars
+      for aVar in vars
+        @localDeps.push dep
+        @localArgs.push aVar
+        @localParams.push varSelector vars
+
+    @exportsBundle_nonLocals_depsVars = #i.e, bundle deps like 'agreement/isAgree'
+      _.pick @bundle.exportsBundle_depsVars, (vars, dep)=>
+         not (new Dependency dep, {path: '__rootOfBundle__', bundle:@bundle}).isLocal
+
+    @local_nonExportsBundle_depsVars =
+      _.pick @bundle.localNonNode_depsVars, (vars, dep)=>
+         not @bundle.exportsBundle_depsVars[dep]
 
   Object.defineProperties @::,
 
@@ -57,90 +50,114 @@ class AlmondOptimizationTemplate extends Template
 
           #{@runtimeInfo}
 
-          var window = global, __nodeRequire = (__isNode ? require : void 0);
+          var window = global, __nodeRequire = (__isNode ? require : function(dep){ throw new Error("Missing depepndency: '" + dep + "'")});
 
           #{if p = @bundle.mergedPreDefineIIFENodesCode
               "// uRequire: start of mergedPreDefineIIFENodesCode \n " + p +
               "\n  // uRequire: end of mergedPreDefineIIFENodesCode"
             else ''}
 
-          var factory = function(#{@exportsBundleGlobalParams.join ', '}) {
+          var factory = function(#{@localArgs.join ', '}) {
       """
 
       end: """\n
             #{
-              # require (inside the factory, i.e AMD or nodejs depending on execution)
-              # each bundle dependency with its variables, eg
-              #   `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
-              # for all exports.bundle that are IN the bundle (i.e non-global)
-            (do =>
-                # exportsBundleNonGlobalsDepsVars = {'agreement/isAgree': ['isAgree', 'isAgree2'], ...}
-                for dep, vars of @exportsBundleNonGlobalsDepsVars
-                  # eg `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
-                  'var ' + vars.join(', ') + '; ' + vars.join(' = ') + " = require('#{dep}');"
-            ).join '\n'}
-
-            return require('#{@bundle.main}');
+               # require (inside the factory, i.e AMD or nodejs depending on execution)
+               # each bundle dependency with its variables, eg
+               #   `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
+               # for all exports.bundle that are IN the bundle (i.e non-global)
+             (do =>
+                 # exportsBundle_nonLocals_depsVars = {'agreement/isAgree': ['isAgree', 'isAgree2'], ...}
+                 # eg `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
+                 for dep, vars of @exportsBundle_nonLocals_depsVars
+                   'var ' + vars.join(', ') + '; ' + vars.join(' = ') + " = require('#{dep}');"
+             ).join '\n'
+            }
+            #{if @bundle.commonCode then @bundle.commonCode else ''} \nreturn require('#{@bundle.main}');
           };
 
           if (__isAMD) {
             define(#{
-              # AMD runtime define is call with [] of deps with all @exportsBundleGlobalDeps, followed by all non-export.bundle globals deps
+              # AMD runtime define is call with [] of deps with all @localDeps, followed by all non-export.bundle local deps
               # i.e `define(['lodash', ... ,'jquery'], factory);`
-              if @defineAMDDeps.length
-                "['" + @defineAMDDeps.join("', '") + "'], "
+              if @localDeps.length
+                "['" + @localDeps.join("', '") + "'], "
               else ''
             }factory);
           } else {
               if (__isNode) {
                   module.exports = factory(#{
-                    if @exportsBundleGlobalDeps.length
-                      "require('" + @exportsBundleGlobalDeps.join("'), require('") + "')"
+                    if @localDeps.length
+                      "require('" + @localDeps.join("'), require('") + "')"
                     else ''
                     });
               } else { // plain <script> tag - grab vars from 'window'
-                  factory(#{@exportsBundleGlobalParams.join ', '});
+                  factory(#{@localParams.join(', ')});
               }
           }
         })(typeof exports === 'object' ? global : window);
       """
 
     # @return {
-    #   lodash: 'getGlobal_lodash',
-    #   backbone: 'getGlobal_backbone'
+    #   lodash: 'getLocal_lodash',
+    #   backbone: 'getLocal_backbone'
     # }
     paths: get:->
       _paths = {}
-      for globalDep, globalVars of @bundle.globalDepsVars
-        _paths[globalDep] = "getGlobal_#{globalDep}"
+      for localDep in @localDeps
+        _paths[localDep] = "getLocal_#{localDep}"
 
-      for nodeOnlyDep of @bundle.nodeOnlyDepsVars
+      for nodeOnlyDep of @bundle.nodeOnly_depsVars
         _paths[nodeOnlyDep] = "getNodeOnly_#{nodeOnlyDep}"
 
       _paths
 
     # @return {
-    #   getGlobal_lodash: "code",
-    #   getGlobal_backbone: "code"
+    #   getLocal_lodash: "code",
+    #   getLocal_backbone: "code"
     # }
     dependencyFiles: get:->
       _dependencyFiles = {}
-      for globalDep, globalVars of @bundle.globalDepsVars
-        _dependencyFiles["getGlobal_#{globalDep}"] =
-          @grabDependencyVarOrRequireIt globalDep, globalVars
 
-      for nodeOnlyDep of @bundle.nodeOnlyDepsVars
+      l.deb 70, "creating dependencyFiles 'getLocal_XXX' from @localDepsVars = \n", @localDepsVars
+      for dep, vars of @localDepsVars
+        l.deb 80, "creating 'getLocal_#{dep}' by grabDependencyVarOrRequireIt(dep = '", dep, "', depVars = ", vars, ')'
+        _dependencyFiles["getLocal_#{dep}"] =
+            @grabDependencyVarOrRequireIt dep, vars
+
+      l.deb 70, "creating dependencyFiles for @bundle.nodeOnly_depsVars = ", @bundle.nodeOnly_depsVars
+      for nodeOnlyDep of @bundle.nodeOnly_depsVars
+        l.deb 80, "creating 'getNodeOnly_#{nodeOnlyDep}' by grabDependencyVarOrRequireIt(dep=", nodeOnlyDep, ', depVars = always empty array!)'
         _dependencyFiles["getNodeOnly_#{nodeOnlyDep}"] =
-          @grabDependencyVarOrRequireIt nodeOnlyDep, []
+            @grabDependencyVarOrRequireIt nodeOnlyDep, []
 
       _dependencyFiles
 
+  debug: (debugLevel)-> debugLevel < (@bundle?.build?.template?.debugLevel or 0 )
+
   grabDependencyVarOrRequireIt: (dep, depVars)->
-    "define(" +
-      @_function(
-        (for depVar in depVars
-            "if (typeof #{depVar} !== 'undefined'){return #{depVar};}"
-        ).join(';') +
-        "\nreturn __nodeRequire('#{dep}');"
-      ) + ");"
+    if @debug 50
+      depFactory = ''
+      if @debug(50) then depFactory += """\n
+          console.log("`define('#{dep}', [], function factory(){})` called.");"""
+
+      for depVar in depVars
+        #depVar = '_B' if depVar is '_uB'
+
+        if @debug(50) then depFactory += """\n
+          console.log("depVar: '#{depVar}' is ", (((typeof #{depVar}) === 'undefined') ? 'undefined' : #{depVar}) );
+
+          console.log("depVar: 'window.#{depVar}' is ", window.#{depVar});
+          console.log("depVar: 'global.#{depVar}' is ", global.#{depVar});
+        """
+
+        depFactory += """\n
+          if (typeof #{depVar} !== 'undefined'){return #{depVar};};"""
+
+      depFactory += "\n  return __nodeRequire('#{dep}');"
+
+      "define(" + @_function(depFactory) + ");"
+    else
+      "define(" + @_function("""  return #{varSelector depVars, "__nodeRequire('#{dep}')"}; """) + ");"
+
 

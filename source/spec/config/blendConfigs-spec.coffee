@@ -13,7 +13,7 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
 } = blendConfigs
 
 
-{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 arrayizePushBlender = new _B.ArrayizePushBlender
 
@@ -53,8 +53,8 @@ resources =  [
   ]
 
   {
-    name: '#IamAFalseModule' # A TextResource (starting with '#')
-#    type: 'module'           # this is NOT respected cause its starting with '#'
+    name: '#-IamAFalseModule' # A TextResource (starting with '#')
+    #type: 'module'            # this WOULD BE respected, over flag starting with '#'
     filez: '**/*.module'
     convert: ->
   }
@@ -79,9 +79,10 @@ expectedResources = [
     _convFilename: resources[0][3]
     ' type': 'module'
     isTerminal: false
-    isAfterTemplate: false
-    isBeforeTemplate: true
     isMatchSrcFilename: false
+    isBeforeTemplate: true
+    isAfterTemplate: false
+    isAfterOptimize: false
   }
 
   {
@@ -92,9 +93,10 @@ expectedResources = [
     ' convFilename': resources[1][4]
     _convFilename: resources[1][4]
     isTerminal: false
-    isAfterTemplate: true
-    isBeforeTemplate: false
     isMatchSrcFilename: false
+    isBeforeTemplate: false
+    isAfterTemplate: true
+    isAfterOptimize: false
   }
 
   {
@@ -107,6 +109,7 @@ expectedResources = [
     isAfterTemplate: false
     isBeforeTemplate: false
     isMatchSrcFilename: false
+    isAfterOptimize: false
   }
 
   {
@@ -118,9 +121,10 @@ expectedResources = [
     ' type': 'file'
     #clazz: FileResource
     isTerminal: false
+    isMatchSrcFilename:true
     isAfterTemplate: false
     isBeforeTemplate: false
-    isMatchSrcFilename:true
+    isAfterOptimize: false
   }
 
   {
@@ -130,9 +134,10 @@ expectedResources = [
     convert: resources[4].convert
     ' type': 'text'
     isTerminal: false
-    isAfterTemplate: false
-    isBeforeTemplate: false
     isMatchSrcFilename: false
+    isBeforeTemplate: false
+    isAfterTemplate: false
+    isAfterOptimize: true
   }
 ]
 

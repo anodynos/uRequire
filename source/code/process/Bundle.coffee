@@ -68,21 +68,21 @@ class Bundle extends BundleBase
         _.pick @files, (f, filename)=> not (f instanceof FileResource) and (isFileInSpecs filename, @copy)
 
     # XXX_depsVars: format {dep1:['dep1Var1', 'dep1Var2'], dep2:[...], ...}
-    globalDepsVars:->
+    localNonNode_depsVars: ->
       @inferEmptyDepVars (
-        @getDepsVars (dep)=> # filter global & non-node
-          (dep.isGlobal) and
+        @getDepsVars (dep)=> # filter local & non-node
+          (dep.isLocal) and
           (dep.pluginName isnt 'node') and
           (dep.name(plugin:false) not in @dependencies.node)
-        ), 'Gathering global-looking dependencies & infering empty DepVars'
+        ), 'Gathering @localNonNode_depsVars (bundle`s local dependencies) & infering empty depVars'
 
-    nodeOnlyDepsVars:->
+    nodeOnly_depsVars:->
       l.debug 80, "Gathering 'node'-only dependencies"
       @getDepsVars (dep)=> (dep.pluginName is 'node') or (dep.name(plugin:false) in @dependencies.node)
 
-    exportsBundleDepsVars:->
+    exportsBundle_depsVars:->
       @inferEmptyDepVars _.clone(@dependencies.exports.bundle, true),
-        "Infering empty depVars for `dependencies.exports.bundle`"
+        "Gathering @exportsBundle_depsVars & infering empty depVars for `dependencies.exports.bundle`"
 
     errorFiles: -> _.pick @files, (f)-> f.hasErrors
       
@@ -93,8 +93,11 @@ class Bundle extends BundleBase
     doneOK: get: -> _.isEmpty(@errorFiles) and (@errorsCount is 0)
 
   ###
-  Gathers dependencies & corresponding variables/parameters (they bind with), througout this bundle (all modules).
+  Gathers dependencies & corresponding variables/parameters (they bind with),
+  througout this bundle (all modules).
+
   @param {Function} depFltr a filter, passed a Dependency instance
+
   @return {dependencies.depsVars} `dependency: ['var1', 'var2']` eg
     {
         'lodash': ['_']
@@ -114,14 +117,17 @@ class Bundle extends BundleBase
   # @param depVars {Object} with {dep:varNames} eg {dep1:['dep1Var1', 'dep1Var2'], dep2:[...]}
   # return depVars, with missing varNames added
   inferEmptyDepVars: (depVars = {}, whyMessage)->
-    if !_.isEmpty(depVars) and l.deb(70) then l.debug 'inferEmptyDepVars:', whyMessage
+    if !_.isEmpty(depVars) and l.deb(70)
+      l.debug 'inferEmptyDepVars:', whyMessage
+      l.debug 80, 'inferEmptyDepVars(depVars = ', depVars
     for depName of depVars
       if _.isEmpty (depVars[depName] or= [])
-        l.debug("inferEmptyDepVars : Dependency '#{depName}' has no corresponding parameters/variable names to bind with.") if l.deb 80
+
+        l.deb "inferEmptyDepVars : Dependency '#{depName}' has no corresponding parameters/variable names to bind with." if l.deb(80)
         for aVar in (@getDepsVars((dep)->dep.name(relative:'bundle') is depName)[depName] or [])
           depVars[depName].push aVar if aVar not in depVars[depName]
 
-        l.debug("inferEmptyDepVars: Dependency '#{depName}', infering varNames from bundle's Modules: ", depVars[depName]) if l.deb 80
+        l.deb "inferEmptyDepVars: Dependency '#{depName}', inferred varNames from bundle's Modules: ", depVars[depName] if l.deb(80)
 
         if _.isEmpty depVars[depName] # pick from @bundle.dependencies.[depsVars, _KnownDepsVars, ... ] etc
           for depVarsPath in _.map(['depsVars', '_knownDepsVars','exports.bundle', 'exports.root'], (v)-> 'dependencies.' + v)
@@ -131,15 +137,14 @@ class Bundle extends BundleBase
               for aVar in dependenciesDepsVars[depName]
                 depVars[depName].push aVar if aVar not in depVars[depName]
 
-
       if _.isEmpty depVars[depName]
         @handleError new UError """
-          No variable names can be identified for injected or global or node-only dependency '#{depName}'.
+          No variable names can be identified for injected or local or node-only dependency '#{depName}'.
 
           These variable names are used to :
             - inject the dependency into each module
               OR
-            - grab the dependency from the global object, when running as <script> via the 'combined' template.
+            - grab the dependency from the `window` object, when running as <script> via the 'combined' template.
 
           Remedy:
 
@@ -165,6 +170,9 @@ class Bundle extends BundleBase
             - use an `rjs.shim`, and uRequire will pick it from there (@todo: NOT IMPLEMENTED YET!)
         """
         l.warn @dstFilenames
+
+
+    l.debug 80, 'returning inferred depVars =', depVars
 
     depVars
 
@@ -340,6 +348,8 @@ class Bundle extends BundleBase
             mod.runResourceConverters (rc)-> rc.isBeforeTemplate and !rc.isAfterTemplate #@todo: why ? those with both will never run?
             mod.convertWithTemplate @build
             mod.runResourceConverters (rc)-> rc.isAfterTemplate and !rc.isBeforeTemplate
+            mod.optimize @build
+            mod.runResourceConverters (rc)-> rc.isAfterOptimize
             mod.addReportData()
           catch err
             mod.reset()
@@ -453,7 +463,7 @@ class Bundle extends BundleBase
       wrap: almondTemplates.wrap
       baseUrl: @build.template._combinedFileTemp
       include: [@main]
-      deps: _.keys @nodeOnlyDepsVars # we include the 'fake' AMD files 'getNodeOnly_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
+      deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getNodeOnly_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
       out: @build.template.combinedFile
       name: 'almond'
 
@@ -478,9 +488,9 @@ class Bundle extends BundleBase
         if fs.existsSync @build.template.combinedFile
           l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
 
-          if not _.isEmpty @globalDepsVars
+          if not _.isEmpty @localNonNode_depsVars
             if (not @build.watch) or l.deb 50
-              l.verbose "Global bindinds: make sure the following global dependencies:\n", @globalDepsVars,
+              l.verbose "Global bindinds: make sure the following local dependencies:\n", @localNonNode_depsVars,
                 """\n
                 are available when combined script '#{@build.template.combinedFile}' is running on:
 
@@ -542,45 +552,13 @@ class Bundle extends BundleBase
 #        json: "requirejs_plugins/json"
 
   Object.defineProperty @::, 'mergedPreDefineIIFENodesCode', get: ->
-    {isLikeCode, toCode, toAst} = Module
-
-    l.debug "Merging pre-Define IIFE declarations and statements from all #{_.keys(@modules).length} @modules, into a common section." if l.deb 80
-
-    PreDefineIIFE_Declarations = []
-    PreDefineIIFE_statements = []
-
-    addbodyNode = (node)->
-      if node.type is 'VariableDeclaration'
-        for decl in node.declarations
-          if not _.any(PreDefineIIFE_Declarations, (fd)-> _.isEqual decl, fd)
-            if dublicateDecl = _.find(PreDefineIIFE_Declarations, (fd)-> isLikeCode {type:decl.type, id:decl.id}, fd)
-              @handleError new UError """
-                Duplicate var declaration while merging pre-Define IIFE statements:
-
-                #{toCode(decl)}
-
-                is a duplicate of
-
-                #{toCode(dublicateDecl)}
-              """
-            else
-              l.debug 90, "Merging pre-Define IIFE statements - Adding declaration of '#{decl.id.name}'"
-              PreDefineIIFE_Declarations.push decl
-      else
-        if not _.any(PreDefineIIFE_statements, (fd)-> _.isEqual node, fd)
-          PreDefineIIFE_statements.push node
-
+    l.debug "Merging pre-Define IIFE code from all #{_.keys(@modules).length} @modules" if l.deb 80
+    CodeMerger = require '../codeUtils/CodeMerger'
+    cm = new CodeMerger
     for m, mod of @modules
-      for node in (mod.AST_preDefineIIFENodes or [])
-        addbodyNode node
+      cm.add(mod.AST_preDefineIIFENodes or [])
 
-    if not _.isEmpty PreDefineIIFE_Declarations
-      PreDefineIIFE_statements.unshift
-        type: 'VariableDeclaration'
-        declarations: PreDefineIIFE_Declarations
-        kind: 'var'
-
-    toCode PreDefineIIFE_statements
+    cm.toCode()
   
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> build.template._combinedFileTemp

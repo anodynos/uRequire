@@ -66,14 +66,14 @@ gruntFunction = (grunt) ->
         tasks: ['copy:wiki', 'mochaCmd']
 
     shell:
-      coffee: command: "coffee -cb -o ./#{buildDir} ./#{sourceDir}"
-      coffeeSpec: command: "coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
-      coffeeWatch: command: "coffee -cbw -o ./build ./source"
+      coffee: command: "node_modules/.bin/coffee -cb -o ./#{buildDir} ./#{sourceDir}"
+      coffeeSpec: command: "node_modules/.bin/coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
+      coffeeWatch: command: "node_modules/.bin/coffee -cbw -o ./build ./source"
       chmod: command:
         if process.platform is 'linux' # change urequireCmd.js to executable - linux only
           "chmod +x 'build/code/urequireCmd.js'"
         else "@echo " #do nothing
-      mochaCmd: command: "mocha #{buildSpecDir} --recursive --reporter spec --bail"
+      mochaCmd: command: "node_modules/.bin/mocha #{buildSpecDir} --recursive --reporter spec --bail"
       #doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
 
       options: # subtasks inherit options but can override them

@@ -2,7 +2,7 @@ _ = require 'lodash'
 chai = require 'chai'
 expect = chai.expect
 
-{ equal, notEqual, ok, notOk, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
@@ -142,11 +142,11 @@ describe "Dependency:", ->
     dep2 = new Dependency 'rootdir/dep', mod
     dep3 = new Dependency '../.././rootdir///dep', anotherMod
     depPlugin = new Dependency 'somePlugin!rootdir/dep', mod
-    glob = new Dependency 'globalDep', mod
+    locDep = new Dependency 'localDep', mod
 
-    it "recognises 'global' type equality", ->
-      expect(glob.isEqual 'globalDep').to.be.true
-      expect(glob.isEqual './globalDep').to.be.false
+    it "recognises 'local' type equality", ->
+      expect(locDep.isEqual 'localDep').to.be.true
+      expect(locDep.isEqual './localDep').to.be.false
 
     it "With `Dependency` as param", ->
       expect(dep1.isEqual dep2).to.be.true
@@ -236,9 +236,10 @@ describe "Dependency:", ->
         dependencies = [dep1, dep2, depPlugin]
         expect(_.any dependencies, (dep)-> dep.isEqual 'rootdir/dep.js').to.be.true
 
-  describe "resolving all types bundle/file relative, external, global, notFound, webRootMap:", ->
+  describe "resolving all types bundle/file relative, external, local, notFound, webRootMap:", ->
     mod =
       path: 'actions/greet'
+
       bundle: dstFilenames: [
        'main.js'
        'actions/greet.js'
@@ -251,7 +252,7 @@ describe "Dependency:", ->
       ]
 
     strDependencies = [
-      'underscore'                    # should add to 'global'
+      'underscore'                    # should add to 'local'
       'data/messages/hello.js'        # should remove .js, since its in bundle.dstFilenames
       './/..//data//messages/bye'     # should normalize
       './moreactions/say.js'          # should normalize
@@ -269,7 +270,7 @@ describe "Dependency:", ->
 
     expected =
       bundleRelative: untrust [10], [ # @todo: with .js removed or not ?
-        'underscore'                 # global lib
+        'underscore'                 # local lib
         'data/messages/hello'        # .js is removed since its in bundle.dstFilenames
         'data/messages/bye'          # as bundleRelative
         'actions/moreactions/say'
@@ -280,7 +281,7 @@ describe "Dependency:", ->
         '"main"+".js"'
       ]
       fileRelative: untrust [10], [     # @todo: with .js removed or not ?
-        'underscore'                    # global lib, as is
+        'underscore'                    # local lib, as is
         '../data/messages/hello'        # converted fileRelative
         '../data/messages/bye'
         './moreactions/say'
@@ -290,7 +291,7 @@ describe "Dependency:", ->
         'require', 'module', 'exports'  # as is
         '"main"+".js"'
       ]
-      global: [ 'underscore' ]
+      local: [ 'underscore' ]
       external:[ '../../some/external/lib.js' ]
       notFoundInBundle:[ '../lame/dir.js' ]
       webRootMap: ['/assets/jpuery-max']
@@ -300,7 +301,7 @@ describe "Dependency:", ->
     it "using dep.isXXX:", ->
       fileRelative =  ( d.name relative:'file' for d in dependencies )
       bundleRelative = ( d.name relative:'bundle' for d in dependencies)
-      global = ( d.name() for d in dependencies when d.isGlobal)
+      local = ( d.name() for d in dependencies when d.isLocal)
       external = ( d.name() for d in dependencies when d.isExternal)
       notFoundInBundle = ( d.name() for d in dependencies when d.isNotFoundInBundle )
       webRootMap = ( d.name() for d in dependencies when d.isWebRootMap )
@@ -308,7 +309,7 @@ describe "Dependency:", ->
       untrusted = ( d.name() for d in dependencies when d.isUntrusted )
 
 
-      deepEqual {bundleRelative, fileRelative, global,
+      deepEqual {bundleRelative, fileRelative, local,
           external, notFoundInBundle, webRootMap, system, untrusted
       }, expected
 
@@ -316,7 +317,7 @@ describe "Dependency:", ->
     it "using dep.type:", ->
       fileRelative = ( d.name relative:'file' for d in dependencies )
       bundleRelative = ( d.name relative:'bundle' for d in dependencies)
-      global = ( d.name() for d in dependencies when d.type is 'global')
+      local = ( d.name() for d in dependencies when d.type is 'local')
       external = ( d.name() for d in dependencies when d.type is 'external')
       notFoundInBundle = ( d.name() for d in dependencies when d.type is 'notFoundInBundle')
       webRootMap = ( d.name() for d in dependencies when d.type is 'webRootMap' )
@@ -324,6 +325,6 @@ describe "Dependency:", ->
       untrusted = ( d.name() for d in dependencies when d.type is 'untrusted' )
 
 
-      deepEqual {bundleRelative, fileRelative, global,
+      deepEqual {bundleRelative, fileRelative, local,
           external, notFoundInBundle, webRootMap, system, untrusted
       }, expected

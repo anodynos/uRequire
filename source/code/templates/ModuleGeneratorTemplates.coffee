@@ -85,6 +85,11 @@ class ModuleGeneratorTemplates extends Template
         "// uRequire v#{VERSION}: module.beforeBody contents \n #{@module.beforeBody}"
       else ''
 
+    bundleCommonCode: get: ->
+      if @module.bundle.commonCode and @module.bundle.build.template.name isnt 'combined'
+        "\n// uRequire v#{VERSION}: module.bundle.commonCode contents \n #{@module.bundle.commonCode}"
+      else ''
+
     afterBody: get:->
       if @module.afterBody
         "// uRequire v#{VERSION}: module.afterBody contents \n #{@module.afterBody}"
@@ -92,6 +97,7 @@ class ModuleGeneratorTemplates extends Template
 
     factoryBodyAMD: get:->"""
       #{@beforeBody}
+      #{@bundleCommonCode}
       #{@bodyStartBanner}
       #{@module.factoryBody}
       #{@bodyEndBanner}
@@ -104,6 +110,7 @@ class ModuleGeneratorTemplates extends Template
 
     factoryBodyNodejs: get:->"""
       #{@beforeBody}
+      #{@bundleCommonCode}
       #{@bodyStartBanner}
       #{ if @module.kind is 'AMD'
           "module.exports = #{@_functionIIFE @module.factoryBody};"
@@ -127,10 +134,10 @@ class ModuleGeneratorTemplates extends Template
       if @module.isRuntimeInfo then @runtimeInfo + '\n' else ''
 
     useStrictPrint: get:->
-      if @module.isUseStric then "'use strict';\n" else ''
+      if @module.isUseStrict then "'use strict';\n" else ''
 
     isRootExports: get: ->
-       @module.isNoRootExports and (not _.isEmpty @module.flags.rootExports)
+      not (@module.isNoRootExports or _.isEmpty @module.flags.rootExports)
 
   ### private ###
   _rootExportsNoConflict: (rootName='root')->

@@ -60,7 +60,7 @@ class BundleBase extends _B.CalcCachedProperties
           if dep.isRelative  # relative to bundle eg 'a/b/c',
             addit @path + depName
           else # a single pathpart, like 'underscore' or 'myLib'
-            addit depName     # global eg 'underscore' (most likely)
+            addit depName     # local eg 'underscore' (most likely)
             addit @path + depName  # or bundleRelative (unlikely)
 
     return resPaths

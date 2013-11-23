@@ -508,7 +508,7 @@ All information related to dependencies handling is listed here.
 
 Dependencies listed here are treated as node-only: they aren't added to the AMD dependency array (and hence not available on the Web/AMD side).
 
-Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` globals available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo).
+Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo).
 
 Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without the template conversion that strips `'node!'`.
 
@@ -549,13 +549,13 @@ It lists dependencies that bind with one or more variable names - for example `'
 
 Variable names can be [inferred from the code by uRequire](#inferred-binding-idenifiers), when you implicitly create this binding in your bundle. For example `define(['jquery'], function('$'){...})` or `var $ = require('jquery')` binds variable `$` with dependency `'jquery'`. You can choose to list them here for introspection (so they aren't/can't be inferred), but its otherwise useless.
 
-Binding variables are useful when injecting dependencies, when exporting through [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle), when converting through `'combined'` template etc. For example, global dependencies (like 'underscore' or 'jquery') are not part of a `combined` file. At run time, when running on web side as a combined .js `<script/>`, the uRequire generated code will _grab_ the dependency using the binding variable (eg '$') from the global object (i.e `window`).
+Binding variables are useful when injecting dependencies, when exporting through [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle), when converting through `'combined'` template etc. For example, local dependencies (like 'underscore' or 'jquery') are not part of a `combined` file. At run time, when running on web side as a combined .js `<script/>`, the uRequire generated code will _grab_ the dependency using the binding variable (eg '$') from the *global* object (i.e `window`).
 
 @type [depsVars](#depsVars)
 
 @derive [dependenciesBindings](#dependenciesBindings)
 
-@note In case identifiers can't be inferred for a global dependency (i.e you only used `require('myGlobalDep')` without assigning to var) and bindings aren't in `bundle.dependencies.depsVars` (or `_knownDepsVars` below), then the 'combined/almond' build will fail (cause it will not know where to grab it from when running on Web/Script).
+@note In case identifiers can't be inferred for a local dependency (i.e you only used `require('myLocalDep')` without assigning to var) and bindings aren't in `bundle.dependencies.depsVars` (or `_knownDepsVars` below), then the 'combined/almond' build will fail (cause it will not know where to grab it from when running on Web/Script).
 
 @alias variableNames DEPRECATED
 
@@ -625,7 +625,7 @@ In any case, at each module you can safely access `_`, `$`, `jQuery`, `persons` 
 
 #### bundle.dependencies.exports.root
 
-Make a module be available GLOBALY (i.e `window` & `global` object) under `varName`(s), same as in [Exporting Modules](Exporting-Modules).
+Make a module be available GLOBALY (by attaching it to `window` and/or nodejs's `global` object) under `varName`(s), same as in [Exporting Modules](Exporting-Modules).
 
 Access via plain `varName` works both in browser *and* nodejs.
 
@@ -834,15 +834,17 @@ When true, it doesn't produce the boilerplate for [exporting modules (& `noConfl
 
 ## build.scanAllow
 
-By default, ALL `require('dep1')` deps in your module are added on the dependency array `define(['dep0', 'dep1',...], ...)`, . If they are forgotten, you app will halt: uRequire is [preventing RequireJS to scan @ runtime](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934).
+By default, ALL missing `require('dep1')` deps in your module are added on the dependency array `define(['dep0', 'dep1',...], ...)`.
 
-With `scanAllow: true` you can allow `require('')` scan @ runtime, **only for source modules that have no other [] deps** (i.e. those using only `require('')` *instead* of the dependencies array. If there is even one dep on [], runtime scan is disabled on requireJs and uRequire takes care to have all `require('')` deps listed on deps array as they should to [prevent halting](https://github.com/jrburke/requirejs/issues/467).
+Even if there is even one dep on [], [runtime scan is disabled on RequireJs](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934). If any `require('dep1')` is forgotten, your app will halt. uRequire cooses to add them all to prevent this problem.
+
+With `scanAllow: true` you allow `require('')` scan @ runtime (costs at starting up). This is meaningfull **only for source modules that have no other `define([])` deps (even injected)**, that is i.e. modules using ONLY `require('')`, written as pure nodejs modules.
+
+@note: uRequire deliberatelly ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle) or [injected deps](resourceconverters.coffee#inject-replace-dependencies).
 
 @type [boolOrFilez](#boolOrFilez-type)
 
 @derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
-
-@note: modules with `rootExports` / `noConflict()` always have `scanAllow: false`
 
       scanAllow: false
 
@@ -890,9 +892,9 @@ Debug levels *1-100*.
 
 ## build.continue
 
-Dont bail out while processing when there are **module processing errors**.
+Dont bail out while processing when there are **soft / module processing errors**.
 
-For example ignore a coffeescript compile error, and just do all the other modules. Or on a `combined` conversion when a 'global' has no 'var' association anywhere, just hold on, ignore this global and continue.
+For example ignore an RC conversion error or a missing dependency and just do all the other modules.
 
 @note: Not needed when `build.watch` is used - the `continue` behaviour is applied to `build.watch`.
 
@@ -999,23 +1001,23 @@ uberscore:
 
 The `'urequire: min'` task
 
-  * derives all from `'urequire: UMD'`, with differences:
+* derives all from `'urequire: UMD'`, with differences:
 
-  * filters some more `filez`
+* filters some more `filez`
 
-  * converts to a single `uberscore-min.js` with `combined` template (r.js/almond)
+* converts to a single `uberscore-min.js` with `combined` template (r.js/almond)
 
-  * uglifies the combined file with some `uglify2` settings
+* uglifies the combined file with some `uglify2` settings
 
-  * injects **different deps** in each module than its parent
+* injects **different deps** in each module than its parent
 
-  * manipulates each module:
+* manipulates each module:
 
-    * removes some matched code 'skeletons'
+  * removes some matched code 'skeletons'
 
-    * replaces some deps in arrays, `require`s etc
+  * replaces some deps in arrays, `require`s etc
 
-    * removes some code and a dependency from a specific file.
+  * removes some code and a dependency from a specific file.
 
 ```coffee
 # min:

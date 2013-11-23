@@ -1,13 +1,9 @@
 # externals
 _ = require 'lodash'
+_.mixin (require 'underscore.string').exports()
 _B = require 'uberscore'
 l = new _B.Logger 'urequire/fileResources/Module'#  100
 fs = require 'fs'
-
-_s = require 'underscore.string'
-
-esprima = require 'esprima'
-escodegen = require 'escodegen'
 
 # uRequire
 upath = require '../paths/upath'
@@ -18,32 +14,15 @@ UError = require '../utils/UError'
 
 isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
-isLikeCode = (code1, code2)->
-  code1 = esprima.parse(code1).body[0] if _.isString code1
-  code2 = esprima.parse(code2).body[0] if _.isString code2
-  _B.isLike code1, code2
+isLikeCode = require "../codeUtils/isLikeCode"
+isEqualCode = require "../codeUtils/isEqualCode"
+replaceCode = require "../codeUtils/replaceCode"
 
-isEqualCode = (code1, code2)->
-  code1 = esprima.parse(code1).body[0] if _.isString code1
-  code2 = esprima.parse(code2).body[0] if _.isString code2
-  _.isEqual code1, code2
+toAST =  require "../codeUtils/toAST"
+toCode = require "../codeUtils/toCode"
 
 # Represents a Javascript nodejs/commonjs or AMD module
 class Module extends TextResource
-
-  escodegenOptions:
-    format:
-      indent: style: '  ', base: 1
-      json: false
-      renumber: false
-      hexadecimal: false
-      quotes: 'double'
-      escapeless: true
-      compact: false
-      parentheses: true
-      semicolons: true
-
-  @escodegenOptions: @::escodegenOptions
 
   # override @dstFilename, save modules in build.template._combinedFileTemp if it exists
   Object.defineProperties @::,
@@ -58,13 +37,14 @@ class Module extends TextResource
 
   for bof in ['useStrict', 'bare', 'globalWindow', 'runtimeInfo', 'allNodeRequires', 'noRootExports', 'scanAllow'] # @todo: find 'boolOrFilez' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
     do (bof)->
-      Object.defineProperty Module::, 'is'+ _s.capitalize(bof),
-        get: -> isTrueOrFileInSpecs @bundle.build[bof], @dstFilename
+      Object.defineProperty Module::, 'is'+ _.capitalize(bof),
+        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
+
         # @todo: enable setting it, after documenting (kept across multi builds)
         # set: (val)-> @_[bof] =  val
         # get: ->
         #   if _.isUndefined @_[bof]
-        #     isTrueOrFileInSpecs @bundle.build[bof], @dstFilename
+        #     isTrueOrFileInSpecs @?bundle?.build?[bof], @dstFilename
         #   else
         #     @_[bof]
 
@@ -208,17 +188,17 @@ class Module extends TextResource
     l.debug "@extract for '#{@srcFilename}'" if l.deb 70
     @resetModuleInfo()
     try
-      @AST_top = esprima.parse @sourceCodeJs #, {comment:true, range:true}
+      @AST_top = toAST @sourceCodeJs #, {comment:true, range:true}
     catch err
-      throw new UError "*esprima.parse* error while parsing top Module's javascript.", nested:err
+      throw new UError "Error while parsing top Module's javascript.", nested: err
 
     # retrieve bare body, i.e without coffeescript IIFE (function(){..body..}).call(this);
-    if isLikeCode('(function(){}).call()', @AST_top.body[0]) or
-       isLikeCode('(function(){}).apply()', @AST_top.body[0])
+    if isLikeCode('(function(){}).call()', @AST_top.body) or
+       isLikeCode('(function(){}).apply()', @AST_top.body)
       @AST_body = @AST_top.body[0].expression.callee.object.body.body
       @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
     else
-      if isLikeCode '(function(){})()', @AST_top.body[0]
+      if isLikeCode '(function(){})()', @AST_top.body
         @AST_body = @AST_top.body[0].expression.callee.body.body
         @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
       else
@@ -483,49 +463,15 @@ class Module extends TextResource
           dv.push @[varsArrayName][idx] # if there is a var, add once
     varNames
 
+
   replaceCode: (matchCode, replCode)->
-    matchCode = Module.toAST matchCode
-    replCode = Module.toAST replCode # leaves AS-IS if !_.isString
-    deletions = []
-
-    replCodeAction = (prop, src)->
-      if _B.isLike matchCode, src[prop]
-        matchedCode = Module.toCode src[prop]
-        _replCode =
-          if _.isFunction replCode
-            Module.toAST replCode src[prop]
-          else replCode
-
-        if _replCode
-          l.debug("""
-            Replacing code:
-            ```````````````````
-            #{matchedCode}
-            ```` with code: ```
-            #{Module.toCode _replCode}
-            ```````````````````""") if l.deb 50
-          src[prop] = _replCode
-
-        else # remove matchedCode code
-          if _.isArray src
-            l.debug("Deleting code:\n  `#{matchedCode}`") if l.deb 50
-            deletions.push {src, prop}
-          else
-            l.debug("Delete code (replacing with EmptyStatement) :\n  `#{matchedCode}`") if l.deb 50
-            src[prop] = {type: 'EmptyStatement'}
-          return false # 'stop traversing deepr' @todo: check its working properly in uBerscore traverse
-
-    _B.traverse @AST_factoryBody, replCodeAction
-
-    # deletions in reverse order to preserve array order
-    for deletion in deletions by -1
-      deletion.src.splice(deletion.prop, 1)
+    replaceCode @AST_factoryBody, matchCode, replCode
 
   # add report data after all deps manipulations are done (adjust, & beforeTemplate RCs)
   addReportData:->
     for dep in _.flatten [ @defineArrayDeps, @ext_asyncRequireDeps ]
       if dep.type not in ['bundle', 'system']
-        @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'global':['lodash']}`
+        @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'local':['lodash']}`
 
   # Actually converts the module to the target @build options.
   convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
@@ -537,6 +483,7 @@ class Module extends TextResource
     @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
 
     # apply `optimize` (i.e minification) - uglify2 only
+  optimize: (@build)->
     if @build.template.name isnt 'combined'
       if @build.optimize
         if @build.optimize is 'uglify2'
@@ -546,7 +493,6 @@ class Module extends TextResource
           @converted = (@UglifyJS2.minify @converted, options).code
         else
           l.warn "Not using `build.optimize` with '#{@build.optimize}' - only 'uglify2' works for Modules."
-
     @converted
 
   Object.defineProperties @::,
@@ -559,32 +505,8 @@ class Module extends TextResource
     # 'body' / statements BEFORE define (coffeescript & family gencode `__extend`, `__slice` etc)
     'preDefineIIFEBody': get:-> @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
 
-  # returns the AST of the 1st statement/expression if its a String, as-is otherwise
-  # @todo: return whole body / all statements
-  toAST: (code)->
-    if _.isString code
-      try
-        (esprima.parse code).body[0]
-      catch err
-        l.err err
-        throw new UError "*esprima.parse* in Module @toAST while parsing javascript fragment: \n #{code}.", nested:err
-    else
-      code # AS-IS if not String!
-
-  @toAST: @::toAST  # copy to constructor
-
-  @toCode: (astCode)->
-    return '' if _.isEmpty astCode
-    if _.isArray astCode
-      astCode = {type: 'Program', body: astCode} # use BlockStatement instead of program ?
-    try
-      return escodegen.generate astCode, @escodegenOptions
-    catch err
-      throw new UError "Error generating code from AST in Module's toCode - AST = \n #{l.prettify astCode}"
-
-  toCode: (astCode=@AST_body)-> Module.toCode.call @, astCode
-
-_.extend Module, {isLikeCode, isEqualCode} # export for testing
+  toCode: (astCode=@AST_body)->
+    toCode astCode, @codegenOptions
 
 module.exports = Module
 

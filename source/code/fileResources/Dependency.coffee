@@ -19,7 +19,7 @@ class Dependency
          - .path, as String, i.e the bundleRelative filename eg 'somePath/ModuleName'
          - .bundle or any {} with {dstFilenames: Array<String>}
           The dstFilenames (bundleRelative) in the bundle are used to
-          calculate whether './../myDep' isFound, which in turn is used by isGlobal and others etc.
+          calculate whether './../myDep' isFound, which in turn is used by isLocal and others etc.
   ###
   constructor: (@depString, @module, @untrusted)->
 
@@ -27,7 +27,7 @@ class Dependency
 
   @TYPES:
     notFoundInBundle: 'notFoundInBundle'
-    global: 'global'
+    local: 'local'
     external: 'external'
     webRootMap: 'webRootMap'
     bundle: 'bundle'
@@ -69,8 +69,8 @@ class Dependency
         if @isSystem # 'require', 'module', 'exports'
           Dependency.TYPES.system
         else
-          if @isGlobal
-            Dependency.TYPES.global
+          if @isLocal
+            Dependency.TYPES.local
           else
             if @isExternal
               Dependency.TYPES.external
@@ -115,7 +115,7 @@ class Dependency
 
     isWebRootMap: get:-> !@untrusted and @resourceName[0] is '/'
 
-    isGlobal: get:-> !(@untrusted or @isWebRootMap or @isRelative or @isFound or @isSystem)
+    isLocal: get:-> !(@untrusted or @isWebRootMap or @isRelative or @isFound or @isSystem)
 
     isSystem: get:-> (@depString in Dependency.systemDeps)
 
@@ -124,8 +124,8 @@ class Dependency
 
     # seem to belong to bundle, eg like myPath/MyLib or ../some/bundle/path
     # but is both not found like '../myNotFoundLib'
-    # and it doesn't look like a global eg 'lodash'
-    isNotFoundInBundle: get:-> !@untrusted and @isBundleBoundary and not (@isFound or @isGlobal or @isSystem)
+    # and it doesn't look like a 'local' (eg 'lodash')
+    isNotFoundInBundle: get:-> !@untrusted and @isBundleBoundary and not (@isFound or @isLocal or @isSystem)
 
     isUntrusted: get:-> @untrusted is true
 
