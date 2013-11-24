@@ -10,9 +10,11 @@ l = new _B.Logger 'spec/fileResources/Module-spec'
 
 isLikeCode = require "../../code/codeUtils/isLikeCode"
 isEqualCode = require "../../code/codeUtils/isEqualCode"
-
+toCode = require "../../code/codeUtils/toCode"
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
+
+
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
 untrust = (indexes, depsStrings)->
@@ -592,76 +594,3 @@ describe "Module:", ->
 
     it "has the correct injected & replaced deps", ->
       deepEqual mod.info(), expected
-
-  describe "Replacing & deleting code:", ->
-    js =   """
-      var b = 0;
-      if (l.deb(10)) {
-        b = 1;
-        if (l.deb(20) && true) {
-          b = 2;
-          if (l.deb(30)) {
-            b = 3;
-          }
-        }
-      }
-      if (l.deb(40)) {
-        b = 4;
-      }
-      c = 3;
-    """
-
-    mod = (new Module {sourceCodeJs: js, codegenOptions}).extract()
-
-    it "replaces code via function, returning ast or String", ->
-      cnt = 1
-      mod.replaceCode 'if (l.deb()){}', (ast)->
-        ast.test.arguments[0].value++;
-        if cnt++ % 2 is 0
-          ast
-        else
-          mod.toCode ast
-
-      tru isEqualCode mod.toCode(mod.AST_top), """
-        var b = 0;
-        if (l.deb(11)) {
-          b = 1;
-          if (l.deb(20) && true) {
-            b = 2;
-            if (l.deb(31)) {
-              b = 3;
-            }
-          }
-        }
-        if (l.deb(41)) {
-          b = 4;
-        }
-        c = 3;
-        """
-
-    it "replaces code via String", ->
-      mod.replaceCode 'if (l.deb(31)){}',
-                      "if (l.deb(62)) { changed = 56; }"
-
-      tru isEqualCode mod.toCode(mod.AST_top), """
-        var b = 0;
-        if (l.deb(11)) {
-          b = 1;
-          if (l.deb(20) && true) {
-            b = 2;
-            if (l.deb(62)) {
-              changed = 56;
-            }
-          }
-        }
-        if (l.deb(41)) {
-          b = 4;
-        }
-        c = 3;
-        """
-
-    it "deletes code if 2nd argument == null, traversing only outers", ->
-      cnt = 0
-      mod.replaceCode 'if (l.deb()){}', -> cnt++; null
-      deepEqual mod.toCode(mod.AST_top), "var b=0;c=3;"
-      equal cnt, 2

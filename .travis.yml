@@ -6,4 +6,4 @@ node_js:
 
 before_script:
   - npm install -g grunt-cli
-  - grunt shell:coffee concat chmod copy:specResources
+  - grunt coffee concat chmod copy:specResources

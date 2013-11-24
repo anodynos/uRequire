@@ -2,14 +2,14 @@ chai = require 'chai'
 expect = chai.expect
 
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact,
-  iqual, notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA } = require './spec-helpers'
+  iqual, notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA } = require './../spec-helpers'
 
 _ = require 'lodash'
 fs = require('fs')
-upath = require '../code/paths/upath'
+upath = require '../../code/paths/upath'
 
-NR = require "../code/NodeRequirer"
-Dependency = require "../code/fileResources/Dependency"
+NR = require "../../code/NodeRequirer"
+Dependency = require "../../code/fileResources/Dependency"
 
 # @todo: test asynch `require([], callback)`
 # @todo: getRequirejs & requirejs.config paths - (inject a mock requirejs, via injected mock nodeRequire)

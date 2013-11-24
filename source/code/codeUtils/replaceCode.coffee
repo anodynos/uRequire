@@ -7,7 +7,7 @@ toAST = require   "./toAST"
 isLikeCode = require  "./isLikeCode"
 isEqualCode = require "./isEqualCode"
 
-module.exports = replaceCode = (AST, matchCode, replCode)-> #from Module.
+replaceCode = (AST, matchCode, replCode)->
 
     matchCode = toAST(matchCode, 'Program')?.body?[0]
     replCode = toAST(replCode, 'Program')?.body?[0]
@@ -39,7 +39,7 @@ module.exports = replaceCode = (AST, matchCode, replCode)-> #from Module.
           else
             l.debug("Delete code (replacing with EmptyStatement):\n`#{toCode src[prop]}`") if l.deb 50
             src[prop] = {type: 'EmptyStatement'}
-          return false # 'stop traversing deepr' @todo: check its working properly in uBerscore traverse
+          return false # 'stop traversing deepr'
 
     _B.traverse AST, replCodeAction
 
@@ -48,3 +48,5 @@ module.exports = replaceCode = (AST, matchCode, replCode)-> #from Module.
       deletion.src.splice(deletion.prop, 1)
 
     @
+
+module.exports = replaceCode

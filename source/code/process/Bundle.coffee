@@ -558,7 +558,7 @@ class Bundle extends BundleBase
     for m, mod of @modules
       cm.add(mod.AST_preDefineIIFENodes or [])
 
-    cm.toCode()
+    cm.code
   
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> build.template._combinedFileTemp

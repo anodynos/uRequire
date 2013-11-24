@@ -24,7 +24,7 @@ module.exports = toCode = (astCode, options=toCode.options)->
     escodegen.generate astCode, options
   catch err
     l.er err
-    throw new UError "Error generating code from AST in Module's toCode - AST = \n", astCode: astCode
+    throw new UError "toCode: Error generating code from AST."
 
 toCode.options =
   format: # escodegen default options

@@ -26,10 +26,10 @@ are = (name, asEqual=true)->
 
     if asEqual
       if !isEq
-        l.warn "Discrepancy, expected true from _B.#{name} \n at path: ", path.join('.')
+        l.warn "Discrepancy, expected `true` from _B.#{name} \n at path: ", path.join('.')
     else
       if isEq
-        l.warn "Discrepancy, expected false from _B.#{name}"
+        l.warn "Discrepancy, expected `false` from _B.#{name}, but its `true`."
 
     if asEqual isnt isEq
       l.warn ' \n left value = ', _B.getp(a, path), '\n right value =', _B.getp(b, path),

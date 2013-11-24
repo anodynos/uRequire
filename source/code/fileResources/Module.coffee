@@ -505,8 +505,8 @@ class Module extends TextResource
     # 'body' / statements BEFORE define (coffeescript & family gencode `__extend`, `__slice` etc)
     'preDefineIIFEBody': get:-> @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
 
-  toCode: (astCode=@AST_body)->
-    toCode astCode, @codegenOptions
+  toCode: (astCode=@AST_body, codegenOptions = @codegenOptions)->
+    toCode astCode, codegenOptions
 
 module.exports = Module
 

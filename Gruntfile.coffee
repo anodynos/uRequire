@@ -4,6 +4,9 @@ buildDir      = "build/code"
 sourceSpecDir = "source/spec"
 buildSpecDir  = "build/spec"
 
+# OS directory separator
+S = if process.platform is 'win32' then '\\' else '/'
+
 gruntFunction = (grunt) ->
   _ = grunt.util._
 
@@ -45,38 +48,27 @@ gruntFunction = (grunt) ->
 
     copy:
       specResources:
-        files: [
-          expand: true
-          cwd: "#{sourceSpecDir}/"
-          src: ["*.json"]
-          dest: "#{buildSpecDir}/"
-        ]
+        files: [ expand: true, cwd: "#{sourceSpecDir}/NR", src: ["*.json"], dest: "#{buildSpecDir}/NR"]
 
       wiki:
-        files: [
-          expand: true
-          cwd: "source/code/config/"
-          src: ["*.coffee.md"]
-          dest: "../uRequire.wiki/"
-        ]
+        files: [ expand: true, cwd: "#{sourceDir}/config/", src: ["*.coffee.md"], dest: "../uRequire.wiki/"]
 
     watch:
-      dev: #requires `coffeeWatch` running to compile changed only files! We need a changed-only-files coffee task!
-        files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
+      dev: # requires `coffeeWatch` running to compile changed only files! We need a changed-only-files coffee task!
+        files: ["source/**/*.*"]
         tasks: ['copy:wiki', 'mochaCmd']
 
     shell:
-      coffee: command: "node_modules/.bin/coffee -cb -o ./#{buildDir} ./#{sourceDir}"
-      coffeeSpec: command: "node_modules/.bin/coffee -cb -o ./#{buildSpecDir} ./#{sourceSpecDir}"
-      coffeeWatch: command: "node_modules/.bin/coffee -cbw -o ./build ./source"
+      coffee: command: "node_modules#{S}.bin#{S}coffee -cb -o ./build ./source"
+      coffeeWatch: command: "node_modules#{S}.bin#{S}coffee -cbw -o ./build ./source"
       chmod: command:
-        if process.platform is 'linux' # change urequireCmd.js to executable - linux only
+        if process.platform is 'linux' # urequireCmd.js to executable - linux only, I've no idea abt MACs!
           "chmod +x 'build/code/urequireCmd.js'"
         else "@echo " #do nothing
-      mochaCmd: command: "node_modules/.bin/mocha #{buildSpecDir} --recursive --reporter spec --bail"
-      #doc: command: "codo source/code --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
+      mochaCmd: command: "node_modules#{S}.bin#{S}mocha #{buildSpecDir}/**/*-spec.js --recursive --reporter spec --bail"
+      #doc: command: "node_modules#{S}.bin#{S}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
 
-      options: # subtasks inherit options but can override them
+      options:
         verbose: true
         failOnError: true
         stdout: true
@@ -88,12 +80,12 @@ gruntFunction = (grunt) ->
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
      "default": "clean build test"
-     "build":   "shell:coffee concat chmod copy"
-     "test":    "shell:coffeeSpec copy:specResources mochaCmd"
+     "build":   "coffee concat chmod copy"
+     "test":    "copy:specResources mochaCmd"
 
      # some shortcuts
-     "cf":      "shell:coffee"
-     "cfw":     "shell:coffeeWatch"
+     "cf":      "coffee"
+     "cfw":     "coffeeWatch"
 
      # generic shortcuts
      "cl":      "clean"
