@@ -1,9 +1,9 @@
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
+
 chai = require 'chai'
 expect = chai.expect
-
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
 untrust = (indexes, depsStrings)->
@@ -74,8 +74,8 @@ describe "Dependency:", ->
         }
       )
 
-      it "knows dep is found", -> expect(dep.isFound).to.equal true
-      it "dep.type is 'bundle'", -> expect(dep.type).to.equal 'bundle'
+      it "knows dep is found", -> tru dep.isFound
+      it "dep.type is 'bundle'", -> equal dep.type, 'bundle'
 
       it "calculates as-is bundleRelative", ->
         expect(dep.name relative:'bundle').to.equal 'path/from/bundleroot/to/some/nested/module'
@@ -91,29 +91,36 @@ describe "Dependency:", ->
           'path/to/module'           # dependency name
           {
             path: 'someRootModule'
-            bundle: dstFilenames: ['path/to/module.js', 'path/to/another/module.js']  # module files in bundle
+            bundle: dstFilenames: [ # module files in bundle
+              'path/to/module.js',
+              'path/to/another/module.js']
           }
         )
 
         dep.depString = 'path/to/another/module'
         dep.module.path = 'some/non/rootModule.js'        # the module that has this dependenecy
 
-        it "knows dep is found", -> expect(dep.isFound).to.equal true
-        it "dep.type is 'bundle'", -> expect(dep.type).to.equal 'bundle'
+        it "knows dep is found", -> tru dep.isFound
+
+        it "dep.type is 'bundle'", ->
+          equal dep.type, 'bundle'
+          tru dep.isBundle
 
         it "calculates as-is bundleRelative", ->
-          expect(dep.name relative:'bundle').to.equal 'path/to/another/module'
+          equal dep.name(relative:'bundle'), 'path/to/another/module'
 
         it "calculates fileRelative", ->
-          expect(dep.name relative:'file').to.equal '../../path/to/another/module'
+          equal dep.name(relative:'file'), '../../path/to/another/module'
 
       describe "changes the calculation of paths, with plugin present:", ->
 
         dep = new Dependency(
-          'plugin!path/to/module'           # dependency name
+          'plugin!path/to/module'         # dependency name
           {
             path: 'someRootModule'        # the module that has this dependenecy
-            bundle: dstFilenames: ['path/to/module.js', 'path/to/another/module.js']  # module files in bundle
+            bundle: dstFilenames: [       # module files in bundle
+              'path/to/module.js',
+              'path/to/another/module.js']
           }
         )
 
@@ -121,13 +128,15 @@ describe "Dependency:", ->
         dep.module.path = 'some/non/rootModule.js'        # the module that has this dependenecy
 
         it "knows dep is found", -> expect(dep.isFound).to.equal true
-        it "dep.type is 'bundle'", -> expect(dep.type).to.equal 'bundle'
+        it "dep.type is 'bundle'", ->
+          equal dep.type, 'bundle'
+          tru dep.isBundle
 
         it "calculates as-is bundleRelative with the same plugin", ->
-          expect(dep.name relative:'bundle').to.equal 'plugin!path/to/another/module'
+          equal dep.name(relative:'bundle'), 'plugin!path/to/another/module'
 
         it "calculates fileRelative with the same plugin ", ->
-          expect(dep.name relative:'file').to.equal 'plugin!../../path/to/another/module'
+          equal dep.name(relative:'file'), 'plugin!../../path/to/another/module'
 
   describe "isEquals():", ->
     mod =

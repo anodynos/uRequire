@@ -1,5 +1,5 @@
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
+
 minimatch = require 'minimatch'
 
 # Returns true if `filename` passes through the `filez` specs Array
@@ -38,31 +38,3 @@ isFileInSpecs = module.exports = (filename, filez)-> #todo: (3 6 4) convert to p
         finalAgree = true
 
   finalAgree
-
-#in line specs
-#l = new _B.Logger ''
-#
-#files = [
-#  'myfile.txt'
-#  'path/myfile.coffee'
-#  'draft/mydraft.coffee'
-#  'literate/draft/*.coffee.md'
-#
-#  #ommit
-#  'uRequireConfigUMD.coffee'
-#  'mytext.md'
-#  'draft/mydraft.txt'
-#]
-#
-#fileSpecs = [
-#  '**/*.*'
-#  '!**/draft/*.*'
-#  '!uRequireConfig*.*'
-#  '!', /.*\.md/
-#  '**/draft/*.coffee'
-#  '**/*.coffee.md'
-#]
-#
-#l.log _.filter files, (f)-> isFileInSpecs f, fileSpecs
-#
-#l.log isFileInSpecs 'undefined', ['**/*']

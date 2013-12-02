@@ -1,8 +1,7 @@
-_ = require 'lodash'
-fs = require 'fs'
-_B = require 'uberscore'
-
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/process/BundleBase'
+
+fs = require 'fs'
 
 upath = require '../paths/upath'
 pathRelative = require '../paths/pathRelative'

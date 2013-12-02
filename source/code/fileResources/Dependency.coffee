@@ -1,7 +1,9 @@
-_ = require 'lodash'
-_.mixin (require 'underscore.string').exports()
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/fileResources/Dependency'
+
+_.mixin (require 'underscore.string').exports()
+
+MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 
 upath = require './../paths/upath'
 pathRelative = require './../paths/pathRelative'
@@ -28,6 +30,7 @@ class Dependency
   @TYPES:
     notFoundInBundle: 'notFoundInBundle'
     local: 'local'
+    node: 'node'
     external: 'external'
     webRootMap: 'webRootMap'
     bundle: 'bundle'
@@ -69,19 +72,22 @@ class Dependency
         if @isSystem # 'require', 'module', 'exports'
           Dependency.TYPES.system
         else
-          if @isLocal
-            Dependency.TYPES.local
+          if @isNode
+            Dependency.TYPES.node # should distinguish from those in bundle's root
           else
-            if @isExternal
-              Dependency.TYPES.external
+            if @isLocal
+              Dependency.TYPES.local
             else
-              if @isNotFoundInBundle
-                Dependency.TYPES.notFoundInBundle
+              if @isExternal
+                Dependency.TYPES.external
               else
-                if @isWebRootMap # eg '/assets/myLib'
-                  Dependency.TYPES.webRootMap
+                if @isNotFoundInBundle
+                  Dependency.TYPES.notFoundInBundle
                 else
-                  Dependency.TYPES.bundle
+                  if @isWebRootMap # eg '/assets/myLib'
+                    Dependency.TYPES.webRootMap
+                  else
+                    Dependency.TYPES.bundle
 
     _bundleRelative: get:->
       if @untrusted
@@ -117,6 +123,12 @@ class Dependency
 
     isLocal: get:-> !(@untrusted or @isWebRootMap or @isRelative or @isFound or @isSystem)
 
+    isNode: get:->
+      (@pluginName is 'node') or # 'node' is a fake plugin signaling nodejs-only executing modules.
+      (@name(plugin:false) in
+        ((@module or MasterDefaultsConfig)?.bundle?.dependencies?.node or [])
+      )
+
     isSystem: get:-> (@depString in Dependency.systemDeps)
 
     ### external-looking deps, like '../../../some/external/lib' ###
@@ -133,6 +145,8 @@ class Dependency
       if _.isArray @module?.bundle?.dstFilenames
         upath.defaultExt(@_bundleRelative, '.js') in @module.bundle.dstFilenames
 
+    isBundle: get:-> @type is 'bundle'
+
   name: (options = {})->
     if @untrusted
       @depString
@@ -144,7 +158,7 @@ class Dependency
 
       """
         #{  if options.quote then "'" else ''
-        }#{ if options.plugin and @pluginName and (@pluginName isnt 'node') then @pluginName + '!' else '' # 'node' is not considered a plugin, its a flag
+        }#{ if options.plugin and @pluginName and not @isNode then @pluginName + '!' else ''
         }#{ if options.relative is 'bundle' then @_bundleRelative else @_fileRelative # default = 'file'
         }#{ if options.ext is false or not @extname then '' else @extname
         }#{ if options.quote then "'" else '' }
@@ -178,3 +192,4 @@ class Dependency
 
 module.exports = Dependency
 
+_.extend module.exports.prototype, {l, _, _B}

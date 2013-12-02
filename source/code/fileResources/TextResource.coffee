@@ -1,6 +1,4 @@
-# externals
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/fileResources/TextResource'
 
 # uRequire
@@ -41,3 +39,4 @@ class TextResource extends FileResource
 
 module.exports = TextResource
 
+_.extend module.exports.prototype, {l, _, _B}

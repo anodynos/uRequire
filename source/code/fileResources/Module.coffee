@@ -1,8 +1,6 @@
-# externals
-_ = require 'lodash'
-_.mixin (require 'underscore.string').exports()
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/fileResources/Module'#  100
+_.mixin (require 'underscore.string').exports()
 fs = require 'fs'
 
 # uRequire
@@ -34,8 +32,8 @@ class Module extends TextResource
           @bundle.build.dstPath
         else
           ''
-
-  for bof in ['useStrict', 'bare', 'globalWindow', 'runtimeInfo', 'allNodeRequires', 'noRootExports', 'scanAllow'] # @todo: find 'boolOrFilez' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  # @todo: 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  for bof in ['useStrict', 'bare', 'globalWindow', 'runtimeInfo', 'allNodeRequires', 'noRootExports', 'scanAllow']
     do (bof)->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
         get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
@@ -338,11 +336,10 @@ class Module extends TextResource
     #  (# RequireJs disables runtime scan if even one dep exists in []).
     #  We dont add them only if _.isEmpty and `--scanAllow` and we dont have a `rootExports`
     addToArrayDependencies = (reqDep)=>
-      if (reqDep.pluginName isnt 'node') and # 'node' is a fake plugin signaling nodejs-only executing modules.
-        (reqDep.name(plugin:false) not in (@bundle?.dependencies?.node or [])) and
-        (not _.any @defineArrayDeps, (dep)->dep.isEqual reqDep) # and not already there
-          @defineArrayDeps.push reqDep
-          @nodeDeps.push reqDep if @isAllNodeRequires
+      if (not reqDep.isNode ) and
+         (not _.any @defineArrayDeps, (dep)->dep.isEqual reqDep) # and not already there
+           @defineArrayDeps.push reqDep
+           @nodeDeps.push reqDep if @isAllNodeRequires
 
     if not (_.isEmpty(@defineArrayDeps) and @isScanAllow and not @flags.rootExports)
       addToArrayDependencies reqDep for reqDep in @ext_requireDeps
@@ -469,8 +466,10 @@ class Module extends TextResource
 
   # add report data after all deps manipulations are done (adjust, & beforeTemplate RCs)
   addReportData:->
-    for dep in _.flatten [ @defineArrayDeps, @ext_asyncRequireDeps ]
-      if dep.type not in ['bundle', 'system']
+    for dep in _.flatten [ @defineArrayDeps
+                           @ext_asyncRequireDeps
+                           _.filter(@ext_requireDeps, (dep)-> dep.isNode) ]
+      if dep.type not in ['bundle', 'system'] # ignore 'normal' ones
         @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'local':['lodash']}`
 
   # Actually converts the module to the target @build options.
@@ -500,7 +499,8 @@ class Module extends TextResource
 
     factoryBody: get:->
       fb = @toCode @AST_factoryBody
-      if @kind isnt 'AMD' then fb else fb[1..fb.length-2].trim()
+      fb = fb[1..fb.length-2].trim() if @kind is 'AMD'
+      fb
 
     # 'body' / statements BEFORE define (coffeescript & family gencode `__extend`, `__slice` etc)
     'preDefineIIFEBody': get:-> @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
@@ -510,3 +510,4 @@ class Module extends TextResource
 
 module.exports = Module
 
+_.extend module.exports.prototype, {l, _, _B}

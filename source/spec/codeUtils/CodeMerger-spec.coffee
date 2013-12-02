@@ -1,10 +1,10 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/CodeMerger-spec'
+l = new _B.Logger 'codeUtils/CodeMerger-spec'
+
 chai = require 'chai'
 expect = chai.expect
-
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 CodeMerger = require '../../code/codeUtils/CodeMerger'
 Module = require '../../code/fileResources/Module'
@@ -76,12 +76,10 @@ describe 'CodeMerger:', ->
 
     it "from string code", ->
       cm.add code for code in simpleCodes
-
       tru isEqualCode cm.code, expectedCode # @todo equalCode test should show where discrepancy is
 
     it "from body of statements/declarations", ->
       cm.add toAST(code).body for code in simpleCodes
-
       tru isEqualCode cm.code, expectedCode
 
     it "from single AST nodes", ->
@@ -93,14 +91,16 @@ describe 'CodeMerger:', ->
 
     it "from ASTProgram", ->
       cm.add toAST code for code in simpleCodes
-
       tru isEqualCode cm.code, expectedCode
 
   describe "handles *Duplicate var declaration*:", ->
 
     it "by default it throws exception if var is declared twice with different value", ->
       cm.add code for code in simpleCodes
-      expect( -> cm.add "var _ = require('underscore')").to.throw UError, /Duplicate var declaration*/
+
+      expect(
+        -> cm.add "var _ = require('underscore')"
+      ).to.throw UError, /Duplicate var declaration*/
 
     it "with `uniqueDeclarations:false` it allows it, changing the init value", ->
       cm = new CodeMerger uniqueDeclarations: false
@@ -114,3 +114,15 @@ describe 'CodeMerger:', ->
           (ast)-> ast.arguments[0].value = 'underscore'; ast
 
       tru isEqualCode cm.code, expectedAST
+
+  describe "handles adding empties: ", ->
+    beforeEach -> cm.add code for code in simpleCodes
+
+    for item in [undefined, null, '', ' ', {}, []] then do (item)->
+      it "#{_B.type item} / #{item}", ->
+        cm.add item
+        tru isEqualCode cm.code, expectedCode
+
+        cm.reset()
+        cm.add item
+        equal cm.code, ''

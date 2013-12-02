@@ -1,5 +1,5 @@
-_B = require 'uberscore'
-l = new _B.Logger 'spec-helpers'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'specHelpers'
 chai = require 'chai'
 expect = chai.expect
 
@@ -26,19 +26,32 @@ are = (name, asEqual=true)->
 
     if asEqual
       if !isEq
-        l.warn "Discrepancy, expected `true` from _B.#{name} \n at path: ", path.join('.')
+        l.warn "Discrepancy, expected `true` from _B.#{name} \n at path: ", path.join('.'),
+               ' \n left value = ', _B.getp(a, path), '\n right value =', _B.getp(b, path),
+               ' \n left Object = \n', a, '\n right Object = \n', b
+      expect(isEq).to.be.true
     else
       if isEq
         l.warn "Discrepancy, expected `false` from _B.#{name}, but its `true`."
+      expect(isEq).to.be.false
 
-    if asEqual isnt isEq
-      l.warn ' \n left value = ', _B.getp(a, path), '\n right value =', _B.getp(b, path),
-        ' \n left Object = \n', a, '\n right Object = \n', b
+createEqualSet = (asEqual)->
+  (result, expected)->
+    isEq = _B.isEqualArraySet result, expected
 
     if asEqual
+      if !isEq
+        l.warn '\n _B.isEqualArraySet expected `true`',
+               '\n result \\ expected \n', _.difference(result, expected),
+               '\n expected \\ result \n', _.difference(expected, result)
       expect(isEq).to.be.true
     else
+      if isEq
+        l.warn '\n _B.isEqualArraySet expected `false`, got `true`',
       expect(isEq).to.be.false
+
+equalSet = createEqualSet true
+notEqualSet = createEqualSet false
 
 #A deep recursive comparison assertion, working on primitive types, arrays, objects, regular expressions, dates and functions.
 deepEqual = are 'isEqual'
@@ -72,4 +85,6 @@ module.exports = {
   ixact, notIxact
   like, notLike       # A is Like B
   likeBA, notLikeBA   # B is Like A
+
+  equalSet, notEqualSet
 }

@@ -1,253 +1,40 @@
 # Introduction
 
-The *master & defaults* configuration file of *uRequire*.
+The **config** is the heart of *uRequire*, to the user's side. This file is both **docs** & the **defaults** of the [config file/object](#Config-Usage).
+
+Scroll to some super cool [config examples](#Examples), that show the power of uRequire & its config.
 
 ## Note: Literate Coffescript
 
-This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. Most code blocks shown (unless otherwise noted) are the actual code, i.e each key declares its self and sets a default value.
+This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code* that represents the *master config*. Most code blocks shown (unless otherwise noted) are the actual code, i.e each key declares **name** and **default value**.
 
     module.exports = MasterDefaultsConfig =
 
 NOTE: This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md & copied over to the urequire.wiki - DONT edit it separately in the wiki.
 
+@see the [*tags legend*](tags-legend) of the documentation
+
 ## Config Usage
 
-A `config` determines a `bundle` and a `build` that uRequire will process. A config is an object with the expected keys and can be used as:
+A `config` determines a `bundle` and a `build` that uRequire will process. A config is an `{}` with [expected keys](MasterDefaultsConfig.coffee#the-bundle-and-the-build) & can be used as:
 
 * **File based**, using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module file that exports the `config` object. The file can actually be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
- The 'XXX' of [`derive:'XXX'](#deriving) can be another **parent file** (eg `parentConfig.yml`), relative to the 1st children's path. @todo: make relative to each children's path).
+ The 'XXX' of [`derive:'XXX'](types-and-derive#Deriving-behaviors) can be another **parent file** (eg `parentConfig.yml`), relative to the 1st children's path. @todo: make relative to each children's path).
 
-* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The difference is that [`derive:'XXX'](#deriving) can be another `urequire:XXX` task, and if its not found its assumed to be a filename, relative to `Gruntfile.js`.
+* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The difference is that [`derive:'XXX'](types-and-derive#Deriving-behaviors) can be another `urequire:XXX` task, and if its not found its assumed to be a filename, relative to `Gruntfile.js`.
 
 * Within your tool's code, [using `urequire.BundleBuilder`](Using-uRequire#Using-within-your-code).
-
-Curious of some [config example](#Examples) ?
 
 ## Versatility
 
 uRequire configs are extremely versatile:
 
-* understands keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](MasterDefaultsConfig.coffee#the-bundle-and-the-build)
+* reads keys both in the 'root' of your config *OR* in ['bundle'/'build' hashes](MasterDefaultsConfig.coffee#the-bundle-and-the-build)
 
-* provides short-cuts, to convert simple declarations to more complex ones.
+* provides [short-cuts](Types-and-derive#shortcut-depsvars-types), to convert simple syntax to more complex.
 
-* has a unique inheritance scheme for 'deriving' from parent configs.
+* has a unique inheritance scheme, **[deriving](types-and-derive#Deriving-behaviors) from parent configs**.
 
-## Deriving
-
-A config can **inherit** the values of a parent config, in other words it can be **derived** from it. Its similar to how a subclass *overrides* a parent class in classical OO [(but much better)](#Deeper-Behavior).
-
-### Parents & Children
-
-For example if you have a child `DevelopmentConfig` derived from a parent `ProductionConfig`, then the child will inherit all the values/defaults and perhaps override (or ammend, append etc) the values of the parent. A child can inherit from one or more Parents, with precedence given to whichever parent comes first.
-
-Ultimately all configs are derived from `MasterDefaultsConfig` (this file) which holds all default *parent-y* values.
-
-### Deeper Behavior
-
-Derivation is but much more flexible that simple OO inheritance in classical OO platforms :
-
-  * It inherits deeply all keys, i.e `{a: {b1:11, b2:12}}` --deriveFromParent--> `{a: {b1:1, b3:3}}` gives `{a: {b1:11, b2:12, b3:3}}`
-
-  * At each key of the deep derivation, there might be a different **behavior** for how to *derive* (or *blend*) with the parent's values - eg [see arrayizeConcat in @derive](#arrayizeConcat).
-
-# @ tags legend
-
-Each key description might have some of these tags, starting with @:
-
-## Simple @ tags
-
-### @optional
-
-All keys are optional, unless otherwise specified with **@mandatory**.
-
-@optional tag specifies why this key is not only optional but perhaps useless in some cases.
-
-### @mandatory
-
-Few keys are @mandatory, and here's why.
-
-### @stability: (1-5)
-A [nodejs-like stability](http://nodejs.org/api/documentation.html#documentation_stability_index) of the setting. If not stated, its assumed to be a "3 - Stable".
-
-### @default
-
-Rarely used, cause default is evident in the code that follows the key description, unless otherwise specified.
-
-### @todo:
-
-This file is [documentation & code](#note:-literate-coffescript). `@todo`s should be part of any code and a great chance to highlight future directions!
-
-Also watch out for **NOT IMPLEMENTED** features - uRequire is still v0.x!
-
-### @alias
-
-Usually DEPRECATED (but still supported) keys.
-
-### @note
-
-Any other note that requires attention
-
-## Deriving loosely typed values: **@derive** & **@type** tags
-
-### @derive
-
-Describes the derive behavior, i.e how values are derived (i.e inherited) to a *child config*, from other *parent configs*.
-
-**Standard derivation behaviors** are listed here:
-
-#### arrayizeConcat
-
-Both *parent* (source) and *child* (destination) values are turned into an Array first (they are [_B.arrayize](https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co)-d).
-
-Then the items on child configs are pushed *after* the ones they inherit (parents, higher up in hieracrchy).
-
-For example consider key `bundle.filez` (that has the **arrayizeConcat derive behavior**).
-
-* *parent* config `bundle:filez: ['**/*', '!DRAFT/*.*']`
-
-* *child* config `bundle:filez: ['!vendor/*.*]`
-
-* *derived* config: `bundle: filez: ['**/*', '!DRAFT/*.*', '!vendor/*.*]`.
-
-Use your imagination for the possiblities.
-
-###### type
-
-The type for both child and parent values, are either `Array<Anything>` or `Anything` but Array (which is [_B.arrayize](https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co)-d first).
-
-###### reset parent
-
-To reset the inherited parent array (always in your new child *destination* array), use `[null]` as the 1st item of your child array. For example
-
-* parent config `bundle:filez: ['**/*', '!DRAFT/*.*']`
-
-* child config `bundle:filez: [[null], 'vendorOnly/*.*]`
-
-* blended config: `bundle: filez: ['vendorOnly/*.*]`.
-
-@todo: use a function callback on child, that receives parent value (& a clone:-) and returns the resulted blended array.
-
-#### arrayizeUniqueConcat
-
-Just like [*arrayizeConcat*](#arrayizeConcat), but only === unique items are pushed to the result array.
-
-#### arraysConcatOrOverwrite
-
-If **both** *child* and *parent* values are already an Array, then the items on child (derived) configs are pushed *after* the ones they inherit (like [`arrayizeConcat`](arrayizeConcat)).
-
-Otherwise, the child value (even if its an array) overwrites the value it inherits.
-
-For example consider key `build.globalWindow` (that has the **arraysConcatOrOverwrite derive behavior**).
-
-* parent config `build: globalWindow: ['**/*']`
-
-* child config `build: globalWindow: true`
-
-* blended config: `build: globalWindow: true`
-
-or similarly
-
-* parent config `build: globalWindow: true`
-
-* child config `build: globalWindow:  ['**/*']`
-
-* blended config: `build: globalWindow: ['**/*']`
-
-@note [reset parent](#reset-parent) works like arrayizeConcat's, so you can produce a new Array, even when deriving from an Array.
-
-#### dependenciesBindings
-
-It refers to [`depsVars` type](#depsVars-type): each dependency name/key of child configs is added to the resulted object, if not already there.
-
-Its identifiers / variable names are then [arrayizeUniqueConcat](#arrayizeUniqueConcat)-ed onto the array.
-
-For example with a parent value:
-```
-{
-  myDep1: ['myDep1Var1', 'myDep1Var2']
-}
-```
-
-and a child value:
-
-```js
-{
-  myDep1: ['myDep1Var1', 'myMissingDep1Var3']
-
-  # identifier is a String, not an Array
-  myDep2: 'myDep2Var'
-}
-```
-
-the resulted derived object will be
-
-```js
-{
-  # only missing 'myMissingDep1Var3' identifier is appended to array
-  myDep1: ['myDep1Var1', 'myDep1Var2', 'myMissingDep1Var3']
-
-  # identifier is arrayized
-  myDep2: ['myDep2Var']
-}
-```
-
-
-## @type tag
-
-A description of valid value type(s) for the key. Usually there is a lot of flexibility of the types of values you can use.
-
-Some standard reoccurring types are :
-
-### depsVars @type
-
-This type defines one or more dependencies (i.e Modules or other Resources), that each is bound to one or more identifiers (i.e variable or property names).
-
-#### Formal `depsVars` type
-
-Its an Object like :
- ```
-{
-  'dep1': ['dep1VarName1', 'dep1VarName2'],
-  ...
-  'underscore': ['_'],
-  'Backbone': ['backbone'],
-  ....
-  'depN': ['depNVarName1', ...]
-}
- ```
-
-#### Shortcut `depsVars` types
-
-The `depsVars` type is used in many places (eg [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle)) and has some *shortcut types*:
-
- * Array: eg `['dep1', 'dep2', ..., 'depn']`, with one or more deps.
-
- * String: eg `'dep'`, of just one dep.
-
-*Shortcut types* are converted to the [*formal type*](#formal-depsvars-type) when deriving, using the [dependenciesBindings](#dependenciesBindings) derive - the above will end up as
-
-  * `{dep1:[], dep2:[], ..depn:[]}`
-
-  * `{dep:[]}`
-
-#### Inferred binding idenifiers
-
-If a dependency (key) ends up with no identifier (variable name), for example `{myDep:[], ...}`, then the identifiers are automagically inferred from:
-
-   * the code it self, i.e when you have `define(['Backbone'], function(backbone){}` or `var backbone = require('Backbone')` somewhere in your bundle code, it binds `'Backbone'` dependency with `'backbone'` identifier.
-
-   * or using any other relevant part of the config like [`bundle.dependencies.depsVars`](#bundle.dependencies.depsVars), [`bundle.dependencies._knownDepsVars`](#bundle.dependencies._knownDepsVars) etc.
-
-### boolOrFilez @type
-
-This type controls if a key applies to *all, none or some filez*. Its either:
-
-  * boolean (true/false).
-
-  * An Array like [`bundle.filez`](#bundle.filez) specs, that filters whether the key will be applied to a file or not.
-
-Unless otherwise specified, it uses derive [`arraysConcatOrOverwrite`](#arraysConcatOrOverwrite).
 
 # The 'bundle' and the 'build'
 
@@ -261,6 +48,54 @@ _______
 The `bundle` hash defines what constitutes a bundle, i.e where files are located, which ones are converted and how etc. Consider a `bundle` as the 'source' or the 'package' that is then *processed* or built, based on the `build` part of the config.
 
     bundle:
+
+## bundle.path
+
+The filesystem path where source files reside (relative to urequire's CWD, or `Gruntfile.js` for [grunt-urequire](https://github.com/aearly/grunt-urequire)).
+
+@mandatory But, if `bundle.path` is ommited, it is implied by the 1st config's file position (only for file-based 'config' command, not in [grunt-urequire](https://github.com/aearly/grunt-urequire)'s config).
+
+@example `'./source/code'`
+
+@alias `bundlePath` DEPRECATED
+
+      path: undefined
+
+## bundle.filez
+
+All files that somehow participate in the `bundle` are specified here. Its the ultimate filter of your bundle, virtually including or excluding files. Its very versatile
+
+@type [filespecs](types-and-derive#filespecs)
+
+@derive [arrayizeConcat](types-and-derive#arrayizeConcat).
+
+@note all files are relative to [bundle.path](#bundle.path)
+
+@alias `filespecs` DEPRECATED
+
+@note the `z` in `filez` is used to segregate from gruntjs `files`, when urequire is used within [grunt-urequire](https://github.com/aearly/grunt-urequire) and allow its different features like RegExp & deriving.
+
+@note: The master default is `undefined`, so the last child `filez` in derived hierarchy determines what is ultimately allowed.
+
+@default: *The actual default (runtime hard-coded)*, if no `bundle.filez` exists in the final cfg, is `['**/*']` (and not `undefined`). That's why its optional!
+
+      filez: undefined
+
+## bundle.copy
+
+Copy (binary & sync) of all non-resource [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez) (i.e those that are [`BundleFile`]((MasterDefaultsConfig.coffee#bundlefile)s) to [`build.dstPath`](MasterDefaultsConfig.coffee#build.dstpath) as a convenience. If destination exists, it checks nodejs's `fs.statSync` 'mtime' & 'size' and copies (overwrites) ONLY changed files.
+
+@example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i]`
+
+@type [filespecs](types-and-derive#filespecs)
+
+@derive [arrayizeConcat](types-and-derive#arrayizeConcat).
+
+@alias `copyNonResources` DEPRECATED
+
+@default `[]`, i.e no non-resource files are copied. You can use `/./` or `'**/*'` for all non-resource files to be copied.
+
+      copy: []
 
 ## bundle.name
 
@@ -278,7 +113,7 @@ The *name* of the bundle, eg 'MyLibrary'.
 
 The `'main'` or `'index'` module file of your bundle, that `require`s and kicks off all other modules (perhaps implicitly).
 
-@optional and useless, unless 'combined' template is used.
+@optional unless ['combined' template](combined-template) is used, or you have a [`build.template.banner`](#build.template).
 
 @example
 
@@ -286,7 +121,7 @@ The `'main'` or `'index'` module file of your bundle, that `require`s and kicks 
  bundle: main: "MyAwesomeLibrary"
 ```
 
-whereas 'MyAwesomeLibrary.js' could be something like:
+whereas `'MyAwesomeLibrary.js'` would be something like:
 
 ```
  define(function(){
@@ -298,75 +133,197 @@ whereas 'MyAwesomeLibrary.js' could be something like:
 
 ```
 
+or the `module.exports = {...}` version.
+
 ### Details:
 
-* `bundle.main` is used as 'name' / 'include' on RequireJS build.js, on [combined/almond template](combined-Template).
+  * `bundle.main` is used as 'name' / 'include' on RequireJS build.js, on [combined/almond template](combined-Template).
 
-*  It should be the 'entry' point module of your bundle, where all dependencies are `require`'d. Then **r.js** recursively adds all dependency tree to the 'combined' optimized file.
+  *  It should be the 'entry' point module of your bundle, where all dependencies are `require`'d. Then **r.js** recursively adds all dependency tree to the ['combined'](combined-template) optimized file.
 
-* It is also used to as the initiation `require` on your combined bundle.
-  It is the module just kicks off the app and/or requires all your other library modules.
+  * It is also used to as the initiation `require` on your [combined](combined-template) bundle.
+    It is the module just kicks off the app and/or requires all your other library modules.
 
-* Defaults to `bundle.name`, `'index'`, `'main'`: If `bundle.main` is missing, it defaults to `bundle.name`, *only* if there is a module by that name. If `bundle.name` fails to match an existing module, `'index'` or `'main'` are used as `bundle.main` (again provided there is a module named `'index'` or `'main'` - which ever found first). In all cases of automatic discovery, uRequire will issue a warning.
+  * Defaults to `bundle.name`, `'index'`, `'main'`: If `bundle.main` is missing, it defaults to `bundle.name`, *only* if there is a module by that name. If `bundle.name` fails to match an existing module, `'index'` or `'main'` are used as `bundle.main` (again provided there is a module named `'index'` or `'main'` - which ever found first). In all cases of automatic discovery, uRequire will issue a warning.
 
-If `bundle.main` can't match an existing module, it will cause a `'combined'` template error. 
+  * Its the name of the module [`build.template.banner`](#build.template) is added.
+
+If `bundle.main` can't match an existing module, it will cause a ['combined' template](combined-template) error.
 
       main: undefined
 
-## bundle.path
+## bundle.dependencies
 
-The filesystem path where source files reside (relative to urequire's CWD, or `Gruntfile.js` for [grunt-urequire](https://github.com/aearly/grunt-urequire)).
+All information related to dependencies handling is listed here.
 
-@mandatory But, if `bundle.path` is ommited, it is implied by the 1st config's file position (only for file-based 'config' command, not in [grunt-urequire](https://github.com/aearly/grunt-urequire)'s config).
+      dependencies:
 
-@example `'./source/code'`
+### bundle.dependencies.exports
 
-@alias `bundlePath` DEPRECATED
+Holds keys related to binding and exporting modules (i.e making them available to bundle modules, or globally).
 
-      path: undefined
+        exports:
 
-## bundle.filez
+#### bundle.dependencies.exports.bundle
 
-All files that somehow participate in the `bundle` are specified here.
+Allows you to *export* or [*inject*](resourceconverters.coffee#inject-replace-dependencies) (i.e have available) specific dependencies (other modules) throughout the *whole bundle*, under the given variable name(s).
 
-@type filename specifications (or simply filenames), expressed in either:
+Eg you want to access `'underscore'` from  `_`, `'backbone'` from `Backbone` etc, from all modules, without having to declare it in each module.
 
-  * *gruntjs*'s expand minimatch format (eg `'**/*.coffee'`) and its exclusion cousin (eg `'!**/DRAFT*.*'`)
-  
-  * `RegExp`s that match filenames (eg `/./`) again with a `[..., '!', /regexp/]` exclusion pattern.
+Effectively this means that each module will have an *injection* of all `dependencies.exports.bundle`, so you don't have to list them in each module.
 
-  * A `function(filename){}` callback, returning true if filename is to be included. Consistently it can have a negation/exclusion flag before it, `[..., '!', function(f){return f === 'allowMe.js'}, ...]`.
+@example
 
-@example 
-```coffee
-bundle: {
-  filez: [
-    '**/recources/*.*'
-    '!dummy.json'
-    /\.someExtension$/i
-    '!', /\.excludeExtension$/i
-    (filename)-> filename is 'includedFile.ext'
-  ]
-}
+```
+{ 'underscore': '_',
+ 'jquery': ["$", "jQuery"],
+ 'models/PersonModel': ['persons', 'personsModel'] }
 ```
 
-@derive: [arrayizeConcat](#arrayizeConcat).
+will give you :
 
-@note all files are relative to [bundle.path](#bundle.path)
+* Injection of Modules / dependencies `'underscore'`, `'jquery'`, and `'models/PersonModel'` to each module in the bundle.
 
-@alias `filespecs` DEPRECATED
+* Access of `_`, `$`, `jQuery`, `persons` & `personsModel` variables everywhere, without listing them once on any module's code.
 
-@note the `z` in `filez` is used to segregate from gruntjs `files`, when urequire is used within [grunt-urequire](https://github.com/aearly/grunt-urequire) and allow its different features like RegExp & deriving.
+* Working the same way on all templates, on any environment (AMD, nodejs, Web/Script).
 
-@note: The master default is `undefined`, so the last child `filez` in derived hierarchy determines what is ultimately allowed.
+* Saving space: on ['combined' template](combined-template), they are listed & loaded only once, made available only within bundle's 'combined' closure.
 
-@default: *The actual default (runtime hard-coded)*, if no `bundle.filez` exists in the final cfg, is `['**/*.*']` (and not `undefined`). That's why its optional!
+@type [depsVars](types-and-derive#depsVars)
 
-      filez: undefined
+@derive [dependenciesbindings](types-and-derive#dependenciesbindings)
+
+@note the [shortcut depsvars format](Types-and-derive#shortcut-depsvars-types), can also be used (eg `['underscore', 'jquery', 'models/PersonModel']`), in which case the [vars are inferred]](types-and-derive#inferred-binding-idenifiers).
+
+@alias `bundleExports` DEPRECATED
+
+          bundle: {}
+
+#### bundle.dependencies.imports [.bundle ?]
+
+@todo NOT IMPLEMENTED https://github.com/anodynos/uRequire/issues/39
+
+#### bundle.dependencies.exports.root
+
+Make a module be available GLOBALY (by attaching it to `window` and/or nodejs's `global` object) under `varName`(s), same as in [Exporting Modules](Exporting-Modules).
+
+Access via plain `varName` works both in browser *and* nodejs.
+
+  * On browser its attached as a property to `window` object
+
+  * On nodejs its attached to the `global` object with the same effect: accessing it via its name from everywhere.
+
+@note: When `bundle.dependencies.exports.root` is used (instead of precise [Exporting Modules](Exporting-Modules)), `noConflict` is always true.
+
+@example
+
+  `bundle: dependencies: exports: root: {'models/PersonModel': ['persons', 'personsModel']}`
+
+is like having a
+
+  `({rootExports: ['persons', 'personsModel'], noConflict:true});`
+
+in module `'models/PersonModel'` as described in [Exporting Modules](Exporting-Modules).
+
+@type [depsVars](types-and-derive#depsVars)
+
+@derive [dependenciesbindings](types-and-derive#dependenciesbindings)
+
+@todo [`dependencies.exports.root` globals being optional on AMD or node](https://github.com/anodynos/uRequire/issues/36)
+
+@note both `window` and `global` objects exist as an alias of each other on the ['combined' template](combined-template) or when [`build.globalWindow: true`](#build.globalWindow) (the default).
+
+          root: {}
+
+### bundle.dependencies.replace
+
+Replace dependencies to add mocks, provide compatibility or remove deps.
+
+Replace all right hand side dependencies (String value or []<String> values), to the left side (key) in the build modules.
+
+@example `{ lodash: ['underscore', 'otherscore'], newDep2Name: 'oldDep2Name1' }`  replaces all `'underscore'` or `'otherscore'` deps to `'lodash'` in all modules, etc.
+
+@type [depsVars](types-and-derive#depsVars)
+
+@derive paradoxically its [dependenciesbindings](types-and-derive#dependenciesbindings)
+
+@see [inject / replace dependencies](resourceconverters.coffee#inject-replace-dependencies) in [Manipulating Modules](resourceconverters.coffee#manipulating-modules).
+
+          replace: undefined
+
+### bundle.dependencies.node
+
+Dependencies listed here are treated as node-only: they aren't added to the AMD dependency array (and hence not available on the Web/AMD side).
+
+Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo).
+
+Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without the template conversion that strips `'node!'`.
+
+@type String or Array<String>
+
+@derive [arrayizeUniqueConcat](types-and-derive#arrayizeUniqueConcat).
+
+@example `node: ['myUtil', 'my_fs']`
+
+@alias noWeb DEPRECATED
+
+@default All known built-in nodejs packages (as of 10.8) like `'util'`, `'fs'` etc are the default of  `bundle.dependencies.node`. Use `node: [[null], 'myNodeModule']` to reset the `node` array with only your modules.
+
+@todo: Default can lead to in-advertised feature leak if there's a user's module with these names - issue a warning ?
+
+        node: [
+          'fs', 'events', 'util', 'http', 'path', 'child_process',
+          'events', 'crypto', 'string_decoder', 'timers', 'tls'
+          'domain', 'buffer', 'stream', 'net', 'dgram', 'dns',
+          'https', 'url', 'querystring', 'punycode', 'readline',
+          'repl', 'vm', 'assert', 'tty', 'zlib', 'os', 'cluster'
+        ]
+
+### bundle.dependencies.depsVars
+
+List of dependencies bound with one or more vars.
+
+@optional list them only as reference/backup, when they [cant be inferred]](types-and-derive#inferred-binding-idenifiers), or some specific deps shouldnt be inferred.
+
+@note In case identifiers can't be inferred (i.e only used `require('myLocalDep')` without assigning to a var) and bindings aren't in `bundle.dependencies.depsVars` (or `_knownDepsVars` below), then the [build will fail](types-and-derive#Binding-deps-and-vars-is-required).
+
+@example `{ underscore: ['_'], jquery: ['$', 'jQuery'], }`.
+
+@type [depsVars](types-and-derive#depsVars)
+
+@derive [dependenciesBindings](types-and-derive#dependenciesbindings)
+
+@alias variableNames DEPRECATED
+
+        depsVars: {}
+
+### bundle.dependencies._knownDepsVars
+
+Some known depsVars, have them as backup - its a private field, not meant to be extended by users (use depsVars).
+
+@type [depsVars](types-and-derive#depsVars)
+
+@derive [dependenciesBindings](types-and-derive#dependenciesbindings)
+
+@alias _knownVariableNames DEPRECATED
+
+@todo: provide some 'common/standard' ones.
+
+        _knownDepsVars:
+          chai: 'chai'
+          mocha: 'mocha'
+          lodash: "_"
+          underscore: "_"
+          jquery: ["$", "jQuery"]
+          backbone: "Backbone"
+          knockout: ["ko", 'Knockout']
+
+____
 
 ## bundle.resources
 
-An Array of [**ResourceConverters (RC)**](ResourceConverters.coffee) (eg compilers, transpilers etc), that perform a conversion on the `bundle.filez`, from one resource format (eg coffeescript, teacup) to another **converted** format (eg javascript, HTML).
+An Array of [**ResourceConverters (RC)**](ResourceConverters.coffee) (eg compilers, transpilers etc), that perform a conversion from one resource format (eg coffeescript, teacup) to another **converted** format (eg javascript, HTML).
 
 **ResourceConverters** is a generic and extendible in-memory conversions workflow, that is trivial to use and extend with your own, perhaps one-liner, converters (eg `['$coco', [ '**/*.co'], ((r)-> (require 'coco').compile r.source), '.js']` is an RC).
 
@@ -382,7 +339,7 @@ Read all about them in [**ResourceConverters.coffee**](ResourceConverters.coffee
 
 @optional unless you want to add you own *Resource Converters* for your conversion needs.
 
-@derive [arrayizeConcat](#arrayizeConcat). Hint: You can use [null] as the 1st item to reset inherited/parent array items (i.e the ResourceConverters defined in parent configs).
+@derive [arrayizeConcat](types-and-derive#arrayizeConcat). Hint: You can use [null] as the 1st item to [reset inherited/parent array items](types-and-derive#reset-parent) (i.e the ResourceConverters defined in parent configs) and add your own RC or lookup, clone and change an existing one.
 
 @stability: 3 - Stable
 
@@ -392,35 +349,37 @@ Read all about them in [**ResourceConverters.coffee**](ResourceConverters.coffee
 
 * an ['Array'](ResourceConverters.coffee#The-alternative-less-verbose-Array-way) (for fancy RC-specs)
 
-* a 'String' name search of a previously registered RC, eg `'teacup'`.
+* a 'String' name search of a previously registered RC, eg `'teacup'`. Note that [name flags](ResourceConverters.coffee#Flags-and-Nameflags) passed on the search (eg `'#teacup'`), find the actual RC, modify it according to the name flags, strip the flags and then return the RC.
 
 * a function that returns an RC. This function is called with the 1st argument & `this` with a *searchOrMaterialize*  function that takes a String name (or an Array-spec) of an RC and returns a looked up (or materialized RC). For example:
 
-```javascript
-// example - not part of coffee.md source
-// as comments cause literate coffeescript considers
-// indented lines as code, even in ` ` ` blocks
-//
-// resources: [
-//  ...
-//  function(search){
-//    // lookup & clone RC (best use rc.clone(), to get proper instance)
-//    var rc = search("RCname4").clone();
-//
-//    // change the clone's name
-//    // & type to 'module' (via '$' flag)
-//    rc.name = '$MyRCname4';
-//
-//    // add some file specs to `filez`
-//    rc.filez.push('!**/DRAFT*.*');
-//
-//    // return the new RC, which is
-//    // added to `resources` array
-//    return rc;
-//  }
-//  ...
-//  ]
-```      
+  ```javascript
+  // example - not part of coffee.md source
+  resources: [
+    // lookup & clone an RC 
+    function(search){
+      // (use rc.clone() to get a proper instance)
+      var rc = search("RCname").clone();
+      // change the clone's name
+      // & type to 'module' via '$' name flag
+      rc.name = '$MyNewRCname';
+      // add some file specs to `filez`
+      rc.filez.push('!**/DRAFT*.*');
+      // return the new RC, which is
+      // added to `resources` array
+      return rc;
+    },
+    // create a new RC from an Array spec
+    // add some fields and return it
+    function(materialize){
+      // create an RC {} from an RC []
+      myRC = materialize([ 'myNewRC', [/./], convertToMoreFn]);
+      // we now have an {} RC with above fields
+      myRC.srcMain = 'main.lessIsMore';
+      return myRC;
+    }  
+  ]
+  ```      
     
   If the function returns null or undefined, its not added to the Array.
 
@@ -435,6 +394,9 @@ A dummy example follows (in coffeescript) :
 resources: [
  # search registered RC 'teacup' & use as-is
  'teacup'
+ 
+ # search RC, change its flags and return it
+ '@someRCname' 
 
  # search, clone, change, return in one line
  -> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
@@ -457,32 +419,34 @@ resources: [
  ->
    # lookup an existing
    kookoo = @ 'kookoo'
-
-   # return a new one, that uses `kookoo.convert`
-   # (note coffeescript returns last expression)
+   # return a new one, that uses `kookoo.convert`   
    ['$doodoo', [ '**/*.doo'], kookoo.convert, '.js']
 ]
 ```
 
-@default By default `resources` has ResourceConverters `'javascript', 'coffee-script', 'LiveScript', 'iced-coffee-script' and 'coco'` as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). Also an [extra 'teacup' RC is registered](ResourceConverters.coffee#Extra-Resource-Converters), but not added to 'resources' - it can be used by searching for 'teacup'. More [Extra Resource Converters](ResourceConverters.coffee#Extra-Resource-Converters), will be added in future uRequire versions - feel free to contribute yours.
+@default 
+
+By default `resources` has ResourceConverters `'javascript', 'coffee-script', 'LiveScript', 'iced-coffee-script' and 'coco'` as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). 
+
+Some [extra RCs are registered](ResourceConverters.coffee#Extra-Resource-Converters), but not added to 'resources' - they can be used by searching for 'teacup', 'execSync' or 'lessc'. Feel free to contribute yours.
 
       resources: require('./ResourceConverters').defaultResourceConverters
 
-## bundle.copy
+## bundle.commonCode
 
-Copy (binary & sync) of all non-resource [bundle.filez](MasterDefaultsConfig.coffee#bundle.filez) (i.e those that are [`BundleFile`]((MasterDefaultsConfig.coffee#bundlefile)s) to [`build.dstPath`](MasterDefaultsConfig.coffee#build.dstpath) as a convenience. If destination exists, it checks nodejs's `fs.statSync` 'mtime' & 'size' and copies (overwrites) ONLY changed files.
+This is an opportunity to add code once and have it included:
 
-@example `copy: ['**/images/*.gif', '!dummy.json', /\.(txt|md)$/i]`
+ * before each module's factory body (and before moddule's [`beforeBody`](ResourceConverters.coffee#beforeBody) & [`mergedCode`](ResourceConverters.coffee#mergedCode)) for all templates except ['combined' template](combined-template).
 
-@type see [`bundle.filez`](MasterDefaultsConfig.coffee#bundle.filez)
+ * Once within the bundle's closure, available to all modules, when using the ['combined' template](combined-template).
 
-@derive [arrayizeConcat](#arrayizeConcat).
+In all templates, the code should access only `bundle.dependencies.exports.bundle` vars & other globals. It should not it self `require` anything, cause its depedencies are not (and should not be) analyzed.
 
-@alias `copyNonResources` DEPRECATED
+@see [inject code and strings in modules](resourceconverters.coffee#inject-any-string-before-after-body) & [Merging code in bundles](combined-template#merging-code)
 
-@default `[]`, i.e no non-resource files are copied. You can use `/./` or `'**/*'` for all non-resource files to be copied.
+@example
 
-      copy: []
+      commonCode: undefined
 
 ## bundle.webRootMap
 
@@ -497,183 +461,6 @@ When running on Web/AMD, the AMD loader (eg RequireJS) maps it to the **http-ser
 @note `webRootMap` is currently working only with `'UMD'` template.
 
       webRootMap: '.'
-
-## bundle.dependencies
-
-All information related to dependencies handling is listed here.
-
-      dependencies:
-
-### bundle.dependencies.node
-
-Dependencies listed here are treated as node-only: they aren't added to the AMD dependency array (and hence not available on the Web/AMD side).
-
-Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo).
-
-Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without the template conversion that strips `'node!'`.
-
-@type String or Array<String>
-
-@derive [arrayizeUniqueConcat](#arrayizeUniqueConcat).
-
-@example `node: ['myUtil', 'my_fs']`
-
-@alias noWeb DEPRECATED
-
-@default All known built-in nodejs packages (as of 10.8) like `'util'`, `'fs'` etc are the default of  `bundle.dependencies.node`. Use `node: [[null], 'myNodeModule']` to reset the `node` array with only your modules.
-
-@todo: Default can lead to in-advertised feature leak if there's a user's module with these names - issue a warning ?
-
-        node: [
-          'fs', 'events', 'util', 'http', 'path', 'child_process',
-          'events', 'crypto', 'string_decoder', 'timers', 'tls'
-          'domain', 'buffer', 'stream', 'net', 'dgram', 'dns',
-          'https', 'url', 'querystring', 'punycode', 'readline',
-          'repl', 'vm', 'assert', 'tty', 'zlib', 'os', 'cluster'
-        ]
-
-### bundle.dependencies.depsVars
-
-Its an optional field, mainly as a *type reference* and a retrospection / backup (when a dep-vars binding can't be inferred).
-
-It lists dependencies that bind with one or more variable names - for example `'underscore'` binds with `'_'`, `'jquery'` binds with `'$'` and perhaps `'jQuery'` and so on. This would be expressed as
-
-```
-{
- jquery: ['$', 'jQuery'],
- underscore: ['_']
-}
-```
-
-#### Keep Calm and infer it
-
-Variable names can be [inferred from the code by uRequire](#inferred-binding-idenifiers), when you implicitly create this binding in your bundle. For example `define(['jquery'], function('$'){...})` or `var $ = require('jquery')` binds variable `$` with dependency `'jquery'`. You can choose to list them here for introspection (so they aren't/can't be inferred), but its otherwise useless.
-
-Binding variables are useful when injecting dependencies, when exporting through [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle), when converting through `'combined'` template etc. For example, local dependencies (like 'underscore' or 'jquery') are not part of a `combined` file. At run time, when running on web side as a combined .js `<script/>`, the uRequire generated code will _grab_ the dependency using the binding variable (eg '$') from the *global* object (i.e `window`).
-
-@type [depsVars](#depsVars)
-
-@derive [dependenciesBindings](#dependenciesBindings)
-
-@note In case identifiers can't be inferred for a local dependency (i.e you only used `require('myLocalDep')` without assigning to var) and bindings aren't in `bundle.dependencies.depsVars` (or `_knownDepsVars` below), then the 'combined/almond' build will fail (cause it will not know where to grab it from when running on Web/Script).
-
-@alias variableNames DEPRECATED
-
-        depsVars: {}
-
-### bundle.dependencies._knownDepsVars
-
-Some known depsVars, have them as backup - its a private field, not meant to be extended by users (use depsVars).
-
-@type [depsVars](#depsVars)
-
-@derive [dependenciesBindings](#dependenciesBindings)
-
-@alias _knownVariableNames DEPRECATED
-
-@todo: provide some 'common/standard' ones.
-
-        _knownDepsVars:
-          chai: 'chai'
-          mocha: 'mocha'
-          lodash: "_"
-          underscore: "_"
-          jquery: ["$", "jQuery"]
-          backbone: "Backbone"
-          knockout: ["ko", 'Knockout']
-
-### bundle.dependencies.exports
-
-Holds keys related to binding and exporting modules (i.e making them available to bundle modules, or globally).
-
-        exports:
-
-#### bundle.dependencies.exports.bundle
-
-Allows you to export (i.e have available) modules throughout the bundle (eg `'underscore'`, `'Backbone'` etc) under given variable names.
-
-Each dependency will be available in the *whole bundle* under varName(s). Effectively this means that each module will have an *injection* of all `dependencies.exports.bundle` dependencies/var bindings, so you don't have to list them in each module.
-
-@type [depsVars](#depsVars-type)
-
-@derive [dependenciesbindings](#dependenciesbindings)
-
-@example
-
-```
-{
- 'underscore': '_',
- 'jquery': ["$", "jQuery"],
- 'models/PersonModel': ['persons', 'personsModel']
-}
-``` 
-will make `'underscore'`, `'jquery'`, and `'models/PersonModel'` dependencies and all their listed variables be injected in each module (or the bundle's closure if `'combined'` template is used).
-
-You can also use the short format
-
-```
-['underscore', 'jquery', 'models/PersonModel']
-```
-
-in which case the variable names (each dependency binds to) [are inferred](#Keep-Calm-and-infer-it).
-
-In any case, at each module you can safely access `_`, `$`, `jQuery`, `persons` & `personsModel` without ever having to list them as a dependency OR a `var`iable.
-
-@alias `bundleExports` DEPRECATED
-
-          bundle: {}
-
-#### bundle.dependencies.exports.root
-
-Make a module be available GLOBALY (by attaching it to `window` and/or nodejs's `global` object) under `varName`(s), same as in [Exporting Modules](Exporting-Modules).
-
-Access via plain `varName` works both in browser *and* nodejs.
-
-  * On browser its attached as a property to `window` object
-
-  * On nodejs its attached to the `global` object with the same effect: accessing it via its name from everywhere.
-
-@type [depsVars](#depsVars-type)
-
-@derive [dependenciesbindings](#dependenciesbindings)
-
-@note: When `bundle.dependencies.exports.root` is used (instead of precise [Exporting Modules](Exporting-Modules)), `noConflict` is always true.
-
-@example
-
-  `bundle: dependencies: exports: root: {'models/PersonModel': ['persons', 'personsModel']}`
-
-is like having a
-
-  `({rootExports: ['persons', 'personsModel'], noConflict:true});`
-
-in module `'models/PersonModel'` as described in [Exporting Modules](Exporting-Modules).
-
-@note both `window` and `global` objects exist as an alias of each other on the ['combined' template](combined-template) or when [`build.globalWindow: true`](#build.globalWindow) (the default).
-
-          root: {}
-
-### bundle.dependencies.replace
-
-Replace all right hand side dependencies (String value or []<String> values), to the left side (key) in the build modules.
-
-@example `{lodash: ['underscore', '_underscore']}`, replaces all 'underscore' or '_underscore' deps to 'lodash', in all modules.
-
-@type: [depsVars](#depsVars-type), for example:
-
-```
-{
-  newDep1Name: ['oldDep1Name1', 'oldDep1Name2'],
-  newDep2Name: 'oldDep2Name1',
-}
-...
-```
-
-@derive paradoxically its [dependenciesbindings](#dependenciesbindings)
-
-@see [inject / replace dependencies](resourceconverters.coffee#inject-replace-dependencies) in [Manipulating Modules](resourceconverters.coffee#manipulating-modules).
-
-          replace: undefined
 _______
 # Build
 
@@ -685,17 +472,17 @@ The `build` hash holds keys that define the conversion or `build` process, such 
 
 Output converted files (Modules & Resources) onto this:
 
-* directory, for all templates except `'combined'`
+* directory, for all templates except ['combined'](combined-template)
 
-* filename, if `combined` template is used and [`build.template.combinedFile`](#build.template) is undefined.
+* filename, if ['combined' template](combined-template) is used and [`build.template.combinedFile`](#build.template) is undefined.
 
-  If using `combined` template & `combinedFile`, you can:
+  If using ['combined' template](combined-template) & `combinedFile`, you can:
 
   * omit `dstPath` and all converted resources will go in the same *directory* as the `combinedFile` file.
 
   * specify any alternative `dstPath`, where all other resources (non-modules) will be written.
 
-@note: `build.dstPath`, like [`bundle.path`](#bundle.path), is relative to urequire's CWD or `Gruntfile.js` for [grunt-urequire](https://github.com/aearly/grunt-urequire).
+@note: [`build.dstPath`](#build.dstPath), like [`bundle.path`](#bundle.path), is relative to urequire's CWD or `Gruntfile.js` for [grunt-urequire](https://github.com/aearly/grunt-urequire).
 
 @mandatory unless [`build.forceOverwriteSources`](#build.forceOverwriteSources) or [`build.template.combinedFile`](#build.template) is used
 
@@ -719,13 +506,13 @@ The **template** to use to either convert:
 
   * each module file, to a new format like `'UMD'`, `'nodejs'`, `'AMD'` etc
 
-  * all modules files into one `combined.js` file, using the special `'combined'` template (that actually drives an r.js/almond conversion).
+  * all modules files into one `combined.js` file, using the special ['combined' template](combined-template) that actually drives an r.js/almond conversion.
 
 @type
 
   * The simple usage, just the name of the template as a string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
 
-  * An options hash (optional, only for 'combined' currently) - example:
+  * An options hash such as :
 
 ```
 template: {
@@ -735,6 +522,14 @@ template: {
    # for the 'combined' template only, you can declare the `combinedFile`,
    # if its different (or instead of) [`build.dstPath`](#build.dstPath).
    combinedFile: 'build/someOtherPath/combinedModulesFilename.js'
+
+   # Adds the string at the top you `bundle.main` file, or the combined file
+   banner: "/** I am a banner on top */"
+
+   # outputs section comments with values of 10, 20, 30.
+   # Multiply by 10 and you'll get `console.log`s of sections while they load!.
+   # currently experimental and alpha!
+   debugLevel: 0
 }
 ```
 
@@ -758,13 +553,13 @@ Adds `__isAMD`, `__isNode` & `__isWeb` variables to your modules, so you can eas
 
 For example they can be used to select a different execution branch, depending on where the module is executing. Make sure to add modules that are nodejs-only to [`bundle.dependencies.node`](#bundle.dependencies.node) so they aren't loaded in AMD (i.e not added to `define()` dependency array).
 
-@note combined template always has these variables available on the enclosing function cause it needs them!
+@note ['combined' template](combined-template) always has these variables available on the enclosing function cause it needs them!
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-@example `runtimeInfo: ['index.js', 'libs/**/*.*']`
+@example `runtimeInfo: ['index.js', 'libs/**/*']`
 
       runtimeInfo: true
 
@@ -782,15 +577,15 @@ Like coffeescript `--bare`:
 
 * if `bare: true` it doesnt.
 
-The IIFE (top-level function safety wrapper) is used to prevent leaking and have all variables as local to the module and to provide the [`build.globalWindow`](#build.globalWindow) functionality.
+The IIFE is just a top-level safety wrapper used to prevent leaking and have all variables as local to the module and to provide the [`build.globalWindow`](#build.globalWindow) functionality.
 
 @note if `bare: true`, then [`build.globalWindow`](#build.globalWindow) **functionality is disabled**.
 
-@note It doesn't apply to `'combined'` template: your modules & almond are always enclosed in a single IIFE, and `windows === global` is always true and the modules themselves are plain `define(...)` calls.
+@note It doesn't apply to ['combined' template](combined-template): your modules & almond are always enclosed in a single IIFE, and `windows === global` is always true and the modules themselves are plain `define(...)` calls.
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       bare: false
 
@@ -798,11 +593,11 @@ The IIFE (top-level function safety wrapper) is used to prevent leaking and have
 
 Add the famous `'use strict';` at the begining of each module, so you dont have to type it at each one.
 
-@note: For the 'combined' template its never added at each module **and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(**
+@note: For the ['combined' template](combined-template) its never added at each module **and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(**
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       useStrict: false
 
@@ -810,11 +605,11 @@ Add the famous `'use strict';` at the begining of each module, so you dont have 
 
 Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. It works independently of [`build.runtimeInfo`](#build.runtimeInfo) but **it doesn't work if [`build.bare`](#build.bare) is `true`**. It uses the IIFE that's enclosing modules to pass `'window'` or `'global'` respectively.
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-@note the `global === window` functionality is always true in `'combined'` template - `false`-ing it makes no difference!
+@note the `global === window` functionality is always true in ['combined' template](combined-template) - `false`-ing it makes no difference!
 
       globalWindow: true
 
@@ -826,9 +621,9 @@ When true, it doesn't produce the boilerplate for [exporting modules (& `noConfl
 
  * [`bundle.dependencies.exports.root`](#bundle.dependencies.exports.root)
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       noRootExports: false
 
@@ -836,31 +631,31 @@ When true, it doesn't produce the boilerplate for [exporting modules (& `noConfl
 
 By default, ALL missing `require('dep1')` deps in your module are added on the dependency array `define(['dep0', 'dep1',...], ...)`.
 
-Even if there is even one dep on [], [runtime scan is disabled on RequireJs](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934). If any `require('dep1')` is forgotten, your app will halt. uRequire cooses to add them all to prevent this problem.
+Even if there is even one dep on [], [runtime scan is disabled on RequireJs](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934). If any `require('dep1')` is forgotten, your app will halt. uRequire adds them all to prevent this problem.
 
 With `scanAllow: true` you allow `require('')` scan @ runtime (costs at starting up). This is meaningfull **only for source modules that have no other `define([])` deps (even injected)**, that is i.e. modules using ONLY `require('')`, written as pure nodejs modules.
 
 @note: uRequire deliberatelly ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle) or [injected deps](resourceconverters.coffee#inject-replace-dependencies).
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       scanAllow: false
 
 ## build.allNodeRequires
 
-Pre-require all `require('')` deps on node, even if they aren't mapped to any  parameters, just like they are pre-loaded as AMD `define()` array deps. It preserves the same loading order as on Web/AMD, with a trade off of a possible slower starting up (they are cached nevertheless, so you gain speed later).
+Pre-require all `require('')` deps on node, even if they aren't mapped to any parameters, just like they are pre-loaded as AMD `define()` array deps. It preserves the same loading order as on Web/AMD, with a trade off of a possible slower starting up (they are cached nevertheless, so you gain speed later).
 
-@type [boolOrFilez](#boolOrFilez-type)
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
-@derive [arraysConcatOrOverwrite](#arraysConcatOrOverwrite)
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       allNodeRequires: false
 
 ## build.watch
 
-Watch for changes in bundle files and reprocess/re output *only* those changed files.
+Watch for changes in bundle files and reprocesses *only* changed ones.
 
 The *watch feature* of uRequire works with:
 
@@ -868,7 +663,7 @@ The *watch feature* of uRequire works with:
 
 * Instead of `watch:true`, you use [grunt-urequire >=0.6.x](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.5.x](https://github.com/gruntjs/grunt-contrib-watch).
 
-@note at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
+@note at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed instead. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
 
       watch: false
 
@@ -911,7 +706,7 @@ Optimizes output files (i.e it minifies/compresses them for production).
 * *true*: uses sane defaults of 'uglify2' to minify/compress.
 
 * 'uglify2' / 'uglify': specifically select either (with default settings).
-  **@note: 'uglify' works ONLY for `combined` template, delegating options to `r.js`.**
+  **@note: 'uglify' works ONLY for ['combined' template](combined-template), delegating options to `r.js`.**
 
 * Object - just like ['uglify'](https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L138-154) or ['uglify2'](https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L161-176).
 
@@ -934,13 +729,15 @@ Optimizes output files (i.e it minifies/compresses them for production).
 
 ## build.out
 
-Callback to pass you the 'converted' content & `dstFilename` of each resource/module, instead of saving to fs under `dstPath/dstFilename` via [`FileResource.save()`](resourceconverters.coffee#fileresource-methods).
+Callback to pass you the [`converted`](resourceconverters.coffee#converted) content & [`dstFilename`](resourceconverters.coffee#dstFilename) of each resource/module, instead of saving to filesystem under [`dstPath`](#build.dstPath)/[`dstFilename`](resourceconverters.coffee#dstFilename) via [`FileResource.save()`](resourceconverters.coffee#save).
 
-@note: Its not working on the resources when 'combined' template is used, cause r.js optimizer doesn't yet work *in-memory*.
+@note: Its not working on the resources when ['combined' template](combined-template) is used, cause r.js optimizer doesn't yet work *in-memory*, so the files *have to* be saved for the r.js optimization to work.
 
 @type `function (dstFilename, converted){}`
 
 @default undefined - uses [`FileResource.save()`](resourceconverters.coffee#fileresource-methods) instead.
+
+      out: undefined
 
 ## build.done
 
@@ -962,85 +759,103 @@ Clean all files & folders from `build.dstPath` before each non-watched, non-part
 
 Borrowed from the [Grunt config with comments](https://github.com/anodynos/uBerscore/blob/master/Gruntfile.coffee) of [uBerscore](github.com/anodynos/uBerscore), which also powers uRequire.
 
-The `'urequire: UMD'` task:
+The `'urequire: uberscore'` task:
+
+  * read from `source`, write to `build`
 
   * filters some `filez`
-  * converts each module in `path` to UMD
-  * everything saved at `dstPath`
-  * copies all other files there
-  * injects deps in each module
+
+  * converts each module in `path` to UMD (the default)
+
+  * copies all other files to `build`
+
+  * injects losash dep as `_` in each module
+
   * exports a global `window._B` with a `noConflict()`
+
   * injects a VERSION string inside the body of a file
+
   * minifies each with UglifyJs2's defaults
-  * adds a banner (after UMD template & minification)
+
+  * adds a banner to main (ouside UMD template/minification)
+
+  * watch changes, convert only what's really changed
 
 ```coffee
-uberscore:
-  filez: ['**/*.*', '!draft/*.*']
-  path: "#{sourceDir}"
-  dstPath: "#{buildDir}"
-  copy: [/./]
-
+# config is .json, .js, gruntjs task, .coffee, .yml, you name it
+uberscore:                    # serves as 'name' & consequently 'main'
+  path: 'source'
+  dstPath: 'build'
+  filez: ['**/*']             # can be RegExp, Function, exclusion etc
+  copy: [/./]                 # copy non-converted files, only if changed
+  main: 'uberscore'
   dependencies:
     exports:
-      bundle: ['lodash', 'agreement/isAgree']
-      root: 'uberscore': '_B'
-
-  optimize: 'uglify2' # : can: add: uglify2: options
-
-  resources: [
-    # inject into module, before template conversion
-    [ '~+inject:VERSION', ['uberscore.coffee'],
-      (m)-> m.beforeBody = "var VERSION='#{pkg.version}';"]
-    # add a banner, after template conversion & minification
-    [ '!banner:uberscore', ['uberscore.js'],
-      (r)->"#{banner}\n#{r.converted}" ]
+      bundle: 'lodash': '_'   # _ will always be there for you
+      root: 'uberscore': '_B' # _B will always be there for everyone
+  resources: [                # simple manipulative concat
+    [ '+inject:VERSION',      # isBeforeTemplate: true, i.e AST is parsed & a module is there!
+      ['uberscore.js'],       # only on this module, inject the following
+      (m)-> m.beforeBody = "var VERSION = '0.0.15';"]
   ]
-
+  template: banner: "// uBerscore v0.0.15"
+  watch: true
 ```
 
-The `'urequire: min'` task
+Now, lets derive from the above and:
 
-* derives all from `'urequire: UMD'`, with differences:
+  * Use ['combined' template](combined-template)
+
+  * All modules go into one file that runs everywhere
+
+```
+# dev:
+   derive: ['uberscore']
+   template: 'combined'
+   dstPath: 'build/uberscore-dev.js'
+```
+
+Finally the `'urequire: min'` task
+
+* derives all from `'urequire: dev'`, with differences:
 
 * filters some more `filez`
 
-* converts to a single `uberscore-min.js` with `combined` template (r.js/almond)
+* converts to a single `uberscore-min.js` with ['combined' template](combined-template)
 
-* uglifies the combined file with some `uglify2` settings
-
-* injects **different deps** in each module than its parent
+* injects deps (*different* than parent's)
 
 * manipulates each module:
 
-  * removes some matched code 'skeletons'
+  * removes all debuging code, matching *skeletons*
 
-  * replaces some deps in arrays, `require`s etc
+  * replaces 'lodash' with 'underscore' (for compatibility, mocking etc)
 
-  * removes some code and a dependency from a specific file.
+  * removes code (eg debug stuff ) and a dependency from a specific file.
+
+* disables runtime info, for all but one files
+
+* minifies the combined file, with some `uglify2` options
+
 
 ```coffee
 # min:
-   derive: ['UMD']
-   filez: ['!blending/deepExtend.coffee']
-   dstPath: './build/dist/uberscore-min.js'
-   template: 'combined'
-   main: 'uberscore'
-
-   optimize: { uglify2: output: beautify: true }
-
-   dependencies: exports: bundle: [
-     [null], 'underscore', 'agreement/isAgree']
-
+   derive: ['uberscore']
+   filez: [ '!**deepExtend.coffee' ]
+   dstPath: 'build/uberscore-min.js'
+   dependencies:
+     exports: bundle: [
+        [null], 'underscore', 'agreement/isAgree']
+     replace: 'underscore': ['lodash']
    resources: [
     [
        '+remove:debug/deb & deepExtend', [/./]
        (m)->
+         # match each of these code *skeletons*
          for code in [ 'if (l.deb()){}', 'if (this.l.deb()){}',
                        'l.debug()', 'this.l.debug()']
+           # replace with undefined, i.e delete
            m.replaceCode code
-         # replace dependency
-         m.replaceDep 'lodash', 'underscore'
          # replace code & dep on a specific file
          if m.dstFilename is 'uberscore.js'
            m.replaceCode
@@ -1050,7 +865,8 @@ The `'urequire: min'` task
            m.replaceDep 'blending/deepExtend'
      ]
    ]
-###
+   runtimeInfo: ['!**/*', 'Logger.js']
+   optimize: { uglify2: output: beautify: false }
 ```
 
 Finally we easily configure our `grunt-contrib-watch` tasks
@@ -1058,8 +874,7 @@ Finally we easily configure our `grunt-contrib-watch` tasks
 ```
 watch:
   UMD:
-    files: ["#{sourceDir}/**/*.*", "#{sourceSpecDir}/**/*.*"]
-    tasks: ['urequire: UMD', 'urequire:spec', 'mocha', 'run']
-
+    files: ["source/**/*"]
+    tasks: ['urequire: uberscore', 'urequire: spec', 'mocha']
   options: spawn: false
 ```

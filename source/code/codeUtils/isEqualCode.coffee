@@ -1,4 +1,4 @@
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
 toAST = require './toAST'
 
 module.exports = isEqualCode = (code1, code2)->

@@ -1,7 +1,7 @@
-_ = require 'lodash'
-fs = require 'fs'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/fileResources/BundleFile'
+
+fs = require 'fs'
 
 Build = require '../process/Build'
 mkdirp = require "mkdirp"
@@ -156,3 +156,5 @@ class BundleFile
     inspectText
 
 module.exports = BundleFile
+
+_.extend module.exports.prototype, {l, _, _B}

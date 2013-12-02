@@ -1,15 +1,12 @@
-chai = require 'chai'
-assert = chai.assert
-expect = chai.expect
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'config/ResourceConverter-spec'
 
-_B = require 'uberscore'
-l = new _B.Logger 'urequire/ResourceConverter-spec'
-_ = require 'lodash'
+chai = require 'chai'
+expect = chai.expect
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 ResourceConverter = require '../../code/config/ResourceConverter'
-
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 
 rcSpec1 = [
   '$Coffeescript' # a title of the resource (a module since starting with $)
@@ -100,7 +97,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
 
           it.skip "No RC added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
             expect(_.keys(ResourceConverter.registry).length).to.equal initialRegistryKeys.length
-            expect(_B.isEqualArraySet (_.keys ResourceConverter.registry), initialRegistryKeys).to.be.true # need set check
+            equalSet (_.keys ResourceConverter.registry), initialRegistryKeys
   null
 
   describe "ResourceConverter .clone():", ->
@@ -169,8 +166,10 @@ describe 'ResourceConverter creation, cloning & updating:', ->
         deepEqual foundRc, expectedRc
 
       it "Searched instance is updated via search flags", ->
-        flagsToApply = '!#'
-        expectedRcWithAppliedFlags = _.extend _.clone(expectedRc, true), {isAfterTemplate:true, ' type': 'text'}
+        flagsToApply = '~#'
+        expectedRcWithAppliedFlags = _.extend _.clone(expectedRc, true), {
+          isMatchSrcFilename: true,
+          ' type': 'text'}
         foundRc = ResourceConverter.searchRegisterUpdate -> @ flagsToApply + rc.name
         expect(foundRc).to.be.equal rc
         deepEqual foundRc, expectedRcWithAppliedFlags

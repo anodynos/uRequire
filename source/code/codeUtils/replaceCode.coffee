@@ -1,5 +1,4 @@
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/codeUtils/replaceCode'
 
 toCode = require   "./toCode"

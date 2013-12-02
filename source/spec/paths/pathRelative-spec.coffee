@@ -1,6 +1,10 @@
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'paths/pathRelative-spec'
+
 chai = require 'chai'
-assert = chai.assert
 expect = chai.expect
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 pathRelative = require "../../code/paths/pathRelative"
 

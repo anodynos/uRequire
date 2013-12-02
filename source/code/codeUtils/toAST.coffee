@@ -1,11 +1,11 @@
+_ = (_B = require 'uberscore')._
 esprima =  require 'esprima'
-_ = require 'lodash'
 
 UError = require '../utils/UError'
 # @param codeOrAST {String|AST}
 # @return an AST that can be generated to code
 #     either as type: 'Program' or type: 'BlockStatement'
-
+#todo: split/configure to 'strict mode', no undefined, no AST etc
 module.exports = toAST = (codeOrAST, type)->
   # some type checking!
   validTypes = ['Program', 'BlockStatement']

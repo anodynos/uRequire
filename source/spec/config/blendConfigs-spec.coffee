@@ -1,6 +1,10 @@
-_B = require 'uberscore'
-l = new _B.Logger 'urequire/blendConfigs-spec'
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'config/blendConfigs-spec'
+
+chai = require 'chai'
+expect = chai.expect
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 blendConfigs = require '../../code/config/blendConfigs'
 MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
@@ -12,9 +16,6 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
   bundleBuildBlender
 } = blendConfigs
 
-
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
 arrayizePushBlender = new _B.ArrayizePushBlender
 
 #ResourceConverter = requireUncached require.resolve '../../code/config/ResourceConverter'
@@ -33,7 +34,7 @@ resources =  [
   ]
 
   [
-    '!Streamline' # a title of the resource (without type since its not in [@ # $], but with isAfterTemplate:true due to '!' (runs only on Modules)
+    '~Streamline' # a title of the resource (without type since its not in [@ # $], but with isAfterTemplate:true due to '!' (runs only on Modules)
     'I am the Streamline descr' # a descr (String) at pos 1
     '**/*._*'                         # even if we have a String as an implied `filez` array
     (source)-> source
@@ -53,8 +54,8 @@ resources =  [
   ]
 
   {
-    name: '#-IamAFalseModule' # A TextResource (starting with '#')
-    #type: 'module'            # this WOULD BE respected, over flag starting with '#'
+    name: '#IamAFalseModule' # A TextResource (starting with '#')
+    #type: 'module'            # this is not respected, over flag starting with '#'
     filez: '**/*.module'
     convert: ->
   }
@@ -93,9 +94,9 @@ expectedResources = [
     ' convFilename': resources[1][4]
     _convFilename: resources[1][4]
     isTerminal: false
-    isMatchSrcFilename: false
+    isMatchSrcFilename: true
     isBeforeTemplate: false
-    isAfterTemplate: true
+    isAfterTemplate: false
     isAfterOptimize: false
   }
 
@@ -137,7 +138,7 @@ expectedResources = [
     isMatchSrcFilename: false
     isBeforeTemplate: false
     isAfterTemplate: false
-    isAfterOptimize: true
+    isAfterOptimize: false
   }
 ]
 
@@ -272,16 +273,16 @@ describe 'blendConfigs & its Blenders: ', ->
           ,
             name: 'UMD'
             otherRandomOption: 'someRandomValue'
-
-      it "resets dest Object if src name is changed", ->
-        deepEqual templateBlender.blend(
-            {}
-            {name: 'UMD', otherRandomOption: 'someRandomValue'}
-            {}
-            'combined'
-            )
-          ,
-            name: 'combined'
+# functionality surpressed
+#      it "resets dest Object if src name is changed", ->
+#        deepEqual templateBlender.blend(
+#            {}
+#            {name: 'UMD', otherRandomOption: 'someRandomValue'}
+#            {}
+#            'combined'
+#            )
+#          ,
+#            name: 'combined'
 
     describe "template is {}:", ->
       it "blends to existing ", ->
@@ -295,15 +296,16 @@ describe 'blendConfigs & its Blenders: ', ->
           name: 'UMD'
           otherRandomOption: 'someRandomValue'
 
-      it "resets dest Object if template.name is changed", ->
-        deepEqual templateBlender.blend(
-            {}
-            {name: 'UMD', otherRandomOption: 'someRandomValue'}
-            {}
-            {name: 'combined'}
-          )
-        ,
-          name: 'combined'
+# functionality surpressed
+#      it "resets dest Object if template.name is changed", ->
+#        deepEqual templateBlender.blend(
+#            {}
+#            {name: 'UMD', otherRandomOption: 'someRandomValue'}
+#            {}
+#            {name: 'combined'}
+#          )
+#        ,
+#          name: 'combined'
 
   describe "blending config with ResourceConverters :", ->
     it "converts array of RC-specs' into array of RC-instances", ->
@@ -449,7 +451,7 @@ describe 'blendConfigs & its Blenders: ', ->
         , # DEPRACATED keys
           bundlePath: "sourceSpecDir"
           main: 'index'
-          filez: '**/*.*' # arrayized and added at pos 0
+          filez: '**/*' # arrayized and added at pos 0
           resources: resources[2..]
           dependencies:
             variableNames:
@@ -482,10 +484,10 @@ describe 'blendConfigs & its Blenders: ', ->
                 derive:
                   resources: resources[0..1]
                   derive:
-                    copy: ['!**/*.*']
+                    copy: ['!**/*']
                     template:
                       name: 'combined'
-                      dummyOption: 'dummy'
+                      someOption: 'someOption' # value is preserved, even if name changes.
               dependencies:
                 exports: bundle: 'spec-data': 'dataInDerive2'
               verbose: false
@@ -509,13 +511,13 @@ describe 'blendConfigs & its Blenders: ', ->
             path: "source/code"
             main: "index"
             filez: [
-              '**/*.*'            # comes from last config with filez
+              '**/*'            # comes from last config with filez
               '**/*.litcoffee'
               '!', /^draft/       # comes from DEPRACATED ignore: [/^draft/]
               '**/*.coffee.md'    # comes from first (highest precedence) config
               '**/*.ls'           # as above
             ]
-            copy: ['!**/*.*', '**/*.html', /./]
+            copy: ['!**/*', '**/*.html', /./]
             resources: expectedResources
             dependencies:
               node: ['util', 'fs']
@@ -537,7 +539,9 @@ describe 'blendConfigs & its Blenders: ', ->
             verbose: true
             dstPath: "build/code"
             debugLevel: 90
-            template: name: "UMD"
+            template:
+              name: "UMD"
+              someOption: 'someOption'
             
             # test arraysConcatOrOverwrite
             useStrict: false

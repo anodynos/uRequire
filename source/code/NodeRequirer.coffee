@@ -1,11 +1,11 @@
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'urequire/NodeRequirer', 0 # disable runtime debug
+
 fs = require 'fs'
 
 upath = require './paths/upath'
 pathRelative = require './paths/pathRelative'
 Dependency = require './fileResources/Dependency'
-_B = require 'uberscore'
-l = new _B.Logger 'urequire/NodeRequirer', 0 # disable runtime debug
 
 urequire = require './urequire'
 

@@ -70,15 +70,3 @@ pathRelative = (from, to, options)->
       return null # no path found
 
 module.exports = pathRelative
-
-
-#_path = require 'path'
-##from =  "Y:/work/p/a/../b/c/../../../" # I am back in work
-##to =    "Y:/work/p/d"
-#from = '/a'
-#to = '/a'
-#
-#console.log '\n result:', pathRelative from, to, dot4Current:true
-#console.log '\n _path', _path.relative from, to
-#[from, to] = [to, from]
-#console.log '\n result:', calcPath from, to

@@ -1,10 +1,9 @@
-_ = require 'lodash'
-fs = require 'fs'
-_B = require 'uberscore'
-
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/urequireCMD'
 
+fs = require 'fs'
 urequireCommander = require 'commander'
+
 upath = require './paths/upath'
 Build = require './process/Build'
 

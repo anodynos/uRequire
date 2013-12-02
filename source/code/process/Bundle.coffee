@@ -1,10 +1,10 @@
-# externals
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'urequire/process/Bundle'
+
 _.mixin (require 'underscore.string').exports()
+
 fs = require 'fs'
 rimraf = require 'rimraf'
-_B = require 'uberscore'
-l = new _B.Logger 'urequire/process/Bundle'
 globExpand = require 'glob-expand'
 
 # uRequire
@@ -23,6 +23,9 @@ Module = require './../fileResources/Module'
 
 Build = require './Build'
 BundleBase = require './BundleBase'
+
+CodeMerger = require '../codeUtils/CodeMerger'
+toCode = require '../codeUtils/toCode'
 
 isFileInSpecs = require '../config/isFileInSpecs'
 
@@ -49,18 +52,23 @@ class Bundle extends BundleBase
 
     filenames:->
       if _.isEmpty @files
-        _.filter globExpand({cwd: @path}, '**/*.*'), (f)=> isFileInSpecs f, @filez #our initial filenames
+        _.filter globExpand({cwd: @path, filter: 'isFile'}, '**/*'), (f)=> isFileInSpecs f, @filez #our initial filenames
       else
         _.keys @files
 
     dstFilenames:-> _.map @files, (f)-> f.dstFilename                     # just dstFilenames, used by Dependency
 
+    # all of these hold instances of Module, TextResource etc
+    # We want to add some helper methods
+    # eg (_.find m.bundle.modules, (mod)-> mod.path is 'specHelpers-imports')
+    # @todo: make more generic, eg use Backbone Models & collections
     fileResources:-> _.pick @files, (f)-> f instanceof FileResource       # includes TextResource & Module
 
     textResources:-> _.pick @files, (f)-> f instanceof TextResource       # includes Module
 
     modules:-> _.pick @files, (f)-> f instanceof Module                   # just Modules
 
+    # filtered for copy only # todo: allow all & then filter them
     copyBundleFiles: ->
       if _.isEmpty @copy
         {}
@@ -69,16 +77,12 @@ class Bundle extends BundleBase
 
     # XXX_depsVars: format {dep1:['dep1Var1', 'dep1Var2'], dep2:[...], ...}
     localNonNode_depsVars: ->
-      @inferEmptyDepVars (
-        @getDepsVars (dep)=> # filter local & non-node
-          (dep.isLocal) and
-          (dep.pluginName isnt 'node') and
-          (dep.name(plugin:false) not in @dependencies.node)
-        ), 'Gathering @localNonNode_depsVars (bundle`s local dependencies) & infering empty depVars'
+      @inferEmptyDepVars (@getDepsVars (dep)-> dep.isLocal and not dep.isNode),
+        'Gathering @localNonNode_depsVars (bundle`s local dependencies) & infering empty depVars'
 
     nodeOnly_depsVars:->
       l.debug 80, "Gathering 'node'-only dependencies"
-      @getDepsVars (dep)=> (dep.pluginName is 'node') or (dep.name(plugin:false) in @dependencies.node)
+      @getDepsVars (dep)-> dep.isNode
 
     exportsBundle_depsVars:->
       @inferEmptyDepVars _.clone(@dependencies.exports.bundle, true),
@@ -189,7 +193,7 @@ class Bundle extends BundleBase
     @return null
   ###
   loadOrRefreshResources: (filenames = @filenames)->
-    l.debug """\n-
+    l.debug """ \n
       #####################################################################
       loadOrRefreshResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
@@ -247,6 +251,7 @@ class Bundle extends BundleBase
             Something wrong while loading/refreshing/processing '#{filename}'.""", {nested:err}
         else
           l.verbose "Missing file #{bf.srcFilepath} - removing bundle file #{filename}"
+          delete @mainModule if @mainModule is @files[filename]
           delete @files[filename]
           if bf.dstExists and bf.hasErrors isnt 'duplicate'
             l.verbose "Deleting file: #{bf.dstFilepath}"
@@ -279,7 +284,7 @@ class Bundle extends BundleBase
   buildChangedResources: (@build, filenames=@filenames)->
     @errorsCount = 0
     isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
-    l.debug """\n-
+    l.debug """ \n
       #####################################################################
       buildChangedResources: build ##{build.count}
       bundle.name = #{@name}, bundle.main = #{@main}
@@ -309,7 +314,7 @@ class Bundle extends BundleBase
       # filter filenames not passing through bundle.filez
       bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
       if diff = filenames.length - bundleFilenames.length
-        l.verbose "Ignored #{diff} non bundle.filez"
+        l.verbose "Ignored #{diff} non-`bundle.filez`"
         filenames = bundleFilenames
 
     if not filenames.length
@@ -319,13 +324,15 @@ class Bundle extends BundleBase
 
       if !_.isEmpty @build.changedFiles
         @convertChangedModules()
+        @concatMainModuleBanner()
         @saveChangedResources()
         @copyChangedBundleFiles()
         if @doneOK and !isPartialBuild and
           ((@build.template.name isnt 'combined') or @build.watch)
             @build.hasFullBuild = true
 
-        return @combine() if (@build.template.name is 'combined') # return cause report & done after its finished
+        if (@build.template.name is 'combined')
+          return @combine() # return cause report & done() should run only after its finished
 
       else
         l.verbose "No bundle files *really* changed."
@@ -335,7 +342,7 @@ class Bundle extends BundleBase
 
   convertChangedModules:->
     if !_.isEmpty @build.changedModules
-      l.debug """\n-
+      l.debug """ \n
         #####################################################################
         Converting changed modules with template '#{@build.template.name}'
         #####################################################################""" if l.deb 30
@@ -357,9 +364,19 @@ class Bundle extends BundleBase
             @handleError new UError "Error at `convertChangedModules()`", {nested:err}
     null
 
+  # add template.banner to 'bundle.main', if it exists & has changed
+  concatMainModuleBanner:->
+    if @build.template.banner and @build.template.name isnt 'combined'
+      if (@mainModule or @inferMainModule()) and @mainModule.hasChanged
+        l.debug 40, "Concating `bundle.template.banner` to `@bundle.main` file = `#{@mainModule.dstFilename}`"
+        @mainModule.converted = @build.template.banner + '\n' + @mainModule.converted
+      else
+        l.warn "Can't concat `build.template.banner` - no @mainModule - tried `bundle.main`, `bundle.name`, 'index', 'main'."
+    null
+
   saveChangedResources:->
     if !_.isEmpty @build.changedResources
-      l.debug """\n-
+      l.debug """ \n
         #####################################################################
         Saving changed resource files that have a `converted` String
         #####################################################################""" if l.deb 30
@@ -387,7 +404,7 @@ class Bundle extends BundleBase
   # are copied to build.dstPath
   copyChangedBundleFiles: ->
     if !_.isEmpty @copyBundleFiles
-      l.debug """\n-
+      l.debug """ \n
         #####################################################################
         Copying #{_.size @copyBundleFiles} non-resources files (that match `bundle.copy`)"
         #####################################################################""" if l.deb 30
@@ -402,24 +419,16 @@ class Bundle extends BundleBase
 
     @build._copied = [copiedCount, skippedCount]
 
-  inferMain: ->
-    # if @main is emptry, set to name, or index, main @todo: & other sensible defaults ?
-    for mainCand in [@name, 'index', 'main'] when mainCand and not @main
-      mainMod = _.find @modules, (m)-> m.path is mainCand
+  # ovewrites and returns @mainModule, wether found or not
+  inferMainModule: ->
+    if @main # respect only @main
+      mainMod = _.find @modules, (m)=> m.path is @main
+    else # if @main is empty, try @name, 'index', 'main'
+      for mainCand in [@name, 'index', 'main'] when mainCand
+        mainMod = _.find @modules, (m)-> m.path is mainCand
+        break if mainMod
 
-      if mainMod
-        @main = mainMod.path
-        l.warn """
-         combine() note: 'bundle.main', your *entry-point module* was missing from bundle config(s).
-         It's defaulting to #{if @main is @name then 'bundle.name = ' else ''
-         }'#{@main}', as uRequire found an existing '#{@path}/#{mainMod.srcFilename}' module in your path.
-        """
-
-    if not @main
-      @handleError new UError """
-        'bundle.main' is missing (after so much effort).
-        No module found either as name = '#{@name}', nor as ['index', 'main'].
-      """
+    @mainModule = mainMod
 
   ###
   ###
@@ -440,12 +449,34 @@ class Bundle extends BundleBase
         else
           l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
 
-    l.debug """\n-
+    l.debug """ \n
       #####################################################################
       'combined' template: optimizing with r.js & almond
       #####################################################################""" if l.deb 30
 
-    @inferMain()
+    if @mainModule or @inferMainModule()
+      if not @main
+        @main = @mainModule.path
+        l.warn """
+          `combine` template note: `bundle.main`, your *entry-point module* was missing from `bundle` config.
+          It's defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
+          }', as uRequire found an existing '#{@path}/#{@mainModule.srcFilename}' module in your path.
+        """
+    else
+      combErr = """`bundle.main` should be your *entry-point module*, kicking off the bundle.
+                    It is required for `combined` template execution."""
+      if not @main
+        @handleError new UError """
+          Missing `bundle.main` from config.
+          #{combErr}
+          Tried to infer it from `bundle.name` = '#{@name}', or as ['index', 'main'], but no suitable module was found in bundle.
+        """
+      else
+        @handleError new UError """
+          Module `bundle.main` = '#{@main}' not found in bundle.
+          #{combErr}
+          NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is respected.
+        """
 
     almondTemplates = new AlmondOptimizationTemplate @
     for depfilename, genCode of almondTemplates.dependencyFiles
@@ -490,16 +521,15 @@ class Bundle extends BundleBase
 
           if not _.isEmpty @localNonNode_depsVars
             if (not @build.watch) or l.deb 50
-              l.verbose "Global bindinds: make sure the following local dependencies:\n", @localNonNode_depsVars,
+              l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
+                @localNonNode_depsVars,
                 """\n
                 are available when combined script '#{@build.template.combinedFile}' is running on:
-
-                a) nodejs: they should exist as a local `nodes_modules`.
-
-                b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
-
-                c) Web/Script: the binded variables (eg '_' or '$')
-                   must be a globally loaded (i.e `window.$`) BEFORE loading '#{@build.template.combinedFile}'
+                  a) nodejs: they should exist as a local `nodes_modules`.
+                  b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
+                  c) Web/Script: the binded variables (eg '_' or '$')
+                     must be a globally loaded (i.e `window.$`)
+                     BEFORE loading '#{@build.template.combinedFile}'\n
                 """
 
           # delete _combinedFileTemp, used as temp directory with individual AMD files
@@ -551,15 +581,24 @@ class Bundle extends BundleBase
 #        text: "requirejs_plugins/text"
 #        json: "requirejs_plugins/json"
 
-  Object.defineProperty @::, 'mergedPreDefineIIFENodesCode', get: ->
-    l.debug "Merging pre-Define IIFE code from all #{_.keys(@modules).length} @modules" if l.deb 80
-    CodeMerger = require '../codeUtils/CodeMerger'
-    cm = new CodeMerger
-    for m, mod of @modules
-      cm.add(mod.AST_preDefineIIFENodes or [])
+  Object.defineProperties @::,
 
-    cm.code
-  
+    mergedPreDefineIIFECode: get: ->
+      l.debug "Merging pre-Define IIFE code from all #{_.keys(@modules).length} @modules" if l.deb 80
+      cm = new CodeMerger
+      for m, mod of @modules
+        cm.add mod.AST_preDefineIIFENodes
+
+      toCode cm.AST, format:indent:base: 1
+
+    mergedCode: get: ->
+      l.debug "Merging mergedCode code from all #{_.keys(@modules).length} @modules" if l.deb 80
+      cm = new CodeMerger
+      for m, mod of @modules
+        cm.add mod.mergedCode
+
+      toCode cm.AST, format:indent:base: 1
+
   copyAlmondJs: ->
     try # copy almond.js from GLOBAL/urequire/node_modules -> build.template._combinedFileTemp
       BundleFile.copy(
@@ -585,6 +624,7 @@ class Bundle extends BundleBase
 #        BundleFile.copy     "#{@webRoot}#{depName}",         # from
 #                            "#{@build.template._combinedFileTemp}#{depName}"    # to
         l.er "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.template._combinedFileTemp}#{depName}"
+    null
 
   logNestedErrorMessages = (error)->
     errorMessages = error.message || error + ''
@@ -615,3 +655,4 @@ class Bundle extends BundleBase
 
 module.exports = Bundle
 
+_.extend module.exports.prototype, {l, _, _B}

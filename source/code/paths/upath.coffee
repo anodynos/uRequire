@@ -1,6 +1,6 @@
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
 _.mixin (require 'underscore.string').exports()
-_path = require 'path'
+path = require 'path'
 
 ###
   upath is a proxy to node's 'path', replacing '\' with '/' for all string results :-)
@@ -8,10 +8,10 @@ _path = require 'path'
   And adding some features ?...
 ###
 upath = {}
-for fName, fn of _path when _.isFunction fn
+for fName, fn of path when _.isFunction fn
   upath[fName] = do (fName)->
     (p...)->
-      res = _path[fName] p...
+      res = path[fName] p...
       if _.isString res
         res.replace /\\/g, '/'
       else

@@ -1,4 +1,6 @@
-# requires grunt 0.4.x
+# requires grunt >= 0.4.1
+_ = (_B = require 'uberscore')._
+
 sourceDir     = "source/code"
 buildDir      = "build/code"
 sourceSpecDir = "source/spec"
@@ -8,7 +10,6 @@ buildSpecDir  = "build/spec"
 S = if process.platform is 'win32' then '\\' else '/'
 
 gruntFunction = (grunt) ->
-  _ = grunt.util._
 
   gruntConfig =
     pkg: grunt.file.readJSON('package.json')
@@ -51,12 +52,16 @@ gruntFunction = (grunt) ->
         files: [ expand: true, cwd: "#{sourceSpecDir}/NR", src: ["*.json"], dest: "#{buildSpecDir}/NR"]
 
       wiki:
-        files: [ expand: true, cwd: "#{sourceDir}/config/", src: ["*.coffee.md"], dest: "../uRequire.wiki/"]
+        files: [ expand: true, cwd: "#{sourceDir}/config/", src: ["*.md"], dest: "../uRequire.wiki/"]
 
     watch:
-      dev: # requires `coffeeWatch` running to compile changed only files! We need a changed-only-files coffee task!
+      dev: # requires `coffeeWatch` to compile changed only files! need a changed-only-files coffee task!
         files: ["source/**/*.*"]
         tasks: ['copy:wiki', 'mochaCmd']
+
+      copy:
+        files: ["source/**/*.*"]
+        tasks: ['copy:wiki']
 
     shell:
       coffee: command: "node_modules#{S}.bin#{S}coffee -cb -o ./build ./source"
@@ -65,7 +70,7 @@ gruntFunction = (grunt) ->
         if process.platform is 'linux' # urequireCmd.js to executable - linux only, I've no idea abt MACs!
           "chmod +x 'build/code/urequireCmd.js'"
         else "@echo " #do nothing
-      mochaCmd: command: "node_modules#{S}.bin#{S}mocha #{buildSpecDir}/**/*-spec.js --recursive --reporter spec --bail"
+      mochaCmd: command: "node_modules#{S}.bin#{S}mocha #{buildSpecDir}/**/*-spec.js --recursive --bail" #--reporter spec
       #doc: command: "node_modules#{S}.bin#{S}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
 
       options:
@@ -93,6 +98,7 @@ gruntFunction = (grunt) ->
      "d":       "concat:bin chmod"
      "m":       "mochaCmd"
      "t":       "test"
+     "wd":      "watch:dev"
 
      # IDE shortcuts
      "alt-c": "copy:wiki"

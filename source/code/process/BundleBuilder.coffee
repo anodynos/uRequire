@@ -1,5 +1,4 @@
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/process/BundleBuilder'
 
 fs = require 'fs'
@@ -26,7 +25,7 @@ class BundleBuilder
 
     configs.push MasterDefaultsConfig               # add as the last one - the defaults on which we lay our more specifics
     @config = blendConfigs configs, deriveLoader    # our 'final' @config
-    _.defaults @config.bundle, {filez: ['**/*.*']}  # the only(!) hard coded default
+    _.defaults @config.bundle, {filez: ['**/*']}  # the only(!) hard coded default
 
     @setDebugVerbose()
     l.debug "Final config (with master defaults):\n", @config if l.deb 10
@@ -80,11 +79,8 @@ class BundleBuilder
     path = require 'path'
     fs = require 'fs'
 
-#    #@todo build this according to watch.filez || bundle.filez
-#    watchedFiles =  _.map bundleBuilder.bundle.filenames, (file)->
-#      path.join bundleBuilder.bundle.path, file
-#    watchedFiles.unshift bundleBuilder.bundle.path + '/**/*.*' # all dirs
-    gaze bundleBuilder.bundle.path + '/**/*.*', (err, watcher)->
+    # @todo build this according to watch.filez || bundle.filez
+    gaze bundleBuilder.bundle.path + '/**/*', (err, watcher)->
       watcher.on 'all', (event, filepath)->
         if event isnt 'deleted'
           try

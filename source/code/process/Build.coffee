@@ -1,7 +1,6 @@
-_ = require 'lodash'
-fs = require 'fs'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/process/Build'
+fs = require 'fs'
 
 # uRequire
 upath = require '../paths/upath'
@@ -15,8 +14,6 @@ BundleFile = require './../fileResources/BundleFile'
 FileResource = require './../fileResources/FileResource'
 TextResource = require './../fileResources/TextResource'
 Module = require './../fileResources/Module'
-
-module.exports =
 
 class Build extends _B.CalcCachedProperties
 
@@ -41,7 +38,6 @@ class Build extends _B.CalcCachedProperties
       if not @template.combinedFile # assume '@dstPath' is valid
         @template.combinedFile = @dstPath
         @dstPath = upath.dirname @dstPath
-
         l.verbose """
             `build.template` is 'combined' and `build.template.combinedFile` is undefined:
             Setting `build.template.combinedFile` = '#{@template.combinedFile}' from `build.dstPath`
@@ -50,7 +46,7 @@ class Build extends _B.CalcCachedProperties
       @template.combinedFile = upath.changeExt @template.combinedFile, '.js'
       @template._combinedFileTemp = "#{@template.combinedFile}___temp"
 
-      if not @dstPath # one '@combinedFile' is defined
+      if not @dstPath # only '@template.combinedFile' is defined
         @dstPath = upath.dirname @template.combinedFile
         l.verbose """
           `build.template` is 'combined' and `build.dstPath` is undefined:
@@ -77,9 +73,9 @@ class Build extends _B.CalcCachedProperties
   report: (bundle)-> # some build reporting
     l.verbose "Report for `build` ##{@count}:"
 
-    interestingDepTypes = ['notFoundInBundle', 'untrusted']
-    if not _.isEmpty report = bundle.reporter.getReport interestingDepTypes
-      l.warn "Dependency types report for `build` ##{@count}:\n", report
+    interestingDepTypes = ['notFoundInBundle', 'untrusted', 'node'] if not @verbose
+    if not _.isEmpty report = bundle.reporter.getReport(interestingDepTypes)
+      l.warn "\n \nDependency types report for `build` ##{@count}:\n", report
 
     l.verbose "Changed: #{_.size @changedResources} resources of which #{_.size @changedModules} were modules."
     l.verbose "Copied #{@_copied[0]} files, Skipped copying #{@_copied[1]} files." if @_copied?[0] or @_copied?[1]
@@ -92,3 +88,7 @@ class Build extends _B.CalcCachedProperties
       l.er "Build ##{@count} finished with errors in #{(new Date() - @startDate) / 1000 }secs."
     else
       l.verbose "Build ##{@count} finished succesfully in #{(new Date() - @startDate) / 1000 }secs."
+
+module.exports = Build
+
+_.extend module.exports.prototype, {l, _, _B}

@@ -1,9 +1,8 @@
-# externals
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'urequire/fileResources/FileResource'
+
 fs = require 'fs'
 mkdirp = require 'mkdirp'
-_B = require 'uberscore'
-l = new _B.Logger 'urequire/fileResources/FileResource'
 
 # uRequire
 BundleFile = require './BundleFile'
@@ -109,3 +108,5 @@ class FileResource extends BundleFile
       @bundle.handleError new UError uerr, nested:err
 
 module.exports = FileResource
+
+_.extend module.exports.prototype, {l, _, _B}

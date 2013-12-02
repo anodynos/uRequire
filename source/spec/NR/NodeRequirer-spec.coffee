@@ -1,10 +1,10 @@
+_ = (_B = require 'uberscore')._
+
 chai = require 'chai'
 expect = chai.expect
-
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact,
-  iqual, notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA } = require './../spec-helpers'
+  iqual, notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require './../specHelpers'
 
-_ = require 'lodash'
 fs = require('fs')
 upath = require '../../code/paths/upath'
 

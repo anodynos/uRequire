@@ -1,5 +1,4 @@
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/config/ResourceConverter', 0 # config's `build.debugLevel` doesn't work here, cause the config is not read yet!
 
 #BundleFile = require '../fileResources/BundleFile'
@@ -48,10 +47,16 @@ class ResourceConverter
       @descr or= "No descr for ResourceConverter '#{@name}'"
       @isTerminal ?= false
       @isMatchSrcFilename ?= false
+
       # when to run
       @isBeforeTemplate ?= false
       @isAfterTemplate ?= false
       @isAfterOptimize ?=false
+
+      # some sanity checks
+    if (@type in ['file', 'text', 'bundle']) and
+       (@isBeforeTemplate or @isAfterTemplate or @isAfterOptimize)
+          throw new UError "RC with name: '#{@name}': you should NOT have a non-module RC with any of @isBeforeTemplate or @isAfterTemplate or @isAfterOptimize"
 
     @
 
@@ -220,9 +225,11 @@ class ResourceConverter
 
     '~': (rc)-> rc.isMatchSrcFilename = true
     '|': (rc)-> rc.isTerminal = true
+
+    # module only, when to run
     '+': (rc)-> rc.isBeforeTemplate = true
     '!': (rc)-> rc.isAfterTemplate = true
-    '-': (rc)-> rc.isAfterOptimize = true
+    '%': (rc)-> rc.isAfterOptimize = true
 
   nameFlags = _.keys nameFlagsActions
 

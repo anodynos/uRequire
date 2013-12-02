@@ -1,5 +1,4 @@
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
 l = new _B.Logger 'urequire/codeUtils/CodeMerger'
 
 UError = require '../utils/UError'
@@ -17,12 +16,15 @@ class CodeMerger
     uniqueDeclarations: true
 
   constructor: (@options = CodeMerger.options)->
-
     if options isnt CodeMerger.options
       dfb.blend @options, CodeMerger.options
 
     @declarations or= []
     @statements or= []
+
+  reset:->
+    @declarations = []
+    @statements = []
 
   addbodyNode: (node)->
     if node.type is 'VariableDeclaration'
@@ -54,17 +56,22 @@ class CodeMerger
       * Array: of body nodes
       * Object: a single node OR a program
   ###
-  add: (code)-> @addbodyNode node for node in toAST(code, 'Program').body
+  add: (code)->
+    if !_.isEmpty code
+      @addbodyNode node for node in toAST(code, 'Program')?.body or []
 
   Object.defineProperties @::,
 
-    'AST': get: -> # join all declarations on top of resulted code
-      [{type: 'VariableDeclaration', @declarations, kind: 'var'}].concat @statements
+    'AST': get: ->
+      if _.isEmpty @declarations
+        @statements
+      else # join all declarations on top of statements
+        [{type: 'VariableDeclaration', @declarations, kind: 'var'}].concat @statements
 
     'code': get: -> toCode @AST
 
 module.exports = CodeMerger
-
+#
 #
 #cm = new CodeMerger
 #cm.add """
@@ -76,6 +83,3 @@ module.exports = CodeMerger
 #    var m = 'm';
 #    l = 2;
 #  """
-#
-#l.log ' \n', cm.code
-#l.log ' \n', cm.AST

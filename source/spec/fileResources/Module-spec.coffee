@@ -1,20 +1,17 @@
-chai = require "chai"
-assert = chai.assert
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'fileResources/Module-spec'
+
+chai = require 'chai'
 expect = chai.expect
+{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 Module = require "../../code/fileResources/Module"
 UError = require "../../code/utils/UError"
-_ = require 'lodash'
-_B = require 'uberscore'
-l = new _B.Logger 'spec/fileResources/Module-spec'
 
 isLikeCode = require "../../code/codeUtils/isLikeCode"
 isEqualCode = require "../../code/codeUtils/isEqualCode"
 toCode = require "../../code/codeUtils/toCode"
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
-
-
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
 untrust = (indexes, depsStrings)->

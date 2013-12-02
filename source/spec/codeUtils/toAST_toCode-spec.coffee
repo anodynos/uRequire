@@ -1,19 +1,16 @@
-_ = require 'lodash'
-_B = require 'uberscore'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'codeUtils/toAST_toCode-spec'
 
-chai = require "chai"
+chai = require 'chai'
 expect = chai.expect
-
-Module = require "../../code/fileResources/Module"
-UError = require "../../code/utils/UError"
-
-l = new _B.Logger 'spec/codeUtils/isEqualCode_isLikeCode-spec'
-
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 coffee = require 'coffee-script'
 esprima = require 'esprima'
+
+Module = require "../../code/fileResources/Module"
+UError = require "../../code/utils/UError"
 
 isLikeCode = require "../../code/codeUtils/isLikeCode"
 isEqualCode = require "../../code/codeUtils/isEqualCode"

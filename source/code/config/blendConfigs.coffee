@@ -1,8 +1,7 @@
-_ = require 'lodash'
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'urequire/blendConfigs'
 fs = require 'fs'
 require('butter-require')() # no need to store it somewhere
-_B = require 'uberscore'
-l = new _B.Logger 'urequire/blendConfigs'
 
 upath = require '../paths/upath'
 MasterDefaultsConfig = require './MasterDefaultsConfig'
@@ -80,7 +79,7 @@ addIgnoreToFilezAsExclude = (cfg)->
 
   if not _.isEmpty ignore
     l.warn "DEPRACATED key 'ignore' found @ config - adding them as exclude '!' to 'bundle.filez'"
-    filez = _B.arrayize(cfg.bundle?.filez || cfg.filez || ['**/*.*'])
+    filez = _B.arrayize(cfg.bundle?.filez || cfg.filez || ['**/*'])
     for ignoreSpec in ignore
       filez.push '!'
       filez.push ignoreSpec
@@ -223,7 +222,7 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
 
   'Array': (prop, src, dst)->                                        # Array, eg  `['lodash', 'jquery']`, convert to `{lodash:[], jquery:[]}`
     if not _.isPlainObject dst[prop]
-      dst[prop] = {} # dependenciesBindingsBlender.blend {}, dst[prop] @todo: why call with 'jquery' returns { j: [] }, '1': { q: [] }, '2': { u: [] }, ....}
+      dst[prop] = {}
     else
       _B.mutate dst[prop], _B.arrayize
 
@@ -234,7 +233,7 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
 
   'Object': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}, convert to    `{lodash:['???'], ...}`
     if not _.isPlainObject dst[prop]
-      dst[prop] = {} # dependenciesBindingsBlender.blend {}, dst[prop] @todo: why call with 'jquery' returns { j: [] }, '1': { q: [] }, '2': { u: [] }, ....}
+      dst[prop] = {}
     else
       _B.mutate dst[prop], _B.arrayize
 
@@ -252,16 +251,13 @@ templateBlender = new _B.DeepCloneBlender [
   # our src[prop] template is a String eg 'UMD'.
   # blend as {name:'UMD'}
   'String': (prop, src, dst)->
-    dst[prop] = {} if src[prop] isnt dst[prop]?.name
+    #dst[prop] = {} if src[prop] isnt dst[prop]?.name # REMOVED
     deepCloneBlender.blend dst[prop], {name: src[prop]}
 
   # our src[prop] template is an Object - should be {name: 'UMD', '...': '...'}
-  # blend as is but reset dst object if template has changed!
-  '{}': 'templateSetter'
-
-  templateSetter: (prop, src, dst)->
-    dst[prop] = {} if (src[prop].name isnt dst[prop]?.name) and
-                    not _.isUndefined(src[prop].name)
+  '{}': (prop, src, dst)->
+    # blend as is but reset dst object if template has changed! REMOVED
+    #dst[prop] = {} if (src[prop].name isnt dst[prop]?.name) and not _.isUndefined(src[prop].name)
     deepCloneBlender.blend dst[prop], src[prop]
 ]
 
@@ -323,3 +319,7 @@ _.extend blendConfigs, {
 }
 
 module.exports = blendConfigs
+
+urequire:
+ rootExports: '_B'
+ noConflict: true

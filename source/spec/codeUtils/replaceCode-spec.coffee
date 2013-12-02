@@ -1,22 +1,21 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/CodeMerger-spec'
+l = new _B.Logger 'codeUtils/replaceCode-spec'
+
 chai = require 'chai'
 expect = chai.expect
-
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA } = require '../spec-helpers'
+  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
+
+esprima = require 'esprima'
 
 CodeMerger = require '../../code/codeUtils/CodeMerger'
 Module = require '../../code/fileResources/Module'
-
-esprima = require 'esprima'
 
 toAST = require "../../code/codeUtils/toAST"
 toCode = require "../../code/codeUtils/toCode"
 isLikeCode = require "../../code/codeUtils/isLikeCode"
 isEqualCode = require "../../code/codeUtils/isEqualCode"
 replaceCode = require "../../code/codeUtils/replaceCode"
-
 
 describe 'replaceCode:', ->
   jsCode = """
