@@ -158,7 +158,7 @@ function(m) { m.beforeBody = 'var l = new _B.Logger("Logger" + m.dstFilename);' 
 A [ResourceConverter](http://urequire.org/resourceconverters.coffee#what-is-a-resourceconverter) for our `.coco` files (included along with coffeescript, LiveScript, iced-coffee-script)
 
 ```coffee
-[ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.source), '.js']
+[ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']
 ```
 
 ## A spartan Module builder & config

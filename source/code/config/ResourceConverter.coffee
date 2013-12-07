@@ -45,6 +45,8 @@ class ResourceConverter
 
       # defaults
       @descr or= "No descr for ResourceConverter '#{@name}'"
+      @enabled ?= true
+      @filez ?= [/./]
       @isTerminal ?= false
       @isMatchSrcFilename ?= false
 
@@ -156,7 +158,7 @@ class ResourceConverter
   #
   # @return The new or found and/or Updated ResourceConverter instance.
   @searchRegisterUpdate: (rc)->
-    if _.isString rc
+    if _.isString rc # a searchName
       name = rc
       # strip nameFlags for searchNameOrRC's sake
       while name[0] in nameFlags then name = name[1..]  
@@ -168,7 +170,7 @@ class ResourceConverter
 
         rcResult.name = rc # apply nameFlags of rc String
       else
-        throw new UError "ResourceConverter not found in registry with name = #{name}, searchNameOrRC = #{searchNameOrRC}"
+        throw new UError "ResourceConverter not found in registry with name = #{name}, searchNameOrRC = #{rc}"
 
     else
       if not (rc instanceof ResourceConverter)

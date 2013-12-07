@@ -8,6 +8,15 @@ MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 upath = require './../paths/upath'
 pathRelative = require './../paths/pathRelative'
 
+isFileInSpecs = require '../config/isFileInSpecs'
+
+untrust = (str)->
+  str = new String(str + '')
+  str.untrusted = true
+  str.inspect = -> """'#{@}' (untrusted Dependency)"""
+  str
+
+
 # @todo: doc it
 # @todo: make all functions property getters
 # @todo: tidy up - simplify
@@ -25,29 +34,10 @@ class Dependency
   ###
   constructor: (@depString, @module, @untrusted)->
 
-  @systemDeps: ['require', 'exports', 'module']
-
-  @TYPES:
-    notFoundInBundle: 'notFoundInBundle'
-    local: 'local'
-    node: 'node'
-    external: 'external'
-    webRootMap: 'webRootMap'
-    bundle: 'bundle'
-    system: 'system'
-    untrusted: 'untrusted'
-    #todo: other valid types ?
-
-  untrusted = (str)->
-    str = new String(str + '')
-    str.untrusted = true
-    str.inspect = -> """'#{@}' (untrusted Dependency)"""
-    str
-
-  Object.defineProperties @::, #todo: change to CalcCachedProperties ? When do we refresh ?
+  Object.defineProperties @::,
 
     depString:
-      get:-> if @untrusted then untrusted @_depString else @_depString
+      get:-> if @untrusted then untrust @_depString else @_depString
 
       set: (depString='')->
         @_depString = depString
@@ -65,37 +55,81 @@ class Dependency
           @extname = upath.extname @resourceName
           @resourceName = upath.trimExt @resourceName
 
+
+  #todo: other valid types ?
+  TYPES = [
+    'notFoundInBundle',
+    'external',
+    'untrusted',
+    'system',
+    'bundle',
+    'webRootMap'
+    'nodeLocal'
+    #'local' # local is when nodeLocal also
+    #'node'  # node is a generic function :-)
+  ]
+  for type in TYPES
+    do (type)->
+      Object.defineProperty Dependency::, 'is' + _.capitalize(type),
+        get: -> @type is type
+
+  Object.defineProperties @::,
+
+    isLocal: get:-> @type in ['local', 'nodeLocal']
+
     type: get:->
       if @untrusted
-        Dependency.TYPES.untrusted
+        'untrusted'
       else
-        if @isSystem # 'require', 'module', 'exports'
-          Dependency.TYPES.system
+        if @depString in ['require', 'exports', 'module']
+          'system'
         else
-          if @isNode
-            Dependency.TYPES.node # should distinguish from those in bundle's root
+          if @resourceName[0] is '/'
+            'webRootMap'
           else
-            if @isLocal
-              Dependency.TYPES.local
-            else
-              if @isExternal
-                Dependency.TYPES.external
+            # lets see if its found in the bundle
+            if @isNode
+              if @_isInLocals
+                'nodeLocal'
               else
-                if @isNotFoundInBundle
-                  Dependency.TYPES.notFoundInBundle
+                'node'
+            else
+              if @isFound
+                'bundle'
+              else
+                if not @_isBundleBoundary
+                  'external'
                 else
-                  if @isWebRootMap # eg '/assets/myLib'
-                    Dependency.TYPES.webRootMap
+                  if (@resourceName.indexOf('/') < 0) or               # a) its without '/', eg 'when'
+                     @_isInLocals                                      # b) its 'when/node/function', but in `dependencies.local`
+                     # todo : need to check `(@resourceName[0] isnt '.')` ?
+                     # @todo infer locals from package.json, bower.json etc & use depsVars type
+                    'local'
                   else
-                    Dependency.TYPES.bundle
+                    'notFoundInBundle'
+
+    _isInLocals: get:->
+      (@module?.bundle?.dependencies?.locals or
+        MasterDefaultsConfig.bundle.dependencies.locals)[ @resourceName.split('/')[0] ] # we have the 'when' key
+
+    isNode: get:->
+      (@pluginName is 'node') or # 'node' is a fake plugin signaling nodejs-only executing modules.
+      isFileInSpecs @name(plugin:false, relative:'bundle'),
+        (@module?.bundle?.dependencies?.node or
+          MasterDefaultsConfig.bundle.dependencies.node)
+
+
+    isFound: get:->
+      if _.isArray @module?.bundle?.dstFilenames
+        upath.defaultExt(@_bundleRelative, '.js') in @module.bundle.dstFilenames
 
     _bundleRelative: get:->
       if @untrusted
         @depString
       else
-        if @isFileRelative and @isBundleBoundary
-          upath.normalize "#{upath.dirname @module.path}/#{@resourceName}"
-        else
+        if (@resourceName[0] is '.')  and @_isBundleBoundary
+          upath.normalize "#{upath.dirname(@module?.path or '__root__')}/#{@resourceName}"
+        else # keep bundleRelative outside of bundle with at least ./
           upath.normalizeSafe @resourceName
 
     _fileRelative: get:->
@@ -103,55 +137,22 @@ class Dependency
         @_depString
       else
         if @module?.path and @isFound
-          pathRelative "$/#{upath.dirname @module.path}", "$/#{@_bundleRelative}", dot4Current:true
+          pathRelative "$/#{upath.dirname(@module?.path or '__root__')}", "$/#{@_bundleRelative}", dot4Current:true
         else
           upath.normalizeSafe @resourceName
 
-    # ###### Where about does this dependency lie ?
-
-    isBundleBoundary: get:->
-      if @untrusted or @isWebRootMap or (not @module?.path)
+    # does this dependency lie within bundle's boundaries ?
+    _isBundleBoundary: get:->
+      if @untrusted #or @isWebRootMap
         false
       else
-        !!pathRelative "$/#{@module.path}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
-
-    isFileRelative: get:-> !@untrusted and @resourceName[0] is '.'
-
-    isRelative: get:-> !@untrusted and @resourceName.indexOf('/') >= 0 and not @isWebRootMap
-
-    isWebRootMap: get:-> !@untrusted and @resourceName[0] is '/'
-
-    isLocal: get:-> !(@untrusted or @isWebRootMap or @isRelative or @isFound or @isSystem)
-
-    isNode: get:->
-      (@pluginName is 'node') or # 'node' is a fake plugin signaling nodejs-only executing modules.
-      (@name(plugin:false) in
-        ((@module or MasterDefaultsConfig)?.bundle?.dependencies?.node or [])
-      )
-
-    isSystem: get:-> (@depString in Dependency.systemDeps)
-
-    ### external-looking deps, like '../../../some/external/lib' ###
-    isExternal: get:-> !@untrusted and !(@isBundleBoundary or @isWebRootMap)
-
-    # seem to belong to bundle, eg like myPath/MyLib or ../some/bundle/path
-    # but is both not found like '../myNotFoundLib'
-    # and it doesn't look like a 'local' (eg 'lodash')
-    isNotFoundInBundle: get:-> !@untrusted and @isBundleBoundary and not (@isFound or @isLocal or @isSystem)
-
-    isUntrusted: get:-> @untrusted is true
-
-    isFound: get:->
-      if _.isArray @module?.bundle?.dstFilenames
-        upath.defaultExt(@_bundleRelative, '.js') in @module.bundle.dstFilenames
-
-    isBundle: get:-> @type is 'bundle'
+        !!pathRelative "$/#{@module?.path}/../../#{@resourceName}", "$" #2 .. steps back :$ & module
 
   name: (options = {})->
     if @untrusted
       @depString
     else
-      options.ext ?= if @isExternal or @isNotFoundInBundle then true else false
+      options.ext ?= false #if @isExternal or @isNotFoundInBundle then true else false
       options.plugin ?= true
       options.relative ?= 'file'
       options.quote ?= false

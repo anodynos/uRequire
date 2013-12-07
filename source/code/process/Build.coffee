@@ -73,7 +73,7 @@ class Build extends _B.CalcCachedProperties
   report: (bundle)-> # some build reporting
     l.verbose "Report for `build` ##{@count}:"
 
-    interestingDepTypes = ['notFoundInBundle', 'untrusted', 'node'] if not @verbose
+    interestingDepTypes = ['notFoundInBundle', 'untrusted', 'node', 'nodeLocal'] if not @verbose
     if not _.isEmpty report = bundle.reporter.getReport(interestingDepTypes)
       l.warn "\n \nDependency types report for `build` ##{@count}:\n", report
 

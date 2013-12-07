@@ -82,7 +82,7 @@ class Bundle extends BundleBase
 
     nodeOnly_depsVars:->
       l.debug 80, "Gathering 'node'-only dependencies"
-      @getDepsVars (dep)-> dep.isNode
+      @getDepsVars (dep)-> dep.isNode # also gets `nodeLocal`
 
     exportsBundle_depsVars:->
       @inferEmptyDepVars _.clone(@dependencies.exports.bundle, true),
@@ -366,13 +366,15 @@ class Bundle extends BundleBase
 
   # add template.banner to 'bundle.main', if it exists & has changed
   concatMainModuleBanner:->
-    if @build.template.banner and @build.template.name isnt 'combined'
-      if (@mainModule or @inferMainModule()) and @mainModule.hasChanged
-        l.debug 40, "Concating `bundle.template.banner` to `@bundle.main` file = `#{@mainModule.dstFilename}`"
-        @mainModule.converted = @build.template.banner + '\n' + @mainModule.converted
-      else
-        l.warn "Can't concat `build.template.banner` - no @mainModule - tried `bundle.main`, `bundle.name`, 'index', 'main'."
-    null
+    if !_.isEmpty @build.changedModules
+      if @build.template.banner and @build.template.name isnt 'combined'
+        if (@mainModule or @inferMainModule())
+          if @mainModule.hasChanged
+            l.debug 40, "Concating `bundle.template.banner` to `@bundle.main` file = `#{@mainModule.dstFilename}`"
+            @mainModule.converted = @build.template.banner + '\n' + @mainModule.converted
+        else
+          l.warn "Can't concat `build.template.banner` - no @mainModule - tried `bundle.main`, `bundle.name`, 'index', 'main'."
+      null
 
   saveChangedResources:->
     if !_.isEmpty @build.changedResources
@@ -430,6 +432,7 @@ class Bundle extends BundleBase
 
     @mainModule = mainMod
 
+  requirejs: require 'requirejs'
   ###
   ###
   combine: ->
@@ -494,22 +497,26 @@ class Bundle extends BundleBase
       wrap: almondTemplates.wrap
       baseUrl: @build.template._combinedFileTemp
       include: [@main]
-      deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getNodeOnly_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
+      deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getExcluded_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
       out: @build.template.combinedFile
+      useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
       name: 'almond'
 
+    # todo: re-move this to blendConfigs
     if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
       rjsConfig[@build.optimize] = @build[@build.optimize] # copy { uglify2: {...uglify2 options...}}
     else
       rjsConfig.optimize = "none"
     rjsConfig.logLevel = 0 if l.deb 90
 
-    @rjsOptimize rjsConfig
 
-  requirejs: require 'requirejs'
+    #@todo: blend it !
+    if not _.isEmpty @build.rjs
+      _.defaults rjsConfig, _.clone(@build.rjs, true)
 
-  # actually combine (r.js optimize)
-  rjsOptimize: (rjsConfig)=>
+    # actually combine (r.js optimize)
+#    @rjsOptimize rjsConfig
+#  rjsOptimize: (rjsConfig)=>
     l.verbose "requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
     rjsStartDate = new Date()
     @requirejs.optimize rjsConfig,
@@ -522,7 +529,7 @@ class Bundle extends BundleBase
           if not _.isEmpty @localNonNode_depsVars
             if (not @build.watch) or l.deb 50
               l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
-                @localNonNode_depsVars,
+                almondTemplates.localDepsVars,
                 """\n
                 are available when combined script '#{@build.template.combinedFile}' is running on:
                   a) nodejs: they should exist as a local `nodes_modules`.
@@ -537,7 +544,7 @@ class Bundle extends BundleBase
             l.debug(40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'.")
             rimraf.sync @build.template._combinedFileTemp
           else
-            l.debug("NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
+            l.debug(10, "NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
 
           @build.report @
           @build.done @doneOK
@@ -576,10 +583,11 @@ class Bundle extends BundleBase
         @build.done false
 
 
-  getRequireJSConfig: -> {} #@todo:(7 5 2) HOW LAME - remove & fix this!
-#      paths:
-#        text: "requirejs_plugins/text"
-#        json: "requirejs_plugins/json"
+  getRequireJSConfig: -> #@todo:(7 5 2) HOW LAME - remove & fix this!
+    if not _.isEmpty @build?.rjs
+      @build.rjs
+    else
+      {}
 
   Object.defineProperties @::,
 
@@ -617,7 +625,7 @@ class Bundle extends BundleBase
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
   copyWebMapDeps: ->
-    webRootDeps = _.keys @getDepsVars (dep)->dep.depType is Dependency.TYPES.webRootMap
+    webRootDeps = _.keys @getDepsVars (dep)->dep.isWebRootMap
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
@@ -631,11 +639,13 @@ class Bundle extends BundleBase
     while error.nested
       error = error.nested
       errorMessages += '\n' + error?.message
+      errorMessages += '\n stack: ' + error?.stack if error?.stack
     l.er errorMessages
 
-  handleError: (error=new UError "Undefined or null error!")->
+  handleError: (error = new UError "Undefined or null error!")->
     @errorsCount++
     if error.quit
+      l.er '\n message:\n', error.message, '\n stack:\n', error.stack
       throw error # 'gracefully' quit: caught by bundleBuilder.buildBundle
     else
       if @build

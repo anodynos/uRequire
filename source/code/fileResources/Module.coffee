@@ -32,19 +32,13 @@ class Module extends TextResource
           @bundle.build.dstPath
         else
           ''
-  # @todo: 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
-  for bof in ['useStrict', 'bare', 'globalWindow', 'runtimeInfo', 'allNodeRequires', 'noRootExports', 'scanAllow']
+  # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  for bof in ['useStrict', 'bare', 'globalWindow',
+              'runtimeInfo', 'allNodeRequires', 'noRootExports',
+              'scanAllow', 'injectExportsModule']
     do (bof)->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
-        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
-
-        # @todo: enable setting it, after documenting (kept across multi builds)
-        # set: (val)-> @_[bof] =  val
-        # get: ->
-        #   if _.isUndefined @_[bof]
-        #     isTrueOrFileInSpecs @?bundle?.build?[bof], @dstFilename
-        #   else
-        #     @_[bof]
+        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @path
 
   ###
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
@@ -343,12 +337,15 @@ class Module extends TextResource
 
     if not (_.isEmpty(@defineArrayDeps) and @isScanAllow and not @flags.rootExports)
       addToArrayDependencies reqDep for reqDep in @ext_requireDeps
+
     @
 
   # inject [depVars] Dependencies to defineArrayDeps, nodeDeps
   # and their corresponding parameters (infered if not found)
   injectDeps: (depVars)->
-    l.debug("#{@path}: injecting dependencies: ", depVars) if l.deb 40
+    if l.deb(40)
+      if not _.isEmpty depVars
+        l.debug("#{@path}: injecting dependencies: ", depVars)
 
     {dependenciesBindingsBlender} = require '../config/blendConfigs' # circular reference delayed loading
     return if _.isEmpty depVars = dependenciesBindingsBlender.blend depVars

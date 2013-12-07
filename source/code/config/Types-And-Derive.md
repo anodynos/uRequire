@@ -9,11 +9,27 @@ For somewhat complex types, there is a flexibility of values you can use as ther
 
 Filename specifications (or simply filenames), expressed in either:
 
-  * *gruntjs*'s expand minimatch format (eg `'**/*.coffee'`) and its exclusion cousin (eg `'!**/DRAFT*.*'`)
+  * `String` in *gruntjs*'s expand minimatch format (eg `'**/*.coffee'`) and its exclusion cousin (eg `'!**/DRAFT*.*'`)
 
-  * `RegExp`s that match filenames (eg `/./`) again with a `[..., '!', /regexp/, ...]` exclusion pattern.
+  * `RegExp`s that match filenames (eg `/./`) again with a
 
-  * A `function(filename){}` callback, returning true if filename is to be included. Consistently it can have a negation/exclusion flag before it, `[..., '!', function(f){ return f === 'allowMeOrNot.js' }, ...]`.
+  ```
+  [..., '!', /regexp/, ...]
+  ```
+
+  exclusion pattern.
+
+  * A `function(filename){}` callback, returning true if filename is to be matched. Consistently it can have a negation/exclusion flag before it:
+  ```
+  [..., '!', function(f){ return f === 'excludeMe.js' }, ...]
+  ```.
+
+  @note use a `true` (i.e matched) as the result preceded by '!' for exclusion, **rather the common trap than of a false result for your *excluded matches* (cause all your non-excluded with match with true, which is probably not what you want!)**.
+
+  * @todo: NOT IMPLEMENTED: An `Array<String|RegExp|Function|Array>, recursive, i.e
+   ```
+   [ ..., ['AllowMe*.*', '!', function(f){ return f === 'excludeMe.js' }, [.., []], ...], ...]
+   ```
 
 @example
 
@@ -84,15 +100,18 @@ If a dependency (key) ends up with no identifier (var name), for example `{ myDe
 
 ## `booleanOrFilespecs`
 
-This type controls if a key applies to *all, none or some filez*. Its either:
+This type controls if a key applies to *all, none or some filenames/module paths*. Its either:
 
-  * boolean (true/false).
+  * boolean (true/false), so all or none files/modules get the setting.
 
-  * A [filespecs](#filespecs)
+  * A [filespecs](#filespecs). Important @note: if the config setting (eg `globalWindow`, `useStrict` etc) is dealing with modules (usually), a module [bundleRelative](Flexible-Path-Conventions#bundlerelative-vs-filerelative-paths) *path* is expected **without the filename extension**, i.e `['models/PersonModel', ...]` without `'.js'`. If dealing with general file, you have to match filename **and** extension.
 
-Unless otherwise specified, it uses derive [`arraysConcatOrOverwrite`](#arraysConcatOrOverwrite).
+Unless otherwise specified, `booleanOrFilespecs` uses derive [`arraysConcatOrOverwrite`](#arraysConcatOrOverwrite).
+
 
 _____
+
+
 
 # Deriving Behaviors
 

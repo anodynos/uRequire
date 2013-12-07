@@ -25,11 +25,11 @@ Template = require './Template'
 #
 #     kind: type of the original module : 'nodejs' or 'AMD'
 #
-#     defineArrayDeps: Array of deps, as delcared in AMD, filerelative (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
+#     defineArrayDeps: Array of deps, as needed in AMD, in filerelative format (eg '../PersonView' for 'views/PersonView') + all `require('dep')`
 #
 #     nodeDeps: Array for file-relative dependencies, as required by node (eg '../PersonView')
 #
-#     parameters: Array of parameter names, as declared on the original AMD, minus those exceeding arrayDeps or with added dummy ones if they were less.
+#     parameters: Array of parameter names, as declared on the original AMD, minus those exceeding arrayDeps
 #
 #     flags:
 #
@@ -58,44 +58,63 @@ class ModuleGeneratorTemplates extends Template
 
     moduleNamePrint: get:-> if @module.name then "'#{@module.name}', " else ""
 
+    isInjectExportsModule: get:->
+      (@module.kind is 'nodejs') or
+      (
+        @module.isInjectExportsModule and
+        #not @isCombined and # why not needed in combined ?
+        not (  # skip if already there
+              (@module.defineArrayDeps?[0]?.isEqual? 'exports') and
+              (@module.parameters?[0] is 'exports') and
+              (@module.defineArrayDeps?[1]?.isEqual? 'module') and
+              (@module.parameters?[1] is 'module')
+            )
+      )
+
+    injectExportsModuleParamsPrint: get:->
+      if @isInjectExportsModule then ', exports, module' else ''
+
     # parameters of the factory method, eg 'require, _, personModel' ###
     parametersPrint: get:-> """
-      require#{if (@module.kind is 'nodejs') then ', exports, module' else ''}#{
-      (", #{par}" for par in @module.parameters).join ''}
+      require#{@injectExportsModuleParamsPrint}#{
+        (", #{par}" for par in @module.parameters).join ''}
     """
 
-    defineArrayDepsPrint: get:-> """
-      #{
-        if _.isEmpty @module.defineArrayDeps
+    defineArrayDepsPrint: get:->
+      ( if _.isEmpty @module.defineArrayDeps
           "" #keep empty [] not existent, enabling requirejs scan
         else
-          if @module.kind is 'nodejs'
+          if @isInjectExportsModule
             "['require', 'exports', 'module'"
           else
             "['require'"
-      }
-      #{
-        (for dep in @module.defineArrayDeps
-           ", #{dep.name(quote:true)}").join('') # quote: single quotes if literal, no quotes otherwise (if untrusted)
-      }
-      #{
-        if _.isEmpty @module.defineArrayDeps then '' else '], '
-      }
-      """
+      ) +
+      (
+        for dep in @module.defineArrayDeps
+           ", #{dep.name(quote:true)}" # quote: single quotes if literal, no quotes otherwise (if untrusted)
+      ).join('') +
+
+      ( if _.isEmpty @module.defineArrayDeps then '' else '], ' )
 
     runtimeInfo: get: ->
       if @module.isRuntimeInfo then Template::runtimeInfo else ''
 
-    useStrict: get:->
-      if @module.isUseStrict
-        "'use strict';\n"
-      else ''
+
+    # On combined allow either
+    # * per Module if filespec is used
+    # * for whole template only if true was used
+    useStrictModule: get:->
+      if @module.isUseStrict and not
+         (@isCombined and _B.isTrue(@build.useString))
+            "'use strict';"
+      else
+        ''
 
     isRootExports: get: ->
       not (@module.isNoRootExports or _.isEmpty @module.flags.rootExports)
 
   ### private ###
-  _rootExportsNoConflict: (rootName='root')->
+  _rootExportsNoConflict: (rootName='root', returnModule=true)->
       @deb(10, "*** START *** rootExports & noConflict() : exporting module '#{@module.path}' to root='#{rootName}' & attaching `noConflict()`.") +
 
       ( if @module.flags.noConflict
@@ -120,8 +139,9 @@ class ModuleGeneratorTemplates extends Template
           ) + ';'
         else
           ''
-      ) +
-      "\nreturn __umodule__;" +
+      ) + '\n' +
+
+      (if returnModule then "return __umodule__;"  else '') +
 
       @deb(10, "*** END *** rootExports & noConflict()")
 
@@ -135,6 +155,7 @@ class ModuleGeneratorTemplates extends Template
 
   factoryBodyAll: (toKind = do-> throw new Error "factoryBodyAll requires `toKind` in ['AMD', 'nodejs']" )->
     @sp(
+       'useStrictModule',
        ('bundle.commonCode' if not @isCombined),
        ('module.mergedCode' if not @isCombined),
        'module.beforeBody',
@@ -159,12 +180,11 @@ class ModuleGeneratorTemplates extends Template
     fullBody = @sp(
       'runtimeInfo'
       [ 'module.preDefineIIFEBody',
-      'statements/declarations before define(), enclosed in an IIFE (function(){})().']
+        'statements/declarations before define(), enclosed in an IIFE (function(){})().']
     ) + fullBody
 
     #return
     @uRequireBanner +
-    @useStrict +
     ( if @module.isBare
         fullBody
       else
@@ -173,7 +193,7 @@ class ModuleGeneratorTemplates extends Template
           @__functionIIFE fullBody, 'window', root, 'global', root
         else
           @__functionIIFE fullBody
-     ) + ';'
+     )# + ';'
   ###
   A Simple `define(['dep'], function(dep){...body...}})`,
   without any common stuff that are not needed for 'combined' template.
@@ -196,7 +216,7 @@ class ModuleGeneratorTemplates extends Template
         ,
           @parametersPrint # our factory function (declaration params)
       ) +
-    ');'
+    ')'
 
   ###
     `combined` templates is actually defined in AlmondOptimizationTemplate.coffee,
@@ -224,7 +244,7 @@ class ModuleGeneratorTemplates extends Template
 
       if @isRootExports
         "var __umodule__ = module.exports;\n" +
-        @_rootExportsNoConflict('global')
+        @_rootExportsNoConflict('global', false)
       else ''
     )
 
@@ -234,6 +254,7 @@ class ModuleGeneratorTemplates extends Template
   ###
   UMDplain: -> @UMD false
 
+  # todo: revise this
   UMD: (isNodeRequirer=true)->
     nr = if isNodeRequirer then "nr." else ""
 
@@ -244,22 +265,18 @@ class ModuleGeneratorTemplates extends Template
         else '') +
 
         """
-         if (typeof exports === 'object') {
-            #{
-              if isNodeRequirer
-                "var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, __dirname, '#{@module.webRootMap}');"
-              else ''
-            }
-            module.exports = #{
-                if @isRootExports then 'rootExport(global, ' else ''
-              }factory(#{nr}require#{
-              if (@module.kind is 'nodejs') then ', exports, module' else ''}#{
-              (for nDep in @module.nodeDeps
-                if nDep.isSystem
-                  ', ' + nDep.name()
-                else
-                  ", #{nr}require(#{nDep.name(quote:true)})"
-              ).join ''})#{if @isRootExports then ')' else ''};
+          if (typeof exports === 'object') {#{
+            if isNodeRequirer
+              "\n    var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, __dirname, '#{@module.webRootMap}');"
+            else ''}
+              module.exports = #{ if @isRootExports then 'rootExport(global, ' else ''
+                   }factory(#{nr}require#{@injectExportsModuleParamsPrint}#{
+                      (for nDep in @module.nodeDeps
+                        if nDep.isSystem
+                          ', ' + nDep.name()
+                        else
+                          ", #{nr}require(#{nDep.name(quote:true)})"
+                      ).join ''})#{if @isRootExports then ')' else ''};
           } else if (typeof define === 'function' && define.amd) {
               define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
                 if not @isRootExports
@@ -270,7 +287,7 @@ class ModuleGeneratorTemplates extends Template
                     @parametersPrint
                   )
                 });
-          }
+            }
         """
         ,
         # parameter + value to our IIFE

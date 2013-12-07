@@ -93,8 +93,8 @@ describe "AlmondOptimizationTemplate:", ->
     it "creates stubs for grabbing local deps from `global` / `window`, AMD shim or node's require", ->
       equalSet _.keys(aot.dependencyFiles), [
           'getLocal_useless'
-          'getNodeOnly_util'
-          'getNodeOnly_fs'
+          'getExcluded_util'
+          'getExcluded_fs'
 
           # these are added on closure
           'getLocal_lodash'
@@ -105,8 +105,8 @@ describe "AlmondOptimizationTemplate:", ->
     it "creates corresponding paths for stubs", ->
       deepEqual aot.paths,
         useless: 'getLocal_useless'
-        util: 'getNodeOnly_util'
-        fs: 'getNodeOnly_fs'
+        util: 'getExcluded_util'
+        fs: 'getExcluded_fs'
 
         # these are added on closure
         lodash: 'getLocal_lodash'

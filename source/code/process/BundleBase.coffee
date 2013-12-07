@@ -26,7 +26,7 @@ class BundleBase extends _B.CalcCachedProperties
   For a given `Dependency`, resolve *all possible* paths to the file.
 
   `resolvePaths` is respecting:
-       - The `Dependency`'s own semantics, eg `webRootMap` if `dep` is relative to web root (i.e starts with `\`) and similarly for isRelative etc. See <code>Dependency</code>
+       - The `Dependency`'s own semantics, eg `webRootMap` if `dep` is relative to web root (i.e starts with `\`) and similarly for isPathSeparated etc. See <code>Dependency</code>
        - `@relativeTo` param, which defaults to the module file calling `require` (ie. @dirname), but can be anything eg. @path.
        - `requirejs` config, if it exists in this instance of BundleBase / NodeRequirer
 
@@ -41,7 +41,7 @@ class BundleBase extends _B.CalcCachedProperties
     resPaths = []
     addit = (path)-> resPaths.push upath.normalize path
 
-    if dep.isFileRelative #relative to requiring file's dir
+    if depName[0] is '.' #relative to requiring file's dir
       addit relativeTo + '/' + depName
     else
       if dep.isWebRootMap # web-root path
@@ -56,12 +56,12 @@ class BundleBase extends _B.CalcCachedProperties
           for path in paths # add them all
             addit @path + (depName.replace pathStart, path)
         else
-          if dep.isRelative  # relative to bundle eg 'a/b/c',
+          if depName.indexOf('/') >= 0 # relative to bundle eg 'a/b/c',
             addit @path + depName
           else # a single pathpart, like 'underscore' or 'myLib'
             addit depName     # local eg 'underscore' (most likely)
             addit @path + depName  # or bundleRelative (unlikely)
 
-    return resPaths
+    resPaths
 
 module.exports = BundleBase

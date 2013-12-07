@@ -13,46 +13,54 @@ class DependenciesReporter
   constructor: ()->
     @reportData = {}
 
-  DT = Dependency.TYPES
-
-  dependencyTypesMessages = _B.okv {},
+  dependencyTypesMessages =
     # 'problematic' ones
-    DT.untrusted,
+    'untrusted':
       header: "\u001b[33m Untrusted dependencies (i.e non literal String) found:"
       footer: "They are left AS-IS, BUT are added to the dependency array." +
               "If evaluated name of the `require( utrustedDep )` isnt in dependency array [..]," +
               "your app WILL HALT and WILL NOT WORK on the web/AMD side (but should be OK on node).\u001b[0m"
 
     # simply interesting
-    DT.node,
+    'node':
       header: "\u001b[33m Node only dependencies, NOT added to AMD deps array:"
       footer: "Make sure they are not `require`d when running on Web, " +
               "(i.e separate execution branches when __isNode / __isWeb), " +
               "otherwise you code will halt on Web."
 
-    DT.local,
-      header: "\u001b[33m `local`-looking dependencies not present in bundle's root:"
+    'nodeLocal':
+      header: "\u001b[33m Node only *local dependencies*, NOT added to AMD deps array:"
+      footer: "Make sure they are not `require`d when running on Web, " +
+              "(i.e separate execution branches when __isNode / __isWeb), " +
+              "otherwise you code will halt on Web."
+
+    'local':
+      header: "\u001b[33m `local` deps (i.e either looking 'local' / declared in deps.locals) not present in bundle :" # @todo: or infered from package/bower.JSON
       footer: "Note: When executing on plain nodejs, locals are `require`d as is. " +
               "When executing on Web/AMD or uRequire/UMD they use `rjs.baseUrl`/`rjs.paths`, if present."
 
-    DT.notFoundInBundle,
+    'notFoundInBundle':
       header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
       footer: "They are added as-is.\u001b[0m"
 
-    DT.external,
+    'external':
       header: "External dependencies (not checked in this version):"
       footer: "They are added as-is."
 
-    DT.webRootMap,
+    'webRootMap':
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
 
-  reportTemplate: (texts, dependenciesFound)->
+  reportTemplate: (texts, depsFound)->
+    maxDepLength = _.max _.map depsFound, (v, k)-> k.length
+
     '\n   ' + texts.header + '\n' +
 
-    ( for dependency, moduleFiles of dependenciesFound
-        "     - '#{dependency}' #{ _.pad '(in ' + moduleFiles.length + ' modules).', 50-dependency.length}"
+    ( for dep, modules of depsFound
+        "    - '#{dep}'#{ _.pad '(in ' + modules.length + " modules: '", 18 + (maxDepLength - dep.length) + (modules.length + '').length}" +
+        (mod for mod, i in modules when i<3).join("', '") + (if modules.length >=3 then "', ...)" else "')")
     ).join('\n') +
+
     '\n    ' + texts.footer + '\n'
 
   # Augments reportData, that ends up in this form

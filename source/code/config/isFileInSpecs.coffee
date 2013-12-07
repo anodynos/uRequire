@@ -6,10 +6,9 @@ minimatch = require 'minimatch'
 # 
 # @param String filename name of the filename, eg 'myfile.txt' 
 #
-# @param Array<String|RegExp> filename *specs* in minimatch or RegExp,
+# @param Array<String|RegExp|Function> filename *specs* in minimatch or RegExp or Function (returning true for match),
 #        with negative being '!' either as a 1st char of Strings or
-#        as a plain '!' that negates the *spec* following (usefull to negate RegExps).
-#
+#        as a plain '!' that negates the *spec* following (usefull to exclude matching RegExps & Functions).
 isFileInSpecs = module.exports = (filename, filez)-> #todo: (3 6 4) convert to proper In/in agreement
   finalAgree = false
   for agreement, idx in _B.arrayize filez #go through all (no bailout when true) cause we have '!*glob*'
@@ -31,7 +30,7 @@ isFileInSpecs = module.exports = (filename, filez)-> #todo: (3 6 4) convert to p
           if _.isFunction agreement
             agreement filename
 
-    if agrees
+    if _B.isTrue agrees
       if idx is excludeIdx
         finalAgree = false
       else

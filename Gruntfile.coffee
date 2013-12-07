@@ -30,11 +30,7 @@ gruntFunction = (grunt) ->
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
-    clean:
-      build: [
-        "<%= options.buildDir %>/**/*.*"
-        "<%= options.buildSpecDir %>/**/*.*"
-      ]
+    clean: build: 'build'
 
     concat:
       bin:
@@ -56,7 +52,7 @@ gruntFunction = (grunt) ->
 
     watch:
       dev: # requires `coffeeWatch` to compile changed only files! need a changed-only-files coffee task!
-        files: ["source/**/*.*"]
+        files: ["build/**/*.*"]
         tasks: ['copy:wiki', 'mochaCmd']
 
       copy:
@@ -70,35 +66,29 @@ gruntFunction = (grunt) ->
         if process.platform is 'linux' # urequireCmd.js to executable - linux only, I've no idea abt MACs!
           "chmod +x 'build/code/urequireCmd.js'"
         else "@echo " #do nothing
-      mochaCmd: command: "node_modules#{S}.bin#{S}mocha #{buildSpecDir}/**/*-spec.js --recursive --bail" #--reporter spec
+      mochaCmd: command: "node_modules#{S}.bin#{S}mocha #{buildSpecDir}/**/*-spec.js --recursive --bail" #--reporter spec"
       #doc: command: "node_modules#{S}.bin#{S}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
-
-      options:
-        verbose: true
-        failOnError: true
-        stdout: true
-        stderr: true
+      options: verbose: true, failOnError: true, stdout: true, stderr: true
 
   ### shortcuts generation ###
-  splitTasks = (tasks)-> if !_.isString tasks then tasks else (_.filter tasks.split(' '), (v)-> v)
-
+  splitTasks = (tasks)-> if !_.isString tasks then tasks else (_.filter tasks.split(/\s/), (v)-> v)
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-     "default": "clean build test"
-     "build":   "coffee concat chmod copy"
-     "test":    "copy:specResources mochaCmd"
+     default: "clean build test"
+     build:   "coffee concat chmod copy"
+     test:    "copy:specResources mochaCmd"
 
      # some shortcuts
-     "cf":      "coffee"
-     "cfw":     "coffeeWatch"
+     cf:      "coffee"
+     cfw:     "coffeeWatch"
 
      # generic shortcuts
-     "cl":      "clean"
-     "b":       "build"
-     "d":       "concat:bin chmod"
-     "m":       "mochaCmd"
-     "t":       "test"
-     "wd":      "watch:dev"
+     cl:      "clean"
+     b:       "build"
+     d:       "concat:bin chmod"
+     m:       "mochaCmd"
+     t:       "test"
+     wd:      "watch:dev"
 
      # IDE shortcuts
      "alt-c": "copy:wiki"

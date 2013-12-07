@@ -39,6 +39,8 @@ expectedRc =
   isAfterTemplate: false
   isAfterOptimize: false
 
+  enabled: true
+
 describe 'ResourceConverter creation, cloning & updating:', ->
 
   initialRegistryKeys = _.keys ResourceConverter.registry
@@ -205,6 +207,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
           isBeforeTemplate: false
           isAfterTemplate: false
           isAfterOptimize: false
+          enabled: true
 
         expect(foundRc.convFilename is rcSpec1[3]).to.be.true
 

@@ -97,11 +97,12 @@ module.exports = class AlmondOptimizationTemplate extends Template
         @allBanners +
         """
         (function (global, window){
-          #{@sp 'runtimeInfo'}
+          #{if _B.isTrue @build.useStrict then "'use strict';\n" else ''
+          }#{@sp 'runtimeInfo'}
           var __nodeRequire = (__isNode ? require :
               function(dep){
                 throw new Error("uRequire detected missing dependency: '" + dep + "' - in a non-nodejs runtime. All it's binding variables were 'undefined'.")
-              });
+              });\n
         """ +
 
         @sp('bundle.mergedPreDefineIIFECode') +
@@ -130,7 +131,7 @@ module.exports = class AlmondOptimizationTemplate extends Template
         @deb(20, 'IIFE call of bundle enclosure, with `global === window` always available') +
         """
         }).call(this, (typeof exports === 'object' ? global : window),
-                      (typeof exports === 'object' ? global : window));
+                      (typeof exports === 'object' ? global : window))
         """
 
     # @return {
@@ -140,31 +141,32 @@ module.exports = class AlmondOptimizationTemplate extends Template
     paths: get:->
       _paths = {}
       for localDep in @localDeps
-        _paths[localDep] = "getLocal_#{localDep}"
+        _paths[localDep] = "getLocal_#{_.slugify localDep}"
 
-      for nodeOnlyDep of @bundle.nodeOnly_depsVars
-        _paths[nodeOnlyDep] = "getNodeOnly_#{nodeOnlyDep}"
+      for excludedDep of @bundle.nodeOnly_depsVars
+        _paths[excludedDep] = "getExcluded_#{_.slugify excludedDep}"
 
       _paths
 
     # @return {
     #   getLocal_lodash: "code",
     #   getLocal_backbone: "code"
+    #   getExcluded_BadDep_with_paths: "code"
     # }
     dependencyFiles: get:->
       _dependencyFiles = {}
 
       l.deb 70, "creating dependencyFiles 'getLocal_XXX' from @localDepsVars = \n", @localDepsVars
       for dep, vars of @localDepsVars
-        l.deb 80, "creating 'getLocal_#{dep}' by grabDependencyVarOrRequireIt(dep = '", dep, "', aVars = ", vars, ')'
-        _dependencyFiles["getLocal_#{dep}"] =
+        l.deb 80, "creating 'getLocal_#{_.slugify dep}' by grabDependencyVarOrRequireIt(dep = '", dep, "', aVars = ", vars, ')'
+        _dependencyFiles["getLocal_#{_.slugify dep}"] =
             @grabDependencyVarOrRequireIt dep, vars, 'local'
 
       l.deb 70, "creating dependencyFiles for @bundle.nodeOnly_depsVars = ", @bundle.nodeOnly_depsVars
-      for nodeOnlyDep of @bundle.nodeOnly_depsVars
-        l.deb 80, "creating 'getNodeOnly_#{nodeOnlyDep}' by grabDependencyVarOrRequireIt(dep=", nodeOnlyDep, ', aVars = always empty array!)'
-        _dependencyFiles["getNodeOnly_#{nodeOnlyDep}"] =
-            @grabDependencyVarOrRequireIt nodeOnlyDep, [], 'node-only'
+      for excludedDep of @bundle.nodeOnly_depsVars
+        l.deb 80, "creating 'getExcluded_#{_.slugify excludedDep}' by grabDependencyVarOrRequireIt(dep=", excludedDep, ', aVars = always empty array!)'
+        _dependencyFiles["getExcluded_#{_.slugify excludedDep}"] =
+            @grabDependencyVarOrRequireIt excludedDep, [], 'node-only'
 
       _dependencyFiles
 
@@ -178,7 +180,12 @@ module.exports = class AlmondOptimizationTemplate extends Template
       } else {\n""" +
 
       @deb(50, "loading '#{dep}' through 1st non-undefined binded var among `#{vars.join(', ')}`, that should be available on closure or global (eg window)") +
-      "  return #{varSelector vars, "__nodeRequire('#{dep}')"};"+
-      "\n}"
+
+      (
+        if _.isEmpty vars
+          "  throw new Error(\"uRequire: trying to access unbound / excluded \'#{descr}\' dependency \'#{dep}\') on browser\");"
+        else
+          "  return #{varSelector vars, "__nodeRequire('#{dep}')"}"
+      ) + "\n}"
 
     "define(" + @__function(depFactory) + ");"

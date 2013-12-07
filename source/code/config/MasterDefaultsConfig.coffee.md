@@ -254,31 +254,67 @@ Replace all right hand side dependencies (String value or []<String> values), to
 
 ### bundle.dependencies.node
 
-Dependencies listed here are treated as node-only: they aren't added to the AMD dependency array (and hence not available on the Web/AMD side).
+Dependencies ([declared in filespecs](types-and-derive#filespecs)) listed here are treated as node-only: they aren't added to the AMD dependency array (and hence **not available** on the Web/AMD side).
 
-Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo).
+Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo) to follow a different branch in your code.
 
-Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin, eg `require('node!my_fs')`, but probably more useful cause your code can execute on nodejs without the template conversion that strips `'node!'`.
+Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin, eg `require('node!my_fs')`, but its probably more useful cause your code can execute on nodejs without the template conversion that strips `'node!'` and you can declare in them in bulk without poluting the source code.
 
-@type String or Array<String>
+@type [filespecs](types-and-derive#filespecs), **used WITHOUT extensions (.js)**, only as deps.
 
-@derive [arrayizeUniqueConcat](types-and-derive#arrayizeUniqueConcat).
+@derive [arrayizeConcat](types-and-derive#arrayizeConcat).
 
-@example `node: ['myUtil', 'my_fs']`
+@example `node: ['myUtil', 'my_fs', 'node/*', '!stream']`
 
 @alias noWeb DEPRECATED
 
 @default All known built-in nodejs packages (as of 10.8) like `'util'`, `'fs'` etc are the default of  `bundle.dependencies.node`. Use `node: [[null], 'myNodeModule']` to reset the `node` array with only your modules.
 
-@todo: Default can lead to in-advertised feature leak if there's a user's module with these names - issue a warning ?
+@note: If your bundle contains a dependency name that is in `dependencies.node` (eg you have 'url.js' in the root of you bundle), then this is NOT considered to be a node-only dep, so you dont need to exclude it with '!url'.
 
         node: [
           'fs', 'events', 'util', 'http', 'path', 'child_process',
           'events', 'crypto', 'string_decoder', 'timers', 'tls'
-          'domain', 'buffer', 'stream', 'net', 'dgram', 'dns',
-          'https', 'url', 'querystring', 'punycode', 'readline',
+          'domain', 'buffer', 'net', 'dgram', 'dns', 'stream',
+          'https', 'querystring', 'punycode', 'readline', 'url',
           'repl', 'vm', 'assert', 'tty', 'zlib', 'os', 'cluster'
         ]
+
+### bundle.dependencies.local
+
+Declare your local packages, like 'lodash' or 'when' that are installed either in npm (i.e `/node_modules`), bower (i.e `/bower_components`) or vanilla (eg `/vendor`).
+
+@optional unless:
+
+ * you use something like `require('when/node/function')` and 'when' is reported as `notFoundInBundle`, so you list `when` in `locals`. (or @todo NOT IMPLEMENTED infered from `package.json / bower.json`).
+
+ * (@todo: inlining NOT IMPLEMENTED yet) you want to override the paths infered from `bower.json/package.json` for `lodash` and also inline 'lodash' in a combined build
+
+@todo partially implemented
+
+@stability 1
+
+@example `local: ['when']`
+
+@type :
+
+ * Array<String>, eg ['when', 'backbone', 'lodash']
+
+ * @todo: NOT IMPLEMENTED yet: depsVars where keys are dependencies and the value(s) are the paths when the dependency 'main' can be found.
+   eg
+    ```
+     {
+      'when': "./node_modules/when'
+      'backbone'
+      'lodash'
+     }
+    ```
+
+You dont need to provide the paths, if you dont indend to inline them in a [combined template](combined-template)
+
+@todo infer locals AND their paths from package.json, bower.json etc
+
+        locals: {}
 
 ### bundle.dependencies.depsVars
 
@@ -325,7 +361,7 @@ ____
 
 An Array of [**ResourceConverters (RC)**](ResourceConverters.coffee) (eg compilers, transpilers etc), that perform a conversion from one resource format (eg coffeescript, teacup) to another **converted** format (eg javascript, HTML).
 
-**ResourceConverters** is a generic and extendible in-memory conversions workflow, that is trivial to use and extend with your own, perhaps one-liner, converters (eg `['$coco', [ '**/*.co'], ((r)-> (require 'coco').compile r.source), '.js']` is an RC).
+**ResourceConverters** is a generic and extendible in-memory conversions workflow, that is trivial to use and extend with your own, perhaps one-liner, converters (eg `['$coco', [ '**/*.co'], ((r)-> (require 'coco').compile r.converted), '.js']` is an RC).
 
 The workflow unobtrusively uses `bundle` & `build` info like paths and is a highly *in-memory-pipeline* and *read-convert-and-save only-when-needed* workflow, with an integrated [`build.watch`](MasterDefaultsConfig.coffee#build.watch) capability (grunt or standalone).
 
@@ -402,7 +438,7 @@ resources: [
  -> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
 
  # define a new RC, with the fancy [] RC-spec
- ['$koko', ['**/*.ko'], ((m)-> require('koko').compile m.source), '.js']
+ ['$koko', ['**/*.ko'], ((m)-> require('koko').compile m.converted), '.js']
 
  # define a new RC, with the grandaddy {} RC-spec
  {
@@ -524,6 +560,8 @@ template: {
    combinedFile: 'build/someOtherPath/combinedModulesFilename.js'
 
    # Adds the string at the top you `bundle.main` file, or the combined file
+   # @note rjs optimizer doesnt keep all banners, only license ones (not sure
+   # of its exact policy, seems only multi lines with /** */ are kept).
    banner: "/** I am a banner on top */"
 
    # outputs section comments with values of 10, 20, 30.
@@ -591,15 +629,22 @@ The IIFE is just a top-level safety wrapper used to prevent leaking and have all
 
 ## build.useStrict
 
-Add the famous `'use strict';` at the begining of each module, so you dont have to type it at each one.
+Add the famous `'use strict';` so you dont have to type it at each module.
 
-@note: For the ['combined' template](combined-template) its never added at each module **and it currently can't be added before the enclosing function because [r.js doesn't allow it](https://github.com/jrburke/requirejs/issues/933). It should be fixed in future version, for now just concat it your self :-(**
+Its added either at:
+
+* the begining of each module's body, for modules that [pass filespecs](types-and-derive#booleanOrFilespecs) or to all modules if `build.useStrict: true`.
+
+* once at the closure of the ['combined' template](combined-template), only if the value is `true`.
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-      useStrict: false
+@default is `undefined`, which doesn't inject `use strict;` on any module, BUT it in [combined template](combined-template) it enables the corresponding [rjs config `useStrict: true`](https://github.com/jrburke/r.js/blob/master/build/example.build.js). Effectively this allows 'use strict;' on the modules that already have it. Use `false` to give a false on rjs, which strips them off and `true` to inject it on the once on the combined template or on each module in UMD/AMD/nodejs (even if modules already have it).
+
+      useStrict: undefined
+
 
 ## build.globalWindow
 
@@ -612,6 +657,28 @@ Allow `global` & `window` to be `global === window`, whether on nodejs or the br
 @note the `global === window` functionality is always true in ['combined' template](combined-template) - `false`-ing it makes no difference!
 
       globalWindow: true
+
+## build.injectExportsModule
+
+Always inject `exports, module` as dependencies on AMD/UMD templates from modules that are originally AMD (the default is to inject them only on originally nodejs/commonjs modules).
+
+Having `exports` around solves **[circular dependencies(http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) problem [with AMD](http://requirejs.org/docs/api.html#circular)**, so its enabled by @default as true.
+
+@note with this commonjs trick (see it in [requirejs docs](http://requirejs.org/docs/api.html#circular)), you cant export only the plain `{}` that `exports` already privides, not a `function` or any other type.
+
+@note uRequire fixes the AMD mandate that you still need to `return exports` or `return module.exports` that both point to {the:'module'} from the AMD factory (not just setting `module.exports = {the:'module'}`). With uRequire conversion and you can use exports as you normally do with nodejs/commonjs modules, and never return it even from AMD modules.
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+@note modules originally `nodejs` and converted to `AMD`/`UMD` always have `exports, module` injected anyway, and ALL converted modules always get a require, so you never have to import it.
+
+@optional chanigng the @default being `true`, would save a few bytes in each module definition, with the cost of falling into the circular dep trap and having to `return exports` etc. Advice is to leave it on, and *never manually type* `define(['require', 'exports', 'module', ..], function(require, exports, module, ..){..}` etc again!
+
+@todo improve detection/injection of the 3 stooges.
+
+      injectExportsModule: true
 
 ## build.noRootExports
 
@@ -629,13 +696,17 @@ When true, it doesn't produce the boilerplate for [exporting modules (& `noConfl
 
 ## build.scanAllow
 
-By default, ALL missing `require('dep1')` deps in your module are added on the dependency array `define(['dep0', 'dep1',...], ...)`.
+By default, ALL `require('missing/NodeStyle/Dep')` in your module are added on the dependency array `define(['existingArrayDep',.., 'missing/NodeStyle/Dep'], ...)`.
 
 Even if there is even one dep on [], [runtime scan is disabled on RequireJs](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934). If any `require('dep1')` is forgotten, your app will halt. uRequire adds them all to prevent this problem.
 
-With `scanAllow: true` you allow `require('')` scan @ runtime (costs at starting up). This is meaningfull **only for source modules that have no other `define([])` deps (even injected)**, that is i.e. modules using ONLY `require('')`, written as pure nodejs modules.
+With `scanAllow: true` you allow `require('')` scan @ runtime (costs at starting up). This is meaningfull **only for source modules that have no other `define([])` deps (even injected)**, that is i.e. modules using ONLY `require('')`, either written as pure nodejs modules or AMD.
 
-@note: uRequire deliberatelly ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle) or [injected deps](resourceconverters.coffee#inject-replace-dependencies).
+@note in [combined-template](combined-template), rjs / almond optmization scans and adds all requires on AMD define array, so its completelly useless.
+
+@note: uRequire ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle) or [injected deps](resourceconverters.coffee#inject-replace-dependencies). @todo why, can this be removed ?
+
+@optional
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
@@ -754,6 +825,19 @@ Clean all files & folders from `build.dstPath` before each non-watched, non-part
 @todo: NOT IMPLEMENTED
 
       clean: undefined
+
+## build.rjs
+
+@stability 1
+
+@optional
+
+The [r.js config] https://github.com/jrburke/r.js/blob/master/build/example.build.js,
+when cobining with r.js ([combined template](combined-template)).
+
+Its keys are just _.defaults for urequire's idea about using r.js, so use with caution!
+
+      rjs: undefined
 
 # Examples
 

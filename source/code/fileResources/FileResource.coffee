@@ -52,7 +52,7 @@ class FileResource extends BundleFile
   # Note: it acts on @converted & @dstFilename, leaving them in a new state
   runResourceConverters: (convFilter=->true) ->
     @hasErrors = false
-    for resConv in @converters when convFilter(resConv)
+    for resConv in @converters when convFilter(resConv) and (resConv.enabled is true)
       try
         if _.isFunction resConv.convert
           l.debug "Converting #{@constructor?.name} srcFn='#{@srcFilename}', dstFn='#{@dstFilename}' with RC='#{resConv.name}'..." if l.deb 40
@@ -68,7 +68,8 @@ class FileResource extends BundleFile
       catch err
         @hasErrors = true
         throw new UError """
-           Error converting #{@constructor?.name} '#{@srcFilename}' with resConv '#{resConv?.name}'.""", {nested:err}
+           Error converting #{@constructor?.name} '#{@srcFilename}' with Resource Converter '#{resConv?.name}':
+           '''#{resConv?.descr}'''""", {nested: err}
       
       break if resConv.isTerminal
 

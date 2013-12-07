@@ -16,7 +16,7 @@ RCs work in a serial chain: one RC's [`converted`](#converted) result, is the ne
 
 ...as a callback API that enables any kind of conversion, even with *one-liners*. This is an actual ResourceConverter :
    
-   `[ '$coco', [ '**/*.co'], function(r){return require('coco').compile(r.source)}, '.js']`
+   `[ '$coco', [ '**/*.co'], function(r){return require('coco').compile(r.convert)}, '.js']`
    
   Authoring an RC is very simple and has a [formal spec](#Inside-a-Resource-Converter) and [space saving shortcuts](#the-alternative-even-shorter-way). 
 
@@ -533,17 +533,17 @@ A method `replaceCode(matchCode, replCode)` that replaces (or removes) a code st
 
   * a **String**, which MUST BE a **single parseable Javascript statement/expression** (it gets converted to AST, getting the first only body[] node). For example:
  ```
-    'if (l.deb()){}' // an if skeleton without else part
+ 'if (l.deb()){}' // an if skeleton without else part
  ```
 
  will match all code like :
 
  ```
-    if (l.deb(someParam, anotherParam)){
-        statement1;
-        statement2;
-        ...
-    } // no else or it wont match
+ if (l.deb(someParam, anotherParam)){
+   statement1;
+   statement2;
+    ...
+ } // no else or it wont match
  ```
 
   * or a more flexible **AST 'skeleton'** object (in [Mozzila Parser AST](https://developer.mozilla.org/en/SpiderMonkey/Parser_API)) like:
@@ -581,7 +581,6 @@ resources: [
   ...
   [
     '+remove:debug/deb', [/./]
-
     # perform the replacement / deletion
     # note: return value is ignored in '+' `isBeforeTemplate` RCs
     (modyle)-> modyle.replaceCode 'if (l.deb()){}'
@@ -697,8 +696,10 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
           ]
 
           # javascript needs no compilation - returns source as is
-          # could have `undefined` in its place
-          convert: (modyle)-> modyle.source
+          # could have `undefined` in convert's place
+          # we use m.converted (which defaults to m.source), cause
+          # you never know what super duper RC conversion run before!
+          convert: (modyle)-> modyle.converted
 
           # convert .js | .javascript to .js
           convFilename: (srcFilename)->
@@ -733,8 +734,8 @@ This RC is using an [] instead of {}. Key names of RC are assumed from their pos
              # only if any 'coffee' file matches
              coffee = require 'coffee-script'
 
-             # return converted source
-             coffee.compile m.source
+             # return converted converted
+             coffee.compile m.converted
 
           # `convFilename` Function at pos 4
           (srcFn)->
@@ -758,7 +759,7 @@ This RC is using an [] instead of {}. Key names of RC are assumed from their pos
           [ '**/*.ls']
 
           # `convert` Function at pos 2
-          (m)->(require 'LiveScript').compile m.source
+          (m)->(require 'LiveScript').compile m.converted
 
           # if `convFilename` is String starting with '.',
           # it denotes an extension replacement of `dstFilename`
@@ -770,9 +771,9 @@ This RC is using an [] instead of {}. Key names of RC are assumed from their pos
 
 ### The shortest way ever, one-liner, no comments converters!
 
-        [ '$iced-coffee-script', [ '**/*.iced'], ((r)-> require('iced-coffee-script').compile r.source), '.js']
+        [ '$iced-coffee-script', [ '**/*.iced'], ((r)-> require('iced-coffee-script').compile r.converted), '.js']
 
-        [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.source), '.js']
+        [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']
 
     ]
 
@@ -910,14 +911,44 @@ Another Example (not part of `extraResourceConverters`):
 ]
 ```
 
-# Finito 
+
+# Finito
 
 Just export default and extra RCs and go grab a cup of coffee!
 
-    module.exports = {
-      # used as is by `bundle.resources`
-      defaultResourceConverters
+    # used as is by `bundle.resources`
+    exports.defaultResourceConverters = defaultResourceConverters
 
-      # registered on `ResourceConverter` registry, instantiated on demand.
-      extraResourceConverters
-    }
+    #registered on `ResourceConverter` registry, instantiated on demand.
+    exports.extraResourceConverters = extraResourceConverters
+
+## Add some coffeescript `define` and merge
+
+AMD Modules written in coffee, livescript, iced-coffee-script, coco and others have the advantage of [merging pre-define IIFE-statements in combined template](combined-template#merging-pre-define-ifi-statements).
+But for modules originally written in nodejs/common this is not the case, how can we take advantage of it?
+
+Just wrap a `define ->` and `module.exports`, indent and **turn any coffeescript nodejs module into AMD** BEFORE compiling from .coffee to .js!
+
+We need to add this as the very 1st in `defaultResourceConverters`, and have it disabled by default.
+
+    ResourceConverter = require './ResourceConverter' # circular dep, but exports is already set :-)
+
+    defaultResourceConverters.unshift wrapCoffeeDefineCommonJS =
+      new ResourceConverter [
+        'wrapCoffeeDefineCommonJS'
+        [ '**/*.coffee' # not working with .litcoffee
+          '**/*.co', '**/*.ls', '**.iced' ]
+
+        (r)->
+          lines = r.converted.split '\n'
+          r.converted = 'define ->\n'
+          for line in lines when line
+            r.converted += '  ' + line + '\n'
+          r.converted += "  return module.exports"
+
+        # no `convFilename` - extension is still coffee/co/ls/iced or whatever matched
+      ]
+
+    wrapCoffeeDefineCommonJS.enabled = false
+
+Now in your config, just have a `resources: [->(@ 'wrapCoffeeDefineCommonJS').enabled = true; null]` and tread your coffeescript nodejs source as AMD modules - jus tmake sure that they indeed commonjs and not AMD already!

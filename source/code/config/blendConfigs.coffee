@@ -134,8 +134,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
       dependencies:
 
-        node: '|': '*': (prop, src, dst)->
-          arrayizeUniquePusher.blend dst[prop], src[prop]
+        node: '|': '*': 'arrayizeConcat'
 
         exports:
 
@@ -144,6 +143,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           root: '|': '*': 'dependenciesBindings'
 
         replace: '|': '*': 'dependenciesBindings' # paradoxically, its compatible albeit a different meaning!
+
+        locals: '|': '*': 'dependenciesBindings' # paradoxically, its compatible albeit a different meaning!
 
         depsVars: '|': '*': 'dependenciesBindings'
 
@@ -156,6 +157,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       globalWindow: '|': 'arraysConcatOrOverwrite'
       runtimeInfo: '|': 'arraysConcatOrOverwrite'
       allNodeRequires: '|': 'arraysConcatOrOverwrite'
+      injectExportsModule: '|': 'arraysConcatOrOverwrite'
       noRootExports: '|': 'arraysConcatOrOverwrite'
       scanAllow: '|': 'arraysConcatOrOverwrite'
 

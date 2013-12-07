@@ -1,9 +1,13 @@
 _ = (_B = require 'uberscore')._
+l = new _B.Logger 'Dependency-spec'
 
 chai = require 'chai'
 expect = chai.expect
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
+
+MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
+Dependency = require "../../code/fileResources/Dependency"
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
 untrust = (indexes, depsStrings)->
@@ -12,8 +16,6 @@ untrust = (indexes, depsStrings)->
     depsStrings[idx].untrusted = true
     depsStrings[idx].inspect = -> @toString() + ' (untrusted in test)'
   depsStrings
-
-Dependency = require "../../code/fileResources/Dependency"
 
 describe "Dependency:", ->
 
@@ -24,7 +26,7 @@ describe "Dependency:", ->
 
       expect(dep.pluginName).to.equal 'somePlugin'
       expect(dep.extname).to.equal '.js'
-      expect(dep.name()).to.equal 'somePlugin!somedir/dep.js'
+      expect(dep.name()).to.equal 'somePlugin!somedir/dep' #.js ?
       expect(dep.toString()).to.equal depString
       expect(dep.name plugin:no, ext:no ).to.equal 'somedir/dep'
 
@@ -32,7 +34,7 @@ describe "Dependency:", ->
       dep = new Dependency depString = 'node!somedir/dep.js'
 
       expect(dep.pluginName).to.equal 'node'
-      expect(dep.name()).to.equal 'somedir/dep.js'
+      expect(dep.name()).to.equal 'somedir/dep' #.js
       expect(dep.toString()).to.equal depString
       expect(dep.depString).to.equal depString
       expect(dep.name plugin:true, ext:true).to.equal 'somedir/dep.js'
@@ -43,7 +45,7 @@ describe "Dependency:", ->
       dep = new Dependency(
         depString = './.././../../rootdir//dep'         # original non-normalized dependency name
         {
-          path: 'path/from/bundleroot/module.path.js'  # the module that has this dependenecy
+          path: './path/from/bundleroot/module.path.js'  # the module that has this dependenecy
           bundle: dstFilenames: ['rootdir/dep.js']     # module files in bundle
         }
       )
@@ -51,9 +53,6 @@ describe "Dependency:", ->
       it "knows basic dep data", ->
         expect(dep.extname).to.equal undefined
         expect(dep.pluginName).to.equal undefined
-
-      it "knows dep is found", -> expect(dep.isFound).to.equal true
-      it "dep.type is 'bundle'", -> expect(dep.type).to.equal 'bundle'
 
       it "calculates bundleRelative", ->
         expect(dep.name relative:'bundle').to.equal 'rootdir/dep'
@@ -64,6 +63,8 @@ describe "Dependency:", ->
       it "returns depString as toString()", ->
         expect(dep.toString()).to.equal depString
 
+      it "knows dep is found", -> expect(dep.isFound).to.equal true
+      it "dep.type is 'bundle'", -> expect(dep.type).to.equal 'bundle'
 
     describe "converts from bundleRelative to fileRelative:", ->
       dep = new Dependency(
@@ -74,14 +75,14 @@ describe "Dependency:", ->
         }
       )
 
-      it "knows dep is found", -> tru dep.isFound
-      it "dep.type is 'bundle'", -> equal dep.type, 'bundle'
-
       it "calculates as-is bundleRelative", ->
         expect(dep.name relative:'bundle').to.equal 'path/from/bundleroot/to/some/nested/module'
 
       it "calculates a fileRelative", ->
         expect(dep.name relative:'file').to.equal './to/some/nested/module'
+
+      it "knows dep is found", -> tru dep.isFound
+      it "dep.type is 'bundle'", -> equal dep.type, 'bundle'
 
     describe "Changing its depString and module.path:", ->
 
@@ -249,16 +250,22 @@ describe "Dependency:", ->
     mod =
       path: 'actions/greet'
 
-      bundle: dstFilenames: [
-       'main.js'
-       'actions/greet.js'
-       'actions/moreactions/say.js'
-       'calc/add.js'
-       'calc/multiply.js'
-       'data/numbers.js'
-       'data/messages/bye.js'
-       'data/messages/hello.js'
-      ]
+      bundle:
+        dstFilenames: [
+          'main.js'
+          'actions/greet.js'
+          'actions/moreactions/say.js'
+          'calc/add.js'
+          'calc/multiply.js'
+          'data/numbers.js'
+          'data/messages/bye.js'
+          'data/messages/hello.js'
+          'url.js'                          # url is in 'bundle.dependencies.node' bu if in bundle, its a bundle!
+        ]
+        dependencies:
+          node: MasterDefaultsConfig.bundle.dependencies.node.concat [
+                  'when/node/function', 'node/**/*', '!stream', '!url']
+          locals: { when: [] }
 
     strDependencies = [
       'underscore'                    # should add to 'local'
@@ -268,72 +275,105 @@ describe "Dependency:", ->
       '../lame/dir.js'                # should add to 'notFoundInBundle', add as is
       '.././../some/external/lib.js'  # should add to 'external', add as is
       '/assets/jpuery-max'            # should add to webRootMap
-      'require', 'module', 'exports'  # system libs
+       # system
+      'require'
+      'module'
+      'exports'
+      #node / node looking
+      'url'     # actually in bundle, we have to declare it on `node`
+      'stream'  # normaly node-only, but excluded in dependencies.node from being there!
+      'util'    # node only
+      'when/node/function' # node only, but also local (not missing)
+      'node/nodeOnly/deps'
     ]
 
     dependencies = []
     for dep in strDependencies
-      dependencies.push new Dependency dep, mod
+      dependencies.push d = new Dependency dep, mod
 
     dependencies.push new Dependency '"main"+".js"', mod, true # untrusted
 
     expected =
-      bundleRelative: untrust [10], [ # @todo: with .js removed or not ?
+      bundleRelative: untrust [dependencies.length-1], [ # @todo: with .js removed or not ?
         'underscore'                 # local lib
         'data/messages/hello'        # .js is removed since its in bundle.dstFilenames
         'data/messages/bye'          # as bundleRelative
         'actions/moreactions/say'
-        'lame/dir.js'                # as bundleRelative, with .js since its NOT in bundle.dstFilenames
-        '../../some/external/lib.js' # exactly as is
+        'lame/dir' # @todo: .js ?               # as bundleRelative, with .js since its NOT in bundle.dstFilenames
+        '../../some/external/lib'  # @todo: .js # exactly as is
         '/assets/jpuery-max'
-        'require', 'module', 'exports' # as is
+        'require' # as is
+        'module' # as is
+        'exports' # as is
+        'url'
+        'stream'
+        'util'
+        'when/node/function'
+        'node/nodeOnly/deps'
         '"main"+".js"'
       ]
-      fileRelative: untrust [10], [     # @todo: with .js removed or not ?
+      fileRelative: untrust [dependencies.length-1], [     # @todo: with .js removed or not ?
         'underscore'                    # local lib, as is
         '../data/messages/hello'        # converted fileRelative
         '../data/messages/bye'
         './moreactions/say'
-        '../lame/dir.js'
-        '../../some/external/lib.js'    #exactly as is
+        '../lame/dir' #@todo  .js'
+        '../../some/external/lib' #todo .js'    #exactly as is
         '/assets/jpuery-max'
-        'require', 'module', 'exports'  # as is
+        'require'  # as is
+        'module'   # as is
+        'exports'  # as is
+        '../url'
+        'stream'
+        'util'
+        'when/node/function'
+        'node/nodeOnly/deps'
         '"main"+".js"'
       ]
-      local: [ 'underscore' ]
-      external:[ '../../some/external/lib.js' ]
-      notFoundInBundle:[ '../lame/dir.js' ]
+      local: [ 'underscore', 'stream', 'when/node/function' ]
+      external:[ '../../some/external/lib'] #.js' ]
+      notFoundInBundle:[ '../lame/dir'] #.js' ]
+
       webRootMap: ['/assets/jpuery-max']
       system: ['require', 'module', 'exports']
       untrusted: untrust [0], ['"main"+".js"']
+      node: ['util', 'when/node/function', 'node/nodeOnly/deps']
+      nodeLocal: ['when/node/function']
+
 
     it "using dep.isXXX:", ->
       fileRelative =  ( d.name relative:'file' for d in dependencies )
       bundleRelative = ( d.name relative:'bundle' for d in dependencies)
       local = ( d.name() for d in dependencies when d.isLocal)
       external = ( d.name() for d in dependencies when d.isExternal)
+
       notFoundInBundle = ( d.name() for d in dependencies when d.isNotFoundInBundle )
       webRootMap = ( d.name() for d in dependencies when d.isWebRootMap )
       system = ( d.name() for d in dependencies when d.isSystem )
       untrusted = ( d.name() for d in dependencies when d.isUntrusted )
+      node = ( d.name() for d in dependencies when d.isNode )
+      nodeLocal = ( d.name() for d in dependencies when d.isNodeLocal )
 
-
-      deepEqual {bundleRelative, fileRelative, local,
-          external, notFoundInBundle, webRootMap, system, untrusted
+      deepEqual {bundleRelative, fileRelative,
+          external, notFoundInBundle, webRootMap,
+          system, untrusted, node, nodeLocal, local
       }, expected
-
 
     it "using dep.type:", ->
       fileRelative = ( d.name relative:'file' for d in dependencies )
       bundleRelative = ( d.name relative:'bundle' for d in dependencies)
-      local = ( d.name() for d in dependencies when d.type is 'local')
       external = ( d.name() for d in dependencies when d.type is 'external')
       notFoundInBundle = ( d.name() for d in dependencies when d.type is 'notFoundInBundle')
       webRootMap = ( d.name() for d in dependencies when d.type is 'webRootMap' )
       system = ( d.name() for d in dependencies when d.type is 'system' )
       untrusted = ( d.name() for d in dependencies when d.type is 'untrusted' )
 
+      nodeLocal = ( d.name() for d in dependencies when d.type is 'nodeLocal' )
 
-      deepEqual {bundleRelative, fileRelative, local,
-          external, notFoundInBundle, webRootMap, system, untrusted
+      node = ( d.name() for d in dependencies when d.type in ['node', 'nodeLocal'])
+      local = ( d.name() for d in dependencies when d.type in ['local', 'nodeLocal'])
+
+      deepEqual {bundleRelative, fileRelative,
+          external, notFoundInBundle, webRootMap,
+          system, untrusted, node, nodeLocal, local
       }, expected
