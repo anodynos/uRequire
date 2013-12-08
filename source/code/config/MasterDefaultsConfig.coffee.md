@@ -662,7 +662,7 @@ Allow `global` & `window` to be `global === window`, whether on nodejs or the br
 
 Always inject `exports, module` as dependencies on AMD/UMD templates from modules that are originally AMD (the default is to inject them only on originally nodejs/commonjs modules).
 
-Having `exports` around solves **[circular dependencies(http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) problem [with AMD](http://requirejs.org/docs/api.html#circular)**, so its enabled by @default as true.
+Having `exports` around solves **[circular dependencies](http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) problem [with AMD](http://requirejs.org/docs/api.html#circular)**, so its enabled by @default as true.
 
 @note with this commonjs trick (see it in [requirejs docs](http://requirejs.org/docs/api.html#circular)), you cant export only the plain `{}` that `exports` already privides, not a `function` or any other type.
 
@@ -672,9 +672,9 @@ Having `exports` around solves **[circular dependencies(http://stackoverflow.com
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-@note modules originally `nodejs` and converted to `AMD`/`UMD` always have `exports, module` injected anyway, and ALL converted modules always get a require, so you never have to import it.
+@note modules originally `nodejs` and converted to `AMD`/`UMD` always have `exports, module` injected anyway, and ALL converted modules always get a `require` dependency, so you never have declare any of the 3 stooges.
 
-@optional chanigng the @default being `true`, would save a few bytes in each module definition, with the cost of falling into the circular dep trap and having to `return exports` etc. Advice is to leave it on, and *never manually type* `define(['require', 'exports', 'module', ..], function(require, exports, module, ..){..}` etc again!
+@optional changing the @default being `true`, would save a few bytes in each module definition, with the cost of falling into the circular dep trap and having to `return exports` etc. Advice is to leave it on, and *never manually type* `define(['require', 'exports', 'module', ..], function(require, exports, module, ..){..}` etc again!
 
 @todo improve detection/injection of the 3 stooges.
 
@@ -893,10 +893,10 @@ Now, lets derive from the above and:
   * All modules go into one file that runs everywhere
 
 ```
-# dev:
-   derive: ['uberscore']
-   template: 'combined'
-   dstPath: 'build/uberscore-dev.js'
+dev:
+  derive: ['uberscore']
+  template: 'combined'
+  dstPath: 'build/uberscore-dev.js'
 ```
 
 Finally the `'urequire: min'` task
@@ -923,34 +923,34 @@ Finally the `'urequire: min'` task
 
 
 ```coffee
-# min:
-   derive: ['uberscore']
-   filez: [ '!**deepExtend.coffee' ]
-   dstPath: 'build/uberscore-min.js'
-   dependencies:
-     exports: bundle: [
-        [null], 'underscore', 'agreement/isAgree']
-     replace: 'underscore': ['lodash']
-   resources: [
-    [
-       '+remove:debug/deb & deepExtend', [/./]
-       (m)->
-         # match each of these code *skeletons*
-         for code in [ 'if (l.deb()){}', 'if (this.l.deb()){}',
-                       'l.debug()', 'this.l.debug()']
-           # replace with undefined, i.e delete
-           m.replaceCode code
-         # replace code & dep on a specific file
-         if m.dstFilename is 'uberscore.js'
-           m.replaceCode
-             type: 'Property'
-             key: {type: 'Identifier', name: 'deepExtend'}
-           # actually remove this dependency
-           m.replaceDep 'blending/deepExtend'
-     ]
+min:
+  derive: ['uberscore']
+  filez: [ '!**deepExtend.coffee' ]
+  dstPath: 'build/uberscore-min.js'
+  dependencies:
+   exports: bundle: [
+      [null], 'underscore', 'agreement/isAgree']
+   replace: 'underscore': ['lodash']
+  resources: [
+  [
+     '+remove:debug/deb & deepExtend', [/./]
+     (m)->
+       # match each of these code *skeletons*
+       for code in [ 'if (l.deb()){}', 'if (this.l.deb()){}',
+                     'l.debug()', 'this.l.debug()']
+         # replace with undefined, i.e delete
+         m.replaceCode code
+       # replace code & dep on a specific file
+       if m.dstFilename is 'uberscore.js'
+         m.replaceCode
+           type: 'Property'
+           key: {type: 'Identifier', name: 'deepExtend'}
+         # actually remove this dependency
+         m.replaceDep 'blending/deepExtend'
    ]
-   runtimeInfo: ['!**/*', 'Logger.js']
-   optimize: { uglify2: output: beautify: false }
+  ]
+  runtimeInfo: ['!**/*', 'Logger.js']
+  optimize: { uglify2: output: beautify: false }
 ```
 
 Finally we easily configure our `grunt-contrib-watch` tasks
