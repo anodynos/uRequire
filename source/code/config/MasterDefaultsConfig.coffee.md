@@ -268,9 +268,11 @@ Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin,
 
 @alias noWeb DEPRECATED
 
+@stability 2
+
 @default All known built-in nodejs packages (as of 10.8) like `'util'`, `'fs'` etc are the default of  `bundle.dependencies.node`. Use `node: [[null], 'myNodeModule']` to reset the `node` array with only your modules.
 
-@note: If your bundle contains a dependency name that is in `dependencies.node` (eg you have 'url.js' in the root of you bundle), then this is NOT considered to be a node-only dep, so you dont need to exclude it with '!url'.
+@note: If your bundle contains a dependency that is also in `dependencies.node` (eg you have 'url.js' *in the root of you bundle*), then **this is considered to be a node-only dep**, so you DO need to exclude it with `'!url'`, or it wont be available on the AMD side.
 
         node: [
           'fs', 'events', 'util', 'http', 'path', 'child_process',
@@ -310,7 +312,7 @@ Declare your local packages, like 'lodash' or 'when' that are installed either i
      }
     ```
 
-You dont need to provide the paths, if you dont indend to inline them in a [combined template](combined-template)
+You dont need to provide the paths, if you dont indend to inline them in a [combined template](combined-template).
 
 @todo infer locals AND their paths from package.json, bower.json etc
 
@@ -660,11 +662,11 @@ Allow `global` & `window` to be `global === window`, whether on nodejs or the br
 
 ## build.injectExportsModule
 
-Always inject `exports, module` as dependencies on AMD/UMD templates from modules that are originally AMD (the default is to inject them only on originally nodejs/commonjs modules).
+Always inject `exports, module` as dependencies on AMD/UMD templates from modules that are originally AMD (it *always* inject them on originally nodejs/commonjs modules).
 
-Having `exports` around solves **[circular dependencies](http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) problem [with AMD](http://requirejs.org/docs/api.html#circular)**, so its enabled by @default as true.
+Having `exports` around solves the **[circular dependencies](http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) problem [with AMD](http://requirejs.org/docs/api.html#circular)**, so its enabled by @default as `true`.
 
-@note with this commonjs trick (see it in [requirejs docs](http://requirejs.org/docs/api.html#circular)), you cant export only the plain `{}` that `exports` already privides, not a `function` or any other type.
+@note with this commonjs trick (see it in [requirejs docs](http://requirejs.org/docs/api.html#circular)), you can **export only the plain `{}`** that `exports` already points to, not a `function` or any other type.
 
 @note uRequire fixes the AMD mandate that you still need to `return exports` or `return module.exports` that both point to {the:'module'} from the AMD factory (not just setting `module.exports = {the:'module'}`). With uRequire conversion and you can use exports as you normally do with nodejs/commonjs modules, and never return it even from AMD modules.
 
