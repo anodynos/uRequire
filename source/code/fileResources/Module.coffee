@@ -1,7 +1,9 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/fileResources/Module'#  100
+l = new _B.Logger 'uRequire/Module'#, 100
 _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
+util = require 'util'
+
 
 # uRequire
 upath = require '../paths/upath'
@@ -34,7 +36,8 @@ class Module extends TextResource
           ''
   # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
   for bof in ['useStrict', 'bare', 'globalWindow',
-              'runtimeInfo', 'allNodeRequires', 'noRootExports',
+              'runtimeInfo', 'noRootExports',
+              'allNodeRequires', 'dummyParams'
               'scanAllow', 'injectExportsModule']
     do (bof)->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
@@ -70,32 +73,31 @@ class Module extends TextResource
   resetModuleInfo:->
     @flags = {}
 #    delete @[dv] for dv in @AST_data
-    @[dv] = [] for dv in @keys_depsAndVarsArrays
-    delete @[dv] for dv in @keys_resolvedDependencies
+    @[dv] = [] for dv in @keys_extractedDepsAndVarsArrays
+    delete @defineArrayDeps
     delete @parameters
 
   # keep a reference to our data, easy to init & export
   AST_data: [
     'AST_top', 'AST_body', 'AST_factoryBody'
-    'AST_preDefineIIFENodes', 'AST_requireReplacementLiterals'
+    'AST_preDefineIIFENodes'
   ]
 
-  keys_depsAndVarsArrays: [
+  keys_extractedDepsAndVarsArrays: [
     'ext_defineArrayDeps',  'ext_defineFactoryParams'
     'ext_requireDeps',      'ext_requireVars'
     'ext_asyncRequireDeps', 'ext_asyncFactoryParams'
   ]
 
   keys_resolvedDependencies: [
-    'defineArrayDeps'
-    'nodeDeps'
+    'defineArrayDeps', 'nodeDeps'
   ]
 
   # info for debuging / testing (empties are eliminated)
   info: ->
     info = {}
     for p in _.flatten [
-      @keys_depsAndVarsArrays,
+      @keys_extractedDepsAndVarsArrays,
       @keys_resolvedDependencies, [
         'flags', 'name', 'kind', 'path'
         'factoryBody', 'preDefineIIFEBody', 'parameters']
@@ -116,11 +118,13 @@ class Module extends TextResource
     for astArrayDep, idx in arrayAst.elements
       param = paramsAst[idx]?.name
 
-      if _B.isLike {type: 'Literal'}, astArrayDep
-        arrayDep = new Dependency astArrayDep.value, @             # astArrayDep is { type: 'Literal', value: 'someString' }
-        (@AST_requireReplacementLiterals or= []).push astArrayDep  # store it for quick replacements later
+      if _B.isLike {type: 'Literal'}, astArrayDep # astArrayDep is { type: 'Literal', value: 'someString' }
+        arrayDep = new Dependency astArrayDep.value, @,
+                    AST_requireLiterals: [ astArrayDep ] # store refs to ASTs of this dep for quick replacements
       else
-        arrayDep = new Dependency (@toCode astArrayDep), @, true # untrusted = true
+        arrayDep = new Dependency (@toCode astArrayDep), @, {
+                                    untrusted:true,
+                                    AST_requireUntrustedDep: [astArrayDep]} # useless for now
 
       arrayDeps.push arrayDep if arrayDep
       factoryParams.push param if param
@@ -136,9 +140,8 @@ class Module extends TextResource
     if _B.isLike {type:"CallExpression", callee: {type: "Identifier", name: "require"}}, src[prop]
 
       if _B.isLike {arguments: [type: 'Literal']}, src[prop] # require('aStringLiteral')
-        requireDep = new Dependency src[prop].arguments[0].value, @
-        # store literal of `require()`s needing replacement
-        (@AST_requireReplacementLiterals or= []).push src[prop].arguments[0]
+        requireDep = new Dependency src[prop].arguments[0].value, @,
+                                    AST_requireLiterals: [ src[prop].arguments[0] ]
 
       else # require( non literal expression ) #@todo: warn for wrong signature
         #  signature of async `require([dep1, dep2], function(dep1, dep2){...})`
@@ -148,7 +151,7 @@ class Module extends TextResource
                                 args[1].params, (@ext_asyncFactoryParams or= [])  # async factory function, at pos 1
 
         else
-          requireDep = new Dependency (@toCode src[prop].arguments[0]), @, true
+          requireDep = new Dependency (@toCode src[prop].arguments[0]), @, untrusted:true
 
       # store the assigned or declared requireVar
       if _B.isLike({type: 'AssignmentExpression', left: type:'Identifier'}, src) or
@@ -263,16 +266,17 @@ class Module extends TextResource
     @parameters = @ext_defineFactoryParams[0..@ext_defineArrayDeps.length-1]
 
     # add dummy params for deps without corresponding params
-#    if (lenDiff = @ext_defineArrayDeps.length - @parameters.length) > 0
-#      @parameters.push "__dummyParam#{pi}__" for pi in [1..lenDiff]
+    if @isDummyParams
+      if (lenDiff = @ext_defineArrayDeps.length - @parameters.length) > 0
+        @parameters.push "___dummy___param__#{pi}" for pi in [1..lenDiff]
 
-    # Our final' defineArrayDeps (& @nodeDeps) will eventually have -in this order-:
+    # Our final' defineArrayDeps will eventually have -in this order-:
     #   - original ext_defineArrayDeps, each instanciated as a Dependency
     #   - all dependencies.exports.bundle, if template is not 'combined'
     #   - module injected dependencies
     #   - Add all deps in `require('dep')`, from @module.ext_requireDeps are added
     # @see adjust
-    @defineArrayDeps = _.clone @ext_defineArrayDeps
+    @defineArrayDeps = (dep.clone() for dep in @ext_defineArrayDeps)
 
     # 'require' & associates are *fixed* in UMD template (if needed), so remove 'require' as dep & arg
     # @todo: check template and with module, exports
@@ -285,7 +289,6 @@ class Module extends TextResource
           if ar1 then "1st define factory argument is 'require', but 1st dependency is '#{@defineArrayDeps[0]}'"
           else "1st dependency is 'require', but 1st define factory argument is '#{@parameters[0]}'")
 
-    @nodeDeps = _.clone @defineArrayDeps # shallow clone
     @
 
   ###
@@ -295,21 +298,11 @@ class Module extends TextResource
 
   - injecting dependencies?.exports?.bundle
 
-  - add @ext_requireDeps to @defineArrayDeps (& perhaps @nodeDeps)
-
+  - add @ext_requireDeps to @defineArrayDeps
   @todo: decouple from build, use calculated (cached) properties, populated at convertWithTemplate(@build) step
-
   ###
   adjust: (@build)->
     l.debug "\n@adjust for '#{@srcFilename}'" if l.deb 70
-
-    for newDep, oldDeps of (@bundle?.dependencies?.replace or {})
-      @replaceDep oldDep, newDep for oldDep in oldDeps
-
-    # replace each bundleRelative dep in require('string literal') calls
-    # with the fileRelative path -that work everywhere- and remove 'node' fake pluging
-    for dep in _.flatten [ @defineArrayDeps, @ext_requireDeps, @ext_asyncRequireDeps ] when dep and not dep.untrusted
-      @replaceDep dep, dep # replaces all `bundleRelative` deps with their `fileRelative` in AST
 
     if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
       @injectDeps @bundle?.dependencies?.exports?.bundle
@@ -326,21 +319,40 @@ class Module extends TextResource
     #  Add all deps in `require('dep')`, from @module.ext_requireDeps(those not already there)
     #  Reason: execution stucks on require('dep') if its not loaded (i.e not present in ext_defineArrayDeps).
     #         see https://github.com/jrburke/requirejs/issues/467
-    #  Even if there are no other arrayDependencie, we still add them all to prevent RequireJS scan @ runtime
+    #  Even if there are no other arrayDependencies, we still add them all to prevent RequireJS scan @ runtime
     #  (# RequireJs disables runtime scan if even one dep exists in []).
     #  We dont add them only if _.isEmpty and `--scanAllow` and we dont have a `rootExports`
     addToArrayDependencies = (reqDep)=>
-      if (not reqDep.isNode ) and
-         (not _.any @defineArrayDeps, (dep)->dep.isEqual reqDep) # and not already there
-           @defineArrayDeps.push reqDep
-           @nodeDeps.push reqDep if @isAllNodeRequires
+      if (not reqDep.isNode )
+        foundDeps = _.filter @defineArrayDeps, (dep)->dep.isEqual reqDep
+        if _.isEmpty foundDeps # if not already there
+          reqDep = reqDep.clone() # clone, to keep ext_XXX intact
+          @defineArrayDeps.push reqDep
+        else
+          for rl in (reqDep.AST_requireLiterals or [])   # pass any ASTs to a foundDep so its gets updated.
+            _.last(foundDeps).AST_requireLiterals.push rl
 
     if not (_.isEmpty(@defineArrayDeps) and @isScanAllow and not @flags.rootExports)
-      addToArrayDependencies reqDep for reqDep in @ext_requireDeps
+      for reqDep in @ext_requireDeps
+        addToArrayDependencies reqDep
+
+    @updateRequireLiteralASTs()
+
+    for newDep, oldDeps of (@bundle?.dependencies?.replace or {})
+      for oldDep in oldDeps
+        @replaceDep oldDep, newDep, relative: 'bundle'
 
     @
 
-  # inject [depVars] Dependencies to defineArrayDeps, nodeDeps
+  # update dependencies in AST
+  # It by default replaces each bundleRelative dep in require('someDir/someDep') calls
+  # with the fileRelative path eg '../someDir/someDep' -that works everywhere-, remove 'node' fake pluging etc
+  updateRequireLiteralASTs: ->
+    for dep in _.flatten [ @defineArrayDeps, @ext_asyncRequireDeps ]
+      if dep and not dep.untrusted
+        dep.updateAST()
+
+  # inject [depVars] Dependencies to defineArrayDeps
   # and their corresponding parameters (infered if not found)
   injectDeps: (depVars)->
     if l.deb(40)
@@ -357,7 +369,6 @@ class Module extends TextResource
         for varName in varNames # add for all corresponding vars, BEFORE the deps not corresponding to params!
           if not (varName in @parameters)
             @defineArrayDeps.splice @parameters.length, 0, dep
-            @nodeDeps.splice @parameters.length, 0, dep
             @parameters.push varName
             l.debug("#{@path}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 70
           else
@@ -367,67 +378,101 @@ class Module extends TextResource
 
     null
 
+  ###
+  Replaces one or more Dependencies with another dependency on the Module (not the whole Bundle).
 
-  # Replaces a Dependency with another dependency on the Module.
-  # It makes the replacements on
-  #
-  #   * All Dependency instances on @keys_resolvedDependencies arrays
-  #
-  #   * All AST Literals in code, in deps array ['literal',...] or require('literal') calls,
-  #     always leaving the fileRelative newDep string
-  #
-  # @param oldDep {Dependency|String} The old dependency, expressed either a Dependency instance
-  #                                   or String (file or bundleRelative)
-  #
-  # @param newDep {Dependency|String|Undefined} The dependency to replace the old with.
-  #        If its empty, it removes the oldDep from all keys_resolvedDependencies Arrays
-  #       (BUT NOT THE AST)
-  replaceDep: (oldDep, newDep)->
-    if not (oldDep instanceof Dependency)
-      if _.isString oldDep
-        oldDep = new Dependency oldDep, @
-      else
-        l.er "Module.replaceDep: Wrong old dependency type '#{oldDep}' in module #{@path} - should be String|Dependency."
-        throw new UError "Module.replaceDep: Wrong old dependency type '#{oldDep}' in module #{@path} - should be String|Dependency."
+  It makes the replacements on
 
+     * All Dependency instances in `@defineArrayDeps` array (which is also where @nodeDeps are derived)
+
+     * All AST Literals in code, in deps array ['literal',...] or require('literal') calls,
+       **always leaving the fileRelative replaceDep string **
+
+  @param matchDep {String|RegExp|Function|Dependency} The dependency/ies to match,
+       @see Dependency::isMatch about dep matching in general
+
+       When a partial search is used for matching (noted with `|` at end of dep, for example `'../../lib|'`),
+       then a partial replacement (i.e translation) is also performed:
+       All deps that pass `_(dep).startsWith('../../lib')` will get only their '../../lib' path replaced with newDep, instead of a whole replacement.
+       Hence `mod.replaceDep '../../some2/external/lib|', '../other/wow/lib/'` will do the obvious, translate the first part all mactching deps, i.e `'../../some2/external/lib/DEPENDENCY'` will become `'../other/wow/lib/DEPENDENCY'`.
+
+       @see options below for matching & replacing in `relative:'file'` (default) or `relative:'bundle'`
+
+  @param replaceDep {Dependency|String|Undefined} The dependency to replace the old with.
+    * If `replaceDep` is empty, it removes all `matchDep`s from @defineArrayDeps
+      (BUT NOT FROM THE AST @todo: why not - it can be costly but optional?)
+    * if its a partial matchDep, then its only the matched part that will be replaced
+
+    properly copy & spec of all its properties, plugin etc.
+
+  @param options: {relative, plugin, ext} Whether to have these considered
+
+    relative: @todo: explain
+  ###
+  replaceDep: (matchDep, newDep, options = {})->
+
+    l.deb debugHead = """
+        Module.replaceDep #{ if newDep then 'REPLACING' else ' DELETING'}: #{
+        util.inspect options } #{util.inspect matchDep}, #{util.inspect newDep}""" if l.deb 70
+
+    if _.isString matchDep
+      matchDep = new Dependency matchDep, @ # set temporarily, cause we need plugin, resourceName, extension etc extraction
+
+    if matchDep instanceof Dependency
+      if (not options.relative) and    # if no specified relative: 'bundle|file'
+         (not matchDep.isRelative)     # if matching a matchDep not starting with '.'
+           options.relative = 'bundle' # then default to bundle, since we are searching for matchDep within bundle
+                                       # otherwise use defaults
     if newDep
       if not (newDep instanceof Dependency)
         if _.isString newDep
-          newDep = new Dependency newDep, @
+          newDep = new Dependency newDep, @ # new dep
         else
-          throw new UError("Module.replaceDep: Wrong new dependency type '#{newDep}' in module #{@path} - should be String|Dependency|Undefined.")
-    else
-      removeArrayIdxs = []
-    # both deps are Dependency instances now (if newDep exists)
+          if not _.isFunction newDep
+            l.er err = "#{debugHead} Wrong new dependency type '#{newDep}' in module #{@path} - should be String|Dependency|Undefined."
+            throw new UError err
 
-    # find & replace (or remove) all matching deps in all keys_resolvedDependencies arrays (with Dependency instances)
-    if oldDep isnt newDep # if oldDep IS newDep, no need to replace resolved deps array, only literals in AST code
-      for rdArrayName in @keys_resolvedDependencies
-        for dep, depIdx in (@[rdArrayName] or []) when dep.isEqual(oldDep)
-          if newDep
-            @[rdArrayName][depIdx] = newDep
-            l.debug(80, "Module.replaceDep in '#{rdArrayName}', replaced '#{oldDep}' with '#{newDep}'.")
-          else # mark idx for removal
-            removeArrayIdxs.push {rdArrayName, depIdx}
+    #  both matchDep & newDep are Dependency instances now (if newDep exists)
 
-      # actually remove found old deps
-      if not newDep
-        for rai in removeArrayIdxs by -1 # in reverse order so idxs stay meaningful
-          l.debug(80, "Module.replaceDep in '#{rai.rdArrayName}', removing '#{@[rai.rdArrayName][rai.depIdx]}'.")
-          @[rai.rdArrayName].splice rai.depIdx, 1
+    # find & update (or remove) all matching deps in defineArrayDeps
+    removeArrayIdxs = []
 
-          # also remove from @parameters for defineArrayDeps
-          if rai.rdArrayName is 'defineArrayDeps'
-            @parameters.splice rai.depIdx, 1
+    for dep, depIdx in (@defineArrayDeps or [])
+      depName = dep.name options # relative: options.relative # plugin:false
 
-    # replace dep literals in AST code (bundleRelative to fileRelative) OR warn if it was just removed
-    for depLiteral in (@AST_requireReplacementLiterals or []) when (depLiteral?.value isnt newDep?.name?())
-      if oldDep.isEqual new Dependency depLiteral.value, @
-        if newDep
-          l.debug(80, "Replacing AST literal '#{depLiteral.value}' with '#{newDep.name()}'")
-          depLiteral.value = newDep.name()
-        # else # this is wrong - the AST might be removed from the body, we dont know about it. To search is costly!
-        # l.warn "Removed dependency '#{oldDep.name(relative:'bundle')}', but AST literal '#{depLiteral.value}' is still in the code!"
+      if isMatch = (if _.isFunction matchDep
+                     matchDep depName, dep, options # dep has plugin, @module, @module.bundle etc
+                   else
+                     dep.isMatch matchDep, options)
+
+        if not newDep # just mark idx for lazy removal
+          l.debug 90, "mark depIdx for lazy removal '#{depIdx}'"
+          removeArrayIdxs.push depIdx
+        else # replace part
+          if matchDep isnt newDep  # if matchDep IS newDep no replacement
+            updDep = if _.isFunction(newDep)
+                      newDep depName, dep
+                    else
+                      newDep
+
+            updDep = new Dependency updDep, @ if _.isString updDep  # temporary to extract info
+
+            if updDep
+              if not (updDep instanceof Dependency)
+                l.er err = "Wrong newDep dependency type '#{matchDep}' in module #{@path} - should be String|Function|Dependency."
+                throw new UError err
+              else
+                dep.update updDep, matchDep, options
+            else
+              l.deb 90, "mark idx for lazy removal, returned from Function newDep '#{depIdx}'"
+              removeArrayIdxs.push depIdx
+
+    # lazy remove found old deps
+    for rai in removeArrayIdxs by -1 # in reverse order so idxs stay meaningful
+      l.deb "delete dependency '#{@defineArrayDeps[rai]}'" if l.deb(80)
+      @defineArrayDeps.splice rai, 1
+      @parameters.splice rai, 1
+
 
     null
 
@@ -472,7 +517,7 @@ class Module extends TextResource
   # Actually converts the module to the target @build options.
   convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     l.verbose "Converting '#{@path}' with template = '#{@build.template.name}'"
-    l.debug("'#{@path}' adjusted module.info() with keys_resolvedDependencies = \n",
+    l.debug("'#{@path}' adjusted module.info() = \n",
       _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 60
 
     @moduleTemplate or= new ModuleGeneratorTemplates @
@@ -492,17 +537,28 @@ class Module extends TextResource
     @converted
 
   Object.defineProperties @::,
+
+    nodeDeps: get: ->
+      if @isAllNodeRequires
+        @defineArrayDeps
+      else
+        @defineArrayDeps?[0..(@parameters?.length or 1)-1] or [] # we dont need deps without corresponding params at all
+
     path: get:-> upath.trimExt @srcFilename if @srcFilename # filename (bundleRelative) without extension eg `models/PersonModel`
 
     factoryBody: get:->
+      @updateRequireLiteralASTs() #ensure our AST is up to date with deps
       fb = @toCode @AST_factoryBody
       fb = fb[1..fb.length-2].trim() if @kind is 'AMD'
       fb
 
     # 'body' / statements BEFORE define (coffeescript & family gencode `__extend`, `__slice` etc)
-    'preDefineIIFEBody': get:-> @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
+    'preDefineIIFEBody': get:->
+      @updateRequireLiteralASTs() #ensure our AST is up to date with deps
+      @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
 
   toCode: (astCode=@AST_body, codegenOptions = @codegenOptions)->
+    @updateRequireLiteralASTs() #ensure our AST is up to date with deps
     toCode astCode, codegenOptions
 
 module.exports = Module

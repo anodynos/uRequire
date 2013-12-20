@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'fileResources/Module-spec'
+l = new _B.Logger 'uRequire/Module-spec'
 
 chai = require 'chai'
 expect = chai.expect
@@ -43,6 +43,7 @@ moduleInfo = (js)->
   (new Module {sourceCodeJs: js, codegenOptions}).extract().info()
 
 describe "Module:", ->
+
   describe "Extracting Module information :", ->
     describe "NON-AMD modules:", ->
 
@@ -455,12 +456,12 @@ describe "Module:", ->
             'depUnassingedToVar'
             'dep9=require("dep9")'
           ]
-          nodeDeps: untrust [1,4], [
+          nodeDeps: untrust [1], [
              'arrayDep1'
              '"arrayDepUntrusted"+crap'
              'arrayDep2'
-             'arrayDepWithoutParam'
-             '"untrustedArrayDepWithoutParam"+crap'
+             #'arrayDepWithoutParam' # dont need these without params
+             #'"untrustedArrayDepWithoutParam"+crap'
           ]
 
         it "should extract all deps, even untrusted and mark them so", ->
@@ -503,10 +504,14 @@ describe "Module:", ->
 
   describe "Replacing & injecting adjusted dependencies:", ->
     js =   """
-      define(['require', 'underscore', 'depDir1/Dep1', '../depDir1/uselessDep', 'someDir/someDep', 'depDir1/removedDep'],
+      define(['require', 'underscore', 'depDir1/Dep1', '../depDir1/uselessDep',
+              'someDir/someDep', 'depDir1/removedDep'],
+
         function(require, _, Dep1) {
           dep2 = require('depDir2/Dep2');
-          aGlobal = require('aGlobal');
+          aLocalVar = require('oldplugins/doit!aLocal');
+          anExternalVar = require('../../../some/external/lib/models/Person');
+          frExternalVar = require('../../../some2/external/lib/views/User');
           return dep1.doit();
         }
       );
@@ -520,7 +525,10 @@ describe "Module:", ->
         'depDir1/Dep1.js'
         'depDir2/Dep2.js'
         'depDir1/uselessDep.js'
+        'depDir1/removedDep.js'
         'aNewDepInTown.js'
+        'injectedButRemoved.js'
+        'depDir1/readyToBeRemoved.js'
       ]
     })
       .extract()
@@ -528,20 +536,60 @@ describe "Module:", ->
       .adjust()
 
     # replace & inject deps
-    mod.replaceDep 'underscore', 'lodash'
-    mod.replaceDep 'aGlobal', 'smallVillage'
-    mod.replaceDep 'depDir2/Dep2', '../aNewDepInTown'
+    mod.replaceDep ((d)-> d is 'underscore'), 'lodash'
 
-    # remove
-    mod.replaceDep 'depDir1/uselessDep'
-    mod.replaceDep '../depDir1/removedDep'
+    mod.replaceDep /.*aLocal/, 'plugins/spy!smallVillage'
+
+    mod.replaceDep 'depDir2/Dep2/', (depName, dep)->
+      throw "Error newDep as Function didnt pass correct depName #{depName}"  if depName isnt 'depDir2/Dep2'
+      throw "Error newDep as Function dep.name() is wrong #{dep.name()}" if dep.name() isnt '../depDir2/Dep2'
+      'aNewDepInTown' # relative to bundle, cause we searched with bundleRelative path
+
+    mod.replaceDep '../aNewDepInTown', (depName, dep)->
+      throw "Error newDep as Function didnt pass correct depName depName #{depName}" if depName isnt '../aNewDepInTown'
+      '../aNewDepInTown'
+
+    # DONT replace this dep: matchDep is {relative: 'bundle'}, so match is using it but we instucted a relative:file match
+    mod.replaceDep 'depDir1/.//removedDep/', 'shouldNotBeReplaced', relative: 'file'
+
+    # replace this dep: matchDep is {relative: 'bundle'}, so is the matching
+    mod.replaceDep 'depDir1/.//removedDep/', 'depDir1/notYetRemovedDep'
+
+    # delete this dep: matchDep is {relative: 'bundle'}, so match is using it
+    mod.replaceDep 'depDir1/.//notYetRemovedDep/'
+
+    # dont replace this dep, cause its not found as file relative
+    mod.replaceDep '../depDir1/uselessDep', 'shouldNotBeChanged', {relative:'bundle'}
+
+    # delete this weird dep that resolves to a found dep
+    mod.replaceDep '.././/./depDir1/../depDir1/uselessDep/./', (depName)->
+      throw "Error in 1st param of newDep as Function" if depName isnt '../depDir1/uselessDep'
+      return undefined # delete
 
     mod.injectDeps 'myInjectedDep': ['myInjectedDepVar1', 'myInjectedDepVar2']
-    mod.injectDeps 'anotherInjectedDep' : 'anotherInjectedVar'
-    mod.replaceDep 'myInjectedDep', '../myProperInjectedDep'
+    mod.replaceDep 'myInjectedDep/', '../myProperInjectedDep', {relative:'file'}
 
-    expected =
-      #extracted info
+    mod.injectDeps 'injectedButRemoved': 'someVar'
+    mod.replaceDep '../injectedButRemoved/'
+
+    mod.injectDeps 'injectedButRemoved2': 'someVar'
+    mod.replaceDep 'injectedButRemoved2'
+
+    # lets replace plugin & dep, both partial
+    mod.injectDeps 'old/plugins/dosomething!another/injected/dep' : 'anotherInjectedVar'
+    mod.replaceDep 'old/plugins|!another/injected|', 'new/proper/filters!proper/smartly/injected', {relative:'bundle'}
+    # => 'new/proper/filters/dosomething!proper/smartly/injected/dep'
+
+    # should not delete with {relative:bundle}, using the relative:file resourceName
+    mod.replaceDep '../../../some/external/lib/models/Person', null, {relative: 'bundle'}
+
+    # should replace properly with relative:bundle & relative:file
+    mod.replaceDep '../../some/external/lib|', '../../../other/nice/lib', {relative: 'bundle'}
+    mod.replaceDep '../../../../other/nice/lib|', '../../../../other/super/lib'
+
+    mod.replaceDep '../../../some2/external/lib/|', '../../../other/wow/lib/'#, {relative: 'file'}
+
+    expected = #extracted info
       ext_defineArrayDeps:[
         'require'
         'underscore'
@@ -550,19 +598,34 @@ describe "Module:", ->
         'someDir/someDep'
         'depDir1/removedDep'
       ]
+
       ext_defineFactoryParams: [
         'require'
         '_',
         'Dep1'
       ]
-      ext_requireDeps: [ 'depDir2/Dep2', 'aGlobal' ]
-      ext_requireVars: [ 'dep2', 'aGlobal']
+      ext_requireDeps: [
+        'depDir2/Dep2'
+        'oldplugins/doit!aLocal'
+        '../../../some/external/lib/models/Person'
+        '../../../some2/external/lib/views/User'
+      ]
+      ext_requireVars: [
+        'dep2'
+        'aLocalVar'
+        'anExternalVar'
+        'frExternalVar'
+      ]
+
       kind: 'AMD'
       path: 'someDepDir/MyModule'
-      factoryBody:'dep2=require("../aNewDepInTown");aGlobal=require("smallVillage");return dep1.doit();'
 
-#      # adjusted, replaced & injected info
+      factoryBody: 'dep2=require("../aNewDepInTown");aLocalVar=require("plugins/spy!smallVillage");' +
+                   'anExternalVar=require("../../../../other/super/lib/models/Person");' +
+                   'frExternalVar=require("../../../other/wow/lib/views/User");' +
+                   'return dep1.doit();'
 
+      # adjusted, replaced & injected info
       parameters: [
         '_'
         'Dep1'
@@ -575,18 +638,20 @@ describe "Module:", ->
          '../depDir1/Dep1'
          '../myProperInjectedDep'
          '../myProperInjectedDep'
-         'anotherInjectedDep'
+         'new/proper/filters/dosomething!proper/smartly/injected/dep'
          'someDir/someDep'
          '../aNewDepInTown'
-         'smallVillage'
+         'plugins/spy!smallVillage'
+         '../../../../other/super/lib/models/Person' # one more ../ because our module in nested one level
+         "../../../other/wow/lib/views/User"
       ]
       nodeDeps: [
          'lodash'
          '../depDir1/Dep1'
          '../myProperInjectedDep'
          '../myProperInjectedDep'
-         'anotherInjectedDep'
-         'someDir/someDep'
+         'new/proper/filters/dosomething!proper/smartly/injected/dep'
+         #'someDir/someDep' # not needed without param
       ]
 
     it "has the correct injected & replaced deps", ->

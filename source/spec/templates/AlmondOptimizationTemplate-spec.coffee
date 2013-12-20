@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'templates/AlmondOptimizationTemplate-spec'
+l = new _B.Logger 'uRequire/templates/AlmondOptimizationTemplate-spec'
 
 chai = require 'chai'
 expect = chai.expect

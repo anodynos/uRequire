@@ -1,12 +1,10 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/ModuleGeneratorTemplates'
+l = new _B.Logger 'uRequire/ModuleGeneratorTemplates'
 
 isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
-pathRelative = require('../paths/pathRelative')
 Template = require './Template'
 
-#
 #  Templates for
 #
 # * UMD module based on https://github.com/umdjs/umd/blob/master/returnExportsGlobal.js
@@ -232,9 +230,15 @@ class ModuleGeneratorTemplates extends Template
 
   nodejs: ->
     prCnt = 0
-    @_genFullBody(
-      # load deps 1st, before kicking off common dynamic code
-      (("\nvar " if _.any(@module.nodeDeps, (dep)-> not dep.isSystem)) or '') +
+    @_genFullBody( # load deps 1st, before kicking off common dynamic code
+
+      ( if _.any(@module.nodeDeps,
+          (dep, depIdx)-> (not dep.isSystem) and (@module?.parameters or [])[depIdx]) # has a dep with param
+          "\nvar "
+        else
+          ''
+      ) +
+
       (for param, pi in @module.parameters when not (dep = @module.nodeDeps[pi]).isSystem
          (if prCnt++ is 0 then '' else '    ') +
          param + " = require(" + dep.name(quote:true) + ")"

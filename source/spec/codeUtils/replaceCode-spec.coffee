@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'codeUtils/replaceCode-spec'
+l = new _B.Logger 'uRequire/codeUtils/replaceCode-spec'
 
 chai = require 'chai'
 expect = chai.expect

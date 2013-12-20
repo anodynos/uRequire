@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/urequireCMD'
+l = new _B.Logger 'uRequire/urequireCMD'
 
 fs = require 'fs'
 urequireCommander = require 'commander'
@@ -24,6 +24,7 @@ urequireCommander
   .option('-r, --webRootMap <webRootMap>', "Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.", undefined)
   .option('-s, --scanAllow', "By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).", undefined)
   .option('-a, --allNodeRequires', 'Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.', undefined)
+  .option('-p, --dummyParams', 'Add dummy params for deps that have no corresponding param in the AMD define Array.', undefined)
   .option('-t, --template <template>', 'Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`', undefined)
   .option('-O, --optimize', 'Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.', undefined)
   .option('-C, --continue', 'Dont bail out while processing (module processing/conversion errors)', undefined)
@@ -115,7 +116,7 @@ if _.isEmpty config
   l.log "uRequire version #{VERSION}"
 else
   if config.debugLevel?
-    _B.Logger.addDebugPathLevel 'urequire', config.debugLevel * 1 # cast to Number or NaN
+    _B.Logger.addDebugPathLevel 'uRequire', config.debugLevel * 1 # cast to Number or NaN
 
   if config.verbose
     l.verbose 'uRequireCmd called with cmdConfig=\n', config

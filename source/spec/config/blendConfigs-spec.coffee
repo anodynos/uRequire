@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'config/blendConfigs-spec'
+l = new _B.Logger 'uRequire/config/blendConfigs-spec'
 
 chai = require 'chai'
 expect = chai.expect
@@ -419,13 +419,14 @@ describe 'blendConfigs & its Blenders: ', ->
         ,
           dependencies:
             node: ['fs']
-            exports: bundle:
-              lodash: "_"
-              backbone: ['Backbone', 'BB']
-          filez: [
-            '**/*.coffee.md'
-            '**/*.ls'
-          ]
+            exports: bundle: (parent)->
+              parent.lodash = ["_"]
+              parent.backbone = ['Backbone', 'BB']
+              parent
+
+          filez: (parentArray)-> #      [ '**/*.coffee.md', '**/*.ls']
+            parentArray.push p for p in [ '**/*.coffee.md', '**/*.ls']
+            parentArray
           copy: /./
           dstPath: "build/code"
           template: 'UMD'
@@ -489,7 +490,7 @@ describe 'blendConfigs & its Blenders: ', ->
                 derive:
                   resources: resources[0..1]
                   derive:
-                    copy: ['!**/*']
+                    copy: (pa)-> pa.push '!**/*'; pa
                     template:
                       name: 'combined'
                       someOption: 'someOption' # value is preserved, even if name changes.

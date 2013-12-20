@@ -129,23 +129,35 @@ Derivation is more flexible that simple OO inheritance or `_.extend` :
 
 ## `arrayizeConcat`
 
-Both *parent* (source) and *child* (destination) values are turned into an Array first (they are [_B.arrayize](https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co)-d).
+Both *parent* and *child* values are considered to be of Array type (or are turned into an Array first with [_B.arrayize](https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co)).
 
-Then the items on child configs are pushed *after* the ones they inherit (parents, higher up in hieracrchy).
+Then the items on child configs are pushed *after* the ones they inherit (the parent's array, higher up in hieracrchy).The parent is always a shallow clone of the original parent array which remains intact. In v0.6.10 the [child can be a function callback](#Function-callback).
 
 For example consider key `bundle.filez` (that has the **arrayizeConcat derive behavior**).
 
-* *parent* config `bundle:filez: ['**/*', '!DRAFT/*.*']`
+* *parent* config `bundle: filez: ['**/*', '!DRAFT/*.*']`
 
-* *child* config `bundle:filez: ['!vendor/*.*]`
+* *child* config `bundle: filez: ['!vendor/*.*]`
 
 * *derived* config: `bundle: filez: ['**/*', '!DRAFT/*.*', '!vendor/*.*]`.
-
-Use your imagination for the possiblities.
 
 ### type
 
 The type for both child and parent values, are either `Array<Anything>` or `Anything` but Array (which is [_B.arrayize](https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co)-d first).
+
+### Function callback
+
+The child can also be a Function callback(parentArray), that (always) receives ***a shallow clone of parentArray* and **returns the resulted child array**.
+
+Example:
+
+* parent config `bundle:{ filez: ['**/*.js', '!DRAFT/*.*']}`
+
+* child config `bundle: { filez: function(parentArray){ parentArray.unshift('**/*.coffee'); parentArray}`
+
+* blended config: `bundle: { filez: ['**/*.coffee', '**/*.js', '!DRAFT/*.*'] }`.
+
+This way you can manipulate the inherited array as desired.
 
 ### Reset Parent
 
@@ -156,8 +168,6 @@ To reset the inherited parent array (always in your new child *destination* arra
 * child config `bundle:filez: [[null], 'vendorOnly/*.*]`
 
 * blended config: `bundle: filez: ['vendorOnly/*.*]`.
-
-@todo: use a function callback on child, that receives parent value (& a clone:-) and returns the resulted blended array.
 
 ## `arrayizeUniqueConcat`
 

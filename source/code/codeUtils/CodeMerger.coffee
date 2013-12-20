@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/codeUtils/CodeMerger'
+l = new _B.Logger 'uRequire/codeUtils/CodeMerger'
 
 UError = require '../utils/UError'
 

@@ -49,9 +49,8 @@ describe "NodeRequirer basics:", ->
 
   describe "resolves Dependency paths:", ->
     it "local-looking Dependency", ->
-      resolvedDeps = nr.resolvePaths new Dependency 'underscore', path:moduleNameBR
-      for resDep in ['underscore', upath.normalize "#{__dirname}/underscore"]
-        ok resDep in resolvedDeps
+      deepEqual nr.resolvePaths(new Dependency 'underscore', path:moduleNameBR),
+        ['underscore', upath.normalize "#{__dirname}/underscore"]
 
     it "bundleRelative Dependency", ->
       depStr = 'some/pathTo/depName'

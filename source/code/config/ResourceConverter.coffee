@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/config/ResourceConverter', 0 # config's `build.debugLevel` doesn't work here, cause the config is not read yet!
+l = new _B.Logger 'uRequire/config/ResourceConverter', 0 # config's `build.debugLevel` doesn't work here, cause the config is not read yet!
 
 #BundleFile = require '../fileResources/BundleFile'
 #FileResource = require '../fileResources/FileResource'

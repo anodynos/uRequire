@@ -1,10 +1,10 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/process/Bundle'
+l = new _B.Logger 'uRequire/process/Bundle'
 
 _.mixin (require 'underscore.string').exports()
 
 fs = require 'fs'
-rimraf = require 'rimraf'
+
 globExpand = require 'glob-expand'
 
 # uRequire
@@ -14,6 +14,7 @@ AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 Dependency = require '../fileResources/Dependency'
 DependenciesReporter = require './../utils/DependenciesReporter'
 UError = require '../utils/UError'
+ResourceConverterError = require '../utils/ResourceConverterError'
 
 #our file system
 BundleFile = require './../fileResources/BundleFile'
@@ -244,21 +245,20 @@ class Bundle extends BundleBase
           @build.addChangedBundleFile filename, bf
       catch err
         @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
-        if fs.existsSync bf.srcFilepath
+        if bf.srcExists
           bf.reset()
           bf.hasErrors = true
-          @handleError new UError """
-            Something wrong while loading/refreshing/processing '#{filename}'.""", {nested:err}
+          if err instanceof ResourceConverterError
+            @handleError err
+          else
+            @handleError new UError """
+              Unknown error while loading/refreshing/processing '#{filename}'.""", {nested:err}
         else
-          l.verbose "Missing file #{bf.srcFilepath} - removing bundle file #{filename}"
           delete @mainModule if @mainModule is @files[filename]
           delete @files[filename]
+          l.verbose "Missing file #{bf.srcFilepath} - deleting dstFilename = '#{bf.dstFilename}'"
           if bf.dstExists and bf.hasErrors isnt 'duplicate'
-            l.verbose "Deleting file: #{bf.dstFilepath}"
-            try
-                fs.unlinkSync bf.dstFilepath
-            catch err
-              l.er "Cant delete destination file '#{bf.dstFilepath}'."
+             bf.dstDelete()
           bf.hasErrors = false # dont count as error any more
 
       @build.current[bf.srcMain] = true if bf.srcMain
@@ -294,18 +294,11 @@ class Bundle extends BundleBase
     @reporter = new DependenciesReporter()
 
     if isPartialBuild  # 'partial' i.e 'watched' filenames
-      # force a full build ?
-      if not @build.hasFullBuild
+      if not @build.hasFullBuild # force a full build ?
         l.warn "Forcing a full build (this was a partial build, without a previous full build)."
         file.reset() for fn, file of @files
         if @build.template.name is 'combined'
-          if not l.deb(debugLevelSkipTempDeletion)
-            l.debug 40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'."
-            try
-              rimraf.sync @build.template._combinedFileTemp
-            catch err
-              l.debug 40, "Can't delete temp dir '#{@build.template._combinedFileTemp}' - perhaps it doesnt exist."
-          debugLevelSkipTempDeletion = 0 # dont delete ___temp while watching
+          @build.deleteCombinedTemp()
           l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
 
         @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
@@ -316,6 +309,8 @@ class Bundle extends BundleBase
       if diff = filenames.length - bundleFilenames.length
         l.verbose "Ignored #{diff} non-`bundle.filez`"
         filenames = bundleFilenames
+    else
+      @build.doClean()
 
     if not filenames.length
       l.verbose "No files to process."
@@ -348,7 +343,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
       for fn, mod of @modules when mod.hasChanged # if it changed, conversion needed
         if mod.hasErrors
-          l.er "Not converting '#{mod.srcFilename}' cause it has errors."
+          l.debug 30, "Not converting '#{mod.srcFilename}' cause it has errors."
         else
           try
             mod.adjust @build
@@ -367,7 +362,7 @@ class Bundle extends BundleBase
   # add template.banner to 'bundle.main', if it exists & has changed
   concatMainModuleBanner:->
     if !_.isEmpty @build.changedModules
-      if @build.template.banner and @build.template.name isnt 'combined'
+      if @build.template.banner and (@build.template.name isnt 'combined')
         if (@mainModule or @inferMainModule())
           if @mainModule.hasChanged
             l.debug 40, "Concating `bundle.template.banner` to `@bundle.main` file = `#{@mainModule.dstFilename}`"
@@ -384,7 +379,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
       for fn, res of @fileResources when res.hasChanged
         if res.hasErrors
-          l.er "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
+          l.deb 40, "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
         else
           if res.converted and _.isString(res.converted) # only non-empty Strings are written
             try
@@ -481,26 +476,30 @@ class Bundle extends BundleBase
           NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is respected.
         """
 
-    almondTemplates = new AlmondOptimizationTemplate @
-    for depfilename, genCode of almondTemplates.dependencyFiles
+    combinedTemplate = new AlmondOptimizationTemplate @
+    for depfilename, genCode of combinedTemplate.dependencyFiles
       TextResource.save upath.join(@build.template._combinedFileTemp, depfilename+'.js'), genCode
 
     @copyAlmondJs()
     @copyWebMapDeps()
 
-    try
-      fs.unlinkSync @build.template.combinedFile
-    catch err
-
     rjsConfig =
-      paths: _.extend almondTemplates.paths, @getRequireJSConfig().paths
-      wrap: almondTemplates.wrap
+      paths: _.extend combinedTemplate.paths, @getRequireJSConfig().paths
+      wrap: combinedTemplate.wrap
       baseUrl: @build.template._combinedFileTemp
       include: [@main]
       deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getExcluded_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
-      out: @build.template.combinedFile
       useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
       name: 'almond'
+
+      out: (text)=>
+        text =
+          (if @build.template.banner then @build.template.banner + '\n' else '') +
+          combinedTemplate.uRequireBanner +
+          "// Combined template optimized with RequireJS/r.js v#{@requirejs.version} & almond." + '\n' +
+          text
+
+        FileResource.save @build.template.combinedFile, text
 
     # todo: re-move this to blendConfigs
     if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
@@ -517,19 +516,18 @@ class Bundle extends BundleBase
     # actually combine (r.js optimize)
 #    @rjsOptimize rjsConfig
 #  rjsOptimize: (rjsConfig)=>
-    l.verbose "requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])
+    l.debug("requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])) if l.deb 20
     rjsStartDate = new Date()
     @requirejs.optimize rjsConfig,
       (buildResponse)=>
         l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
-        l.debug(60, 'Checking r.js output file...')
         if fs.existsSync @build.template.combinedFile
           l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
 
           if not _.isEmpty @localNonNode_depsVars
             if (not @build.watch) or l.deb 50
               l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
-                almondTemplates.localDepsVars,
+                combinedTemplate.localDepsVars,
                 """\n
                 are available when combined script '#{@build.template.combinedFile}' is running on:
                   a) nodejs: they should exist as a local `nodes_modules`.
@@ -541,8 +539,7 @@ class Bundle extends BundleBase
 
           # delete _combinedFileTemp, used as temp directory with individual AMD files
           if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
-            l.debug(40, "Deleting temporary directory '#{@build.template._combinedFileTemp}'.")
-            rimraf.sync @build.template._combinedFileTemp
+            @build.deleteCombinedTemp()
           else
             l.debug(10, "NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
 
@@ -608,10 +605,10 @@ class Bundle extends BundleBase
       toCode cm.AST, format:indent:base: 1
 
   copyAlmondJs: ->
-    try # copy almond.js from GLOBAL/urequire/node_modules -> build.template._combinedFileTemp
+    try # copy almond.js from node_modules -> build.template._combinedFileTemp
       BundleFile.copy(
-        "#{__dirname}/../../../node_modules/almond/almond.js" # from
-        upath.join(@build.template._combinedFileTemp, 'almond.js')            # to
+        "#{__dirname}/../../../node_modules/almond/almond.js"      # from
+        upath.join(@build.template._combinedFileTemp, 'almond.js') # to
       )
     catch err
       @build.handleError new UError """
@@ -634,32 +631,27 @@ class Bundle extends BundleBase
         l.er "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.template._combinedFileTemp}#{depName}"
     null
 
-  logNestedErrorMessages = (error)->
-    errorMessages = error.message || error + ''
-    while error.nested
-      error = error.nested
-      errorMessages += '\n' + error?.message
-      errorMessages += '\n stack: ' + error?.stack if error?.stack
-    l.er errorMessages
+  printError: (error)->
+    l.er (error.message or 'no error.message'),
+         '\n error.nested = ', (error.nested or "no error.nested")
+    l.deb 110, '\n error.stack = \n', error.stack # dev only
 
+  # @todo: refactor error handling!
   handleError: (error = new UError "Undefined or null error!")->
     @errorsCount++
     if error.quit
-      l.er '\n message:\n', error.message, '\n stack:\n', error.stack
       throw error # 'gracefully' quit: caught by bundleBuilder.buildBundle
     else
       if @build
-        logNestedErrorMessages error
         if (@build.continue or @build.watch)
-          l.er error
+          @printError error
           l.warn "Continuing despite of error due to `build.continue` || `build.watch`"
         else
           error.quit = true
           throw error #'gracefully' quit: caught by bundleBuilder.buildBundle
 
-      else # we have no build to guid us - be optimistic
-        l.er error.message
-        l.er "Nested error:\n", error.nested if error.nested
+      else # we have no build to guide us - be optimistic
+        @printError error
         l.warn "Continuing despite of error, cause we have not one build (i.e we might have many!)"
     null
 

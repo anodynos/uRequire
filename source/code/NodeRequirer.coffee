@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/NodeRequirer', 0 # disable runtime debug
+l = new _B.Logger 'uRequire/NodeRequirer', 0 # disable runtime debug
 
 fs = require 'fs'
 
@@ -41,7 +41,7 @@ class NodeRequirer extends BundleBase
   constructor: (@moduleNameBR, @modyle, @dirname, @webRootMap)->
 
     @path = upath.normalize (
-      @dirname + '/' + (pathRelative "$/#{upath.dirname @moduleNameBR}", "$/") + '/'
+      @dirname + '/' + (pathRelative "#{upath.dirname @moduleNameBR}", ".", assumeRoot:true) + '/'
     )
 
     l.debug("""
@@ -182,7 +182,7 @@ class NodeRequirer extends BundleBase
     l.debug "resolvedPaths = \n", resolvedPaths if l.deb 95
 
     for modulePath, resolvedPathNo in resolvedPaths when loadedModule is unloaded
-      if dep.pluginName in [undefined, 'node'] # plugin 'node' is dummy: just signals ommit from defineArrayDeps
+      if dep.plugin?.name?() in [undefined, 'node'] # plugin 'node' is dummy: just signals ommit from defineArrayDeps
         l.debug("@nodeRequire '#{modulePath}'") if l.deb 95
         attempts.push {modulePath, requireUsed: 'nodeRequire', resolvedPathNo, dependency: dep.name()}
         try

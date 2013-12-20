@@ -190,7 +190,7 @@ By default `isAfterTemplate:false`. Use the `'!'` name flag to denote `isAfterTe
 
 Following the norm, the return value of [`convert(module)`](#convert) is assigned to [`converted`](#converted) and (assuming its the last RC) it is the value to be saved as [`dstFilename`](#dstFilename) (assuming its a non-empty String).
 
-This is the right place to add banners etc *outside* of the UMD/AMD/nodejs template and its enclosures.
+This is the right place to add banners, custom code injections etc, *outside* of the UMD/AMD/nodejs template and its enclosures.
 
 @see [build.template.banner](MasterDefaultsConfig.coffee#build.template.banner)
 
@@ -374,7 +374,7 @@ A `function(filename, options)` that reads and returns contents of the source fi
 
  You can use `read()` on demand from within `convert()`, for example:  
  ```
- convert: function(fileResource){return 'Banner' + fileResource.read()}
+ convert: function(fileResource){ return 'someContent' + fileResource.read() }
  ```
 
 #### `save()`
@@ -593,18 +593,48 @@ will remove all code that matches the `'if (l.deb()){}'` skeleton.
 
 #### Inject / replace dependencies
 
-#### `replaceDeps()`
+#### `replaceDep()`
 
-A method `replaceDeps(oldDep, newDep)` that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of the module. Its taking two arguments:
+A method `replaceDep(oldDep, newDep, options)` that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of this module. Its taking two arguments:
 
-* `oldDep`: the dependency to find and replace in [bundleRelative format](Flexible-Path-Conventions#bundlerelative-vs-filerelative-paths), eg `'models/Person'` or `'underscore'`
+* `matchDep`: the dependency/ies to match and replace. It might be either :
 
-* `newDep`: the dependency to replace with, again in [bundleRelative](Flexible-Path-Conventions#bundlerelative-vs-filerelative-paths), eg `'mockModels/PersonMock'` or `'lodash'`
+ **String**: the dep either in [bundleRelative format](Flexible-Path-Conventions#bundlerelative-vs-filerelative-paths), eg `'models/Person'` where its calculated relative to bundle, or in fileRelative eg `'../models/Person'` where its calculated relative to this file/module by default (but can be overridden, see options).
 
-   If `newDep` is ommited (i.e undefined), the **dependency is removed** from the module's dependencies, along with its corresponding parameter (if any). *@note its not removed from the actual module's body, i.e if it exists as a `require('dep')`)*.
+ The String can also be either:
 
+ * a partial match, denoted with `'|'` as the last char, eg `'data/models|'`, which triggers a partial replacement / translation, see [partial replacements](#Partial-replacements-translation) below.
+
+ * a [mimimatch](https://npmjs.org/package/minimatch) String, eg `'**/model/Person*'`
+
+ **RegExp**: a regexp that matches the dep (including the possible plugin and extension), that is caclulated according to options (fileRelative with both plugin and extension by default) @todo: examples
+
+ **Function**: called with `depName`, `dep`, `options` @todo: explain better ?
+
+* `newDep`: the dependency to replace with, which can be:
+
+  **String**: of relative type in options eg `'mockModels/PersonMock'` or `'lodash'`
+
+  **Dependency**: an internal class, not currently a documented part of the user API.
+
+  **Function**: with arguments `depName` & `dep` of the dependency that matched, and returns either a String or a Dependency. @todo: document better ?
+
+  **undefined/null**: If `newDep` is omitted (i.e undefined), the **dependency is removed** from the module's dependencies, along with its corresponding parameter (if any). *@note its not removed from the actual module's body, i.e if it exists as a `myDepVar = require('dep')`)*.
+
+* `options` a hash with some of these props:
+  **relative**: either `'bundle'` or `'file'`, defaults to `'file'` if matchDep as string starts with '.', `'bundle'` otherwise.
+  **plugin**: boolean, whether to consider plugin
+  **ext**: boolean, whether to consider extension
 
 @example: `m.replaceDep('models/Person', 'mockModels/PersonMock')`
+
+##### Partial replacements / translation
+
+@todo: explain better
+
+@example `mod.replaceDep('../lib|', '../UMD', {relative:'bundle'})` will replace the starting path of all (external) dependencies that start with `'../lib'` (when calculated relative to bundle), with `'../UMD'`.
+
+ So if the module is `'somedir/myModule'` and has a fileRelative dep `'../../lib/someDir/someDep'` (i.e `'../lib/someDir/someDep'` if calculated relative to bundle taking the path of the module into account), the dep will be translated to ``'../../UMD/someDir/someDep'`.
 
 #### `injectDeps()`
 
@@ -790,7 +820,7 @@ The registry allows to easily **look up, clone, change, reuse or even call funct
 To save loading & processing time, these RC-specs aren't instantiated as proper RC instances and not added to [bundle.resources](MasterDefaultsConfig.coffee#bundle.resources) until they are retrieved/used in a user's config `bundle.resources`. 
 
     _ = (_B = require 'uberscore')._
-    l = new _B.Logger 'urequire/ResourceConverters'
+    l = new _B.Logger 'uRequire/ResourceConverters'
 
     extraResourceConverters =
 

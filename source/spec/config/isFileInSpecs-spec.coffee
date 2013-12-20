@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'utils/isFileInSpecs-spec'
+l = new _B.Logger 'uRequire/utils/isFileInSpecs-spec'
 
 chai = require 'chai'
 expect = chai.expect

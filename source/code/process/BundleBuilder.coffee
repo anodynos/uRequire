@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/process/BundleBuilder'
+l = new _B.Logger 'uRequire/process/BundleBuilder'
 
 fs = require 'fs'
 
@@ -42,7 +42,7 @@ class BundleBuilder
 
   verboseRef = _B.Logger::verbose # hack & travestry
   setDebugVerbose: ->
-    _B.Logger.addDebugPathLevel 'urequire', @config.build.debugLevel
+    _B.Logger.addDebugPathLevel 'uRequire', @config.build.debugLevel
     if @config.build.verbose
       _B.Logger::verbose = verboseRef
     else
@@ -60,9 +60,10 @@ class BundleBuilder
         @bundle.buildChangedResources @build, filenames
       catch err
         if err?.quit
-          l.er 'Quiting building bundle - err is:', err
+          @bundle.printError err
         else # we should not have come here
-          l.er 'Uncaught exception @ bundle.buildChangedResources', err
+          l.er 'Uncaught exception @ bundle.buildChangedResources'
+          @bundle.printError err
         @config.build.done false
     else
       l.er "buildBundle(): I have !@build or !@bundle - can't build!"

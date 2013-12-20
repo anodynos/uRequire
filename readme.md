@@ -1,4 +1,4 @@
-# uRequire v0.6.9
+# uRequire v0.6.10
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.png)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
@@ -185,6 +185,8 @@ This `'uberscore'` config (coffeescript) will:
 
   * [add a banner](http://urequire.org/masterdefaultsconfig.coffee#build.template) (after UMD template & minification)
 
+  * [clean](http://urequire.org/masterdefaultsconfig.coffee#build.clean) directory at `dstPath` (before writing anything)
+
   * [watch for changes](http://urequire.org/masterdefaultsconfig.coffee#build.watch), convert only [what's really changed](http://urequire.org/resourceconverters.coffee#watching-module-changes)
 
 
@@ -207,6 +209,7 @@ uberscore:
   ]
   template: banner: "// uBerscore v0.0.15"
   optimize: 'uglify2'
+  clean: true
   watch: true
 ```
 
@@ -240,9 +243,10 @@ distribute:
 Continue reading at http://urequire.org
 
 # License
+
 The MIT License
 
-Copyright (c) 2012 Agelos Pikoulas (agelos.pikoulas@gmail.com)
+Copyright (c) 2013 Agelos Pikoulas (agelos.pikoulas@gmail.com)
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation

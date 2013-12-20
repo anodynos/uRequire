@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/blendConfigs'
+l = new _B.Logger 'uRequire/blendConfigs'
 fs = require 'fs'
 require('butter-require')() # no need to store it somewhere
 
@@ -100,13 +100,19 @@ bundleBuildBlender = new _B.DeepCloneBlender [
     order: ['path', 'src', 'dst']
 
     arrayizeConcat: (prop, src, dst)->
-      arrayizePusher.blend dst[prop], src[prop]
+      if _.isFunction src[prop]
+        src[prop] _.clone(_B.arrayize dst[prop]), dst, prop  #todo: move -> functionality to arrayizePusher
+      else
+        arrayizePusher.blend dst[prop], _.clone(src[prop])
 
     arraysConcatOrOverwrite: (prop, src, dst)->
-      if _.isArray(dst[prop]) and _.isArray(src[prop])
-        arrayizePusher.blend dst[prop], src[prop] #takes care of 'parent reset'
+      if _.isFunction src[prop]
+        src[prop] _.clone(_B.arrayize dst[prop]), dst, prop
       else
-        src[prop] # just copy src[prop] over to dst[prop]
+        if _.isArray(dst[prop]) and _.isArray(src[prop])
+          arrayizePusher.blend _.clone(dst[prop]), src[prop] #takes care of 'parent reset'
+        else
+          src[prop] # just copy src[prop] over to dst[prop]
 
     dependenciesBindings: (prop, src, dst)->
       dependenciesBindingsBlender.blend dst[prop], src[prop]
@@ -157,6 +163,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       globalWindow: '|': 'arraysConcatOrOverwrite'
       runtimeInfo: '|': 'arraysConcatOrOverwrite'
       allNodeRequires: '|': 'arraysConcatOrOverwrite'
+      dummyParams: '|': 'arraysConcatOrOverwrite'
       injectExportsModule: '|': 'arraysConcatOrOverwrite'
       noRootExports: '|': 'arraysConcatOrOverwrite'
       scanAllow: '|': 'arraysConcatOrOverwrite'
@@ -222,27 +229,35 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
     dst[prop][src[prop]] or= []                                      # set a 'lodash' key with `[]` as value on our dst
     dst[prop]
 
-  'Array': (prop, src, dst)->                                        # Array, eg  `['lodash', 'jquery']`, convert to `{lodash:[], jquery:[]}`
-    if not _.isPlainObject dst[prop]
+  '[]': (prop, src, dst)->                                        # Array, eg  `['lodash', 'jquery']`, convert to `{lodash:[], jquery:[]}`
+    if not _B.isHash dst[prop]
       dst[prop] = {}
     else
-      _B.mutate dst[prop], _B.arrayize
+      dst[prop] = _B.mutate _.clone(dst[prop], true), _B.arrayize
 
     for dep in src[prop]
       dst[prop][dep] = _B.arrayize dst[prop][dep]
 
     dst[prop]
 
-  'Object': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}, convert to    `{lodash:['???'], ...}`
-    if not _.isPlainObject dst[prop]
+  '{}': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}, convert to    `{lodash:['???'], ...}`
+    if not _B.isHash dst[prop]
       dst[prop] = {}
     else
-      _B.mutate dst[prop], _B.arrayize
+      dst[prop] = _B.mutate _.clone(dst[prop], true), _B.arrayize
 
     for dep, depVars of src[prop]
       dst[prop][dep] = arrayizeUniquePusher.blend dst[prop][dep], depVars
 
     dst[prop]
+
+  '->': (prop, src, dst)->
+    if not _B.isHash dst[prop]
+      dst[prop] = {}
+    else
+      dst[prop] = _B.mutate _.clone(dst[prop], true), _B.arrayize
+
+    src[prop] dst[prop], dst, prop
 ]
 
 deepCloneBlender = new _B.DeepCloneBlender #@todo: why deepCloneBlender need this instead of @

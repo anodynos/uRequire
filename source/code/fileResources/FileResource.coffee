@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/fileResources/FileResource'
+l = new _B.Logger 'uRequire/FileResource'
 
 fs = require 'fs'
 mkdirp = require 'mkdirp'
@@ -8,6 +8,7 @@ mkdirp = require 'mkdirp'
 BundleFile = require './BundleFile'
 upath = require '../paths/upath'
 UError = require '../utils/UError'
+ResourceConverterError = require '../utils/ResourceConverterError'
 
 ###
   Represents any bundlefile resource, whose source/content we dont read (but subclasses do).
@@ -53,23 +54,33 @@ class FileResource extends BundleFile
   runResourceConverters: (convFilter=->true) ->
     @hasErrors = false
     for resConv in @converters when convFilter(resConv) and (resConv.enabled is true)
+      if l.deb 40
+        l.deb 40, "ResourceConverter '#{resConv.name}' "+
+              "for `#{@constructor?.name}` '#{@srcFilename}' " +
+               if l.deb(70) then " dstFn='#{@dstFilename}'" else ''
       try
         if _.isFunction resConv.convert
-          l.debug "Converting #{@constructor?.name} srcFn='#{@srcFilename}', dstFn='#{@dstFilename}' with RC='#{resConv.name}'..." if l.deb 40
+          l.deb "`resourceConverter.convert()` for '#{resConv.name}'" if l.deb 90
           @converted = resConv.convert @ # store return value at @converted
 
         # convert @srcFilename to @dstFilename
         # (actually convert the previous @dstFilename -intially @srcFilename- to the new @dstFilename)
         if _.isFunction resConv.convFilename
+          l.deb "`resourceConverter.convFilename()` for '#{resConv.name}'..." if l.deb 60
+          oldDstFn = @dstFilename
           @dstFilename = resConv.convFilename @dstFilename, @srcFilename, @
-          l.debug "... @dstFilename is '#{@dstFilename}'" if l.deb 70
+          if l.deb 60
+            if @dstFilename isnt oldDstFn
+              l.deb "...@dstFilename changed from '#{oldDstFn}' to '#{@dstFilename}'"
+            else
+              l.deb 80, "@dstFilename remained '#{oldDstFn}'"
 
         @hasChanged = true
       catch err
         @hasErrors = true
-        throw new UError """
-           Error converting #{@constructor?.name} '#{@srcFilename}' with Resource Converter '#{resConv?.name}':
-           '''#{resConv?.descr}'''""", {nested: err}
+        throw new ResourceConverterError """
+           Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}':""",
+           {nested: err}
       
       break if resConv.isTerminal
 
@@ -97,9 +108,9 @@ class FileResource extends BundleFile
     @bundle.handleError new UError "Error saving - no content" if !content
 
     try
-      if not fs.existsSync upath.dirname(filename)
-        l.verbose "Creating directory '#{upath.dirname filename}'"
-        mkdirp.sync upath.dirname(filename)
+      if not fs.existsSync(fileDirname = upath.dirname filename)
+        l.verbose "save: Creating directory '#{fileDirname}'"
+        mkdirp.sync fileDirname
 
       fs.writeFileSync filename, content, options
       l.verbose "Saved file '#{filename}'"

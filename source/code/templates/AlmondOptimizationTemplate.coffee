@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/AlmondOptimizationTemplate'
+l = new _B.Logger 'uRequire/AlmondOptimizationTemplate'
 
 Dependency = require '../fileResources/Dependency'
 Template = require './Template'
@@ -44,20 +44,8 @@ module.exports = class AlmondOptimizationTemplate extends Template
       _.pick @bundle.localNonNode_depsVars, (vars, dep)=>
          not @bundle.exportsBundle_depsVars[dep]
 
-    if @build?.optimize
-      l.warn '50', "Attaching banners to @bundle.mainModule, cause r.js optimization strips them off when `build.optimize`."
-      @bundle.mainModule.converted =
-        @allBanners +
-        @bundle.mainModule.converted # it includes template.banner, from bundle.concatMainModuleBanner()
-      @bundle.mainModule.save()
-
   Object.defineProperties @::,
     build: get:-> @bundle.build
-
-    allBanners: get:->
-      (if @build.template.banner then @build.template.banner + '\n' else '') +
-      @uRequireBanner +
-      "/** Combined template optimized with RequireJS/r.js v#{@bundle.requirejs.version} & almond. */" + '\n'
 
     # require each bundle dependency with its variables, eg
     # `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
@@ -66,8 +54,13 @@ module.exports = class AlmondOptimizationTemplate extends Template
     # we get `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
     dependenciesExportsBundle_bundle_depsLoader: get:->
       (for dep, vars of @exportsBundle_bundle_depsVars
-        '    var ' + vars.join(', ') + '; ' +
-        vars.join(' = ') + " = require('#{dep}');"
+        '    var ' +
+        ( if vars.length is 1
+            vars[0]
+          else
+            vars.join(', ') + '; ' + vars.join(' = ')
+        ) +
+        " = require('#{dep}');"
       ).join('\n')
 
     # load bundleFactory depending on runtime environment
@@ -94,7 +87,7 @@ module.exports = class AlmondOptimizationTemplate extends Template
     # requirejs optimize stuff
     wrap: get: ->
       start:
-        @allBanners +
+#        @allBanners +
         """
         (function (global, window){
           #{if _B.isTrue @build.useStrict then "'use strict';\n" else ''

@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/codeUtils/toCode'#  100
+l = new _B.Logger 'uRequire/codeUtils/toCode'#  100
 
 escodegen =  require 'escodegen'
 

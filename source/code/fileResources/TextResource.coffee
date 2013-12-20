@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/fileResources/TextResource'
+l = new _B.Logger 'uRequire/TextResource'
 
 # uRequire
 FileResource = require './FileResource'

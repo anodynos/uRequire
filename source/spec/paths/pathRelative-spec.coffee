@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'paths/pathRelative-spec'
+l = new _B.Logger 'uRequire/paths/pathRelative-spec'
 
 chai = require 'chai'
 expect = chai.expect
@@ -7,6 +7,9 @@ expect = chai.expect
   ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 pathRelative = require "../../code/paths/pathRelative"
+
+# @todo:
+#  demonstrate how `require('path').relative` gives 'some/nested/module' instead of './some/nested/module'
 
 describe "pathRelative(from, to)", ->
 

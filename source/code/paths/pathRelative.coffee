@@ -10,13 +10,19 @@
   #
   # @param from {String} the starting path
   # @param from {to} the destination path
-  # @option dot4Current ????
+  # @option
+  #   dot4Current: return './dep' instead of 'dep'
+  #   assumeRoot: add a leading fake path, like path.resolve does
   # @return {String} the path that connects from -> to
 pathRelative = (from, to, options)->
     options or= {}
     #console.log "from: #{from}, to: #{to}"
 
     # replace '\' with '/' and split 'em (to an array). I lOOOOOOve coffeescript!
+    if options.assumeRoot
+      from = "$/#{from}"
+      to = "$/#{to}"
+
     [from, to] =
       for path in [from, to]
         (path.replace /\\/g, '/').split('/')
@@ -65,8 +71,11 @@ pathRelative = (from, to, options)->
         if finalPath[0] isnt '..' # if path isnt backwards
           finalPath.unshift '.'
 
-      return finalPath.join "/"
+      if options.assumeRoot and finalPath[finalPath.length-1] is '$'
+        finalPath.pop()
+
+      finalPath.join "/"
     else
-      return null # no path found
+      null # no path found
 
 module.exports = pathRelative

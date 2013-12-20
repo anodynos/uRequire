@@ -238,17 +238,30 @@ in module `'models/PersonModel'` as described in [Exporting Modules](Exporting-M
 
 ### bundle.dependencies.replace
 
-Replace dependencies to add mocks, provide compatibility or remove deps.
+Replace one or more dependencies with another. Enables you to substitute with mocks, substitutes or provide compatibility etc.
 
-Replace all right hand side dependencies (String value or []<String> values), to the left side (key) in the build modules.
+It replaces all right hand side dependencies (String value or []<String> values), to the left side (key) in the build modules.
 
-@example `{ lodash: ['underscore', 'otherscore'], newDep2Name: 'oldDep2Name1' }`  replaces all `'underscore'` or `'otherscore'` deps to `'lodash'` in all modules, etc.
+@example
+```
+{
+  lodash: ['underscore', 'otherscore'],
+  newDep2Name: 'oldDep2Name'
+}```
+
+replaces all `'underscore'` or `'otherscore'` deps to `'lodash'` and all `'oldDep2Name'` with `'newDep2Name'` in all modules of the bundle.
+
+All deps are considered / translated to [bundleRelative](http://urequire.org/flexible-path-conventions#bundlerelative-vs-filerelative-paths):
+
+ * `'depDir/dep'` matches and/or replaces the deps that resolved to this as bundle relative, even if they are declared in the code of `'someOtherdir/someModule'` as `require('../depDir/dep')` (when authored with the nodejs fileRelative path convention).
+
+ * `'../../some/external/dep'` will fall outside the bundle, it refers to a directory that is two '..' steps before `bundle.path` and will match `require('../../../some/external/dep')` declared in `'someOtherdir/someModule'`.
+
+@see [inject / replace dependencies](resourceconverters.coffee#inject-replace-dependencies) in [Manipulating Modules](resourceconverters.coffee#manipulating-modules).
 
 @type [depsVars](types-and-derive#depsVars)
 
 @derive paradoxically its [dependenciesbindings](types-and-derive#dependenciesbindings)
-
-@see [inject / replace dependencies](resourceconverters.coffee#inject-replace-dependencies) in [Manipulating Modules](resourceconverters.coffee#manipulating-modules).
 
           replace: undefined
 
@@ -561,14 +574,13 @@ template: {
    # if its different (or instead of) [`build.dstPath`](#build.dstPath).
    combinedFile: 'build/someOtherPath/combinedModulesFilename.js'
 
-   # Adds the string at the top you `bundle.main` file, or the combined file
-   # @note rjs optimizer doesnt keep all banners, only license ones (not sure
-   # of its exact policy, seems only multi lines with /** */ are kept).
+   # Adds the **String** banner at the top of your `bundle.main` file, or the top of the combined file.
+   # @note as of v0.6.10, it works independently of rjs optimizer, so you can `rjs: preserveLicenseComments: false` to strip all other banner but yours (but watch out for license deprivation).
    banner: "/** I am a banner on top */"
 
-   # outputs section comments with values of 10, 20, 30.
-   # Multiply by 10 and you'll get `console.log`s of sections while they load!.
-   # currently experimental and alpha!
+   # Template debug - outputs section comments with values of 10, 20, 30.
+   # Multiply that by 10 and you'll get `console.log`s of sections while they load.
+   # Highly experimental and pre-alpha!
    debugLevel: 0
 }
 ```
@@ -647,7 +659,6 @@ Its added either at:
 
       useStrict: undefined
 
-
 ## build.globalWindow
 
 Allow `global` & `window` to be `global === window`, whether on nodejs or the browser. It works independently of [`build.runtimeInfo`](#build.runtimeInfo) but **it doesn't work if [`build.bare`](#build.bare) is `true`**. It uses the IIFE that's enclosing modules to pass `'window'` or `'global'` respectively.
@@ -725,6 +736,16 @@ Pre-require all `require('')` deps on node, even if they aren't mapped to any pa
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       allNodeRequires: false
+
+## build.dummyParams
+
+Add dummy params `__dummy__param__n` for deps that have no corresponding param in the AMD define array. Should not be needed but might solve some issues with dependencies not loading on nodejs.
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+      dummyParams: false
 
 ## build.watch
 
@@ -822,22 +843,38 @@ This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearl
 
 ## build.clean
 
-Clean all files & folders from `build.dstPath` before each non-watched, non-partial build.
+Clean directory or destination files in `build.dstPath`.
 
-@todo: NOT IMPLEMENTED
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+### clean rules
+
+On every initial / full build:
+
+If `clean: 'true'`,
+
+  * on non-combined template builds, the whole `build.dstPath` directory is removed before reading anyfiles, just like a `grunt:clean` task against the directory.
+
+  * on combined template, only the `combined.js` file (and possible leftover temp directory) is deleted (cause your directory might contain other files).
+
+If `clean` is a [filesspec type](types-and-derive#filespecs) (eg `clean: ['some/**/file.someext', '!', (f)-> f is 'dontDeleteMe.txt']), only files passing the filespecs filter are deleted in any case (along with any possible leftover combinedFile temp directory).
+
+On subsequent partial builds, **no files are deleted**.
 
       clean: undefined
 
 ## build.rjs
 
-@stability 1
-
-@optional
-
 The [r.js config] https://github.com/jrburke/r.js/blob/master/build/example.build.js,
 when cobining with r.js ([combined template](combined-template)).
 
-Its keys are just _.defaults for urequire's idea about using r.js, so use with caution!
+Its keys are just `_.defaults` for urequire's idea about using r.js with combined template, *so use with caution*!
+
+@stability 2
+
+@example `build: rjs: preserveLicenseComments: false`
 
       rjs: undefined
 
@@ -865,6 +902,8 @@ The `'urequire: uberscore'` task:
 
   * adds a banner to main (ouside UMD template/minification)
 
+  * cleans (deletes) `dstPath` before starting the build
+
   * watch changes, convert only what's really changed
 
 ```coffee
@@ -885,6 +924,7 @@ uberscore:                    # serves as 'name' & consequently 'main'
       (m)-> m.beforeBody = "var VERSION = '0.0.15';"]
   ]
   template: banner: "// uBerscore v0.0.15"
+  clean: true
   watch: true
 ```
 
@@ -892,12 +932,16 @@ Now, lets derive from the above and:
 
   * Use ['combined' template](combined-template)
 
-  * All modules go into one file that runs everywhere
+  * adds a banner on top of the main / build file
+
+  * all modules go into one file that runs everywhere
 
 ```
 dev:
   derive: ['uberscore']
-  template: 'combined'
+  template:
+    name: 'combined'
+    banner: '// I am a banner that goes on top'
   dstPath: 'build/uberscore-dev.js'
 ```
 

@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'codeUtils/toAST_toCode-spec'
+l = new _B.Logger 'uRequire/codeUtils/toAST_toCode-spec'
 
 chai = require 'chai'
 expect = chai.expect

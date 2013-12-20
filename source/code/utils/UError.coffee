@@ -4,4 +4,4 @@ module.exports =
     constructor: (@message, props)->
       super
       @[p] = v for p, v of props #copy all props to @
-      @stack = (new Error()).stack.replace(/\n[^\n]*/,'') # dev mode only!
+#      @stack = (new Error()).stack.replace(/\n[^\n]*/,'') # dev mode only!

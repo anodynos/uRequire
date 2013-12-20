@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'specHelpers'
+l = new _B.Logger 'uRequire/specHelpers'
 chai = require 'chai'
 expect = chai.expect
 
@@ -26,9 +26,9 @@ are = (name, asEqual=true)->
 
     if asEqual
       if !isEq
-        l.warn "Discrepancy, expected `true` from _B.#{name} \n at path: ", path.join('.'),
-               ' \n left value = ', _B.getp(a, path), '\n right value =', _B.getp(b, path),
-               ' \n left Object = \n', a, '\n right Object = \n', b
+        l.warn " \nDiscrepancy, expected `true` from _B.#{name} \n at path: ", path.join('.'),
+               ' \n * left value = ', _B.getp(a, path), '\n * right value =', _B.getp(b, path),
+               ' \n\n * left Object = \n', a, ' \n\n * right Object = \n', b
       expect(isEq).to.be.true
     else
       if isEq

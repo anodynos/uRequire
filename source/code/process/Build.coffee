@@ -1,9 +1,14 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/process/Build'
+l = new _B.Logger 'uRequire/process/Build'
 fs = require 'fs'
+
+rimraf = require 'rimraf'
+globExpand = require 'glob-expand'
 
 # uRequire
 upath = require '../paths/upath'
+
+isFileInSpecs = require '../config/isFileInSpecs'
 
 DependenciesReporter = require './../utils/DependenciesReporter'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
@@ -68,7 +73,52 @@ class Build extends _B.CalcCachedProperties
   # @todo: store all changed info in build (instead of bundle), to allow multiple builds with the same bundle!
   addChangedBundleFile: (filename, bundleFile)->
     @_changed[filename] = bundleFile
-#    @cleanProps()
+
+  doClean: ->
+    if @clean
+      @deleteCombinedTemp() # always by default
+      if _B.isTrue @clean
+        if _B.isTrue (do => try fs.existsSync(@dstPath) catch er)
+          if @template.name is 'combined'
+            @deleteCombined()
+          else
+            l.verbose "clean: deleting whole build.dstPath '#{@dstPath}'."
+            try
+              rimraf.sync @dstPath
+            catch err
+              l.warn "Can't delete build.dstPath dir '#{@dstPath}'.", err
+        else
+          l.verbose "clean: build.dstPath '#{@dstPath}' does not exist."
+      else # filespecs - delete only files specified
+        delFiles = _.filter(globExpand({cwd: @dstPath, filter: 'isFile'}, '**/*'), (f)=> isFileInSpecs f, @clean)
+        if not _.isEmpty delFiles
+          l.verbose "clean: deleting #{delFiles.length} files matched with filespec", @clean
+          for df in delFiles
+            l.verbose "clean: deleting file '#{df = upath.join @dstPath, df}'."
+            try
+              fs.unlinkSync df
+            catch err
+              l.warn "Can't delete file '#{df}'.", err
+        else
+          l.verbose "clean: no files matched filespec", @clean
+
+  deleteCombinedTemp: ->
+    if @template.name is 'combined'
+      if _B.isTrue (do => try fs.existsSync(@template._combinedFileTemp) catch er)
+        l.debug 30, "Deleting temporary combined directory '#{@template._combinedFileTemp}'."
+        try
+          rimraf.sync @template._combinedFileTemp
+        catch err
+          l.warn "Can't delete temp dir '#{@template._combinedFileTemp}':", err
+
+  deleteCombined: ->
+    if @template.name is 'combined'
+      if _B.isTrue (do => try fs.existsSync(@template.combinedFile) catch er)
+        l.verbose "Deleting combinedFile '#{@template.combinedFile}'."
+        try
+          fs.unlinkSync @template.combinedFile
+        catch err
+          l.warn "Can't delete combinedFile '#{@template.combinedFile}':", err
 
   report: (bundle)-> # some build reporting
     l.verbose "Report for `build` ##{@count}:"
@@ -81,10 +131,10 @@ class Build extends _B.CalcCachedProperties
     l.verbose "Copied #{@_copied[0]} files, Skipped copying #{@_copied[1]} files." if @_copied?[0] or @_copied?[1]
 
     if _.size bundle.errorFiles
-      l.er "#{_.size bundle.errorFiles} files/resources/modules still with errors totally in the bundle."
+      l.deb "#{_.size bundle.errorFiles} files/resources/modules still with errors totally in the bundle."
 
     if _.size @errorFiles
-      l.er "#{_.size @errorFiles} files/resources/modules with errors in this build."
+      l.deb "#{_.size @errorFiles} files/resources/modules with errors in this build."
       l.er "Build ##{@count} finished with errors in #{(new Date() - @startDate) / 1000 }secs."
     else
       l.verbose "Build ##{@count} finished succesfully in #{(new Date() - @startDate) / 1000 }secs."

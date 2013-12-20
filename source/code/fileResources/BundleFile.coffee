@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/fileResources/BundleFile'
+l = new _B.Logger 'uRequire/BundleFile'
 
 fs = require 'fs'
 
@@ -9,8 +9,9 @@ mkdirp = require "mkdirp"
 upath = require '../paths/upath'
 UError = require '../utils/UError'
 
-isFileInSpecs = '../config/isFileInSpecs'
+isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
+pathRelative = '../paths/pathRelative'
 ###
   Represents any file in the bundle (that matched `bundle.filez`)
 ###
@@ -41,6 +42,18 @@ class BundleFile
     delete @fileStats
     delete @hasErrors
 
+  for bof in ['clean']
+    do (bof)->
+      Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
+        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
+
+  dstDelete: ->
+    l.verbose "Deleting file: #{@dstFilepath}"
+    try
+      fs.unlinkSync @dstFilepath
+    catch err
+      l.er "Cant delete destination file '#{@dstFilepath}'."
+
   Object.defineProperties @::,
     extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
 
@@ -54,6 +67,10 @@ class BundleFile
     dstFilepath: get:-> upath.join @dstPath, @dstFilename # destination filename with `build.dstPath`, eg `myBuildProject/mybundle/mymodule.js`
     dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
+
+
+    # paths
+    pathToRoot: get:-> pathRelative upath.dirname(@path), "/", { assumeRoot:true }
 
     # sourceMap information
     # Currentyl usefull only for coffee/livescript/typescript conversion as TextResource (i.e .js), NOT Modules
@@ -71,13 +88,6 @@ class BundleFile
         //@ sourceMappingURL=#{upath.basename @dstFilepath}.map
         */
       """
-
-
-  # Helpers: available to bundleFile instance (passed as `convert()`) for convenience
-  # They are defined as static, with an instance shortcut *with sane defaults*
-  # They are all sync
-#  isSrcFilenameInSpecs: (filespecs)-> isFileInSpecs @srcFilename, filespecs
-#  isDstFilenameInSpecs: (filespecs)-> isFileInSpecs @dstFilename, filespecs
 
   # Without params it copies (binary) the source file from `bundle.path`
   # to `build.dstPath`
@@ -105,9 +115,9 @@ class BundleFile
       buff = new Buffer(BUF_LENGTH)
       fdr = fs.openSync(srcFile, 'r')
 
-      if not (fs.existsSync upath.dirname(dstFile))
-        l.verbose "Creating directory #{upath.dirname dstFile}"
-        mkdirp.sync upath.dirname(dstFile)
+      if not fs.existsSync(dstFileDirname = upath.dirname dstFile)
+        l.verbose "copy: Creating directory #{dstFileDirname}"
+        mkdirp.sync dstFileDirname
 
       fdw = fs.openSync(dstFile, 'w')
       bytesRead = 1

@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'config/ResourceConverter-spec'
+l = new _B.Logger 'uRequire/config/ResourceConverter-spec'
 
 chai = require 'chai'
 expect = chai.expect

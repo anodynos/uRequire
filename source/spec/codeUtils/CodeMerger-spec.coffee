@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'codeUtils/CodeMerger-spec'
+l = new _B.Logger 'uRequire/codeUtils/CodeMerger-spec'
 
 chai = require 'chai'
 expect = chai.expect

@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'urequire/process/BundleBase'
+l = new _B.Logger 'uRequire/process/BundleBase'
 
 fs = require 'fs'
 
