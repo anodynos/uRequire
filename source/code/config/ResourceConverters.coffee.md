@@ -595,7 +595,7 @@ will remove all code that matches the `'if (l.deb()){}'` skeleton.
 
 #### `replaceDep()`
 
-A method `replaceDep(oldDep, newDep, options)` that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of this module. Its taking two arguments:
+A method `replaceDep(oldDep, newDep, options)` that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of this module. Its taking 3 arguments:
 
 * `matchDep`: the dependency/ies to match and replace. It might be either :
 
