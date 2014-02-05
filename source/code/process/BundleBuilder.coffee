@@ -5,12 +5,11 @@ fs = require 'fs'
 
 # urequire
 upath = require '../paths/upath'
-MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 blendConfigs = require '../config/blendConfigs'
 UError = require '../utils/UError'
 
-Bundle = require './Bundle'
 Build = require './Build'
+Bundle = require './Bundle'
 
 {VERSION} = require('../urequire')
 ###
@@ -21,16 +20,18 @@ Build = require './Build'
 ###
 class BundleBuilder
   constructor: (@configs, deriveLoader)->
-    l.debug 5, 'uRequire v' + VERSION + ' loading config files...'
+    l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
 
-    configs.push MasterDefaultsConfig               # add as the last one - the defaults on which we lay our more specifics
-    @config = blendConfigs configs, deriveLoader    # our 'final' @config
+    l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
+    if l.deb 90 # @todo: debugLevel not established before configs are blended
+      l.deb 'User configs (not blended / not flatten)', blendConfigs _.flatten(configs), deriveLoader
+
+    @config = blendConfigs _.flatten(configs), deriveLoader, true    # our 'final' @config withMaster
     _.defaults @config.bundle, {filez: ['**/*']}  # the only(!) hard coded default
 
     @setDebugVerbose()
     l.debug "Final config (with master defaults):\n", @config if l.deb 10
 
-    l.verbose 'uRequire v' + VERSION + ' initializing...'
     # check & fix different formats or quit if we have anomalies
     if @isCheckAndFixPaths() and @isCheckTemplate()
       try

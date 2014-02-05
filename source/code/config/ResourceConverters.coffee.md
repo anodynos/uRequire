@@ -981,4 +981,4 @@ We need to add this as the very 1st in `defaultResourceConverters`, and have it 
 
     wrapCoffeeDefineCommonJS.enabled = false
 
-Now in your config, just have a `resources: [->(@ 'wrapCoffeeDefineCommonJS').enabled = true; null]` and tread your coffeescript nodejs source as AMD modules - jus tmake sure that they indeed commonjs and not AMD already!
+Now in your config, just have a `resources: [->(@ 'wrapCoffeeDefineCommonJS').enabled = true; null]` and treat your coffeescript nodejs source as AMD modules - just make sure that they indeed commonjs and not AMD already!
