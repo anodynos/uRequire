@@ -123,20 +123,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
       copy: '|': '*': 'arrayizeConcat'
 
-      resources: '|':
-        '*': (prop, src)->
-          throw new Error "`bundle.resources` must be an array - was : ", src[prop]
-        '[]': (prop, src, dst)->
-          rcs = []
-          for rc in src[prop]
-            if _.isEqual rc, [null] # cater for [null] reset array signpost for arrayizePusher
-              rcs.push rc
-            else
-              rc = ResourceConverter.searchRegisterUpdate rc
-              if rc and !_.isEmpty(rc)
-                rcs.push rc
-
-          arrayizePusher.blend dst[prop], rcs
+      resources: '|': '*': 'arrayizeConcat'
 
       dependencies:
 
@@ -278,29 +265,33 @@ templateBlender = new _B.DeepCloneBlender [
     deepCloneBlender.blend dst[prop], src[prop]
 ]
 
-#create a finalCfg object & a default deriveLoader
+defaultDeriveLoader = (derive)->
+  if _.isString derive
+    l.debug 5, "Loading config file: '#{derive}'"
+    try
+      if cfgObject = require fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
+        return cfgObject
+    catch err
+      l.er errMsg = "Error loading configuration: Can't load '#{derive}'.", err
+      throw new UError errMsg, nested: err
+  else
+    if _.isObject derive
+      return derive
+
+# create a finalCfg object & a default deriveLoader
 # and call the recursive _blendDerivedConfigs
-blendConfigs = (configsArray, deriveLoader)->
-  finalCfg = {}
+blendConfigs = (configsArray, deriveLoader, withMaster = false)->
+  configsArray.push MasterDefaultsConfig if withMaster
+  deriveLoader = defaultDeriveLoader if not _.isFunction deriveLoader
 
-  deriveLoader = # default deriveLoader
-    if _.isFunction deriveLoader
-      deriveLoader
-    else
-      (derive)-> #default deriveLoader
-        if _.isString derive
-          l.debug 5, "Loading config file: '#{derive}'"
-          try
-            if cfgObject = require fs.realpathSync derive # @todo: test require using butter-require within uRequire :-)
-              return cfgObject
-          catch err
-            l.er errMsg = "Error loading configuration: Can't load '#{derive}'.", err
-            throw new UError errMsg, nested: err
-        else
-          if _.isObject derive
-            return derive
+  _blendDerivedConfigs finalCfg = {}, configsArray, deriveLoader, withMaster
 
-  _blendDerivedConfigs finalCfg, configsArray, deriveLoader
+  if !_.isEmpty finalCfg.bundle.resources
+    resources = []
+    for resourceConverter, idx in finalCfg.bundle.resources
+      resources.push rc if not _.isEmpty rc = ResourceConverter.searchRegisterUpdate resourceConverter
+    finalCfg.bundle.resources = resources
+
   finalCfg
 
 # the recursive fn that also considers cfg.derive
@@ -318,7 +309,7 @@ _blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
         deriveLoader drv)
 
     if not _.isEmpty derivedObjects
-      _blendDerivedConfigs cfgDest, derivedObjects, deriveLoader
+      _blendDerivedConfigs cfgDest, _.flatten(derivedObjects), deriveLoader
 
     # blend this cfg into cfgDest using the top level blender
     # first moveKeys for each config for configsArray items
@@ -336,7 +327,3 @@ _.extend blendConfigs, {
 }
 
 module.exports = blendConfigs
-
-urequire:
- rootExports: '_B'
- noConflict: true

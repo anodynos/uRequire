@@ -595,7 +595,7 @@ will remove all code that matches the `'if (l.deb()){}'` skeleton.
 
 #### `replaceDep()`
 
-A method `replaceDep(oldDep, newDep, options)` that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of this module. Its taking two arguments:
+A method `replaceDep(oldDep, newDep, options)` that replaces dependencies in the resolved dependencies arrays and the body AST (i.e `require('../some/dep')` of this module. Its taking 3 arguments:
 
 * `matchDep`: the dependency/ies to match and replace. It might be either :
 
@@ -981,4 +981,4 @@ We need to add this as the very 1st in `defaultResourceConverters`, and have it 
 
     wrapCoffeeDefineCommonJS.enabled = false
 
-Now in your config, just have a `resources: [->(@ 'wrapCoffeeDefineCommonJS').enabled = true; null]` and tread your coffeescript nodejs source as AMD modules - jus tmake sure that they indeed commonjs and not AMD already!
+Now in your config, just have a `resources: [->(@ 'wrapCoffeeDefineCommonJS').enabled = true; null]` and treat your coffeescript nodejs source as AMD modules - just make sure that they indeed commonjs and not AMD already!

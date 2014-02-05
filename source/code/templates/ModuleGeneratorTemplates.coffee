@@ -1,4 +1,5 @@
 _ = (_B = require 'uberscore')._
+_.mixin (require 'underscore.string').exports()
 l = new _B.Logger 'uRequire/ModuleGeneratorTemplates'
 
 isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
@@ -116,22 +117,22 @@ class ModuleGeneratorTemplates extends Template
       @deb(10, "*** START *** rootExports & noConflict() : exporting module '#{@module.path}' to root='#{rootName}' & attaching `noConflict()`.") +
 
       ( if @module.flags.noConflict
-          ( for exp, i in @module.flags.rootExports
-              "#{if i is 0 then 'var ' else '    '}__old__#{exp} = #{rootName}.#{exp}"
+          ( for expVar, i in @module.flags.rootExports
+              "#{if i is 0 then 'var ' else '    '}__old__#{_.underscored expVar}#{i} = #{rootName}['#{expVar}']"
           ).join(',\n') + ';\n'
         else
           ''
       ) +
 
-      (for exportedVar in @module.flags.rootExports
-         "#{rootName}.#{exportedVar} = __umodule__"
+      (for expVar in @module.flags.rootExports
+         "#{rootName}['#{expVar}'] = __umodule__"
       ).join(';\n') + ';\n' +
 
       ( if @module.flags.noConflict
           "\n__umodule__.noConflict = " +
           @__function(
-            (for exp in @module.flags.rootExports
-               "#{rootName}.#{exp} = __old__#{exp}"
+            (for expVar, i in @module.flags.rootExports
+               "#{rootName}['#{expVar}'] = __old__#{_.underscored expVar}#{i}"
             ).join(';\n') + ';' +
             "\nreturn __umodule__;"
           ) + ';'

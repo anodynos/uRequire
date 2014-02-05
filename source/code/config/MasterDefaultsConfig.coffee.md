@@ -293,6 +293,7 @@ Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin,
           'domain', 'buffer', 'net', 'dgram', 'dns', 'stream',
           'https', 'querystring', 'punycode', 'readline', 'url',
           'repl', 'vm', 'assert', 'tty', 'zlib', 'os', 'cluster'
+          'console', 'freelist', 'sys', 'constants' # 'module' conflicts with dep.isSystem
         ]
 
 ### bundle.dependencies.local

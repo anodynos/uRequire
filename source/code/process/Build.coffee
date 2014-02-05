@@ -13,7 +13,6 @@ isFileInSpecs = require '../config/isFileInSpecs'
 DependenciesReporter = require './../utils/DependenciesReporter'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 UError = require '../utils/UError'
-TextResource = require '../fileResources/TextResource'
 
 BundleFile = require './../fileResources/BundleFile'
 FileResource = require './../fileResources/FileResource'

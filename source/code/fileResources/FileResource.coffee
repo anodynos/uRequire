@@ -98,12 +98,13 @@ class FileResource extends BundleFile
       undefined
 
   save: (filename=@dstFilename, content=@converted, options)->
-    @constructor.save upath.join(@dstPath, filename), content, options
+    @constructor.save.call @, upath.join(@dstPath, filename), content, options
 
   saveOptions = 'utf-8' # compatible with node 0.8 {encoding: 'utf-8', mode: 438, flag: 'w'}
   @save: (filename, content, options=saveOptions)->
     _.defaults options, saveOptions if options isnt saveOptions
     l.debug("Saving file '#{filename}'...") if l.deb 95
+    #todo: fix handleError - @bundle is undefined when statically called
     @bundle.handleError new UError "Error saving - no filename" if !filename
     @bundle.handleError new UError "Error saving - no content" if !content
 
