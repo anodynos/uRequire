@@ -234,7 +234,7 @@ class ModuleGeneratorTemplates extends Template
     @_genFullBody( # load deps 1st, before kicking off common dynamic code
 
       ( if _.any(@module.nodeDeps,
-          (dep, depIdx)-> (not dep.isSystem) and (@module?.parameters or [])[depIdx]) # has a dep with param
+          (dep, depIdx)=> (not dep.isSystem) and (@module?.parameters or [])[depIdx]) # has a dep with param
           "\nvar "
         else
           ''
