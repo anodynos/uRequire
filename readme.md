@@ -1,4 +1,4 @@
-# uRequire v0.6.11
+# uRequire v0.6.12
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.png)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
