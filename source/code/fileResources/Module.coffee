@@ -38,7 +38,8 @@ class Module extends TextResource
   for bof in ['useStrict', 'bare', 'globalWindow',
               'runtimeInfo', 'noRootExports',
               'allNodeRequires', 'dummyParams'
-              'scanAllow', 'injectExportsModule']
+              'scanAllow', 'injectExportsModule',
+              'noLoaderUMD']
     do (bof)->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
         get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @path
@@ -542,7 +543,10 @@ class Module extends TextResource
       if @isAllNodeRequires
         @defineArrayDeps
       else
-        @defineArrayDeps?[0..(@parameters?.length or 1)-1] or [] # we dont need deps without corresponding params at all
+        if not @parameters?.length
+          []
+        else
+          @defineArrayDeps?[0..@parameters?.length-1] or [] # we dont need deps without corresponding params at all
 
     path: get:-> upath.trimExt @srcFilename if @srcFilename # filename (bundleRelative) without extension eg `models/PersonModel`
 

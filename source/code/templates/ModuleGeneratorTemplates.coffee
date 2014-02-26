@@ -282,18 +282,78 @@ class ModuleGeneratorTemplates extends Template
                         else
                           ", #{nr}require(#{nDep.name(quote:true)})"
                       ).join ''})#{if @isRootExports then ')' else ''};
-          } else if (typeof define === 'function' && define.amd) {
-              define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
+          } else
+              if (typeof define === 'function' && define.amd) {
+                define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
+                  if not @isRootExports
+                    'factory'
+                  else
+                    @__function(
+                      "return rootExport(window, factory(#{@parametersPrint}));",
+                      @parametersPrint
+                    )
+                  });
+              }
+          """ +
+
+          if @module.isNoLoaderUMD
+            " else {\n" +
+            (
+              if not _.isEmpty badDeps = _.filter(@module.defineArrayDeps,
+                (dep)-> dep.type in ['bundle', 'external', 'notFoundInBundle', 'nodeLocal']) # ok types [ 'untrusted', 'system', 'local' ]
+                'throw new Error("UMD with bundle or external deps runs only with an AMD or CommonJS loader.\\n' +
+                "Can`t load these deps: " + _.map(badDeps, (d)-> "'#{d.name()}' (#{d.type})" ).join("', '") + "\");"
+              else
+
+                (
+                  if (not _.isEmpty @module.defineArrayDeps)
+                    """
+                      var modNameVars = {#{
+                        _.map( @module.defineArrayDeps, (dep)=>
+                              "'" + dep.name() + "': " +
+                                JSON.stringify @bundle.all_depsVars[dep.name(relative: 'bundle')]
+                             ).join(',')
+                        }},
+                        require = function(modyle) {
+                          var varName, _i, _len, _ref;
+                          if (modNameVars[modyle]) {
+                            _ref = modNameVars[modyle];
+                            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                              varName = _ref[_i];
+                              if (window.hasOwnProperty(varName)) {
+                                return window[modNameVars[modyle]];
+                              }
+                            }
+                          }
+
+                          var msg = "uRequire: Running UMD module as plain <script>, failed to `require('" + modyle + "')`:";
+                          if (modNameVars[modyle] && modNameVars[modyle].length)
+                            msg = msg + "it`s not exported on `window` as any of these vars: " + JSON.stringify(modNameVars[modyle]);
+                          else
+                            msg = msg + "WITHOUT an AMD or CommonJS loader & " +
+                              "no identifier (i.e varName or param name) is associated with module '"+modyle+"' in this module '#{@module.path}'.";
+
+                          throw new Error(msg);
+                        },
+                    """
+                  else
+                    """
+                      var require = function(modyle){
+                        throw new Error("uRequire: Running UMD module as plain <script>, failed to `require('" + modyle + "')`: reason unexpected !");
+                      },
+                    """
+                ) +
+                """
+                    exports = {},
+                    module = {exports: exports};\n
+                """ +
                 if not @isRootExports
-                  'factory'
+                  "factory(#{@parametersPrint});"
                 else
-                  @__function(
-                    "return rootExport(window, factory(#{@parametersPrint}));",
-                    @parametersPrint
-                  )
-                });
-            }
-        """
+                  "rootExport(window, factory(#{@parametersPrint}));"
+
+            ) + "\n}";
+          else ""
         ,
         # parameter + value to our IIFE
         'factory'
