@@ -109,9 +109,9 @@ class Dependency
 
   Object.defineProperties @::,
 
-    pluginName: get: -> if @plugin then @plugin.name() else ''
-
     isLocal: get:-> @type in ['local', 'nodeLocal']
+
+    pluginName: get: -> if @plugin then @plugin.name() else ''
 
     type: get:->
       if @untrusted
