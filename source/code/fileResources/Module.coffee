@@ -39,7 +39,7 @@ class Module extends TextResource
               'runtimeInfo', 'noRootExports',
               'allNodeRequires', 'dummyParams'
               'scanAllow', 'injectExportsModule',
-              'noLoaderUMD']
+              'noLoaderUMD', 'warnNoLoaderUMD']
     do (bof)->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
         get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @path

@@ -764,6 +764,20 @@ If the UMD module has bundle deps (eg `'my/models/Person'`) it needs an AMD load
 
       noLoaderUMD: false
 
+## build.warnNoLoaderUMD
+
+Provides a warning when a UMD module is loaded as <script>, but the `build.noLoaderUMD` generated code is missing.
+
+@default true as a warning to new users, advice is to turn it off & save space (when you know AMD or CommonJs loader is present).
+
+@see [`build.noLoaderUMD`](#build.noLoaderUMD)
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+      warnNoLoaderUMD: true
+
 ## build.watch
 
 Watch for changes in bundle files and reprocesses *only* changed ones.

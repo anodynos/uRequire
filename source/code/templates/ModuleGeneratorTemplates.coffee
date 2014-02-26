@@ -263,10 +263,22 @@ class ModuleGeneratorTemplates extends Template
   UMD: (isNodeRequirer=true)->
     nr = if isNodeRequirer then "nr." else ""
 
+    define = """
+      define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
+        if not @isRootExports
+          'factory'
+        else
+          @__function(
+            "return rootExport(window, factory(#{@parametersPrint}));",
+            @parametersPrint
+          )
+      })
+      """
+
     @_genFullBody(
       @__functionIIFE(
         (if @isRootExports
-          "var rootExport = #{@__function @_rootExportsNoConflict(), 'root, __umodule__'};"
+          "var rootExport = #{@__function @_rootExportsNoConflict(), 'root, __umodule__'};\n"
         else '') +
 
         """
@@ -275,26 +287,21 @@ class ModuleGeneratorTemplates extends Template
               "\n    var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, __dirname, '#{@module.webRootMap}');"
             else ''}
               module.exports = #{ if @isRootExports then 'rootExport(global, ' else ''
-                   }factory(#{nr}require#{@injectExportsModuleParamsPrint}#{
-                      (for nDep in @module.nodeDeps
-                        if nDep.isSystem
-                          ', ' + nDep.name()
-                        else
-                          ", #{nr}require(#{nDep.name(quote:true)})"
-                      ).join ''})#{if @isRootExports then ')' else ''};
+               }factory(#{nr}require#{@injectExportsModuleParamsPrint}#{
+                  (for nDep in @module.nodeDeps
+                    if nDep.isSystem
+                      ', ' + nDep.name()
+                    else
+                      ", #{nr}require(#{nDep.name(quote:true)})"
+                  ).join ''})#{if @isRootExports then ')' else ''};
           } else
-              if (typeof define === 'function' && define.amd) {
-                define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
-                  if not @isRootExports
-                    'factory'
-                  else
-                    @__function(
-                      "return rootExport(window, factory(#{@parametersPrint}));",
-                      @parametersPrint
-                    )
-                  });
-              }
           """ +
+          (
+            if @module.isNoLoaderUMD or @module.isWarnNoLoaderUMD
+              " if (typeof define === 'function' && define.amd) { #{define} }"
+            else
+              " #{define}"
+          ) +
 
           if @module.isNoLoaderUMD
             " else {\n" +
@@ -304,9 +311,8 @@ class ModuleGeneratorTemplates extends Template
                 'throw new Error("UMD with bundle or external deps runs only with an AMD or CommonJS loader.\\n' +
                 "Can`t load these deps: " + _.map(badDeps, (d)-> "'#{d.name()}' (#{d.type})" ).join("', '") + "\");"
               else
-
                 (
-                  if (not _.isEmpty @module.defineArrayDeps)
+                  if not _.isEmpty @module.defineArrayDeps
                     """
                       var modNameVars = {#{
                         _.map( @module.defineArrayDeps, (dep)=>
@@ -315,23 +321,17 @@ class ModuleGeneratorTemplates extends Template
                              ).join(',')
                         }},
                         require = function(modyle) {
-                          var varName, _i, _len, _ref;
-                          if (modNameVars[modyle]) {
-                            _ref = modNameVars[modyle];
-                            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                              varName = _ref[_i];
-                              if (window.hasOwnProperty(varName)) {
-                                return window[modNameVars[modyle]];
-                              }
-                            }
-                          }
+                          if (modNameVars[modyle])
+                            for (var _i = 0; _i < modNameVars[modyle].length; _i++)
+                              if (window.hasOwnProperty(modNameVars[modyle][_i]))
+                                return window[modNameVars[modyle][_i]];
 
                           var msg = "uRequire: Running UMD module as plain <script>, failed to `require('" + modyle + "')`:";
                           if (modNameVars[modyle] && modNameVars[modyle].length)
                             msg = msg + "it`s not exported on `window` as any of these vars: " + JSON.stringify(modNameVars[modyle]);
                           else
                             msg = msg + "WITHOUT an AMD or CommonJS loader & " +
-                              "no identifier (i.e varName or param name) is associated with module '"+modyle+"' in this module '#{@module.path}'.";
+                              "no identifier (i.e varName or param name) associated with dependency '"+modyle+"' in the bundle of '#{@module.path}'.";
 
                           throw new Error(msg);
                         },
@@ -339,21 +339,21 @@ class ModuleGeneratorTemplates extends Template
                   else
                     """
                       var require = function(modyle){
-                        throw new Error("uRequire: Running UMD module as plain <script>, failed to `require('" + modyle + "')`: reason unexpected !");
+                        throw new Error("uRequire: Loading UMD module as <script>, failed to `require('" + modyle + "')`: reason unexpected !");
                       },
                     """
-                ) +
-                """
-                    exports = {},
-                    module = {exports: exports};\n
-                """ +
+                ) + " exports = {}, module = {exports: exports};\n" +
+
                 if not @isRootExports
                   "factory(#{@parametersPrint});"
                 else
                   "rootExport(window, factory(#{@parametersPrint}));"
 
             ) + "\n}";
-          else ""
+          else
+            if @module.isWarnNoLoaderUMD
+              " else throw new Error('uRequire: Loading UMD module as <script>, without `build.noLoaderUMD`');"
+             else ''
         ,
         # parameter + value to our IIFE
         'factory'
