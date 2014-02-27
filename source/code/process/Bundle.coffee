@@ -85,6 +85,8 @@ class Bundle extends BundleBase
       l.debug 80, "Gathering 'node'-only dependencies"
       @getDepsVars (dep)-> dep.isNode # also gets `nodeLocal`
 
+    all_depsVars:-> @inferEmptyDepVars @getDepsVars(), 'Gathering @all_depsVars & infering empty depVars', false
+
     exportsBundle_depsVars:->
       @inferEmptyDepVars _.clone(@dependencies.exports.bundle, true),
         "Gathering @exportsBundle_depsVars & infering empty depVars for `dependencies.exports.bundle`"
@@ -121,7 +123,7 @@ class Bundle extends BundleBase
   # Attempts to infer varNames from bundle, for those deps that have empty varNames
   # @param depVars {Object} with {dep:varNames} eg {dep1:['dep1Var1', 'dep1Var2'], dep2:[...]}
   # return depVars, with missing varNames added
-  inferEmptyDepVars: (depVars = {}, whyMessage)->
+  inferEmptyDepVars: (depVars = {}, whyMessage, throwOnMissing = true)->
     if !_.isEmpty(depVars) and l.deb(70)
       l.debug 'inferEmptyDepVars:', whyMessage
       l.debug 80, 'inferEmptyDepVars(depVars = ', depVars
@@ -142,7 +144,7 @@ class Bundle extends BundleBase
               for aVar in dependenciesDepsVars[depName]
                 depVars[depName].push aVar if aVar not in depVars[depName]
 
-      if _.isEmpty depVars[depName]
+      if throwOnMissing and _.isEmpty depVars[depName]
         @handleError new UError """
           No variable names can be identified for injected or local or node-only dependency '#{depName}'.
 

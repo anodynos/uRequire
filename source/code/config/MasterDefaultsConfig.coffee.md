@@ -748,6 +748,36 @@ Add dummy params `__dummy__param__n` for deps that have no corresponding param i
 
       dummyParams: false
 
+## build.noLoaderUMD
+
+Allow modules to execute and register their exports (as defined in [`bundle.dependencies.exports.root`] or [rootExports](Exporting-Modules)), even when running without an AMD or CommonJS loader, i.e it runs on a browser via `<script src='my/UMDModule.js'>`. It works only:
+
+ * on 'UMD' and 'UMDplain' templates.
+
+ * if module has local/global dependencies only (eg `'underscore'`) and it has already load it self (eg as `window._`).
+
+If the UMD module has bundle deps (eg `'my/models/Person'`) it needs an AMD loader and loading as `<script src="require.js" data-main="MainModule">`.
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+      noLoaderUMD: false
+
+## build.warnNoLoaderUMD
+
+Provides a warning when a UMD module is loaded as <script>, but the `build.noLoaderUMD` generated code is missing.
+
+@default true as a warning to new users, advice is to turn it off & save space (when you know AMD or CommonJs loader is present).
+
+@see [`build.noLoaderUMD`](#build.noLoaderUMD)
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+      warnNoLoaderUMD: true
+
 ## build.watch
 
 Watch for changes in bundle files and reprocesses *only* changed ones.
