@@ -296,37 +296,41 @@ Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin,
           'console', 'freelist', 'sys', 'constants' # 'module' conflicts with dep.isSystem
         ]
 
-### bundle.dependencies.local
+### bundle.dependencies.locals
 
-Declare your local packages, like 'lodash' or 'when' that are installed either in npm (i.e `/node_modules`), bower (i.e `/bower_components`) or vanilla (eg `/vendor`).
+Declare your local packages, like `'lodash'` or `'when'` that are installed either on npm (i.e `/node_modules`), bower (i.e `/bower_components`) or vanilla (eg `/vendor`). Local deps are NOT considered part of the bundle, hence they are not reported as _"Bundle-looking dependencies not found in bundle"_.
 
-@optional unless:
+All deps that have no nested path (i.e no `'/'`) and are not in the bundle's path (eg `'someDepNotInBundle'`) are considered as local automatically. **The only reason you would need to declare a dep as local is :**
 
- * you use something like `require('when/node/function')` and 'when' is reported as `notFoundInBundle`, so you list `when` in `locals`. (or @todo NOT IMPLEMENTED infered from `package.json / bower.json`).
+ * you use something like `require('when/node/function')` and it's reported as _"Bundle-looking dependencies not found in bundle"_, but it shouldn't be. So you list `when` in `locals` and everything that falls below `'when/**/*'` is also considered local (@todo it could be inferred from `package.json / bower.json` etc).
 
- * (@todo: inlining NOT IMPLEMENTED yet) you want to override the paths infered from `bower.json/package.json` for `lodash` and also inline 'lodash' in a combined build
+ * (@todo: inlining NOT IMPLEMENTED yet) you want to override the paths infered from `bower.json/package.json` for `lodash` and also inline `'lodash'` in a combined build.
 
-@todo partially implemented
+@optional
+
+@todo experimental / partially implemented (especially for AMD's loading mechanism that doesn't understand the CommonJS semantics of `'when/node/function'`).
 
 @stability 1
 
-@example `local: ['when']`
+@example `locals: ['when']` or `locals: {'when': '../node_modules/when'}`
 
 @type :
 
- * Array<String>, eg ['when', 'backbone', 'lodash']
+ * Array<String>, eg ['when', 'backbone', 'lodash']. **Declare only the first path part of you local-only deps, eg `'when'`, instead of `'when/node/function'`**
 
- * @todo: NOT IMPLEMENTED yet: depsVars where keys are dependencies and the value(s) are the paths when the dependency 'main' can be found.
-   eg
+ * [depsVars](types-and-derive#depsVars) type where
+
+   * keys are the first part of local deps
+
+   * value(s) are the paths when the dependency 'main' can be found. eg
     ```
      {
-      'when': "./node_modules/when'
-      'backbone'
-      'lodash'
+      'when': "./node_modules/when"
+      'backbone': "./node_modules/backbone"
+      'lodash': "./node_modules/lodash"
      }
     ```
-
-You dont need to provide the paths, if you dont indend to inline them in a [combined template](combined-template).
+    @todo: NOT IMPLEMENTED yet: the paths are not taken into consideration (and not needed anyway if you don't indent to inline them in a [combined template](combined-template)).
 
 @todo infer locals AND their paths from package.json, bower.json etc
 
