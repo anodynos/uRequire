@@ -560,24 +560,29 @@ Output on the same directory as the _source_ [`bundle.path`](MasterDefaultsConfi
 
 The **template** to use to either convert:
 
-  * each module file, to a new format like `'UMD'`, `'nodejs'`, `'AMD'` etc
+  * each module file, to a new format like `'UMD'`, `'UMDPlain'`, `'nodejs'`, `'AMD'` etc
 
   * all modules files into one `combined.js` file, using the special ['combined' template](combined-template) that actually drives an r.js/almond conversion.
 
 @type
 
-  * The simple usage, just the name of the template as a string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
+  * The simple usage, just the **name of the template** as a string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
 
   * An options hash such as :
 
 ```
 template: {
-   # the String name of the template
+   # the String **name of the template**
    name: 'combined'
 
    # for the 'combined' template only, you can declare the `combinedFile`,
    # if its different (or instead of) [`build.dstPath`](#build.dstPath).
    combinedFile: 'build/someOtherPath/combinedModulesFilename.js'
+
+   # By default, when AMD is present, 'combined' template calls `define()` that registers your (main) module **anonymously** - you can define it with a [moduleName](http://www.requirejs.org/docs/api.html#modulename) eg `moduleName: "foo/title"` here.
+   # Its useful when you want to 'inject' it inside some other hierarchy (than what its dstPath implicitly defines it as), eg you want to have `'foo/bar' as a separate package `foo_bar.js` but correctly register its self on your dependency tree.
+   # You can even load such combined file with moduleName via plain script eg `<script src='foo_bar.js'>`, without RequireJS throwing `Error: Mismatched anonymous define()` and then `require(['foo/bar', function(foo_bar){ foo_bar.doStuff()})`.
+   moduleName: 'foo/bar'
 
    # Adds the **String** banner at the top of your `bundle.main` file, or the top of the combined file.
    # @note as of v0.6.10, it works independently of rjs optimizer, so you can `rjs: preserveLicenseComments: false` to strip all other banner but yours (but watch out for license deprivation).
@@ -610,13 +615,15 @@ Adds `__isAMD`, `__isNode` & `__isWeb` variables to your modules, so you can eas
 
 For example they can be used to select a different execution branch, depending on where the module is executing. Make sure to add modules that are nodejs-only to [`bundle.dependencies.node`](#bundle.dependencies.node) so they aren't loaded in AMD (i.e not added to `define()` dependency array).
 
+See a Q&A / tutorial on how this helps nodejs/browser cross development at [stackoverflow.com](http://stackoverflow.com/questions/22512486/nodejs-browser-cross-development).
+
 @note ['combined' template](combined-template) always has these variables available on the enclosing function cause it needs them!
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-@example `runtimeInfo: ['index.js', 'libs/**/*']`
+@example `runtimeInfo: ['index', 'libs/**/*']`
 
       runtimeInfo: true
 

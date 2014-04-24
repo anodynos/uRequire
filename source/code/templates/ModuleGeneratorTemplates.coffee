@@ -55,7 +55,7 @@ class ModuleGeneratorTemplates extends Template
 
     isCombined: get:-> @build.template.name is 'combined'
 
-    moduleNamePrint: get:-> if @module.name then "'#{@module.name}', " else ""
+    namePrint: get:-> if @module.name then "'#{@module.name}', " else ""
 
     isInjectExportsModule: get:->
       (@module.kind is 'nodejs') or
@@ -200,7 +200,7 @@ class ModuleGeneratorTemplates extends Template
   `combined` template in AlmondOptimizationTemplate, merges/adds them only once.
   ###
   _AMD_plain_define: ->
-    'define('+ @moduleNamePrint + @defineArrayDepsPrint +
+    'define('+ @namePrint + @defineArrayDepsPrint +
       @__function( #our factory function (body)
           if not @isRootExports
             @sp('factoryBodyAMD')
@@ -264,7 +264,7 @@ class ModuleGeneratorTemplates extends Template
     nr = if isNodeRequirer then "nr." else ""
 
     define = """
-      define(#{@moduleNamePrint}#{@defineArrayDepsPrint}#{
+      define(#{@namePrint}#{@defineArrayDepsPrint}#{
         if not @isRootExports
           'factory'
         else

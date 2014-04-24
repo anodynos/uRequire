@@ -45,6 +45,7 @@ module.exports = class AlmondOptimizationTemplate extends Template
          not @bundle.exportsBundle_depsVars[dep]
 
   Object.defineProperties @::,
+
     build: get:-> @bundle.build
 
     # require each bundle dependency with its variables, eg
@@ -63,10 +64,13 @@ module.exports = class AlmondOptimizationTemplate extends Template
         " = require('#{dep}');"
       ).join('\n')
 
+    moduleNamePrint: get: ->
+      if @build.template?.moduleName then "'#{@build.template.moduleName}', " else ""
+
     # load bundleFactory depending on runtime environment
     bundleFactoryRegistar: get: -> """
         if (__isAMD) {
-          return define(#{
+          return define(#{@moduleNamePrint}#{
             if @localDeps.length
               "['" + @localDeps.join("', '") + "'], "
             else ''
