@@ -1,7 +1,7 @@
 {
  "name": "urequire",
  "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
- "version": "0.6.13-01",
+ "version": "0.6.14",
  "homepage": "http://urequire.org",
  "author": {
   "name": "Agelos Pikoulas",
@@ -46,8 +46,8 @@
   "almond": "0.2.x",
   "butter-require": "0.0.x",
   "coco": "*",
-  "coffee-script": "1.6.x",
-  "iced-coffee-script": "1.6.x",
+  "coffee-script": "*",
+  "iced-coffee-script": "*",
   "LiveScript": "*",
   "commander": "1.1.x",
   "escodegen": "0.0.x",
