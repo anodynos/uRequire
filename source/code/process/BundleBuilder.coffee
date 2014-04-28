@@ -20,7 +20,7 @@ Bundle = require './Bundle'
 ###
 class BundleBuilder
   constructor: (@configs, deriveLoader)->
-    l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
+    #l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
 
     l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
     if l.deb 90 # @todo: debugLevel not established before configs are blended

@@ -231,19 +231,28 @@ class ModuleGeneratorTemplates extends Template
 
   nodejs: ->
     prCnt = 0
-    @_genFullBody( # load deps 1st, before kicking off common dynamic code
+    nodeDeps = @module.nodeDeps
 
-      ( if _.any(@module.nodeDeps,
+    @_genFullBody( # load AMD deps 1st, before kicking off common dynamic code
+
+      # deps with a variable (parameter in AMD)
+      ( if _.any(nodeDeps,
           (dep, depIdx)=> (not dep.isSystem) and (@module?.parameters or [])[depIdx]) # has a dep with param
           "\nvar "
         else
           ''
       ) +
 
-      (for param, pi in @module.parameters when not (dep = @module.nodeDeps[pi]).isSystem
+      (for param, pi in @module.parameters when not (dep = nodeDeps[pi]).isSystem
          (if prCnt++ is 0 then '' else '    ') +
          param + " = require(" + dep.name(quote:true) + ")"
-      ).join(',\n') + ';' +
+      ).join(',\n') + (if prCnt is 0 then '' else ';') +
+
+      # deps without a variable (parameter in AMD) - simple require
+      (for dep in nodeDeps[@module.parameters.length..]
+         "\nrequire(" + dep.name(quote:true) + ");"
+      ).join('') +
+
 
       @sp('factoryBodyNodejs') +
 
