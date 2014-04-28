@@ -148,8 +148,8 @@ class Module extends TextResource
         #  signature of async `require([dep1, dep2], function(dep1, dep2){...})`
         if _B.isLike [{type: 'ArrayExpression'}, {type: 'FunctionExpression'}], src[prop].arguments
           args = src[prop].arguments
-          @readArrayDepsAndVars args[0],        (@ext_asyncRequireDeps or= []),    # async require deps array, at pos 0
-                                args[1].params, (@ext_asyncFactoryParams or= [])  # async factory function, at pos 1
+          @readArrayDepsAndVars(args[0],        (@ext_asyncRequireDeps or= []),    # async require deps array, at pos 0
+                                args[1].params, (@ext_asyncFactoryParams or= []) ) # async factory function, at pos 1
 
         else
           requireDep = new Dependency (@toCode src[prop].arguments[0]), @, untrusted:true
@@ -178,7 +178,7 @@ class Module extends TextResource
         else
           (@ext_requireDeps or= []).push requireDep
 
-    null
+    return null
 
   extract: ->
     l.debug "@extract for '#{@srcFilename}'" if l.deb 70
@@ -262,9 +262,16 @@ class Module extends TextResource
   prepare: ->
     l.debug "@prepare for '#{@srcFilename}'\n" if l.deb 70
 
-    # Store @parameters removing *reduntant* ones (those in excess of @ext_defineArrayDeps):
+    # Store @parameters removing *redundant* ones (those in excess of @ext_defineArrayDeps):
     # RequireJS doesn't like them if require is 1st param!
-    @parameters = @ext_defineFactoryParams[0..@ext_defineArrayDeps.length-1]
+    @parameters =
+      if @ext_defineArrayDeps.length is 0
+        []
+      else
+        @ext_defineFactoryParams[0..@ext_defineArrayDeps.length-1]
+
+    if (@ext_defineArrayDeps.length < @ext_defineFactoryParams.length)
+      l.deb "module `#{@path}`: Discarding redundant define factory parameters", @ext_defineFactoryParams[@ext_defineArrayDeps.length..] if l.deb 5
 
     # add dummy params for deps without corresponding params
     if @isDummyParams
@@ -272,7 +279,7 @@ class Module extends TextResource
         @parameters.push "___dummy___param__#{pi}" for pi in [1..lenDiff]
 
     # Our final' defineArrayDeps will eventually have -in this order-:
-    #   - original ext_defineArrayDeps, each instanciated as a Dependency
+    #   - original ext_defineArrayDeps, each instantiated as a Dependency
     #   - all dependencies.exports.bundle, if template is not 'combined'
     #   - module injected dependencies
     #   - Add all deps in `require('dep')`, from @module.ext_requireDeps are added
@@ -327,7 +334,7 @@ class Module extends TextResource
       if (not reqDep.isNode )
         foundDeps = _.filter @defineArrayDeps, (dep)->dep.isEqual reqDep
         if _.isEmpty foundDeps # if not already there
-          reqDep = reqDep.clone() # clone, to keep ext_XXX intact
+          #reqDep = reqDep.clone() # clone, to keep ext_XXX intact #lo longer needed
           @defineArrayDeps.push reqDep
         else
           for rl in (reqDep.AST_requireLiterals or [])   # pass any ASTs to a foundDep so its gets updated.
@@ -543,10 +550,18 @@ class Module extends TextResource
       if @isAllNodeRequires
         @defineArrayDeps
       else
+        # all deps with params
         if not @parameters?.length
-          []
+          nds = []
         else
-          @defineArrayDeps?[0..@parameters?.length-1] or [] # we dont need deps without corresponding params at all
+          nds = @defineArrayDeps?[0..@parameters?.length-1] or []
+
+        # plus those without params AND not present as require('depX') #todo: simplify in @adjust
+        if @defineArrayDeps
+          for remainingDep in @defineArrayDeps[@parameters?.length..@defineArrayDeps.length-1]
+            if not _.any((@ext_requireDeps or []), (rdep)-> rdep.isEqual remainingDep)
+              nds.push remainingDep
+        nds
 
     path: get:-> upath.trimExt @srcFilename if @srcFilename # filename (bundleRelative) without extension eg `models/PersonModel`
 

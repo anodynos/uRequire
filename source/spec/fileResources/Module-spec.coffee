@@ -42,6 +42,10 @@ codegenOptions =
 moduleInfo = (js)->
   (new Module {sourceCodeJs: js, codegenOptions}).extract().info()
 
+
+moduleAdjustedInfo = (js)->
+  (new Module {sourceCodeJs: js, codegenOptions}).extract().prepare().adjust().info()
+
 describe "Module:", ->
 
   describe "Extracting Module information :", ->
@@ -161,6 +165,41 @@ describe "Module:", ->
               ext_defineArrayDeps: [ 'underscore']
               ext_defineFactoryParams: [ '_', 'Dep1', 'Dep2']
               factoryBody: 'dep1=new Dep1();return dep1.doit();'
+
+          it "discards all reduntant params (without dependencies)", ->
+            deepEqual moduleAdjustedInfo("""
+              define(function(require, exports, module) {
+                return 'theModule';
+              });"""
+            ),
+              kind: 'AMD'
+              ext_defineFactoryParams: [ 'require', 'exports', 'module']
+              factoryBody: 'return"theModule";'
+
+          it "more deps than params: injects properly (before index of params), renames a requireDep, nodeDeps still has only needed deps", ->
+            js = """
+              define(['require', 'exports', 'module', 'cc'], function(require, exports, module) {
+                var a = require('aa'), b = require('bb');
+                return "theModule";
+              });
+            """
+
+            mod = (new Module {sourceCodeJs: js, codegenOptions}).extract().prepare().adjust()
+            mod.injectDeps 'someDep': 'someVar'
+            mod.replaceDep 'aa', 'aaaaa'
+
+            deepEqual mod.info(),
+              kind: 'AMD'
+              ext_defineArrayDeps: [ 'require', 'exports', 'module', 'cc' ]
+              ext_defineFactoryParams: [ 'require', 'exports', 'module']
+              ext_requireDeps: [ 'aaaaa', 'bb' ]
+              ext_requireVars: [ 'a', 'b' ]
+
+              defineArrayDeps: [ 'exports', 'module', 'someDep', 'cc', 'aaaaa', 'bb' ]
+              nodeDeps: [ 'exports', 'module', 'someDep', 'cc' ]
+
+              parameters: [ 'exports', 'module', 'someVar' ]
+              factoryBody: 'var a=require("aaaaa"),b=require("bb");return"theModule";'
 
       describe "recognizes coffeescript & family immediate Function Invocation (IIFE) : ", ->
 
@@ -456,12 +495,12 @@ describe "Module:", ->
             'depUnassingedToVar'
             'dep9=require("dep9")'
           ]
-          nodeDeps: untrust [1], [
+          nodeDeps: untrust [1, 4], [
              'arrayDep1'
              '"arrayDepUntrusted"+crap'
              'arrayDep2'
-             #'arrayDepWithoutParam' # dont need these without params
-             #'"untrustedArrayDepWithoutParam"+crap'
+             'arrayDepWithoutParam'
+             '"untrustedArrayDepWithoutParam"+crap'
           ]
 
         it "should extract all deps, even untrusted and mark them so", ->
@@ -605,10 +644,10 @@ describe "Module:", ->
         'Dep1'
       ]
       ext_requireDeps: [
-        'depDir2/Dep2'
-        'oldplugins/doit!aLocal'
-        '../../../some/external/lib/models/Person'
-        '../../../some2/external/lib/views/User'
+        '../aNewDepInTown'
+        'plugins/spy!smallVillage'
+        '../../../../other/super/lib/models/Person'
+        "../../../other/wow/lib/views/User"
       ]
       ext_requireVars: [
         'dep2'
@@ -651,7 +690,7 @@ describe "Module:", ->
          '../myProperInjectedDep'
          '../myProperInjectedDep'
          'new/proper/filters/dosomething!proper/smartly/injected/dep'
-         #'someDir/someDep' # not needed without param
+         'someDir/someDep' # needed even without param
       ]
 
     it "has the correct injected & replaced deps", ->

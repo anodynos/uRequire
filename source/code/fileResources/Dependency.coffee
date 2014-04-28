@@ -9,9 +9,9 @@ upath = require './../paths/upath'
 pathRelative = require './../paths/pathRelative'
 
 isFileInSpecs = require '../config/isFileInSpecs'
+UError = require '../utils/UError'
 
 minimatch = require 'minimatch'
-
 util = require 'util'
 
 untrust = (str)->
@@ -236,6 +236,7 @@ class Dependency
   @todo: use @isMatch dep, {some:options}
   ###
   isEqual: (dep)->
+    return true if dep is @
     return false if not dep or @untrusted
 
     if not (dep instanceof Dependency)
