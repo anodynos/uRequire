@@ -940,8 +940,6 @@ The `'urequire: uberscore'` task:
 
   * injects a VERSION string inside the body of a file
 
-  * minifies each with UglifyJs2's defaults
-
   * adds a banner to main (ouside UMD template/minification)
 
   * cleans (deletes) `dstPath` before starting the build
