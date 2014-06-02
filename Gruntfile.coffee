@@ -71,7 +71,7 @@ gruntFunction = (grunt) ->
       options: verbose: true, failOnError: true, stdout: true, stderr: true
 
   # copy build files to wherever urequire is a dep
-  deps = ['uberscore']
+  deps = [] #['uberscore']
   for dep in deps
     gruntConfig.copy[dep] =
       files: [ expand: true, src: ["**/*.js", "**/*.json", "!node_modules/**/*"], dest: "../#{dep}/node_modules/urequire"]
