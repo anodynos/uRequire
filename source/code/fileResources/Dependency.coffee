@@ -130,7 +130,7 @@ class Dependency
               else
                 'node'
             else
-              if @isFound
+              if (@isFound or @isFoundAsIndex)
                 'bundle'
               else
                 if not @_isBundleBoundary
@@ -154,15 +154,15 @@ class Dependency
         (@module?.bundle?.dependencies?.node or
           MasterDefaultsConfig.bundle.dependencies.node)
 
-
     isFound: get:->
-#      if _.endsWith @resourceName, 'isHash'
-#        l.log @module?.bundle?.dstFilenames
-
       if _.isArray @module?.bundle?.dstFilenames
         upath.defaultExt(@_bundleRelative, '.js') in @module.bundle.dstFilenames
 
-    isWebRootMap: get: -> @resourceName[0] is '/'
+    isFoundAsIndex: get:->
+      if _.isArray @module?.bundle?.dstFilenames
+        upath.defaultExt(@_bundleRelative + '/index', '.js') in @module.bundle.dstFilenames
+
+    isWebRootMap: get:-> @resourceName[0] is '/'
 
     isRelative: get:-> @resourceName[0] is '.'
 
@@ -175,17 +175,14 @@ class Dependency
         else # keep bundleRelative outside of bundle with at least ./
           upath.normalizeSafe @resourceName
 
-
     _fileRelative: get:->
-      ret =
-        if @untrusted
-          @_depString
+      if @untrusted
+        @_depString
+      else
+        if @module?.path and (@isFound or @isFoundAsIndex)
+          pathRelative upath.dirname(@module?.path or '__root__'), @_bundleRelative, { dot4Current:true, assumeRoot:true}
         else
-          if @module?.path and @isFound
-            pathRelative upath.dirname(@module?.path or '__root__'), @_bundleRelative, { dot4Current:true, assumeRoot:true}
-          else
-            upath.normalizeSafe @resourceName
-      ret
+          upath.normalizeSafe @resourceName
 
     # does this dependency lie within bundle's boundaries ?
     _isBundleBoundary: get:->
@@ -212,6 +209,7 @@ class Dependency
       (if options.quote then "'" else '') + # @todo: use _.quote
       (if options.plugin and @plugin and not @isNode then @plugin.name() + '!' else '') +
       (if options.relative is 'bundle' then @_bundleRelative else @_fileRelative) + # default = 'file'
+      (if !@isFound and @isFoundAsIndex then '/index' else '') +
       (if options.ext is false or not @extname then '' else @extname) +
       (if options.quote then "'" else '')
 

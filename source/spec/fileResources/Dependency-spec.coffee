@@ -1,8 +1,6 @@
 _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/Dependency-spec'
 
-chai = require 'chai'
-expect = chai.expect
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
   ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
@@ -24,20 +22,20 @@ describe "Dependency:", ->
     it "split plugin, extension, resourceName & recostruct as String", ->
       dep = new Dependency depString = 'somePlugin!somedir//dep.js'
 
-      expect(dep.pluginName).to.equal 'somePlugin'
-      expect(dep.extname).to.equal '.js'
-      expect(dep.name()).to.equal 'somePlugin!somedir/dep' #.js ?
-      expect(dep.toString()).to.equal depString
-      expect(dep.name plugin:no, ext:no ).to.equal 'somedir/dep'
+      equal dep.pluginName, 'somePlugin'
+      equal dep.extname, '.js'
+      equal dep.name(), 'somePlugin!somedir/dep' #.js ?
+      equal dep.toString(), depString
+      equal dep.name(plugin:no, ext:no), 'somedir/dep'
 
     it "'node' is not considered a plugin - its just a flag", ->
       dep = new Dependency depString = 'node!somedir/dep.js'
 
-      expect(dep.pluginName).to.equal 'node'
-      expect(dep.name()).to.equal 'somedir/dep' #.js
-      expect(dep.toString()).to.equal depString
-      expect(dep.depString).to.equal depString
-      expect(dep.name plugin:true, ext:true).to.equal 'somedir/dep.js'
+      equal dep.pluginName, 'node'
+      equal dep.name(), 'somedir/dep' #.js
+      equal dep.toString(), depString
+      equal dep.depString, depString
+      equal dep.name(plugin:true, ext:true), 'somedir/dep.js'
 
   describe "uses module.path & bundle.dstFilenames:", ->
 
@@ -51,21 +49,20 @@ describe "Dependency:", ->
       )
 
       it "knows basic dep data", ->
-        expect(dep.extname).to.equal undefined
-        #expect(dep.pluginName).to.equal undefined
-        expect(dep.pluginName).to.equal ''
+        equal dep.extname, undefined
+        equal dep.pluginName, ''
 
       it "calculates bundleRelative", ->
-        expect(dep.name relative:'bundle').to.equal 'rootdir/dep'
+        equal dep.name(relative:'bundle'), 'rootdir/dep'
 
       it "calculates a normalized fileRelative", ->
-        expect(dep.name relative:'file').to.equal '../../../rootdir/dep'
+        equal dep.name(relative:'file'), '../../../rootdir/dep'
 
       it "returns depString as toString()", ->
-        expect(dep.toString()).to.equal depString
+        equal dep.toString(), depString
 
-      it "knows dep is found", -> expect(dep.isFound).to.equal true
-      it "dep.type is 'bundle'", -> expect(dep.type).to.equal 'bundle'
+      it "knows dep is found", -> tru dep.isFound
+      it "dep.type is 'bundle'", -> equal dep.type, 'bundle'
 
     describe "converts from bundleRelative to fileRelative:", ->
       dep = new Dependency(
@@ -77,10 +74,10 @@ describe "Dependency:", ->
       )
 
       it "calculates as-is bundleRelative", ->
-        expect(dep.name relative:'bundle').to.equal 'path/from/bundleroot/to/some/nested/module'
+        equal dep.name(relative:'bundle'), 'path/from/bundleroot/to/some/nested/module'
 
       it "calculates a fileRelative", ->
-        expect(dep.name relative:'file').to.equal './to/some/nested/module'
+        equal dep.name(relative:'file'), './to/some/nested/module'
 
       it "knows dep is found", -> tru dep.isFound
       it "dep.type is 'bundle'", -> equal dep.type, 'bundle'
@@ -114,7 +111,7 @@ describe "Dependency:", ->
         it "calculates fileRelative", ->
           equal dep.name(relative:'file'), '../../path/to/another/module'
 
-      describe.skip "changes the calculation of paths, with plugin present:", ->
+      describe "changes the calculation of paths, with plugin present:", ->
 
         dep = new Dependency(
           'plugin!path/to/module'         # dependency name
@@ -126,10 +123,10 @@ describe "Dependency:", ->
           }
         )
 
-        dep.depString = 'path/to/another/module'
+        dep.depString = 'plugin!path/to/another/module'
         dep.module.path = 'some/non/rootModule.js'        # the module that has this dependenecy
 
-        it "knows dep is found", -> expect(dep.isFound).to.equal true
+        it "knows dep is found", -> tru dep.isFound
         it "dep.type is 'bundle'", ->
           equal dep.type, 'bundle'
           tru dep.isBundle
@@ -139,6 +136,28 @@ describe "Dependency:", ->
 
         it "calculates fileRelative with the same plugin ", ->
           equal dep.name(relative:'file'), 'plugin!../../path/to/another/module'
+
+
+  describe "A nodejs style `require('some/dirname')` is translated to require('some/dirname/index.js'):", ->
+
+    dep = new Dependency(
+      'path/to/some/dirname'        # dependency name, missing `index.js`
+      {                             # the module mock with this dependenecy
+        path: 'path/to/aModule'
+        bundle: dstFilenames: [  'path/to/some/dirname/index.js']
+      }
+    )
+
+    it "the dep is not `found`", -> fals dep.isFound
+    it "the dep is only `foundAsIndex`", -> tru dep.isFoundAsIndex
+
+    describe "dep.name() has `index` appended ", ->
+      it "as fileRelative", -> equal dep.name(), './some/dirname/index'
+      it "as bundleRelative", -> equal dep.name(relative:'bundle'), 'path/to/some/dirname/index'
+
+    describe "dep equals a string dep with `index` appended ", ->
+      it "as fileRelative", -> dep.isEqual './some/dirname/index'
+      it "as bundleRelative", -> dep.isEqual 'path/to/some/dirname/index'
 
   describe "isEquals():", ->
     mod =
@@ -156,19 +175,19 @@ describe "Dependency:", ->
     locDep = new Dependency 'localDep', mod
 
     it "recognises 'local' type equality", ->
-      expect(locDep.isEqual 'localDep').to.be.true
-      expect(locDep.isEqual './localDep').to.be.false
+      tru locDep.isEqual 'localDep'
+      fals locDep.isEqual './localDep'
 
     it "With `Dependency` as param", ->
-      expect(dep1.isEqual dep2).to.be.true
-      expect(dep2.isEqual dep1).to.be.true
-      expect(dep1.isEqual dep3).to.be.true
-      expect(dep3.isEqual dep2).to.be.true
+      tru dep1.isEqual dep2
+      tru dep2.isEqual dep1
+      tru dep1.isEqual dep3
+      tru dep3.isEqual dep2
 
     it "false when plugin differs", ->
-      expect(dep1.isEqual depPlugin).to.be.false
-      expect(dep2.isEqual depPlugin).to.be.false
-      expect(dep3.isEqual depPlugin).to.be.false
+      fals dep1.isEqual depPlugin
+      fals dep2.isEqual depPlugin
+      fals dep3.isEqual depPlugin
 
     describe "With `String` as param:", ->
 
@@ -176,76 +195,71 @@ describe "Dependency:", ->
 
         describe "with .js extensions", ->
           it "matches alike", ->
-            expect(dep1.isEqual 'rootdir/dep.js').to.be.true
-            expect(dep2.isEqual 'rootdir/dep.js').to.be.true
-            expect(dep3.isEqual 'rootdir/dep.js').to.be.true
+            [dep1, dep2, dep3].forEach (dep)->
+              tru dep.isEqual 'rootdir/dep.js'
 
         describe "plugins still matter:", ->
 
           it "they make a difference", ->
-            expect(dep1.isEqual 'somePlugin!rootdir/dep.js').to.be.false
-            expect(dep2.isEqual 'somePlugin!rootdir/dep.js').to.be.false
-            expect(dep3.isEqual 'somePlugin!rootdir/dep.js').to.be.false
+            [dep1, dep2, dep3].forEach (dep)->
+              fals dep.isEqual 'somePlugin!rootdir/dep.js'
 
           it "they only match same plugin name:", ->
-            expect(depPlugin.isEqual 'somePlugin!rootdir/dep.js').to.be.true
-            expect(depPlugin.isEqual 'someOtherPlugin!rootdir/dep.js').to.be.false
+            tru depPlugin.isEqual 'somePlugin!rootdir/dep.js'
+            fals depPlugin.isEqual 'someOtherPlugin!rootdir/dep.js'
 
         describe "without extensions:", ->
           it "matches alike", ->
-            expect(dep1.isEqual 'rootdir/dep').to.be.true
-            expect(dep2.isEqual 'rootdir/dep').to.be.true
-            expect(dep3.isEqual 'rootdir/dep').to.be.true
-
+            [dep1, dep2, dep3].forEach (dep)->
+              tru dep.isEqual 'rootdir/dep'
+            
           describe "plugins still matter:", ->
             it "they make a difference", ->
-              expect(dep1.isEqual 'somePlugin!rootdir/dep').to.be.false
-              expect(dep2.isEqual 'somePlugin!./rootdir/dep').to.be.false
-              expect(dep3.isEqual 'somePlugin!rootdir/dep').to.be.false
+              [dep1, dep2, dep3].forEach (dep)->
+                fals dep1.isEqual 'somePlugin!rootdir/dep'
 
             it "they only match same plugin name:", ->
-              expect(depPlugin.isEqual 'somePlugin!rootdir/dep').to.be.true
-              expect(depPlugin.isEqual 'somePlugin!../../../rootdir/dep').to.be.true
-              expect(depPlugin.isEqual 'someOtherPlugin!rootdir/dep').to.be.false
+              tru depPlugin.isEqual 'somePlugin!rootdir/dep'
+              tru depPlugin.isEqual 'somePlugin!../../../rootdir/dep'
+              fals depPlugin.isEqual 'someOtherPlugin!rootdir/dep'
 
       describe " with `fileRelative` format, it matches relative path from same module distance", ->
 
         it "with .js extensions", ->
-          expect(dep1.isEqual '../../../rootdir/dep.js').to.be.true
-          expect(dep2.isEqual '../../../rootdir/dep.js').to.be.true
-
-          expect(dep3.isEqual '../../rootdir/dep.js').to.be.true
+          tru dep1.isEqual '../../../rootdir/dep.js'
+          tru dep2.isEqual '../../../rootdir/dep.js'
+          tru dep3.isEqual '../../rootdir/dep.js'
 
         it "with .js extensions & unormalized paths", ->
-          expect(dep1.isEqual './../../../rootdir/dep.js').to.be.true
-          expect(dep2.isEqual '.././../../rootdir/dep.js').to.be.true
-          expect(dep3.isEqual './../../rootdir/dep.js').to.be.true
+          tru dep1.isEqual './../../../rootdir/dep.js'
+          tru dep2.isEqual '.././../../rootdir/dep.js'
+          tru dep3.isEqual './../../rootdir/dep.js'
 
         it "plugins still matter", ->
-          expect(depPlugin.isEqual 'somePlugin!../../../rootdir/dep.js').to.be.true
-          expect(depPlugin.isEqual 'someOtherPlugin!../../../rootdir/dep.js').to.be.false
+          tru depPlugin.isEqual 'somePlugin!../../../rootdir/dep.js'
+          fals depPlugin.isEqual 'someOtherPlugin!../../../rootdir/dep.js'
 
         it "plugins still matter with unormalized paths", ->
-          expect(depPlugin.isEqual 'somePlugin!./.././../../rootdir/dep.js').to.be.true
-          expect(depPlugin.isEqual 'somePlugin!./.././../../rootdir/dep.js').to.be.true
+          tru depPlugin.isEqual 'somePlugin!./.././../../rootdir/dep.js'
+          tru depPlugin.isEqual 'somePlugin!./.././../../rootdir/dep.js'
 
         it "without extensions", ->
-          expect(dep1.isEqual './../../../rootdir/dep').to.be.true
-          expect(dep2.isEqual './../../../rootdir/dep').to.be.true
-          expect(dep3.isEqual '../.././rootdir/./dep').to.be.true
+          tru dep1.isEqual './../../../rootdir/dep'
+          tru dep2.isEqual './../../../rootdir/dep'
+          tru dep3.isEqual '../.././rootdir/./dep'
 
         it "plugins still matter", ->
-          expect(depPlugin.isEqual 'somePlugin!./../../../rootdir/dep').to.be.true
-          expect(depPlugin.isEqual 'someOtherPlugin!../../../rootdir/dep').to.be.false
+          tru depPlugin.isEqual 'somePlugin!./../../../rootdir/dep'
+          fals depPlugin.isEqual 'someOtherPlugin!../../../rootdir/dep'
 
       it "with false extensions", ->
-        expect(dep1.isEqual 'rootdir/dep.txt').to.be.false
-        expect(dep2.isEqual '../../../rootdir/dep.txt').to.be.false
-        expect(dep3.isEqual '../../rootdir/dep.txt').to.be.false
+        fals dep1.isEqual 'rootdir/dep.txt'
+        fals dep2.isEqual '../../../rootdir/dep.txt'
+        fals dep3.isEqual '../../rootdir/dep.txt'
 
       it "looking for one in an array", ->
         dependencies = [dep1, dep2, depPlugin]
-        expect(_.any dependencies, (dep)-> dep.isEqual 'rootdir/dep.js').to.be.true
+        tru (_.any dependencies, (dep)-> dep.isEqual 'rootdir/dep.js')
 
   describe "resolving all types bundle/file relative, external, local, notFound, webRootMap:", ->
     mod =
@@ -262,6 +276,8 @@ describe "Dependency:", ->
           'data/messages/bye.js'
           'data/messages/hello.js'
           'url.js'                          # url is in 'bundle.dependencies.node' bu if in bundle, its a bundle!
+          'somedir/index.js'
+          'some/deep/dir/index.js'
         ]
         dependencies:
           node: MasterDefaultsConfig.bundle.dependencies.node.concat [
@@ -286,6 +302,12 @@ describe "Dependency:", ->
       'util'    # node only
       'when/node/function' # node only, but also local (not missing)
       'node/nodeOnly/deps'
+
+      # dirname/index.js
+      'somedir'
+      '../somedir'
+      'some/deep/dir'
+      '../some/deep/dir'
     ]
 
     dependencies = []
@@ -311,6 +333,12 @@ describe "Dependency:", ->
         'util'
         'when/node/function'
         'node/nodeOnly/deps'
+
+        'somedir/index'
+        'somedir/index'
+        'some/deep/dir/index'
+        'some/deep/dir/index'
+
         '"main"+".js"'
       ]
       fileRelative: untrust [dependencies.length-1], [     # @todo: with .js removed or not ?
@@ -329,6 +357,12 @@ describe "Dependency:", ->
         'util'
         'when/node/function'
         'node/nodeOnly/deps'
+
+        '../somedir/index'
+        '../somedir/index'
+        '../some/deep/dir/index'
+        '../some/deep/dir/index'
+
         '"main"+".js"'
       ]
       local: [ 'underscore', 'stream', 'when/node/function' ]
