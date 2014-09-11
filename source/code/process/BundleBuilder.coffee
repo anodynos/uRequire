@@ -5,11 +5,8 @@ fs = require 'fs'
 
 # urequire
 upath = require '../paths/upath'
-blendConfigs = require '../config/blendConfigs'
-UError = require '../utils/UError'
 
-Build = require './Build'
-Bundle = require './Bundle'
+UError = require '../utils/UError'
 
 {VERSION} = require('../urequire')
 ###
@@ -21,6 +18,10 @@ Bundle = require './Bundle'
 class BundleBuilder
   constructor: (@configs, deriveLoader)->
     #l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
+
+    @Build = require './Build' # lazy, to solve circular dep problem
+    @Bundle = require './Bundle'
+    blendConfigs = require '../config/blendConfigs'
 
     l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
     if l.deb 90 # @todo: debugLevel not established before configs are blended
@@ -35,8 +36,8 @@ class BundleBuilder
     # check & fix different formats or quit if we have anomalies
     if @isCheckAndFixPaths() and @isCheckTemplate()
       try
-        @bundle = new Bundle @config.bundle
-        @build = new Build @config.build
+        @bundle = new @Bundle @config.bundle
+        @build = new @Build @config.build
       catch err
         l.er uerr = "Generic error while initializing @bundle or @build", err
         throw new UError uerr, nested:err
@@ -110,7 +111,7 @@ class BundleBuilder
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->
-    if @config.build.template.name not in Build.templates
+    if @config.build.template.name not in @Build.templates
       l.er """
         Quitting build, invalid template '#{@config.build.template.name}' specified.
         Use -h for help"""
@@ -136,7 +137,7 @@ class BundleBuilder
 
     if pathsOk
       if not fs.existsSync @config.bundle.path
-        l.er "Quitting build, `bundle.path` '#{@config.bundle.path}' not fs.exists."
+        l.er "Quitting build, `bundle.path` '#{@config.bundle.path}' not fs.exists. \nprocess.cwd()= #{process.cwd()}"
         pathsOk = false
       else
         if @config.build.forceOverwriteSources
