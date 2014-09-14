@@ -7,6 +7,8 @@ Object.defineProperties exports, # lazily export
   # used by UMD-transformed modules when running on nodejs
   NodeRequirer: get:-> require './NodeRequirer'
 
+  upath: get:-> require "./paths/upath"
+
   # below, just for reference
   Bundle: get:-> require "./process/Bundle"
   Build: get:-> require "./process/Build"

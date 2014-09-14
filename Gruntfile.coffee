@@ -33,11 +33,6 @@ gruntFunction = (grunt) ->
     clean: build: 'build'
 
     concat:
-      bin:
-        options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
-        src: ['<%= options.buildDir %>/urequireCmd.js' ]
-        dest: '<%= options.buildDir %>/urequireCmd.js'
-
       VERSIONurequire:
         options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
         src: [ '<%= options.buildDir %>/urequire.js']

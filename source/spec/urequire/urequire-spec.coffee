@@ -2,6 +2,7 @@ _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/urequire/urequire-spec'
 
 chai = require 'chai'
+chai.use require 'chai-as-promised'
 expect = chai.expect
 
 { equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
@@ -34,6 +35,7 @@ describe.only "urequire BundleBuilder", ->
     tru _B.isHash bb.bundle #todo: test more
     tru _B.isHash bb.build
 
+
   it "bundleBuilder.buildBundle ", (mochaDone)->
     config.done = (val)->
       if val
@@ -43,7 +45,6 @@ describe.only "urequire BundleBuilder", ->
         mochaDone new Error "uRequire: urequire.BundleBuilder.buildBundle() returned #{val}"
     bb = new urequire.BundleBuilder([config])
     bb.buildBundle()
-
 
   it "bundleBuilder.buildBundle changedFiles", (done)->
     setConfigDone config, done
