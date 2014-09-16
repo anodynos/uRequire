@@ -64,15 +64,15 @@ class BundleBuilder
           @build.newBuild()
           resolve @bundle.buildChangedResources(@build, filenames).then(
             (res)=>
-              @config.build.done res
+              @build.done res
               if res is false
                 throw new Error "@bundle.buildChangedResources promise returned false"
               else
-                l.ok "BundleBuilder.buildBundle result is `#{res}`"
+                l.deb 90, "BundleBuilder.buildBundle result is `#{res}`"
           ).catch (err)=>
               l.er 'Uncaught exception @ bundle.buildChangedResources'
               @bundle.printError err
-              @config.build.done false
+              @build.done false
               throw err
       else
         l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"

@@ -46,10 +46,10 @@ describe.only "urequire BundleBuilder:", ->
       config =
         path: "#{exampleDir}/source/code"
         clean: true
-#        template: 'UMDplain'
-        template: 'combined'
-        main: "mylib"
-        dstPath: "#{exampleDir}/build/code"
+        template: 'UMDplain'
+#        template: 'combined'
+        main: "urequire-example"
+        dstPath: "#{exampleDir}/build/UMD"
         debugLevel: 0
 
     it "Initialized correctly from a config", ->
@@ -58,7 +58,7 @@ describe.only "urequire BundleBuilder:", ->
       tru _B.isHash bb.build
 
     it "`bundleBuilder.buildBundle` builds all files in `exampleDir/source/code", ->
-      mylib = "#{exampleDir}/build/code/mylib.js"
+      mylib = "#{exampleDir}/build/UMD/urequire-example.js"
 
       bb.buildBundle().then ->
         When.all [

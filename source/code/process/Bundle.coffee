@@ -338,6 +338,8 @@ class Bundle extends BundleBase
           l.verbose "No bundle files *really* changed."
 
       @build.report @
+      if l.deb 95
+        l.deb "@doneOK = #{@doneOK} and #{if @doneOK then 'resolve()' else 'reject()'}"
       if @doneOK then resolve() else reject() #todo: resolve report data
 
   convertChangedModules:->
