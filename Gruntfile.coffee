@@ -30,7 +30,9 @@ gruntFunction = (grunt) ->
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
-    clean: build: 'build'
+    clean:
+      build: 'build'
+      temp: 'temp'
 
     concat:
       VERSIONurequire:

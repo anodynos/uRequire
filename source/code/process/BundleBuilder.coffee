@@ -3,10 +3,13 @@ l = new _B.Logger 'uRequire/process/BundleBuilder'
 
 fs = require 'fs'
 
+When = require 'when'
+
 # urequire
 upath = require '../paths/upath'
 
 UError = require '../utils/UError'
+
 
 {VERSION} = require('../urequire')
 ###
@@ -55,21 +58,26 @@ class BundleBuilder
         _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
 
   buildBundle: (filenames)->
-    if @build and @bundle
-      try
-        @setDebugVerbose()
-        @build.newBuild()
-        @bundle.buildChangedResources @build, filenames
-      catch err
-        if err?.quit
-          @bundle.printError err
-        else # we should not have come here
-          l.er 'Uncaught exception @ bundle.buildChangedResources'
-          @bundle.printError err
+    When.promise (resolve, reject)=>
+      if @build and @bundle
+          @setDebugVerbose()
+          @build.newBuild()
+          resolve @bundle.buildChangedResources(@build, filenames).then(
+            (res)=>
+              @config.build.done res
+              if res is false
+                throw new Error "@bundle.buildChangedResources promise returned false"
+              else
+                l.ok "BundleBuilder.buildBundle result is `#{res}`"
+          ).catch (err)=>
+              l.er 'Uncaught exception @ bundle.buildChangedResources'
+              @bundle.printError err
+              @config.build.done false
+              throw err
+      else
+        l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
         @config.build.done false
-    else
-      l.er "buildBundle(): I have !@build or !@bundle - can't build!"
-      @config.build.done false
+        reject err
 
   watch: =>
     bundleBuilder = @
