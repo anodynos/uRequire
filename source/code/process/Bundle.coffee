@@ -494,7 +494,11 @@ class Bundle extends BundleBase
         wrap: combinedTemplate.wrap
         baseUrl: @build.template._combinedFileTemp
         include: [@main]
-        deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getExcluded_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
+
+        # include the 'fake' AMD files 'getExcluded_XXX'
+        # and `export: bundle` deps
+        # @todo: why 'rjs.deps' and not 'rjs.include' ?
+        deps: _.union _.keys(@nodeOnly_depsVars), _.keys(combinedTemplate.exportsBundle_bundle_depsVars)
         useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
         name: 'almond'
 
@@ -520,9 +524,6 @@ class Bundle extends BundleBase
         _.defaults rjsConfig, _.clone(@build.rjs, true)
 
       # actually combine (r.js optimize)
-  #    @rjsOptimize rjsConfig
-
-  #  rjsOptimize: (rjsConfig)=>
       l.debug("requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])) if l.deb 20
       rjsStartDate = new Date()
       @requirejs.optimize rjsConfig,
