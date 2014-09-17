@@ -123,7 +123,7 @@ class ModuleGeneratorTemplates extends Template
         else
           ''
       ) +
-
+      ( if @isCombined then "if (!__isAMD) {"  else '' ) +
       (for expVar in @module.flags.rootExports
          "#{rootName}['#{expVar}'] = __umodule__"
       ).join(';\n') + ';\n' +
@@ -139,6 +139,8 @@ class ModuleGeneratorTemplates extends Template
         else
           ''
       ) + '\n' +
+
+      (if @isCombined then "}"  else '' ) +
 
       (if returnModule then "return __umodule__;"  else '') +
 
