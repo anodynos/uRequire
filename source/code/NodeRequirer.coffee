@@ -198,6 +198,7 @@ class NodeRequirer extends BundleBase
           attempts.push {modulePath, requireUsed: 'RequireJS', resolvedPathNo, dependency: dep.name()}
           try
             loadedModule = @getRequirejs() modulePath
+            if _.isUndefined loadedModule then loadedModule = unloaded
           catch err
             l.debug "FAILED: @getRequirejs() '#{modulePath}' err=\n", err if l.deb 25
             _.extend _.last(attempts),
@@ -214,6 +215,7 @@ class NodeRequirer extends BundleBase
         }
         try
           loadedModule = @getRequirejs() modulePath # pluginName!modulePath
+          if _.isUndefined loadedModule then loadedModule = unloaded
         catch err
           _.extend _.last(attempts),
             urequireError: "Error loading module with plugin '#{dep.pluginName}' through RequireJS."

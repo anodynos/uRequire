@@ -1,76 +1,88 @@
 {
- "name": "urequire",
- "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
- "version": "0.6.15",
- "homepage": "http://urequire.org",
- "author": {
-  "name": "Agelos Pikoulas",
-  "email": "agelos.pikoulas@gmail.com"
- },
- "licenses": [
-  {
-   "type": "MIT",
-   "url": "http://www.opensource.org/licenses/mit-license.php"
-  }
- ],
- "keywords": [
+  "name": "urequire",
+  "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
+  "version": "0.7.0",
+  "homepage": "http://uRequire.org",
+  "author": {
+    "name": "Agelos Pikoulas",
+    "email": "agelos.pikoulas@gmail.com"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/mit-license.php"
+    }
+  ],
+  "keywords": [
     "javascript",
-    "convert", "commonjs", "AMD", "UMD",
-    "dependencies", "module", "converter", "conversion",
-    "requirejs","require", "define",
-    "resources", "assets", "pipeline", "workflow"
- ],
- "repository": {
-  "type": "git",
-  "url": "git://github.com/anodynos/urequire"
- },
- "bugs": {
-   "url": "http://github.com/anodynos/uRequire/issues",
-   "email": "agelos.pikoulas@gmail.com"
- },
- "bin": {
-  "urequire": "./build/code/urequireCmd.js"
- },
- "main": "./build/code/urequire.js",
- "scripts": {
-   "test": "node_modules/.bin/mocha build/spec/**/**.js --recursive --reporter spec --bail"
- },
- "directories": {
-  "doc": "./doc",
-  "dist": "./build"
- },
- "engines": {
-  "node": "0.10.x"
- },
- "dependencies": {
-  "almond": "0.2.x",
-  "butter-require": ">=0.0.3",
-  "coco": "*",
-  "coffee-script": "*",
-  "iced-coffee-script": "*",
-  "LiveScript": "*",
-  "commander": "1.1.x",
-  "escodegen": "0.0.x",
-  "esmangle": "0.0.x",
-  "esprima": "1.0.x",
-  "gaze": "0.4.x",
-  "glob-expand": "0.0.2",
-  "minimatch": "~0.2.12",
-  "requirejs": "2.1.x",
-  "uberscore": "0.0.16",
-  "underscore.string":"*",
-  "uglify-js": "2.x.x",
-  "rimraf": "2.2.x",
-  "mkdirp": "0.3.x"
- },
- "devDependencies": {
-  "chai": "*",
-  "mocha":"*",
-  "grunt": "0.4.x",
-  "grunt-contrib-clean": "0.4.x",
-  "grunt-contrib-copy": "0.4.x",
-  "grunt-contrib-concat": "0.1.x",
-  "grunt-shell": "~0.3.x",
-  "grunt-contrib-watch": "~0.5.3"
- }
+    "convert",
+    "commonjs",
+    "AMD",
+    "UMD",
+    "dependencies",
+    "module",
+    "converter",
+    "conversion",
+    "requirejs",
+    "require",
+    "define",
+    "resources",
+    "assets",
+    "pipeline",
+    "workflow"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/anodynos/uRequire"
+  },
+  "bugs": {
+    "url": "http://github.com/anodynos/uRequire/issues",
+    "email": "agelos.pikoulas@gmail.com"
+  },
+  "main": "./build/code/urequire.js",
+  "preferGlobal": false,
+  "scripts": {
+    "test": "node_modules/.bin/mocha build/spec/**/**.js --recursive --reporter spec --bail"
+  },
+  "directories": {
+    "doc": "./doc",
+    "dist": "./build"
+  },
+  "engines": {
+    "node": "0.10.x"
+  },
+  "dependencies": {
+    "almond": "0.2.x",
+    "bluebird": "2.3.x",
+    "butter-require": ">=0.0.3",
+    "coco": "*",
+    "coffee-script": "*",
+    "iced-coffee-script": "*",
+    "LiveScript": "*",
+    "commander": "2.2.x",
+    "escodegen": "1.x.x",
+    "esmangle": "1.x.x",
+    "esprima": "1.x.x",
+    "fs-exists": "*",
+    "gaze": "0.5.x",
+    "glob-expand": "0.0.2",
+    "minimatch": "0.3.x",
+    "requirejs": "2.1.x",
+    "uberscore": "0.0.16",
+    "underscore.string": "*",
+    "uglify-js": "2.x.x",
+    "rimraf": "2.2.x",
+    "mkdirp": "0.5.x"
+  },
+  "devDependencies": {
+    "chai": "*",
+    "chai-as-promised": "*",
+    "mocha": "*",
+    "grunt": "0.4.x",
+    "grunt-contrib-clean": "0.4.x",
+    "grunt-contrib-copy": "0.4.x",
+    "grunt-contrib-concat": "0.1.x",
+    "grunt-shell": "~0.3.x",
+    "grunt-contrib-watch": "~0.5.3"
+  }
 }

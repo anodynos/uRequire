@@ -1,6 +1,6 @@
-# uRequire v0.6.15
+# uRequire v0.6.19
 
-[![Build Status](https://travis-ci.org/anodynos/uRequire.png)](https://travis-ci.org/anodynos/uRequire)
+[![Build Status](https://travis-ci.org/anodynos/uRequire.svg?branch=master)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
 
 ## The JavaScript Universal Module & Resource Converter
@@ -70,22 +70,29 @@ Write **modular, maintainable & reusable code**:
 Simplest [Module Authoring](http://urequire.org/features#module-authoring)
 
 ```js
-define(['dep1','dep2'], function(dep1,dep2) {
+var dep1 = require('./rel/path/dep1'),
+    dep2 = require('abs/path/dep2');
+// do stuff with dep1, dep2
+module.exports = {my: 'module'}
+
+// or
+define(['./rel/path/dep1','abs/path/dep2'],
+function(dep1, dep2) {
   // do stuff with dep1, dep2
   return {my:'module'}
 });
 
-// or
-var dep1 = require('dep1'),
-    dep2 = require('dep2');
-// do stuff with dep1, dep2
-module.exports = {my: 'module'}
-
 // or both, in a relaxed, non-weird way
-define(['dep1','dep2'], function(dep1,dep2) {
-  var dep3JSON = require('json!dep3AsJSON');
-  // do stuff with dep1, dep2, dep3JSON
-  return {my:'module'}
+define(['some/dirName','dep2'],
+  function(dirNameIndex, dep2) {
+    var dep3JSON = require('json!dep3AsJSON');
+    // do stuff with dirNameIndex, dep2, dep3JSON
+    return {my:'module'}
+  });
+
+// mix well known features from both
+define(['my/dep1'], function(dep1) {
+  exports.prop = dep1 + require('./your/dep3');
 });
 ```
 
@@ -246,7 +253,7 @@ Continue reading at http://urequire.org
 
 The MIT License
 
-Copyright (c) 2013 Agelos Pikoulas (agelos.pikoulas@gmail.com)
+Copyright (c) 2013-2014 Agelos Pikoulas (agelos.pikoulas@gmail.com)
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation

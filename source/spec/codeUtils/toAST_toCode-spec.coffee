@@ -9,12 +9,10 @@ expect = chai.expect
 coffee = require 'coffee-script'
 esprima = require 'esprima'
 
-Module = require "../../code/fileResources/Module"
 UError = require "../../code/utils/UError"
 
 isLikeCode = require "../../code/codeUtils/isLikeCode"
 isEqualCode = require "../../code/codeUtils/isEqualCode"
-
 toAST = require "../../code/codeUtils/toAST"
 toCode = require "../../code/codeUtils/toCode"
 

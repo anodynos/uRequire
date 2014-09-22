@@ -9,7 +9,6 @@ expect = chai.expect
 esprima = require 'esprima'
 
 CodeMerger = require '../../code/codeUtils/CodeMerger'
-Module = require '../../code/fileResources/Module'
 
 toAST = require "../../code/codeUtils/toAST"
 toCode = require "../../code/codeUtils/toCode"

@@ -3,13 +3,13 @@ l = new _B.Logger 'uRequire/process/BundleBuilder'
 
 fs = require 'fs'
 
+When = require 'when'
+
 # urequire
 upath = require '../paths/upath'
-blendConfigs = require '../config/blendConfigs'
+
 UError = require '../utils/UError'
 
-Build = require './Build'
-Bundle = require './Bundle'
 
 {VERSION} = require('../urequire')
 ###
@@ -21,6 +21,10 @@ Bundle = require './Bundle'
 class BundleBuilder
   constructor: (@configs, deriveLoader)->
     #l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
+
+    @Build = require './Build' # lazy, to solve circular dep problem
+    @Bundle = require './Bundle'
+    blendConfigs = require '../config/blendConfigs'
 
     l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
     if l.deb 90 # @todo: debugLevel not established before configs are blended
@@ -35,8 +39,8 @@ class BundleBuilder
     # check & fix different formats or quit if we have anomalies
     if @isCheckAndFixPaths() and @isCheckTemplate()
       try
-        @bundle = new Bundle @config.bundle
-        @build = new Build @config.build
+        @bundle = new @Bundle @config.bundle
+        @build = new @Build @config.build
       catch err
         l.er uerr = "Generic error while initializing @bundle or @build", err
         throw new UError uerr, nested:err
@@ -54,21 +58,26 @@ class BundleBuilder
         _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
 
   buildBundle: (filenames)->
-    if @build and @bundle
-      try
-        @setDebugVerbose()
-        @build.newBuild()
-        @bundle.buildChangedResources @build, filenames
-      catch err
-        if err?.quit
-          @bundle.printError err
-        else # we should not have come here
-          l.er 'Uncaught exception @ bundle.buildChangedResources'
-          @bundle.printError err
+    When.promise (resolve, reject)=>
+      if @build and @bundle
+          @setDebugVerbose()
+          @build.newBuild()
+          resolve @bundle.buildChangedResources(@build, filenames).then(
+            (res)=>
+              @build.done res
+              if res is false
+                throw new Error "@bundle.buildChangedResources promise returned false"
+              else
+                l.deb 90, "BundleBuilder.buildBundle result is `#{res}`"
+          ).catch (err)=>
+              l.er 'Uncaught exception @ bundle.buildChangedResources'
+              @bundle.printError err
+              @build.done false
+              throw err
+      else
+        l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
         @config.build.done false
-    else
-      l.er "buildBundle(): I have !@build or !@bundle - can't build!"
-      @config.build.done false
+        reject err
 
   watch: =>
     bundleBuilder = @
@@ -110,7 +119,7 @@ class BundleBuilder
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->
-    if @config.build.template.name not in Build.templates
+    if @config.build.template.name not in @Build.templates
       l.er """
         Quitting build, invalid template '#{@config.build.template.name}' specified.
         Use -h for help"""
@@ -136,7 +145,7 @@ class BundleBuilder
 
     if pathsOk
       if not fs.existsSync @config.bundle.path
-        l.er "Quitting build, `bundle.path` '#{@config.bundle.path}' not fs.exists."
+        l.er "Quitting build, `bundle.path` '#{@config.bundle.path}' not fs.exists. \nprocess.cwd()= #{process.cwd()}"
         pathsOk = false
       else
         if @config.build.forceOverwriteSources

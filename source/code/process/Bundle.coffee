@@ -32,6 +32,8 @@ isFileInSpecs = require '../config/isFileInSpecs'
 
 debugLevelSkipTempDeletion = 50
 
+When = require 'when'
+
 ###
   @todo: doc it!
 ###
@@ -42,7 +44,7 @@ class Bundle extends BundleBase
     _.extend @, bundleCfg
     @files = {}  # all bundle files are in this map
 
-  inspect: -> l.prettify { @name, @main, @files}
+  inspect: -> "Bundle:" + l.prettify { @path, @filez, @files, @name, @main}
 
   # these are using _B.CalcCachedProperties functionality.
   # They are cached 1st time accessed.
@@ -284,58 +286,61 @@ class Bundle extends BundleBase
     It 'temporarilly' sets a @build instance, with which it 'guides' the build.
   ###
   buildChangedResources: (@build, filenames=@filenames)->
-    @errorsCount = 0
-    isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
-    l.debug """ \n
-      #####################################################################
-      buildChangedResources: build ##{build.count}
-      bundle.name = #{@name}, bundle.main = #{@main}
-      filenames.length = #{filenames.length} #{if !isPartialBuild then '(full build)' else ''}
-      #####################################################################""" if l.deb 20
+    When.promise (resolve, reject)=>
+      @errorsCount = 0
+      isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
+      l.debug """ \n
+        #####################################################################
+        buildChangedResources: build ##{build.count}
+        bundle.name = #{@name}, bundle.main = #{@main}
+        filenames.length = #{filenames.length} #{if !isPartialBuild then '(full build)' else ''}
+        #####################################################################""" if l.deb 20
 
-    @reporter = new DependenciesReporter()
+      @reporter = new DependenciesReporter()
 
-    if isPartialBuild  # 'partial' i.e 'watched' filenames
-      if not @build.hasFullBuild # force a full build ?
-        l.warn "Forcing a full build (this was a partial build, without a previous full build)."
-        file.reset() for fn, file of @files
-        if @build.template.name is 'combined'
-          @build.deleteCombinedTemp()
-          l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
+      if isPartialBuild  # 'partial' i.e 'watched' filenames
+        if not @build.hasFullBuild # force a full build ?
+          l.warn "Forcing a full build (this was a partial build, without a previous full build)."
+          file.reset() for fn, file of @files
+          if @build.template.name is 'combined'
+            @build.deleteCombinedTemp()
+            l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
 
-        @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
-        return # dont run again!
+          return resolve @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
+           # dont run again!
 
-      # filter filenames not passing through bundle.filez
-      bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
-      if diff = filenames.length - bundleFilenames.length
-        l.verbose "Ignored #{diff} non-`bundle.filez`"
-        filenames = bundleFilenames
-    else
-      @build.doClean()
-
-    if not filenames.length
-      l.verbose "No files to process."
-    else
-      @loadOrRefreshResources filenames
-
-      if !_.isEmpty @build.changedFiles
-        @convertChangedModules()
-        @concatMainModuleBanner()
-        @saveChangedResources()
-        @copyChangedBundleFiles()
-        if @doneOK and !isPartialBuild and
-          ((@build.template.name isnt 'combined') or @build.watch)
-            @build.hasFullBuild = true
-
-        if (@build.template.name is 'combined')
-          return @combine() # return cause report & done() should run only after its finished
-
+        # filter filenames not passing through bundle.filez
+        bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
+        if diff = filenames.length - bundleFilenames.length
+          l.verbose "Ignored #{diff} non-`bundle.filez`"
+          filenames = bundleFilenames
       else
-        l.verbose "No bundle files *really* changed."
+        @build.doClean()
 
-    @build.report @
-    @build.done @doneOK
+      if not filenames.length
+        l.verbose "No files to process."
+      else
+        @loadOrRefreshResources filenames
+
+        if !_.isEmpty @build.changedFiles
+          @convertChangedModules()
+          @concatMainModuleBanner()
+          @saveChangedResources()
+          @copyChangedBundleFiles()
+          if @doneOK and !isPartialBuild and
+            ((@build.template.name isnt 'combined') or @build.watch)
+              @build.hasFullBuild = true
+
+          if (@build.template.name is 'combined')
+            return resolve @combine() # return cause report & done() should run only after its finished
+
+        else
+          l.verbose "No bundle files *really* changed."
+
+      @build.report @
+      if l.deb 95
+        l.deb "@doneOK = #{@doneOK} and #{if @doneOK then 'resolve()' else 'reject()'}"
+      if @doneOK then resolve() else reject() #todo: resolve report data
 
   convertChangedModules:->
     if !_.isEmpty @build.changedModules
@@ -433,153 +438,154 @@ class Bundle extends BundleBase
   ###
   ###
   combine: ->
-    # run only if we have changedFiles without errors
-    if _.isEmpty @build.changedModules # @todo: or (!_.isEmpty(@build.changedfiles) and build.template.{combined}.noModulesBuild)
-      l.verbose "Not executing *'combined' template optimizing with r.js*: no @modules changed in build ##{@build.count}."
-      @build.report @
-      @build.done @doneOK
-      return
-    else
-      if _.size(@build.errorFiles)
-        if (_.size(@build.changedModules) - _.size(@build.errorFiles)) <= 0
-          l.er "Not executing *'combined' template optimizing with r.js*: no changed modules without error in build ##{@build.count}."
-          @build.report @
-          @build.done @doneOK
-          return
-        else
-          l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
-
-    l.debug """ \n
-      #####################################################################
-      'combined' template: optimizing with r.js & almond
-      #####################################################################""" if l.deb 30
-
-    if @mainModule or @inferMainModule()
-      if not @main
-        @main = @mainModule.path
-        l.warn """
-          `combine` template note: `bundle.main`, your *entry-point module* was missing from `bundle` config.
-          It's defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
-          }', as uRequire found an existing '#{@path}/#{@mainModule.srcFilename}' module in your path.
-        """
-    else
-      combErr = """`bundle.main` should be your *entry-point module*, kicking off the bundle.
-                    It is required for `combined` template execution."""
-      if not @main
-        @handleError new UError """
-          Missing `bundle.main` from config.
-          #{combErr}
-          Tried to infer it from `bundle.name` = '#{@name}', or as ['index', 'main'], but no suitable module was found in bundle.
-        """
-      else
-        @handleError new UError """
-          Module `bundle.main` = '#{@main}' not found in bundle.
-          #{combErr}
-          NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is respected.
-        """
-
-    combinedTemplate = new AlmondOptimizationTemplate @
-    for depfilename, genCode of combinedTemplate.dependencyFiles
-      TextResource.save upath.join(@build.template._combinedFileTemp, depfilename+'.js'), genCode
-
-    @copyAlmondJs()
-    @copyWebMapDeps()
-
-    rjsConfig =
-      paths: _.extend combinedTemplate.paths, @getRequireJSConfig().paths
-      wrap: combinedTemplate.wrap
-      baseUrl: @build.template._combinedFileTemp
-      include: [@main]
-      deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getExcluded_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
-      useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
-      name: 'almond'
-
-      out: (text)=>
-        text =
-          (if @build.template.banner then @build.template.banner + '\n' else '') +
-          combinedTemplate.uRequireBanner +
-          "// Combined template optimized with RequireJS/r.js v#{@requirejs.version} & almond." + '\n' +
-          text
-
-        FileResource.save @build.template.combinedFile, text
-
-    # todo: re-move this to blendConfigs
-    if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
-      rjsConfig[@build.optimize] = @build[@build.optimize] # copy { uglify2: {...uglify2 options...}}
-    else
-      rjsConfig.optimize = "none"
-    rjsConfig.logLevel = 0 if l.deb 90
-
-
-    #@todo: blend it !
-    if not _.isEmpty @build.rjs
-      _.defaults rjsConfig, _.clone(@build.rjs, true)
-
-    # actually combine (r.js optimize)
-#    @rjsOptimize rjsConfig
-#  rjsOptimize: (rjsConfig)=>
-    l.debug("requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])) if l.deb 20
-    rjsStartDate = new Date()
-    @requirejs.optimize rjsConfig,
-      (buildResponse)=>
-        l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
-        if fs.existsSync @build.template.combinedFile
-          l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
-
-          if not _.isEmpty @localNonNode_depsVars
-            if (not @build.watch) or l.deb 50
-              l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
-                combinedTemplate.localDepsVars,
-                """\n
-                are available when combined script '#{@build.template.combinedFile}' is running on:
-                  a) nodejs: they should exist as a local `nodes_modules`.
-                  b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
-                  c) Web/Script: the binded variables (eg '_' or '$')
-                     must be a globally loaded (i.e `window.$`)
-                     BEFORE loading '#{@build.template.combinedFile}'\n
-                """
-
-          # delete _combinedFileTemp, used as temp directory with individual AMD files
-          if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
-            @build.deleteCombinedTemp()
-          else
-            l.debug(10, "NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
-
-          @build.report @
-          @build.done @doneOK
-        else
-          l.er """
-            Combined file '#{@build.template.combinedFile}' NOT written - this should not have happened, requirejs reported success.
-            Check requirejs's build response:\n
-          """, buildResponse
-          @build.report @
-          @build.done false
-
-      (errorResponse)=>
+    When.promise (resolve, reject)=>
+      # run only if we have changedFiles without errors
+      if _.isEmpty @build.changedModules # @todo: or (!_.isEmpty(@build.changedfiles) and build.template.{combined}.noModulesBuild)
+        l.verbose "Not executing *'combined' template optimizing with r.js*: no @modules changed in build ##{@build.count}."
         @build.report @
+        return resolve @doneOK
+      else
+        if _.size(@build.errorFiles)
+          if (_.size(@build.changedModules) - _.size(@build.errorFiles)) <= 0
+            l.er "Not executing *'combined' template optimizing with r.js*: no changed modules without error in build ##{@build.count}."
+            @build.report @
+            return resolve @doneOK
+          else
+            l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
 
-        l.er '@requirejs.optimize errorResponse: ', errorResponse, """\n
-        Combined file '#{@build.template.combinedFile}' NOT written."
+      l.debug """ \n
+        #####################################################################
+        'combined' template: optimizing with r.js & almond
+        #####################################################################""" if l.deb 30
 
-          Some remedy:
+      if @mainModule or @inferMainModule()
+        if not @main
+          @main = @mainModule.path
+          l.warn """
+            `combine` template note: `bundle.main`, your *entry-point module* was missing from `bundle` config.
+            It's defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
+            }', as uRequire found an existing '#{@path}/#{@mainModule.srcFilename}' module in your path.
+          """
+      else
+        combErr = """`bundle.main` should be your *entry-point module*, kicking off the bundle.
+                      It is required for `combined` template execution."""
+        if not @main
+          @handleError new UError """
+            Missing `bundle.main` from config.
+            #{combErr}
+            Tried to infer it from `bundle.name` = '#{@name}', or as ['index', 'main'], but no suitable module was found in bundle.
+          """
+        else
+          @handleError new UError """
+            Module `bundle.main` = '#{@main}' not found in bundle.
+            #{combErr}
+            NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is respected.
+          """
 
-           a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
-              - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
-              - 'name' is what 'main' defaults to, if its a module.
+      combinedTemplate = new AlmondOptimizationTemplate @
+      for depfilename, genCode of combinedTemplate.dependencyFiles
+        TextResource.save upath.join(@build.template._combinedFileTemp, depfilename+'.js'), genCode
 
-           b) Perhaps you have a missing dependcency ?
-              r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+      @copyAlmondJs()
+      @copyWebMapDeps()
 
-           c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
-              *Note this prevents uRequire from finishing properly / printing this message!*
+      rjsConfig =
+        paths: _.extend combinedTemplate.paths, @getRequireJSConfig().paths
+        wrap: combinedTemplate.wrap
+        baseUrl: @build.template._combinedFileTemp
+        include: [@main]
 
-           Note that you can check the AMD-ish files used in temporary directory '#{@build.template._combinedFileTemp}'.
+        # include the 'fake' AMD files 'getExcluded_XXX'
+        # and `export: bundle` deps
+        # @todo: why 'rjs.deps' and not 'rjs.include' ?
+        deps: _.union _.keys(@nodeOnly_depsVars), _.keys(combinedTemplate.exportsBundle_bundle_depsVars)
+        useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
+        name: 'almond'
 
-           More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+        out: (text)=>
+          text =
+            (if @build.template.banner then @build.template.banner + '\n' else '') +
+            combinedTemplate.uRequireBanner +
+            "// Combined template optimized with RequireJS/r.js v#{@requirejs.version} & almond." + '\n' +
+            text
 
-        """, rjsConfig
+          FileResource.save @build.template.combinedFile, text
 
-        @build.done false
+      # todo: re-move this to blendConfigs
+      if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
+        rjsConfig[@build.optimize] = @build[@build.optimize] # copy { uglify2: {...uglify2 options...}}
+      else
+        rjsConfig.optimize = "none"
+      rjsConfig.logLevel = 0 if l.deb 90
+
+
+      #@todo: blend it !
+      if not _.isEmpty @build.rjs
+        _.defaults rjsConfig, _.clone(@build.rjs, true)
+
+      # actually combine (r.js optimize)
+      l.debug("requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])) if l.deb 20
+      rjsStartDate = new Date()
+      @requirejs.optimize rjsConfig,
+        (buildResponse)=>
+          l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
+          if fs.existsSync @build.template.combinedFile
+            l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
+
+            if not _.isEmpty @localNonNode_depsVars
+              if (not @build.watch) or l.deb 50
+                l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
+                  combinedTemplate.localDepsVars,
+                  """\n
+                  are available when combined script '#{@build.template.combinedFile}' is running on:
+                    a) nodejs: they should exist as a local `nodes_modules`.
+                    b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
+                    c) Web/Script: the binded variables (eg '_' or '$')
+                       must be a globally loaded (i.e `window.$`)
+                       BEFORE loading '#{@build.template.combinedFile}'\n
+                  """
+
+            # delete _combinedFileTemp, used as temp directory with individual AMD files
+            if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
+              @build.deleteCombinedTemp()
+            else
+              l.debug(10, "NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
+
+            @build.report @
+            resolve @doneOK
+          else
+            l.er """
+              Combined file '#{@build.template.combinedFile}' NOT written - this should not have happened, requirejs reported success.
+              Check requirejs's build response:\n
+            """, buildResponse
+            @build.report @
+            reject false
+
+        (errorResponse)=>
+          @build.report @
+
+          l.er '@requirejs.optimize errorResponse: ', errorResponse, """\n
+          Combined file '#{@build.template.combinedFile}' NOT written."
+
+            Some remedy:
+
+             a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
+                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
+                - 'name' is what 'main' defaults to, if its a module.
+
+             b) Perhaps you have a missing dependcency ?
+                r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+
+             c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
+                *Note this prevents uRequire from finishing properly / printing this message!*
+
+             Note that you can check the AMD-ish files used in temporary directory '#{@build.template._combinedFileTemp}'.
+
+             More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+
+          """, rjsConfig
+
+          reject false
 
 
   getRequireJSConfig: -> #@todo:(7 5 2) HOW LAME - remove & fix this!

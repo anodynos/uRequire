@@ -71,15 +71,3 @@ class CodeMerger
     'code': get: -> toCode @AST
 
 module.exports = CodeMerger
-#
-#
-#cm = new CodeMerger
-#cm.add """
-#    var l = 'l';
-#    l = 1;
-#  """
-#
-#cm.add """
-#    var m = 'm';
-#    l = 2;
-#  """

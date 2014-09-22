@@ -14,7 +14,7 @@ module.exports = toAST = (codeOrAST, type)->
 
   if _.isString codeOrAST
     try
-      codeOrAST = esprima.parse codeOrAST
+      codeOrAST = esprima.parse codeOrAST #, raw:false #raw is ignored in >1.1
     catch err
       throw new UError "*esprima.parse* in toAST while parsing javascript fragment: \n #{codeOrAST}.", nested:err
 

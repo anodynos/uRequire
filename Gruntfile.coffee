@@ -30,14 +30,11 @@ gruntFunction = (grunt) ->
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
-    clean: build: 'build'
+    clean:
+      build: 'build'
+      temp: 'temp'
 
     concat:
-      bin:
-        options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
-        src: ['<%= options.buildDir %>/urequireCmd.js' ]
-        dest: '<%= options.buildDir %>/urequireCmd.js'
-
       VERSIONurequire:
         options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
         src: [ '<%= options.buildDir %>/urequire.js']
@@ -52,7 +49,7 @@ gruntFunction = (grunt) ->
 
     watch:
       dev: # requires `coffeeWatch` to compile changed only files! need a changed-only-files coffee task!
-        files: ["build/**/*"]
+        files: ["build/**/*", "!build/spec/urequire/code/**/*"]
         tasks: ['copy', 'mochaCmd']
 
       copy:
@@ -71,7 +68,7 @@ gruntFunction = (grunt) ->
       options: verbose: true, failOnError: true, stdout: true, stderr: true
 
   # copy build files to wherever urequire is a dep
-  deps = ['uberscore']
+  deps = [] #['uberscore']
   for dep in deps
     gruntConfig.copy[dep] =
       files: [ expand: true, src: ["**/*.js", "**/*.json", "!node_modules/**/*"], dest: "../#{dep}/node_modules/urequire"]

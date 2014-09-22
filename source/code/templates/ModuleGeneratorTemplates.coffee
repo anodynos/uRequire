@@ -95,10 +95,6 @@ class ModuleGeneratorTemplates extends Template
 
       ( if _.isEmpty @module.defineArrayDeps then '' else '], ' )
 
-    runtimeInfo: get: ->
-      if @module.isRuntimeInfo then Template::runtimeInfo else ''
-
-
     # On combined allow either
     # * per Module if filespec is used
     # * for whole template only if true was used
@@ -109,8 +105,30 @@ class ModuleGeneratorTemplates extends Template
       else
         ''
 
+    runtimeInfo: get: ->
+      if @module.isRuntimeInfo or (@isRootExports and @exportRootCheck)
+        Template::runtimeInfo
+      else
+        ''
+
     isRootExports: get: ->
-      not (@module.isNoRootExports or _.isEmpty @module.flags.rootExports)
+      (not (  @module.isNoRootExports or
+              _.isEmpty(@module.flags.rootExports) or
+              _.isEmpty(@build.exportsRoot)
+      )) and not (
+        (@build.template.name in ['UMD', 'UMDplain']) and
+        (not @build.noLoaderUMD) and
+        ('AMD' not in @build.exportsRoot) and
+        ('node' not in @build.exportsRoot)
+      )
+
+    exportRootCheck: get: ->
+      checks = []
+      checks.push '!__isAMD' if 'AMD' not in @build.exportsRoot
+      checks.push '!__isNode' if 'node' not in @build.exportsRoot
+      checks.push '!(__isNode || __isAMD)' if 'script' not in @build.exportsRoot
+
+      checks.join ' && '
 
   ### private ###
   _rootExportsNoConflict: (rootName='root', returnModule=true)->
@@ -123,6 +141,8 @@ class ModuleGeneratorTemplates extends Template
         else
           ''
       ) +
+
+      (if expCheck = @exportRootCheck then "if (#{expCheck}) {"  else '' ) +
 
       (for expVar in @module.flags.rootExports
          "#{rootName}['#{expVar}'] = __umodule__"
@@ -139,6 +159,8 @@ class ModuleGeneratorTemplates extends Template
         else
           ''
       ) + '\n' +
+
+      (if expCheck then "}"  else '' ) +
 
       (if returnModule then "return __umodule__;"  else '') +
 
