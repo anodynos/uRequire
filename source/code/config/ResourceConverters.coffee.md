@@ -706,7 +706,7 @@ The following code [(that is actually part of uRequire's code)](#note:-literate-
 
 ### The formal **Object way** to define a Resource Converter
 
-This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-Converter):
+This is a dummy .js RC, following the [formal & boring ResourceConverter definition as an `{}`](#Inside-a-Resource-Converter):
 
         {
           # name - with a '$' flag to denote `type: 'module'`.
@@ -746,65 +746,27 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
 
 ### The alternative (less verbose) **Array way**
 
-This RC is using an [] instead of {}. Key names of RC are assumed from their posision in the array:
+Thankfully there are better & quicker ways to define an RC: the ["coffee-script"](https/github.com/anodynos/urequire-rc-coffee-script) RC is defined as an `[]` instead of `{}` and is much less verbose.
+It is by default loaded as a separate `urequire-rc-coffee-script` node dependency, just referenced here.
 
-        [
-          # `name` & flags as a String at pos 0
-          '$coffee-script'
+        'coffee-script'
 
-          # `descr` at pos 1
-          "Coffeescript compiler, using locally installed 'coffee-script'."
+### The alternative, even shorter `[]` RC way for ["LiveScript"](https/github.com/anodynos/urequire-rc-LiveScript).
 
-          # `filez` [] at pos 2
-          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]
+Again loaded as `urequire-rc-LiveScript` node dependency with this reference.
 
-          # `convert` Function at pos 3
-          (m)->
-             # 'coffee-script' must be in 'node_modules',
-             # only if any 'coffee' file matches
-             coffee = require 'coffee-script'
+        'LiveScript'
 
-             # return converted converted
-             coffee.compile m.converted
+### The shortest way ever, one-liner, no comments converters.
 
-          # `convFilename` Function at pos 4
-          (srcFn)->
+These two are for ["iced-coffee-script"](https/github.com/anodynos/urequire-rc-iced-coffee-script) & ["coco"](https/github.com/anodynos/urequire-rc-coco). This is
+what the 'coco' RC actually looks like: `['$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted, @options), '.js']`.
 
-            # RexExp for all coffeescript extensions
-            coffeeExtensions =   /.*\.(coffee\.md|litcoffee|coffee)$/
+        'iced-coffee-script'
 
-            # retrieve matched extension
-            ext = srcFn.replace coffeeExtensions , "$1"
+If you want to pass some `options` that _.extend default options, use this format:
 
-            # replace it and return new filename
-            srcFn.replace (new RegExp ext+'$'), 'js'
-        ]
-
-### The alternative, even shorter `[]` way
-
-        [
-          '$LiveScript'
-
-          # if pos 1 is Array, its `filez` (& undefined `descr`)
-          [ '**/*.ls']
-
-          # `convert` Function at pos 2
-          (m)->(require 'LiveScript').compile m.converted
-
-          # if `convFilename` is String starting with '.',
-          # it denotes an extension replacement of `dstFilename`
-          # if `~` flag was used, eg `~.js`, ext replacement
-          # would be applied on `srcFilename`
-          '.js'
-        ]
-
-
-### The shortest way ever, one-liner, no comments converters!
-
-        [ '$iced-coffee-script', [ '**/*.iced'], ((r)-> require('iced-coffee-script').compile r.converted), '.js']
-
-        [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']
-
+        ['coco', {bare: false}]
     ]
 
 How do we get such flexibility with both [] & {} formats? Check [ResourceConverter.coffee](https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverter.coffee)

@@ -899,7 +899,7 @@ This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearl
 
 @todo: **NOT TESTED** in user configs!
 
-      done: (doneVal)-> console.log "done() is missing and I got a #{doneVal} on the default done()"
+      done: (doneVal)-> # console.log "done() is missing and I got a #{doneVal} on the default done()"
 
 ## build.clean
 

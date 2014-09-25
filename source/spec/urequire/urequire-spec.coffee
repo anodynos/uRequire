@@ -19,60 +19,75 @@ mkdirP = When.node.lift require 'mkdirp'
 urequire = require '../../code/urequire'
 
 example = 'urequire-example'
-exampleDir = "temp/#{example}"
+exampleDir = "../#{example}"
 
-describe.only "urequire BundleBuilder:", ->
+describe "urequire BundleBuilder:", ->
+  bb = null
+  defaultConfig = null
+  VERSION = JSON.parse(fs.readFileSync process.cwd() + '/package.json').version
 
-  before "Initialize exampleDir", ->
+  before "Initializing exampleDir as `#{exampleDir}`", ->
     fs.existsP(exampleDir).then (isExists)->
       if isExists
-        l.ok 'Example repo exists in `temp/`'
-        When null # unused return val wrapped as promise resolution
+        l.ok "Example repo exists in `#{exampleDir}`"
+        When()
       else
-        fs.existsP("../#{example}").then (isExists)->
-          if isExists
-            exampleDir = "../#{example}"
-            l.ok "Example repo exists in `#{exampleDir}`"
-            When()
-          else
-            l.warn ok "Cloning repo anodynos/#{example} in `temp/`"
-            mkdirP('temp').then -> logExecP "git clone anodynos/#{example}", cwd: 'temp'
+        l.warn "Cloning repo anodynos/#{example} in `../`"
+        logExecP "git clone anodynos/#{example}", cwd: '../'
 
-  describe "builds `exampleDir/source/code`:", ->
+  beforeEach ->
+    defaultConfig =
+      path: "#{exampleDir}/source/code"
+      dependencies: exports: bundle: lodash: ['_']
+      main: "urequire-example"
+      resources: ['injectVERSION']
+      clean: true
+      debugLevel: 0
 
-    bb = null
-    config = null
-    beforeEach ->
-      config =
-        path: "#{exampleDir}/source/code"
-        clean: true
-        template: 'UMDplain'
-#        template: 'combined'
-        main: "urequire-example"
-        dstPath: "#{exampleDir}/build/UMD"
-        debugLevel: 0
+  describe "`BundleBuilder.buildBundle` builds all files in `#{exampleDir}/source/code`}`: ", ->
+    tests = [
+        cfg:
+          template: 'UMDplain'
+          dstPath: "#{exampleDir}/build/UMDplain"
+        mylib: "#{exampleDir}/build/UMDplain/urequire-example.js"
+      ,
+        cfg:
+          template: 'nodejs'
+          dstPath: "#{exampleDir}/build/nodejs"
+        mylib: "#{exampleDir}/build/nodejs/urequire-example.js"
+      ,
+        cfg:
+          template: 'combined'
+          dstPath: "#{exampleDir}/build/urequire-example-dev"
+        mylib: "#{exampleDir}/build/urequire-example-dev.js"
+    ]
 
-    it "Initialized correctly from a config", ->
-      bb = new urequire.BundleBuilder([config])
-      tru _B.isHash bb.bundle #todo: test more
-      tru _B.isHash bb.build
+    for test in tests
+      do (cfg = test.cfg, mylib = test.mylib)->
+        describe "with `#{cfg.template}` template:", ->
+          it "initialized correctly from a defaultConfig", ->
+            bb = new urequire.BundleBuilder [cfg, defaultConfig]
+            tru _B.isHash bb.bundle #todo: test more
+            tru _B.isHash bb.build
+            equal bb.build.template.name, cfg.template
 
-    it "`bundleBuilder.buildBundle` builds all files in `exampleDir/source/code", ->
-      mylib = "#{exampleDir}/build/UMD/urequire-example.js"
+          it "it builds correctly", ->
 
-      bb.buildBundle().then ->
-        When.all [
-          expect(fs.existsP mylib).to.eventually.be.true
-          expect(fs.readFileP mylib, 'utf8').to.eventually.equal fs.readFileSync mylib, 'utf8' #todo: equal to what ?
-        ]
+            bb.buildBundle().then -> # @todo: separate these tests
 
-    it "`bundleBuilder.buildBundle changedFiles` build only changed files", ->
-      bb.buildBundle 'models/person.ls'
-        .then ->
+              buildLib = require '../../../' + mylib
+              equal buildLib.VERSION, VERSION
 
+              equal buildLib, urequireExample
+              equal buildLib, uEx
+              equal buildLib.noConflict(), buildLib
+              equal urequireExample, undefined
+              equal uEx, undefined
 
-    it "eval/run file"
-    it "has correct behavior"
-    it "converted LiveScript"
-    it "converted coco -> "
-    it "converted less -> css"
+              equal buildLib.person.age, 40
+              equal buildLib.add(40, 14), 54
+
+              When.all [
+                expect(fs.existsP mylib).to.eventually.be.true
+                expect(fs.readFileP mylib, 'utf8').to.eventually.equal fs.readFileSync mylib, 'utf8' # @todo: equal to what ?
+              ]

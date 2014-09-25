@@ -85,6 +85,7 @@ expectedResources = [
     isAfterTemplate: false
     isAfterOptimize: false
     enabled: true
+    options: {}
   }
 
   {
@@ -100,6 +101,7 @@ expectedResources = [
     isAfterTemplate: false
     isAfterOptimize: false
     enabled: true
+    options: {}
   }
 
   {
@@ -114,6 +116,7 @@ expectedResources = [
     isMatchSrcFilename: false
     isAfterOptimize: false
     enabled: true
+    options: {}
   }
 
   {
@@ -130,6 +133,7 @@ expectedResources = [
     isBeforeTemplate: false
     isAfterOptimize: false
     enabled: true
+    options: {}
   }
 
   {
@@ -144,6 +148,7 @@ expectedResources = [
     isAfterTemplate: false
     isAfterOptimize: false
     enabled: true
+    options: {}
   }
 ]
 
