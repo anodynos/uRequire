@@ -21,7 +21,7 @@ urequire = require '../../code/urequire'
 example = 'urequire-example'
 exampleDir = "../#{example}"
 
-describe.only "urequire BundleBuilder:", ->
+describe "urequire BundleBuilder:", ->
   bb = null
   defaultConfig = null
   VERSION = JSON.parse(fs.readFileSync process.cwd() + '/package.json').version
@@ -48,8 +48,8 @@ describe.only "urequire BundleBuilder:", ->
     tests = [
         cfg:
           template: 'UMDplain'
-          dstPath: "#{exampleDir}/build/UMDplain"
-        mylib: "#{exampleDir}/build/UMDplain/urequire-example.js"
+          dstPath: "#{exampleDir}/build/UMD"
+        mylib: "#{exampleDir}/build/UMD/urequire-example.js"
       ,
         cfg:
           template: 'nodejs'
@@ -90,9 +90,16 @@ describe.only "urequire BundleBuilder:", ->
               expect(fs.readFileP mylib, 'utf8').to.eventually.equal fs.readFileSync mylib, 'utf8' # @todo: equal to what ?
             ]
 
-          it "lib has correct behavior", ->
-            equal buildLib.person.age, 40
-            equal buildLib.add(40, 14), 54
+          describe "lib has correct behavior", ->
+
+            it "exports required modules", ->
+              equal buildLib.person.age, 40
+              equal buildLib.add(40, 14), 54
+              equal buildLib.calc.add(40, 14), 54
+              equal buildLib.calc.multiply(40, 3), 120
+
+            it "extends required 'class' modules", ->
+              equal buildLib.person.eat('food'), 'ate food'
 
           describe "it exports:", ->
             it "to root (window / global)", ->
@@ -103,6 +110,3 @@ describe.only "urequire BundleBuilder:", ->
               equal buildLib.noConflict(), buildLib
               equal urequireExample, global_urequireExample
               equal uEx, global_uEx
-
-
-

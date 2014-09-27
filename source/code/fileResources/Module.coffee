@@ -192,11 +192,11 @@ class Module extends TextResource
     if isLikeCode('(function(){}).call()', @AST_top.body) or
        isLikeCode('(function(){}).apply()', @AST_top.body)
       @AST_body = @AST_top.body[0].expression.callee.object.body.body
-      @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
+      @AST_preDefineIIFENodes = []   # store all nodes along IIFEied define()
     else
       if isLikeCode '(function(){})()', @AST_top.body
         @AST_body = @AST_top.body[0].expression.callee.body.body
-        @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
+        @AST_preDefineIIFENodes = []   # store all nodes along IIFEied define()
       else
         @AST_body = @AST_top.body
 
@@ -218,8 +218,7 @@ class Module extends TextResource
           if not (isLikeCode('var define;', bodyNode)  or
              isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
              isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
-             not isLikeCode(';', bodyNode) and
-             (defines.length is 0) and @AST_preDefineIIFENodes # if no define found yet & were in IIFE
+             not isLikeCode(';', bodyNode) and @AST_preDefineIIFENodes
                @AST_preDefineIIFENodes.push bodyNode
 
     # AMD module

@@ -640,9 +640,9 @@ class Bundle extends BundleBase
     null
 
   printError: (error)->
-    l.er (error.message or 'no error.message'),
-         '\n error.nested = ', (error.nested or "no error.nested")
-    l.deb 110, '\n error.stack = \n', error.stack # dev only
+    l.er (error?.message or 'no error.message'),
+         '\n error.nested = ', (error?.nested or "no error.nested")
+    l.deb 110, '\n error.stack = \n', error?.stack # dev only
 
   # @todo: refactor error handling!
   handleError: (error = new UError "Undefined or null error!")->
