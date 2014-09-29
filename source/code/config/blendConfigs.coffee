@@ -157,6 +157,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       noLoaderUMD: '|': 'arraysConcatOrOverwrite'
       warnNoLoaderUMD: '|': 'arraysConcatOrOverwrite'
 
+      exportsRoot: '|': 'overwrite'
+
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
 

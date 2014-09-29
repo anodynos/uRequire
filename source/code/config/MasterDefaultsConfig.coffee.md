@@ -713,11 +713,29 @@ When true, it doesn't produce the boilerplate for [exporting modules (& `noConfl
 
  * [`bundle.dependencies.exports.root`](#bundle.dependencies.exports.root)
 
+ * bundle.exportsRoot (see below)
+
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
       noRootExports: false
+
+## build.exportsRoot
+
+Build in such a way that exporting `bundle.dependencies.exports.root` on root (i.e `window`/`global`) works only on the declared runtimes (among `'AMD'`, `'node'` and `'script'`).
+
+@type Array with one or more among `'AMD'`, `'node'` and `'script'`, which represent the 3 common runtimes.
+
+@derive none - child simply overwrites parent
+
+@example if you want the root exports to work both when running as `script` (eg. `combined` template or [`noLoaderUMD`](#noLoaderUMD) ) but also on when `AMD` loader is used (see rationale in [`amdWebGlobal` UMD variant](https://github.com/umdjs/umd/blob/master/amdWebGlobal.js#L22), use `['AMD', 'script']`.
+
+@note if you specify an empty array `[]`, its effectivelly like having `noRootExports: true`.
+
+@default is to export *always* on all runtimes (but ['script'] could be a good choice also).
+
+      exportsRoot: ['AMD', 'node', 'script']
 
 ## build.scanAllow
 

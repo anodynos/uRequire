@@ -219,7 +219,7 @@ class Module extends TextResource
              isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
              isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
              not isLikeCode(';', bodyNode) and
-             (defines.length is 0) and @AST_preDefineIIFENodes # if no define found yet & were in IIFE
+             @AST_preDefineIIFENodes # if no define found yet & were in IIFE
                @AST_preDefineIIFENodes.push bodyNode
 
     # AMD module

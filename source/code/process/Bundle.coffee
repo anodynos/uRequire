@@ -42,7 +42,7 @@ class Bundle extends BundleBase
     _.extend @, bundleCfg
     @files = {}  # all bundle files are in this map
 
-  inspect: -> l.prettify { @name, @main, @files}
+  inspect: -> "Bundle:" + l.prettify { @path, @filez, @files, @name, @main}
 
   # these are using _B.CalcCachedProperties functionality.
   # They are cached 1st time accessed.
@@ -490,7 +490,11 @@ class Bundle extends BundleBase
       wrap: combinedTemplate.wrap
       baseUrl: @build.template._combinedFileTemp
       include: [@main]
-      deps: _.keys @nodeOnly_depsVars # we include the 'fake' AMD files 'getExcluded_XXX' @todo: why 'rjs.deps' and not 'rjs.include' ?
+
+      # include the 'fake' AMD files 'getExcluded_XXX'
+      # and `export: bundle` deps
+      # @todo: why 'rjs.deps' and not 'rjs.include' ?
+      deps: _.union _.keys(@nodeOnly_depsVars), _.keys(combinedTemplate.exportsBundle_bundle_depsVars)
       useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
       name: 'almond'
 

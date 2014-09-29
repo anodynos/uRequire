@@ -62,7 +62,7 @@ class NodeRequirer extends BundleBase
           @webRoot
         else                  #path as reference
           @path
-        ) + '/' + baseUrl + '/'
+      ) + '/' + baseUrl + '/'
 
       l.debug("Final `@path` (from requireJsConfig.baseUrl & @path) = #{@path}") if l.deb 30
 
@@ -105,8 +105,8 @@ class NodeRequirer extends BundleBase
       try
         rjsc = require('fs').readFileSync @path + 'requirejs.config.json', 'utf-8'
       catch error
-        # l.er "urequire: error loading requirejs.config.json from #{@path + 'requirejs.config.json'}"
-        #do nothing, we just dont have a requirejs.config.json
+      # l.er "urequire: error loading requirejs.config.json from #{@path + 'requirejs.config.json'}"
+      #do nothing, we just dont have a requirejs.config.json
 
       if rjsc
         try
@@ -198,6 +198,7 @@ class NodeRequirer extends BundleBase
           attempts.push {modulePath, requireUsed: 'RequireJS', resolvedPathNo, dependency: dep.name()}
           try
             loadedModule = @getRequirejs() modulePath
+            if _.isUndefined loadedModule then loadedModule = unloaded
           catch err
             l.debug "FAILED: @getRequirejs() '#{modulePath}' err=\n", err if l.deb 25
             _.extend _.last(attempts),
@@ -214,6 +215,7 @@ class NodeRequirer extends BundleBase
         }
         try
           loadedModule = @getRequirejs() modulePath # pluginName!modulePath
+          if _.isUndefined loadedModule then loadedModule = unloaded
         catch err
           _.extend _.last(attempts),
             urequireError: "Error loading module with plugin '#{dep.pluginName}' through RequireJS."
