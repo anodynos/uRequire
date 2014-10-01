@@ -2,16 +2,18 @@ _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/BundleFile'
 
 fs = require 'fs'
-
-Build = require '../process/Build'
 mkdirp = require "mkdirp"
+When = require 'when'
 
+# urequire
+Build = require '../process/Build'
 upath = require '../paths/upath'
 UError = require '../utils/UError'
 
 isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
 pathRelative = '../paths/pathRelative'
+
 ###
   Represents any file in the bundle (that matched `bundle.filez`)
 ###
@@ -25,18 +27,19 @@ class BundleFile
     @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
 
   refresh:-> # check for filesystem timestamp etc
-    if not @srcExists
-      throw new UError "BundleFile missing '#{@srcFilepath}'"
-    else
-      stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']
-      if not _.isEqual stats, @fileStats
-        @fileStats = stats
-        @hasChanged = true
+    When.promise (resolve, reject)=>
+      if not @srcExists
+        reject new UError "BundleFile missing '#{@srcFilepath}'"
       else
-        @hasChanged = false
-        l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
+        stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']
+        if not _.isEqual stats, @fileStats
+          @fileStats = stats
+          @hasChanged = true
+        else
+          @hasChanged = false
+          l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
 
-    @hasChanged
+      resolve @hasChanged
 
   reset:->
     delete @fileStats

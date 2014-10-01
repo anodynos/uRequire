@@ -20,7 +20,7 @@ module.exports = (l)->
       , (rej)->
         head = "#{fnName} #{rejectName} is:\n"
         if _.isArray rej
-          (rejLog = _.clone res).unshift head
+          (rejLog = _.clone rej).unshift head
         else
           rejLog = [head, rej]
         l.err.apply l, rejLog

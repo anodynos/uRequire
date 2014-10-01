@@ -1,18 +1,8 @@
 exports.VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat
+_ = (_B = require 'uberscore')._
 
-When = require 'when'
-When.node = require 'when/node'
-
-fs = require "fs"
-When.node.liftAll fs, (
-  (pfs,  liftedFunc, name)->
-    pfs["#{name}P"] =
-      if name isnt 'exists'
-        liftedFunc
-      else
-        When.node.lift require 'fs-exists'
-    pfs
-), fs
+When = require './promises/whenFull'
+fs = require './promises/fsp'
 
 Object.defineProperties exports, # lazily export
   # our main "processor"

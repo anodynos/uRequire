@@ -3,7 +3,7 @@ l = new _B.Logger 'uRequire/Module'#, 100
 _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
 util = require 'util'
-
+When = require 'when'
 
 # uRequire
 upath = require '../paths/upath'
@@ -53,17 +53,21 @@ class Module extends TextResource
     But the module info needs to provide dependencies information (eg to inject Dependencies etc)
   ###
   refresh: ->
-    if not super
-      return false # no change in parent, why should I change ?
-    else
-      if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
-        @sourceCodeJs = @converted
-        @extract()
-        @prepare()
-        return @hasChanged = true
-      else
-        l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
-        return @hasChanged = false
+    When.promise (resolve, reject)=> # @todo: can this be simplified ?
+      super.then( (superRefreshed)=>
+        if not superRefreshed
+          resolve false # no change in parent, why should I change ?
+        else
+          if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
+            @sourceCodeJs = @converted
+            @extract()
+            @prepare()
+            resolve @hasChanged = true
+          else
+            l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
+            resolve @hasChanged = false
+      ).catch (err)-> l.err err; reject err
+#      ).catch l.err
 
   reset:->
     super
@@ -309,7 +313,7 @@ class Module extends TextResource
   @todo: decouple from build, use calculated (cached) properties, populated at convertWithTemplate(@build) step
   ###
   adjust: (@build)->
-    l.debug "\n@adjust for '#{@srcFilename}'" if l.deb 70
+    l.debug "@adjust for '#{@srcFilename}'" if l.deb 70
 
     if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
       @injectDeps @bundle?.dependencies?.exports?.bundle

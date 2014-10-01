@@ -3,6 +3,7 @@ l = new _B.Logger 'uRequire/FileResource'
 
 fs = require 'fs'
 mkdirp = require 'mkdirp'
+When = require 'when'
 
 # uRequire
 BundleFile = require './BundleFile'
@@ -40,25 +41,36 @@ class FileResource extends BundleFile
             false otherwise
   ###
   refresh: ->
-    if not super
-      return false # no change in parent, why should I change ?
-    else
-      if @constructor is FileResource # run only for this class, otherwise let subclasses decide wheather to run ResourceConverters.
-        return @hasChanged = @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
-      else true
+    When.promise (resolve, reject)=> # @todo: can this be simplified ?
+      super.then (superRefreshed)=>
+        if not superRefreshed
+          resolve false # no change in parent, why should I change ?
+        else
+          if @constructor is FileResource # run only for this class,
+            resolve @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
+          else
+            resolve true # let subclasses decide whether to run ResourceConverters.
 
   reset:-> super; delete @converted
 
   # go through all Resource `converters`, converting with each one
   # Note: it acts on @converted & @dstFilename, leaving them in a new state
-  runResourceConverters: (convFilter=->true) ->
+  runResourceConverters: (convFilter=->true)->
     @hasErrors = false
-    for resConv in @converters when convFilter(resConv) and (resConv.enabled is true)
-      if l.deb 40
-        l.deb 40, "ResourceConverter '#{resConv.name}' "+
-              "for `#{@constructor?.name}` '#{@srcFilename}' " +
-               if l.deb(70) then " dstFn='#{@dstFilename}'" else ''
-      try
+
+    converters = (
+      for resConv in @converters when convFilter(resConv) and (resConv.enabled )
+        break if resConv.isTerminal
+        resConv
+    )
+
+    if converters.length and l.deb 30
+      l.deb "`#{@constructor?.name}` '#{@srcFilename}' passing through #{converters.length} ResourceConverter(s)."
+
+    When.each(converters, (resConv)=>
+      l.deb "ResourceConverter '#{resConv.name}' for `#{@constructor?.name}` '#{@srcFilename}' " if l.deb 40
+
+      When.try( =>
         if _.isFunction resConv.convert
           l.deb "`resourceConverter.convert()` for '#{resConv.name}'" if l.deb 90
           @converted = resConv.convert @ # store return value at @converted
@@ -76,15 +88,14 @@ class FileResource extends BundleFile
               l.deb 80, "@dstFilename remained '#{oldDstFn}'"
 
         @hasChanged = true
-      catch err
+      ).catch (err)=>
         @hasErrors = true
         throw new ResourceConverterError """
-           Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}':""",
-           {nested: err}
-      
-      break if resConv.isTerminal
-
-    return @hasChanged
+          Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}':\n""" +
+          (if err.toString
+            a=err.toString(); delete err.code; a
+          else err), {nested: err}
+    ).yield @hasChanged
 
   readOptions = 'utf-8' # compatible with node 0.8 #{encoding: 'utf-8', flag: 'r'}
   read: (filename=@srcFilename, options=readOptions)->
