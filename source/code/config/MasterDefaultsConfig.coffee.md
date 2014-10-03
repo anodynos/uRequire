@@ -925,6 +925,20 @@ On subsequent partial builds, **no files are deleted**.
 
       clean: undefined
 
+## build.deleteErrored
+
+Delete destination files while their source is at error. Useful when watching builds or when the directory is not [clean](#build.clean).
+
+@note One successful conversion of the source file needs to be in place for dstFilename to be established.
+
+@note On ['combined' template](combined-template), it also deletes the last `combinedFile.js` that was build.
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs). Note: filespecs refer to **source** filenames (but of course only their corresponding destination files are deleted).
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+      deleteErrored: true
+
 ## build.rjs
 
 The [r.js config] https://github.com/jrburke/r.js/blob/master/build/example.build.js,

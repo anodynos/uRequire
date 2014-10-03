@@ -18,6 +18,13 @@ pathRelative = '../paths/pathRelative'
   Represents any file in the bundle (that matched `bundle.filez`)
 ###
 class BundleFile
+
+  # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  for bof in ['clean', 'deleteErrored']
+    do (bof)->
+      Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
+        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
+
   ###
     @param bundle {Object} The Bundle where this BundleFile belongs
     @param filename {String} bundleRelative eg 'models/PersonModel.coffee'
@@ -45,17 +52,14 @@ class BundleFile
     delete @fileStats
     delete @hasErrors
 
-  for bof in ['clean']
-    do (bof)->
-      Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
-        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
-
-  dstDelete: ->
-    l.verbose "Deleting file: #{@dstFilepath}"
-    try
-      fs.unlinkSync @dstFilepath
-    catch err
-      l.er "Cant delete destination file '#{@dstFilepath}'."
+  # deletes @dstFilepath or passed filename
+  clean: (filename=(@dstFilepath_last or @dstFilepath))->
+    if fs.existsSync filename
+      l.verbose "Deleting file: #{filename}"
+      try
+        fs.unlinkSync filename
+      catch err
+        l.er "Cant delete file '#{filename}'.", err
 
   Object.defineProperties @::,
     extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
@@ -70,7 +74,6 @@ class BundleFile
     dstFilepath: get:-> upath.join @dstPath, @dstFilename # destination filename with `build.dstPath`, eg `myBuildProject/mybundle/mymodule.js`
     dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
-
 
     # paths
     pathToRoot: get:-> pathRelative upath.dirname(@path), "/", { assumeRoot:true }
@@ -94,7 +97,7 @@ class BundleFile
 
   # Without params it copies (binary) the source file from `bundle.path`
   # to `build.dstPath`
-  copy: (srcFilename=@srcFilename, dstFilename=@srcFilename)->
+  copy: (srcFilename=@srcFilename, dstFilename=@dstFilename)->
     BundleFile.copy upath.join(@bundle?.path or '', srcFilename),
                     upath.join(@bundle?.build?.dstPath or '', dstFilename)
 

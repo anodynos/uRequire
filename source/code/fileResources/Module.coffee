@@ -35,6 +35,7 @@ class Module extends TextResource
         else
           ''
   # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  # @todo: move method to BundleFile, keep only this data to Module
   for bof in ['useStrict', 'bare', 'globalWindow',
               'runtimeInfo', 'noRootExports',
               'allNodeRequires', 'dummyParams'
@@ -54,19 +55,19 @@ class Module extends TextResource
   ###
   refresh: ->
     When.promise (resolve, reject)=> # @todo: can this be simplified ?
-      super.then( (superRefreshed)=>
+      resolve super.then (superRefreshed)=>
         if not superRefreshed
-          resolve false # no change in parent, why should I change ?
+          false # no change in parent, why should I change ?
         else
           if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
             @sourceCodeJs = @converted
             @extract()
             @prepare()
-            resolve @hasChanged = true
+            @hasChanged = true
           else
             l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
-            resolve @hasChanged = false
-      ).catch (err)-> l.err err; reject err
+            @hasChanged = false
+#      ).catch (err)-> l.err err; reject err
 #      ).catch l.err
 
   reset:->

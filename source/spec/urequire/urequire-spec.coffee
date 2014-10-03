@@ -42,7 +42,7 @@ describe "urequire BundleBuilder:", ->
     main: "urequire-example"
     resources: ['injectVERSION']
     clean: true
-    debugLevel: 100
+    debugLevel: 0
 
   describe "`BundleBuilder.buildBundle` builds all files in `#{exampleDir}/source/code`}`: ", ->
     tests = [

@@ -66,9 +66,9 @@ class BundleBuilder
             (res)=>
               @build.done res
               if res is false
-                throw new Error "@bundle.buildChangedResources promise returned false"
+                l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
               else
-                l.deb 90, "BundleBuilder.buildBundle result is `#{res}`"
+                l.verbose "@bundle.buildChangedResources result is :", res
           ).catch (err)=>
               l.er 'Uncaught exception @ bundle.buildChangedResources'
               @bundle.printError err

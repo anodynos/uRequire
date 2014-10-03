@@ -16,6 +16,8 @@ DependenciesReporter = require './../utils/DependenciesReporter'
 UError = require '../utils/UError'
 ResourceConverterError = require '../utils/ResourceConverterError'
 
+isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
+
 #our file system
 BundleFile = require './../fileResources/BundleFile'
 FileResource = require './../fileResources/FileResource'
@@ -244,6 +246,8 @@ class Bundle extends BundleBase
             srcMain: lastSrcMain
           }
 
+          bf.dstFilepath_last = dstFilename # used for bf.clean()
+
         if bf.srcMain and @build.current[bf.srcMain]
           l.debug 60, "Skipping refresh/conversion(s) of '#{bf.srcFilename}', as part of converted @srcMain='#{bf.srcMain}'."
           return
@@ -253,11 +257,15 @@ class Bundle extends BundleBase
         bf.refresh().then( (isChanged)=>
           if isChanged
             @build.addChangedBundleFile filename, bf
+            bf.dstFilepath_last = bf.dstFilepath
         ).catch( (err)=>
             @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
             if bf.srcExists
               bf.reset()
-              bf.hasErrors = true
+              bf.hasErrors = true #todo: why set here ?
+
+              bf.clean()if bf.isDeleteErrored
+
               if err instanceof ResourceConverterError
                 @handleError err #something here smells bad with error handling
               else
@@ -405,7 +413,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
       for fn, res of @fileResources when res.hasChanged
         if res.hasErrors
-          l.deb 40, "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
+          l.warn "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
         else
           if res.converted and _.isString(res.converted) # only non-empty Strings are written
             try
@@ -464,13 +472,22 @@ class Bundle extends BundleBase
         @build.report @
         return resolve @doneOK
       else
-        if _.size(@build.errorFiles)
-          if (_.size(@build.changedModules) - _.size(@build.errorFiles)) <= 0
-            l.er "Not executing *'combined' template optimizing with r.js*: no changed modules without error in build ##{@build.count}."
-            @build.report @
-            return resolve @doneOK
-          else
-            l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
+        if errFiles = _.size(@build.errorFiles)
+
+          if isTrueOrFileInSpecs @build.deleteErrored, @build.template.combinedFile
+            if fs.existsSync @build.template.combinedFile
+              l.verbose "Deleting previous destination combined file `#{@build.template.combinedFile}` cause of #{errFiles} error files."
+              try
+                fs.unlinkSync upath.join @build.template.combinedFile
+              catch err
+                l.warn "Can't delete `#{@build.template.combinedFile}`.", err
+
+          if (_.size(@build.changedModules) - errFiles) <= 0
+              l.er "Not executing *'combined' template optimizing with r.js*: no changed modules without error in build ##{@build.count}."
+              @build.report @
+              return resolve @doneOK
+            else
+              l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
 
       l.debug """ \n
         #####################################################################

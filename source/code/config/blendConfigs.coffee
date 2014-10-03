@@ -156,6 +156,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       scanAllow: '|': 'arraysConcatOrOverwrite'
       noLoaderUMD: '|': 'arraysConcatOrOverwrite'
       warnNoLoaderUMD: '|': 'arraysConcatOrOverwrite'
+      deleteErrored: '|': 'arraysConcatOrOverwrite'
 
       exportsRoot: '|': 'overwrite'
 
