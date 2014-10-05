@@ -54,8 +54,8 @@ class Module extends TextResource
     But the module info needs to provide dependencies information (eg to inject Dependencies etc)
   ###
   refresh: ->
-    When.promise (resolve, reject)=> # @todo: can this be simplified ?
-      resolve super.then (superRefreshed)=>
+#    When.promise( (resolve, reject)=> # @todo: can this be simplified ?
+      super.then (superRefreshed)=>
         if not superRefreshed
           false # no change in parent, why should I change ?
         else
@@ -526,14 +526,40 @@ class Module extends TextResource
       if dep.type not in ['bundle', 'system'] # ignore 'normal' ones
         @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'local':['lodash']}`
 
-  # Actually converts the module to the target @build options.
-  convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
-    l.verbose "Converting '#{@path}' with template = '#{@build.template.name}'"
-    l.debug("'#{@path}' adjusted module.info() = \n",
-      _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 60
-
-    @moduleTemplate or= new ModuleGeneratorTemplates @
-    @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+  # Actually converts the module to the target @build options, passing through ResourceConverters as needed.
+  # @returns promise -> undefined
+  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
+    if @hasErrors
+      l.warn "\n##### Not converting '#{@path}' cause it has errors."
+      When()
+    else
+      l.deb "\n##### Converting '#{@path}' with '#{@build.template.name}'." if l.deb 50
+      When.sequence([
+        => @adjust @build
+        =>
+          l.deb "########### Running BeforeTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.isBeforeTemplate and !rc.isAfterTemplate #@todo: why ? those with both will never run?
+        =>
+          l.verbose "########### Converting with template '#{@build.template.name}' for module '#{@path}'."
+          l.deb("'#{@path}' adjusted module.info() = \n",
+            _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 70
+          @moduleTemplate or= new ModuleGeneratorTemplates @
+          @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+        =>
+          l.deb "########### Running AfterTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.isAfterTemplate and !rc.isBeforeTemplate
+        =>
+          l.deb "########### Running optimize for '#{@path}'." if l.deb 70
+          @optimize @build
+        =>
+          l.deb "########### Running AfterOptimize ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.isAfterOptimize
+        =>
+          @addReportData()
+      ]).catch (err)=>
+        @reset()
+        @hasErrors = true
+        @bundle.handleError new UError "Error at `module.convert()`", nested:err
 
     # apply `optimize` (i.e minification) - uglify2 only
   optimize: (@build)->

@@ -70,9 +70,9 @@ class BundleBuilder
               else
                 l.verbose "@bundle.buildChangedResources result is :", res
           ).catch (err)=>
-              l.er 'Uncaught exception @ bundle.buildChangedResources'
-              @bundle.printError err
               @build.done false
+              @bundle.handleError err
+              l.er 'Uncaught exception @ bundle.buildChangedResources'
               throw err
       else
         l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"

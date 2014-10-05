@@ -259,6 +259,7 @@ class Bundle extends BundleBase
             @build.addChangedBundleFile filename, bf
             bf.dstFilepath_last = bf.dstFilepath
         ).catch( (err)=>
+            l.debug "Error while refreshing #{bf.constructor.name}: '#{filename}'", err if l.deb 30
             @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
             if bf.srcExists
               bf.reset()
@@ -278,10 +279,8 @@ class Bundle extends BundleBase
               if bf.dstExists and bf.hasErrors isnt 'duplicate'
                  bf.dstDelete()
               bf.hasErrors = false # dont count as error any more
-        ).finally( =>
-
+        ).finally( =>  #todo: refactor
           @build.current[bf.srcMain] = true if bf.srcMain
-
           if isNew and not bf.srcMain # check there is no same dstFilename, unless they belong to an 'srcMain' group
             if sameDstFile = (_.find @files, (f)=> (f.dstFilename is bf.dstFilename) and (f isnt bf))
               bf.hasErrors = 'duplicate'
@@ -333,11 +332,10 @@ class Bundle extends BundleBase
         @build.doClean()
 
       if not filenames.length
-        l.verbose "No files to process."
-        resolve()
+        resolve l.verbose "No files to process."
       else
         @loadOrRefreshResources(filenames).then( =>
-          if !_.isEmpty @build.changedFiles
+          if not _.isEmpty @build.changedFiles
             @convertChangedModules().then =>
               @concatMainModuleBanner()
               @saveChangedResources()
@@ -348,7 +346,6 @@ class Bundle extends BundleBase
 
               if (@build.template.name is 'combined')
                 return resolve @combine() # return cause report & done() should run only after its finished
-
               else
                 @build.report @
 #                if l.deb 95
@@ -356,42 +353,21 @@ class Bundle extends BundleBase
                 if @doneOK then resolve() else reject() #todo: resolve report data
           else
             l.verbose "No bundle files *really* changed."
-        )
+            resolve()
+        ).catch reject
 
   convertChangedModules:->
     if _.isEmpty @build.changedModules
       When()
     else
-      changedModules = (mod for fn, mod of @modules when mod.hasChanged) # if it changed, conversion needed
-
+      changedModules = (mod for fn, mod of @modules when mod.hasChanged)
       l.debug """ \n
         #####################################################################
         Converting #{changedModules.length} changed modules with template '#{@build.template.name}'
         #####################################################################""" if l.deb 30
 
-      When.each changedModules, (mod)=>
-        if mod.hasErrors
-          l.warn "\n##### Not converting '#{mod.path}' cause it has errors."
-        else
-          if l.deb 70 then l.deb "\n##### Converting '#{mod.path}' with '#{@build.template.name}'."
-          When(
-            mod.adjust @build
-          ).then =>
-            mod.runResourceConverters (rc)-> rc.isBeforeTemplate and !rc.isAfterTemplate #@todo: why ? those with both will never run?
-          .then =>
-            mod.convertWithTemplate @build
-          .then =>
-            mod.runResourceConverters (rc)-> rc.isAfterTemplate and !rc.isBeforeTemplate
-          .then =>
-            mod.optimize @build
-          .then =>
-            mod.runResourceConverters (rc)-> rc.isAfterOptimize
-          .then =>
-            mod.addReportData()
-          .catch =>
-            mod.reset()
-            mod.hasErrors = true
-            @handleError new UError "Error at `convertChangedModules()`", {nested:err}
+      When.each changedModules, (mod)=> mod.convert @build
+
 
   # add template.banner to 'bundle.main', if it exists & has changed
   concatMainModuleBanner:->
@@ -675,32 +651,41 @@ class Bundle extends BundleBase
         l.er "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.template._combinedFileTemp}#{depName}"
     null
 
-  printError: (error)->
+  printError: (error, nesting=0)->
     if not error
       l.er "printError: NO ERROR (#{error})"
     else
-      l.er "printError:", (error?.message or 'no error.message'),
-           '\n error.nested = ', (error?.nested or "no error.nested")
+      if not error.printed
+        error.printed = true
+        l.er "printError ##{nesting}:", (error?.constructor?.name or "No error.constructor.name"),
+             "\n #{_.repeat('    ', nesting)}",
+             (if error.message
+                "error.message = #{error.message}"
+              else error)
 
-    l.deb 110, '\n error.stack = \n', error?.stack # dev only
+        l.deb 110, '\n error.stack = \n', error.stack # dev only
+
+        if error.nested
+          l.warn "with nested ##{nesting+1} error following .... :"
+          @printError error.nested, nesting+1
 
   # @todo: refactor error handling!
-  handleError: (error = new UError "Undefined or null error!")->
-    #if l.deb 70 then l.deb "bundle.handleError called with #{l.prettify error}"
+  handleError: (error)->
+    @printError error
+    error or= new UError "Undefined or null error!"
+
     @errorsCount++
     if error.quit
       throw error # 'gracefully' quit: caught by bundleBuilder.buildBundle
     else
       if @build
         if (@build.continue or @build.watch)
-          @printError error
           l.warn "Continuing despite of error due to `build.continue` || `build.watch`"
         else
           error.quit = true
           throw error #'gracefully' quit: caught by bundleBuilder.buildBundle
 
       else # we have no build to guide us - be optimistic
-        @printError error
         l.warn "Continuing despite of error, cause we have not one build (i.e we might have many!)"
     null
 

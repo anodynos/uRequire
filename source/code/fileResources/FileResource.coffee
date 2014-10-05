@@ -70,31 +70,41 @@ class FileResource extends BundleFile
     When.each(converters, (resConv)=>
       l.deb "ResourceConverter '#{resConv.name}' for `#{@constructor?.name}` '#{@srcFilename}' " if l.deb 40
 
-      When.try( =>
-        if _.isFunction resConv.convert
-          l.deb "`resourceConverter.convert()` for '#{resConv.name}'" if l.deb 90
-          @converted = resConv.convert @ # store return value at @converted
+      atStep = null
+      When.sequence([
+        =>
+          if _.isFunction resConv.convert
+            @hasChanged = true
+            l.deb "`resourceConverter.convert()` for '#{resConv.name}'" if l.deb 90
+            atStep = 'convert'
 
-        # convert @srcFilename to @dstFilename
-        # (actually convert the previous @dstFilename -intially @srcFilename- to the new @dstFilename)
-        if _.isFunction resConv.convFilename
-          l.deb "`resourceConverter.convFilename()` for '#{resConv.name}'..." if l.deb 60
-          oldDstFn = @dstFilename
-          @dstFilename = resConv.convFilename @dstFilename, @srcFilename, @
-          if l.deb 60
-            if @dstFilename isnt oldDstFn
-              l.deb "...@dstFilename changed from '#{oldDstFn}' to '#{@dstFilename}'"
-            else
-              l.deb 80, "@dstFilename remained '#{oldDstFn}'"
-
-        @hasChanged = true
-      ).catch (err)=>
-        @hasErrors = true
-        throw new ResourceConverterError """
-          Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}':\n""" +
-          (if err.toString
-            a=err.toString(); delete err.code; a
-          else err), {nested: err}
+            When( # call with callback, or promise/simple call
+              if resConv.convert.length is 2 # nodejs style callback is 2nd arg
+                convPromise = (deferred = When.defer()).promise
+                resConv.convert @, When.node.createCallback deferred.resolver
+                convPromise
+              else
+                resConv.convert @
+            ).then (@converted)=> # store resolved value at @converted
+        =>
+          if _.isFunction resConv.convFilename
+            l.deb "`resourceConverter.convFilename()` for '#{resConv.name}'..." if l.deb 60
+            atStep = 'convFilename'
+            oldDstFn = @dstFilename
+            @dstFilename = resConv.convFilename @dstFilename, @srcFilename, @
+            if l.deb 60
+              if @dstFilename isnt oldDstFn
+                l.deb "...@dstFilename changed from '#{oldDstFn}' to '#{@dstFilename}'"
+              else
+                l.deb 80, "@dstFilename remained '#{oldDstFn}'"
+      ]).catch (err)=>
+          throw @hasErrors = new ResourceConverterError """
+            Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}' @ #{atStep} :\n""" +
+            (if err.toString
+               a=err.toString()
+               delete err.code
+               a
+             else err), {nested: err}
     ).yield @hasChanged
 
   readOptions = 'utf-8' # compatible with node 0.8 #{encoding: 'utf-8', flag: 'r'}

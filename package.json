@@ -68,6 +68,7 @@
     "glob-expand": "0.0.2",
     "minimatch": "0.3.x",
     "requirejs": "2.1.x",
+    "lodash": "*",
     "uberscore": "0.0.16",
     "underscore.string": "*",
     "uglify-js": "2.x.x",

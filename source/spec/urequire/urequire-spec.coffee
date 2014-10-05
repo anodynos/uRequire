@@ -1,5 +1,5 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/urequire/urequire-spec'
+l = new _B.Logger 'uRequire/urequire/urequire-spec', 1
 
 chai = require 'chai'
 chai.use require 'chai-as-promised'
@@ -15,52 +15,83 @@ execP = When.node.lift require("child_process").exec
 logExecP = logPromise execP, 'exec', 'stdout', 'stderr'
 
 mkdirP = When.node.lift require 'mkdirp'
+rimraf = require 'rimraf'
 
 urequire = require '../../code/urequire'
 
+globExpand = require 'glob-expand'
+isFileInSpecs = require '../../code/config/isFileInSpecs'
+BundleFile = require '../../code/fileResources/BundleFile'
+
 example = 'urequire-example'
 exampleDir = "../#{example}"
+exampleTemp = "temp/#{example}"
+#copyFiles = null
 
 describe "urequire BundleBuilder:", ->
   bb = null
   defaultConfig = null
   VERSION = JSON.parse(fs.readFileSync process.cwd() + '/package.json').version
 
-  before "Initializing exampleDir as `#{exampleDir}`", ->
-    fs.existsP(exampleDir).then (isExists)->
+  before "Finding or `git clone` `#{exampleDir}`", ->
+    (fs.existsP(exampleDir).then (isExists)->
       if isExists
         l.ok "Example repo exists in `#{exampleDir}`"
         When()
       else
         l.warn "Cloning repo anodynos/#{example} in `../`"
-        logExecP "git clone anodynos/#{example}", cwd: '../'
+        logExecP("git clone https://github.com/anodynos/#{example}", cwd: '../').then ->
+          logExecP("git checkout master", cwd: exampleDir)
+    )
+      .then ->
+        l.deb "Deleting 'temp'"
+        rimraf.sync 'temp'
+        l.deb "Copying source files from '#{ exampleDir }' to '#{exampleTemp}':"
+        copyFiles = (
+           _.filter globExpand({cwd: exampleDir + '/source', filter: 'isFile'},
+                    ['**/*'])
+          ).map((f)->'source/'+f).concat _.filter globExpand({cwd: exampleDir, filter: 'isFile'}, ['*'])
 
-#  beforeEach ->
+        for file in copyFiles
+          BundleFile.copy exampleDir + '/' + file, exampleTemp + '/' + file
+
   defaultConfig =
-    path: "#{exampleDir}/source/code"
+    path: "#{exampleTemp}/source/code"
     dependencies: exports: bundle: lodash: ['_']
     main: "urequire-example"
-    resources: ['injectVERSION']
-    clean: true
-    debugLevel: 0
+    resources: [
+        #  'injectVERSION' # test a promise injectVERSION
+        [ '+injectVERSIONPromises', 'An injectVERSION that returns a promise instead of sync', ['urequire-example.js'],
+          (m)-> When().delay(0).then -> m.beforeBody = "var VERSION = '#{VERSION }';" ]
 
-  describe "`BundleBuilder.buildBundle` builds all files in `#{exampleDir}/source/code`}`: ", ->
+        [ '!injectTestAsync', 'An inject test that runs async', ['urequire-example.js'],
+          (m, cb)-> setTimeout -> cb null, "'testASync';" + m.converted ]
+
+        [ '!injectTestSync', 'An inject test that runs synchronoysly', ['urequire-example.js'],
+          (m)-> "'testSync';" + m.converted ]
+
+    ]
+    clean: true
+    debugLevel: 110
+
+  describe "`BundleBuilder.buildBundle` builds all files in `#{exampleTemp}/source/code`}`: ", ->
     tests = [
         cfg:
           template: 'UMDplain'
-          dstPath: "#{exampleDir}/build/UMD"
-        mylib: "#{exampleDir}/build/UMD/urequire-example.js"
+          dstPath: "#{exampleTemp}/build/UMD"
+        mylib: "#{exampleTemp}/build/UMD/urequire-example.js"
       ,
         cfg:
           template: 'nodejs'
-          dstPath: "#{exampleDir}/build/nodejs"
-        mylib: "#{exampleDir}/build/nodejs/urequire-example.js"
+          dstPath: "#{exampleTemp}/build/nodejs"
+        mylib: "#{exampleTemp}/build/nodejs/urequire-example.js"
       ,
         cfg:
           template: 'combined'
-          dstPath: "#{exampleDir}/build/urequire-example-dev"
-        mylib: "#{exampleDir}/build/urequire-example-dev.js"
+          dstPath: "#{exampleTemp}/build/urequire-example-dev"
+        mylib: "#{exampleTemp}/build/urequire-example-dev.js"
     ]
+
 
     buildLib = null
     global_urequireExample = 'global': 'urequireExample'
@@ -88,6 +119,9 @@ describe "urequire BundleBuilder:", ->
             When.all [
               expect(fs.existsP mylib).to.eventually.be.true
               expect(fs.readFileP mylib, 'utf8').to.eventually.equal fs.readFileSync mylib, 'utf8' # @todo: equal to what ?
+              fs.readFileP(mylib, 'utf8').then (content)->
+                if cfg.template isnt 'combined'
+                  tru _.startsWith content, "'testSync';'testASync';"
             ]
 
           describe "lib has correct behavior", ->
