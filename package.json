@@ -88,6 +88,6 @@
     "urequire-rc-coffee-script": "*",
     "urequire-rc-iced-coffee-script": "*",
     "urequire-rc-coco": "*",
-    "urequire-rc-LiveScript": "*"
+    "urequire-rc-livescript": "*"
   }
 }

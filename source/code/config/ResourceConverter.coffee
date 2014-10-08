@@ -21,19 +21,32 @@ class ResourceConverter
   # - fixes the convFilename, if its a String (but stores its info for later cloning reusage)
   # @return the proper RC instance
   constructor: (rc)->
-#    l.log "Constructing new RC from rcSpec =", rc
     rc = getResourceConverterObject rc # make sure we deal with an {}
+#    l.log "Constructed new RC: ", rc
 
     if _B.isHash rc
       @update rc
     else
-      return {}
+      return rc # return null / undefined
 
   update: (rc)->
     if rc isnt @
-      # extend {options}, dont overwrite
-      _.extend (@options or= {}), rc.options
+
       _.extend @, _.omit rc, (v, k, o)-> (k is 'options') or !_.has o,k
+
+      if rc.options
+        # pick props inside '$' and then delete it
+        if rc.options.$
+          _.extend @, rc.options.$
+          delete rc.options['$']
+
+        # pick props starting with $ & delete em
+        for key, val of rc.options
+          if _.startsWith key, '$'
+            @[key[1..]] = val
+            delete rc.options[key]
+
+      _.extend (@options or= {}), rc.options
 
       # checks
       if @isModule # isModule is DEPRACATED but still supported (till 0.5 ?) #@todo: cater for `@isModule === false`
@@ -55,8 +68,7 @@ class ResourceConverter
       # some sanity checks
     if (@type in ['file', 'text', 'bundle']) and
        (@isBeforeTemplate or @isAfterTemplate or @isAfterOptimize)
-          throw new UError "RC with name: '#{@name}': you should NOT have a non-module RC with any of @isBeforeTemplate or @isAfterTemplate or @isAfterOptimize"
-
+          throw new UError "ResourceConverter with name: '#{@name}': you should NOT have a non-module RC with any of @isBeforeTemplate or @isAfterTemplate or @isAfterOptimize"
     @
 
   clone: ->
@@ -133,7 +145,7 @@ class ResourceConverter
           else # some checks
             if not (_.isFunction(cf) or _.isUndefined(cf))
               l.er uerr = "ResourceConverter error: `convFilename` is neither String|Function|Undefined."
-              throw new UError uerr, nested:err
+              throw new UError uerr
 
           # set and hide value holder @todo: NOT WORKING
           #Object.defineProperty @, '_convFilename', {value:cf, enumerable:false, configurable:true}
@@ -163,7 +175,7 @@ class ResourceConverter
 
       # lookup registry with name (without flags)
       if not rcResult = ResourceConverter.registry[name]
-        rcResult = 'urequire-rc-' + rc
+        rcResult = 'urequire-rc-' + name
         l.deb 80, "Loading ResourceConverter '#{rcResult}' from node_modules."
         try
           rcResult = require rcResult
@@ -195,11 +207,12 @@ class ResourceConverter
           #l.warn "Updated existing ResourceConverter #{rcResult.name}'."
 
         else # not found by rc.name - create & register a new one
-          rcResult = ResourceConverter.registry[rcResult.name] = rc
+          rcResult = ResourceConverter.registry[rc.name] = rc
           #l.warn "Instantiated and registered a *new* ResourceConverter '#{rcResult.name}'"
     rcResult
 
   # @param rc either the {}, [] or  -> representation of an RC
+  # todo: improve: use a state machine of allowed RC signatures & their associated interpretation
   # @return the {} representation of an RC
   getResourceConverterObject = (rc)->
 
@@ -207,21 +220,27 @@ class ResourceConverter
 
     if _.isFunction rc
       rc = rc.call ResourceConverter.searchRegisterUpdate, ResourceConverter.searchRegisterUpdate
-      return getResourceConverterObject rc                              # returned rc might still be a ->, [] or {}
+      return getResourceConverterObject rc  # returned rc might still be a ->, [] or {}
 
     if _.isString rc
       return getResourceConverterObject ResourceConverter.searchRegisterUpdate rc
 
-    # todo: improve with a state machine of signatures
     if _.isArray rc
       if _.isString(rc[0])
-        if _.isString(rc[1]) and isLikeFilez rc[2]
+        if _.isString(rc[1]) and isLikeFilez rc[2] # description at 1
           [ name,  descr, filez, convert, convFilename, options] = [
-              rc[0], rc[1], rc[2], rc[3],   rc[4],      rc[5] ]
+            rc[0], rc[1], rc[2], rc[3],   rc[4],      rc[5] ]
         else
-          if isLikeFilez rc[1]
-            [ name,  filez, convert, convFilename, options] = [
-              rc[0], rc[1], rc[2],   rc[3],        rc[4] ]
+          if isLikeFilez rc[1]      # filez at 1
+            if _.isFunction rc[2]
+              [ name,  filez, convert, convFilename, options] = [
+                rc[0], rc[1], rc[2],   rc[3],        rc[4] ]
+            else if _B.isHash rc[2]
+              [ name,  filez, options] = [ rc[0], rc[1], rc[2] ]
+              rc = ResourceConverter.searchRegisterUpdate name
+              rc.options = options
+              rc.filez = filez
+              return getResourceConverterObject rc
           else
             if _B.isHash rc[1]
               [ name,  options] = [ rc[0], rc[1] ]
@@ -229,13 +248,21 @@ class ResourceConverter
               rc.options = options
               return getResourceConverterObject rc
             else
-              throw new UError "Unkown RC signature"  + l.prettify rc
+              throw new UError "Unknown ResourceConverter signature:"  + l.prettify rc
+
+        #is `convFilename` and `options` really ?
+        if _B.isHash convFilename
+          options = convFilename
+          convFilename = undefined
 
         rc = {name, descr, filez, convert, convFilename, options}
 
+      else
+        throw new UError "Unknown ResourceConverter signature:"  + l.prettify rc
+
+
     if rc and not _B.isHash(rc) # allow null & undefined
-      l.er uerr = 'Bogus resourceConverter:', rc
-      throw new UError uerr
+      throw new UError 'Bogus ResourceConverter at getResourceConverterObject:' + l.prettify rc
 
     rc
 

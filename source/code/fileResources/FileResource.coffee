@@ -41,17 +41,22 @@ class FileResource extends BundleFile
             false otherwise
   ###
   refresh: ->
-    When.promise (resolve, reject)=> # @todo: can this be simplified ?
-      super.then (superRefreshed)=>
-        if not superRefreshed
-          resolve false # no change in parent, why should I change ?
+    super.then (superRefreshed)=>
+      if not superRefreshed
+        false # no change in parent, why should I change ?
+      else
+        if @constructor is FileResource # run only for this class,
+          @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
         else
-          if @constructor is FileResource # run only for this class,
-            resolve @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
-          else
-            resolve true # let subclasses decide whether to run ResourceConverters.
+          true # let subclasses decide whether to run ResourceConverters.
 
   reset:-> super; delete @converted
+
+
+  Object.defineProperties @::,
+    # only if @srcMain exists
+    srcMainFilepath: get: -> if @srcMain then upath.join @bundle?.path or '', @srcMain
+    srcMainRealpath: get: -> if @srcMain then "#{process.cwd()}/#{@srcMainFilepath}"
 
   # go through all Resource `converters`, converting with each one
   # Note: it acts on @converted & @dstFilename, leaving them in a new state

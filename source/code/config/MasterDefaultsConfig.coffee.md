@@ -482,7 +482,7 @@ resources: [
 
 @default 
 
-By default `resources` has ResourceConverters `'javascript', 'coffee-script', 'LiveScript', 'iced-coffee-script' and 'coco'` as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). 
+By default `resources` has ResourceConverters `'javascript', 'coffee-script', 'livescript', 'iced-coffee-script' and 'coco'` as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters).
 
 Some [extra RCs are registered](ResourceConverters.coffee#Extra-Resource-Converters), but not added to 'resources' - they can be used by searching for 'teacup', 'execSync' or 'lessc'. Feel free to contribute yours.
 

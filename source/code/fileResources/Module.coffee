@@ -54,21 +54,18 @@ class Module extends TextResource
     But the module info needs to provide dependencies information (eg to inject Dependencies etc)
   ###
   refresh: ->
-#    When.promise( (resolve, reject)=> # @todo: can this be simplified ?
-      super.then (superRefreshed)=>
-        if not superRefreshed
-          false # no change in parent, why should I change ?
+    super.then (superRefreshed)=>
+      if not superRefreshed
+        false # no change in parent, why should I change ?
+      else
+        if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
+          @sourceCodeJs = @converted
+          @extract()
+          @prepare()
+          @hasChanged = true
         else
-          if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
-            @sourceCodeJs = @converted
-            @extract()
-            @prepare()
-            @hasChanged = true
-          else
-            l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
-            @hasChanged = false
-#      ).catch (err)-> l.err err; reject err
-#      ).catch l.err
+          l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
+          @hasChanged = false
 
   reset:->
     super

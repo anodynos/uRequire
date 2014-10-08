@@ -57,27 +57,26 @@ class BundleBuilder
       else
         _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
 
-  buildBundle: (filenames)->
-    When.promise (resolve, reject)=>
-      if @build and @bundle
-          @setDebugVerbose()
-          @build.newBuild()
-          resolve @bundle.buildChangedResources(@build, filenames).then(
-            (res)=>
-              @build.done res
-              if res is false
-                l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
-              else
-                l.verbose "@bundle.buildChangedResources result is :", res
-          ).catch (err)=>
-              @build.done false
-              @bundle.handleError err
-              l.er 'Uncaught exception @ bundle.buildChangedResources'
-              throw err
-      else
-        l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
-        @config.build.done false
-        reject err
+  buildBundle: When.lift (filenames)->
+    if @build and @bundle
+      @setDebugVerbose()
+      @build.newBuild()
+      @bundle.buildChangedResources(@build, filenames).then(
+        (res)=>
+          if res is false
+            l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
+          else
+            l.debug 40, "@bundle.buildChangedResources result is :", res
+          @build.done res
+      ).catch (err)=>
+          @build.done false
+          @bundle.handleError err
+          l.er 'Uncaught exception @ bundle.buildChangedResources'
+          throw err
+    else
+      l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
+      @config.build.done false
+      throw err
 
   watch: =>
     bundleBuilder = @

@@ -31,6 +31,7 @@ resources =  [
     ]
     (source)-> source
     (filename)-> filename.replace '.coffee', '.js' # dummy filename converter
+    {some: coffee: 'options'}
   ]
 
   [
@@ -50,7 +51,8 @@ resources =  [
   [
     '@~AFileResource' #a FileResource (@) isMatchSrcFilename:true (~)
     '**/*.ext'        # this is a `filez`, not a descr if pos 1 isString & pos 2 not a String|Array|RegExp
-    (source)-> source
+    ->
+    { some: options: after: 'convert' }
   ]
 
   {
@@ -63,30 +65,11 @@ resources =  [
   ->
     rc = @ 'cofreescript'    # retrieve a registered RC
     rc.name = 'coffeescript' # change its name
-    null                     # dont add it to 'resources'
+    rc                       # add it to 'resources' at this point, but remove it from where it was
 ]
 
 expectedResources = [
-  {
-    ' name': 'coffeescript'      # name is changed
-    descr: 'No descr for ResourceConverter \'cofreescript\'',
-    filez: [
-       '**/*.coffee'
-       /.*\.(coffee\.md|litcoffee)$/i
-       '!**/*.amd.coffee'
-     ]
-    convert: resources[0][2]
-    ' convFilename': resources[0][3]
-    _convFilename: resources[0][3]
-    ' type': 'module'
-    isTerminal: false
-    isMatchSrcFilename: false
-    isBeforeTemplate: true
-    isAfterTemplate: false
-    isAfterOptimize: false
-    enabled: true
-    options: {}
-  }
+  # coff(r)eescript is removed from here, since only the last one instance declared remains
 
   {
     ' name': 'Streamline'
@@ -124,16 +107,14 @@ expectedResources = [
     descr: 'No descr for ResourceConverter \'AFileResource\''
     filez: '**/*.ext'
     convert: resources[3][2]
-    #' convFilename': resources[3][3]
     ' type': 'file'
-    #clazz: FileResource
     isTerminal: false
     isMatchSrcFilename:true
     isAfterTemplate: false
     isBeforeTemplate: false
     isAfterOptimize: false
     enabled: true
-    options: {}
+    options: { some: options: after: 'convert' }
   }
 
   {
@@ -149,6 +130,27 @@ expectedResources = [
     isAfterOptimize: false
     enabled: true
     options: {}
+  }
+
+  {
+    ' name': 'coffeescript'      # name is changed
+    descr: 'No descr for ResourceConverter \'cofreescript\'',
+    filez: [
+      '**/*.coffee'
+      /.*\.(coffee\.md|litcoffee)$/i
+      '!**/*.amd.coffee'
+    ]
+    convert: resources[0][2]
+    ' convFilename': resources[0][3]
+    _convFilename: resources[0][3]
+    ' type': 'module'
+    isTerminal: false
+    isMatchSrcFilename: false
+    isBeforeTemplate: true
+    isAfterTemplate: false
+    isAfterOptimize: false
+    enabled: true
+    options: {some: coffee: 'options'}
   }
 ]
 

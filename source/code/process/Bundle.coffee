@@ -182,17 +182,62 @@ class Bundle extends BundleBase
         """
         l.warn @dstFilenames
 
-
     l.debug 80, 'returning inferred depVars =', depVars
-
     depVars
+
+  getBundleFile: (filename)->
+    if not bf = @files[filename] # a new filename
+      # check which ResourceConverters match filename
+      # and instantiate it as BundleFile | FileResource | TextResource | Module
+      lastSrcMain = undefined
+      matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
+      dstFilename = filename
+
+      # Add matched converters
+      # - match filename in resConv.filez, either srcFilename or dstFilename depending on `~` flag
+      # - determine its clazz from type
+      # - until a terminal converter found
+      for resConv in @resources
+        if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+
+          # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
+          if _.isFunction resConv.convFilename
+            dstFilename = resConv.convFilename dstFilename, filename
+
+          lastSrcMain = resConv.srcMain if resConv.srcMain
+          matchedConverters.push resConv
+
+      if lastSrcMain and lastSrcMain not in @filenames
+        throw new UError "srcMain = '#{lastSrcMain}' doesn't exist in bundle's source filenames.", quit: true
+
+      # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
+      lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
+      resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
+
+      l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
+
+      bf = @files[filename] = new resourceClass {
+        bundle:@
+        srcFilename: filename
+        converters: matchedConverters
+        srcMain: lastSrcMain
+      }
+
+      bf.dstFilepath_last = dstFilename # used for bf.clean()
+
+      # duplicate check: check there's no same dstFilename, unless they belong to an 'srcMain' group
+      if not bf.srcMain
+        if sameDstFile = _.find(@files, (f)=> (f.dstFilename is dstFilename) and f isnt bf)
+          sameDstFile.hasErrors = bf.hasErrors = 'duplicate' # @todo: improve lame duplicate check while watching
+          @handleError new UError """
+            Same dstFilename='#{sameDstFile.dstFilename}' for new resource '#{bf.srcFilename}' & '#{sameDstFile.srcFilename}'.
+          """
+    bf
 
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
 
-    If a filename is new, create a new BundleFile (or more interestingly a TextResource or Module)
-
-    In any case, refresh() each one, either new or existing. Internally BundleFile notes `hasChanged`. 
+    For each filename it retrieves the BundleFile (or subclass) instance and calls refresh()
 
     @param []<String> with filenames to process.
       @default ALL files from filesystem (property @filenames)
@@ -205,52 +250,26 @@ class Bundle extends BundleBase
       loadOrRefreshResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
 
-    # check which filenames match resource converters
-    # and instantiate them as TextResource or Module
     When.iterate(
       (i)-> i + 1
       (i)-> !(i < filenames.length)
       (i)=>
-        filename = filenames[i]
-        isNew = false
+        bf = @getBundleFile filename = filenames[i]
 
-        if not bf = @files[filename] # a new filename
-          isNew = true
-          lastSrcMain = undefined
-          matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
-          dstFilename = filename
+        if bf.srcMain # part of srcMain group
+          if filename isnt bf.srcMain
+            l.debug 60, "Skipping conversion(s) of '#{bf.srcFilename}', as part of @srcMain='#{bf.srcMain}'."
 
-          # Add matched converters
-          # - match filename in resConv.filez, either srcFilename or dstFilename depending on `~` flag
-          # - determine its clazz from type
-          # - until a terminal converter found
-          for resConv in @resources
-            if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+            if not @build.current['srcMain_inBuild']
+              if bf.srcMain not in filenames # of this build cycle
+                l.debug 60, "Forcing conversion of @srcMain='#{bf.srcMain}' triggered by '#{bf.srcFilename}'."
+                filenames.push bf.srcMain
+              @build.current['srcMain_inBuild'] = true
 
-              # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
-              if _.isFunction resConv.convFilename
-                dstFilename = resConv.convFilename dstFilename, filename
+              # reset srcMain bundleFiles's attributes if already loaded
+              @files[bf.srcMain].reset() if @files[bf.srcMain]
 
-              lastSrcMain = resConv.srcMain if resConv.srcMain
-              matchedConverters.push resConv
-
-          # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
-          lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
-          resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
-
-          l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
-          bf = @files[filename] = new resourceClass {
-            bundle:@
-            srcFilename: filename
-            converters: matchedConverters
-            srcMain: lastSrcMain
-          }
-
-          bf.dstFilepath_last = dstFilename # used for bf.clean()
-
-        if bf.srcMain and @build.current[bf.srcMain]
-          l.debug 60, "Skipping refresh/conversion(s) of '#{bf.srcFilename}', as part of converted @srcMain='#{bf.srcMain}'."
-          return
+            return
 
         l.debug "Refreshing #{bf.constructor.name}: '#{filename}'" if l.deb 80
 
@@ -258,17 +277,17 @@ class Bundle extends BundleBase
           if isChanged
             @build.addChangedBundleFile filename, bf
             bf.dstFilepath_last = bf.dstFilepath
-        ).catch( (err)=>
+        ).catch (err)=>
             l.debug "Error while refreshing #{bf.constructor.name}: '#{filename}'", err if l.deb 30
             @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
             if bf.srcExists
               bf.reset()
               bf.hasErrors = true #todo: why set here ?
 
-              bf.clean()if bf.isDeleteErrored
+              bf.clean() if bf.isDeleteErrored
 
-              if err instanceof ResourceConverterError
-                @handleError err #something here smells bad with error handling
+              if err instanceof UError
+                @handleError err # improve error handling
               else
                 @handleError new UError """
                   Unknown error while loading/refreshing/processing '#{filename}'.""", {nested:err}
@@ -276,18 +295,9 @@ class Bundle extends BundleBase
               delete @mainModule if @mainModule is @files[filename]
               delete @files[filename]
               l.verbose "Missing file #{bf.srcFilepath} - deleting dstFilename = '#{bf.dstFilename}'"
-              if bf.dstExists and bf.hasErrors isnt 'duplicate'
-                 bf.dstDelete()
+              bf.clean() if bf.hasErrors isnt 'duplicate'
               bf.hasErrors = false # dont count as error any more
-        ).finally( =>  #todo: refactor
-          @build.current[bf.srcMain] = true if bf.srcMain
-          if isNew and not bf.srcMain # check there is no same dstFilename, unless they belong to an 'srcMain' group
-            if sameDstFile = (_.find @files, (f)=> (f.dstFilename is bf.dstFilename) and (f isnt bf))
-              bf.hasErrors = 'duplicate'
-              @handleError new UError """
-                  Same dstFilename='#{sameDstFile.dstFilename}' for new resource '#{bf.srcFilename}' & '#{sameDstFile.srcFilename}'.
-                """, {nested:err}
-        )
+
     , 0).then =>
         @cleanProps (if !_.isEmpty @build.changedFiles then isCalcPropFiles),
                     (if !_.isEmpty @build.changedModules then isCalcPropDepsVars)
@@ -299,62 +309,58 @@ class Bundle extends BundleBase
     It builds / converts all resources that are passed as filenames
     It 'temporarilly' sets a @build instance, with which it 'guides' the build.
   ###
-  buildChangedResources: (@build, filenames=@filenames)->
-    When.promise (resolve, reject)=>
-      @errorsCount = 0
-      isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
-      l.debug """ \n
-        #####################################################################
-        buildChangedResources: build ##{build.count}
-        bundle.name = #{@name}, bundle.main = #{@main}
-        filenames.length = #{filenames.length} #{if !isPartialBuild then '(full build)' else ''}
-        #####################################################################""" if l.deb 20
+  buildChangedResources: When.lift (@build, filenames=@filenames)->
+    @errorsCount = 0
+    isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
+    l.debug """ \n
+      #####################################################################
+      buildChangedResources: build ##{build.count}
+      bundle.name = #{@name}, bundle.main = #{@main}
+      filenames.length = #{filenames.length} #{if !isPartialBuild then '(full build)' else ''}
+      #####################################################################""" if l.deb 20
 
-      @reporter = new DependenciesReporter()
+    @reporter = new DependenciesReporter()
 
-      if isPartialBuild  # 'partial' i.e 'watched' filenames
-        if not @build.hasFullBuild # force a full build ?
-          l.warn "Forcing a full build (this was a partial build, without a previous full build)."
-          file.reset() for fn, file of @files
-          if @build.template.name is 'combined'
-            @build.deleteCombinedTemp()
-            l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
+    if isPartialBuild  # 'partial' i.e 'watched' filenames
+      if not @build.hasFullBuild # force a full build ?
+        l.warn "Forcing a full build (this was a partial build, without a previous full build)."
+        file.reset() for fn, file of @files
+        if @build.template.name is 'combined'
+          @build.deleteCombinedTemp()
+          l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
 
-          return resolve @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
-           # dont run again!
+        return @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
+         # dont run again!
 
-        # filter filenames not passing through bundle.filez
-        bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
-        if diff = filenames.length - bundleFilenames.length
-          l.verbose "Ignored #{diff} non-`bundle.filez`"
-          filenames = bundleFilenames
-      else
-        @build.doClean()
+      # filter filenames not passing through bundle.filez
+      bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
+      if diff = filenames.length - bundleFilenames.length
+        l.verbose "Ignored #{diff} non-`bundle.filez`"
+        filenames = bundleFilenames
+    else
+      @build.doClean()
 
-      if not filenames.length
-        resolve l.verbose "No files to process."
-      else
-        @loadOrRefreshResources(filenames).then( =>
-          if not _.isEmpty @build.changedFiles
-            @convertChangedModules().then =>
-              @concatMainModuleBanner()
-              @saveChangedResources()
-              @copyChangedBundleFiles()
-              if @doneOK and !isPartialBuild and
-                ((@build.template.name isnt 'combined') or @build.watch)
-                  @build.hasFullBuild = true
+    if not filenames.length
+      l.verbose "No files to process."
+    else
+      @loadOrRefreshResources(filenames).then =>
+        if not _.isEmpty @build.changedFiles
+          @convertChangedModules().then =>
+            @concatMainModuleBanner()
+            @saveChangedResources()
+            @copyChangedBundleFiles()
+            if @doneOK and !isPartialBuild and
+              ((@build.template.name isnt 'combined') or @build.watch)
+                @build.hasFullBuild = true
 
-              if (@build.template.name is 'combined')
-                return resolve @combine() # return cause report & done() should run only after its finished
-              else
-                @build.report @
-#                if l.deb 95
-                l.deb "@doneOK = #{@doneOK} and #{if @doneOK then 'resolve()' else 'reject()'}"
-                if @doneOK then resolve() else reject() #todo: resolve report data
-          else
-            l.verbose "No bundle files *really* changed."
-            resolve()
-        ).catch reject
+            if (@build.template.name is 'combined')
+              @combine()
+            else
+              @build.report @
+              l.deb "@doneOK = #{@doneOK}" if l.deb 95
+              @doneOK
+        else
+          l.verbose "No bundle files *really* changed."
 
   convertChangedModules:->
     if _.isEmpty @build.changedModules
@@ -367,7 +373,6 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
 
       When.each changedModules, (mod)=> mod.convert @build
-
 
   # add template.banner to 'bundle.main', if it exists & has changed
   concatMainModuleBanner:->
@@ -438,8 +443,8 @@ class Bundle extends BundleBase
     @mainModule = mainMod
 
   requirejs: require 'requirejs'
-  ###
-  ###
+
+  ###  ###
   combine: ->
     When.promise (resolve, reject)=>
       # run only if we have changedFiles without errors
@@ -599,8 +604,7 @@ class Bundle extends BundleBase
 
           reject false
 
-
-  getRequireJSConfig: -> #@todo:(7 5 2) HOW LAME - remove & fix this!
+  getRequireJSConfig: ->
     if not _.isEmpty @build?.rjs
       @build.rjs
     else
@@ -666,7 +670,7 @@ class Bundle extends BundleBase
         l.deb 110, '\n error.stack = \n', error.stack # dev only
 
         if error.nested
-          l.warn "with nested ##{nesting+1} error following .... :"
+          l.warn "With nested error ##{nesting+1} following ... :"
           @printError error.nested, nesting+1
 
   # @todo: refactor error handling!

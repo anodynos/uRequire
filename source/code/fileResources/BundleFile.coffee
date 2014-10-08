@@ -33,20 +33,17 @@ class BundleFile
     _.extend @, data
     @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
 
-  refresh:-> # check for filesystem timestamp etc
-    When.promise (resolve, reject)=>
-      if not @srcExists
-        reject new UError "BundleFile missing '#{@srcFilepath}'"
+  refresh: When.lift -> # check for filesystem timestamp etc
+    if not @srcExists
+      throw new UError "BundleFile missing '#{@srcFilepath}'"
+    else
+      stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']
+      if not _.isEqual stats, @fileStats
+        @fileStats = stats
+        @hasChanged = true
       else
-        stats = _.pick fs.statSync(@srcFilepath), statProps = ['mtime', 'size']
-        if not _.isEqual stats, @fileStats
-          @fileStats = stats
-          @hasChanged = true
-        else
-          @hasChanged = false
-          l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
-
-      resolve @hasChanged
+        l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
+        @hasChanged = false
 
   reset:->
     delete @fileStats

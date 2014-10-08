@@ -162,7 +162,7 @@ bundle: commonCode: 'var expect = chai.expect;'
 function(m) { m.beforeBody = 'var l = new _B.Logger("Logger" + m.dstFilename);' }
 ```
 
-A [ResourceConverter](http://urequire.org/resourceconverters.coffee#what-is-a-resourceconverter) for our `.coco` files (included along with coffeescript, LiveScript, iced-coffee-script)
+A [ResourceConverter](http://urequire.org/resourceconverters.coffee#what-is-a-resourceconverter) for our `.coco` files (included along with coffeescript, livescript, iced-coffee-script)
 
 ```coffee
 [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']
