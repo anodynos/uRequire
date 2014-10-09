@@ -42,7 +42,7 @@
   "main": "./build/code/urequire.js",
   "preferGlobal": false,
   "scripts": {
-    "test": "node_modules/.bin/mocha build/spec/**/**.js --recursive --reporter spec --bail"
+    "test": "grunt test"
   },
   "directories": {
     "doc": "./doc",
@@ -55,10 +55,7 @@
     "almond": "0.2.x",
     "bluebird": "2.3.x",
     "butter-require": ">=0.0.3",
-    "coco": "*",
     "coffee-script": "*",
-    "iced-coffee-script": "*",
-    "LiveScript": "*",
     "commander": "2.2.x",
     "escodegen": "1.x.x",
     "esmangle": "1.x.x",
@@ -78,7 +75,9 @@
     "urequire-rc-coffee-script": "*",
     "urequire-rc-iced-coffee-script": "*",
     "urequire-rc-coco": "*",
-    "urequire-rc-livescript": "*"
+    "urequire-rc-livescript": "*",
+    "urequire-rc-exec": "*",
+    "urequire-rc-inject-version": "*"
   },
   "devDependencies": {
     "chai": "*",
@@ -90,8 +89,6 @@
     "grunt-contrib-concat": "0.1.x",
     "grunt-shell": "~0.3.x",
     "grunt-contrib-watch": "~0.5.3",
-    "urequire-rc-exec": "*",
-    "urequire-rc-inject-version": "*",
     "urequire-rc-less": "*"
   }
 }
