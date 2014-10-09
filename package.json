@@ -74,7 +74,11 @@
     "uglify-js": "2.x.x",
     "rimraf": "2.2.x",
     "mkdirp": "0.5.x",
-    "when" : "*"
+    "when" : "*",
+    "urequire-rc-coffee-script": "*",
+    "urequire-rc-iced-coffee-script": "*",
+    "urequire-rc-coco": "*",
+    "urequire-rc-livescript": "*"
   },
   "devDependencies": {
     "chai": "*",
@@ -86,11 +90,8 @@
     "grunt-contrib-concat": "0.1.x",
     "grunt-shell": "~0.3.x",
     "grunt-contrib-watch": "~0.5.3",
-    "urequire-rc-coffee-script": "*",
-    "urequire-rc-iced-coffee-script": "*",
-    "urequire-rc-coco": "*",
-    "urequire-rc-livescript": "*",
     "urequire-rc-exec": "*",
-    "urequire-rc-inject-version": "*"
+    "urequire-rc-inject-version": "*",
+    "urequire-rc-less": "*"
   }
 }
