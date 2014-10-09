@@ -1,18 +1,18 @@
-# requires grunt >= 0.4.1
 _ = (_B = require 'uberscore')._
+S = if process.platform is 'win32' then '\\' else '/'
+startsWith = (string, substring) -> string.lastIndexOf(substring, 0) is 0
+nodeBin = "node_modules#{S}.bin#{S}"
 
 sourceDir     = "source/code"
 buildDir      = "build/code"
 sourceSpecDir = "source/spec"
 buildSpecDir  = "build/spec"
 
-# OS directory separator
-S = if process.platform is 'win32' then '\\' else '/'
-
-gruntFunction = (grunt) ->
+module.exports = gruntFunction = (grunt) ->
+  pkg = grunt.file.readJSON 'package.json'
 
   gruntConfig =
-    pkg: grunt.file.readJSON('package.json')
+    pkg: pkg
 
     meta:
       banner: """
@@ -30,14 +30,11 @@ gruntFunction = (grunt) ->
 
     options: {sourceDir, buildDir, sourceSpecDir, buildSpecDir}
 
-    clean: build: 'build'
+    clean:
+      build: 'build'
+      temp: 'temp'
 
     concat:
-      bin:
-        options: banner: "<%= meta.usrBinEnvNode %><%= meta.banner %><%= meta.varVERSION %>"
-        src: ['<%= options.buildDir %>/urequireCmd.js' ]
-        dest: '<%= options.buildDir %>/urequireCmd.js'
-
       VERSIONurequire:
         options: banner: "<%= meta.banner %><%= meta.varVERSION %>"
         src: [ '<%= options.buildDir %>/urequire.js']
@@ -52,7 +49,7 @@ gruntFunction = (grunt) ->
 
     watch:
       dev: # requires `coffeeWatch` to compile changed only files! need a changed-only-files coffee task!
-        files: ["build/**/*"]
+        files: ["build/**/*", "!build/spec/urequire/code/**/*"]
         tasks: ['copy', 'mochaCmd']
 
       copy:
@@ -60,17 +57,13 @@ gruntFunction = (grunt) ->
         tasks: ['copy:wiki']
 
     shell:
-      coffee: command: "node_modules#{S}.bin#{S}coffee -cb -o ./build ./source"
-      coffeeWatch: command: "node_modules#{S}.bin#{S}coffee -cbw -o ./build ./source"
-      chmod: command:
-        if process.platform is 'linux' # urequireCmd.js to executable - linux only, I've no idea abt MACs!
-          "chmod +x 'build/code/urequireCmd.js'"
-        else "@echo " #do nothing
-      mochaCmd: command: "node_modules#{S}.bin#{S}mocha #{buildSpecDir}/**/*-spec.js --recursive --bail" #--reporter spec"
-      #doc: command: "node_modules#{S}.bin#{S}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
+      coffee: command: "#{nodeBin}coffee -cb -o ./build ./source"
+      coffeeWatch: command: "#{nodeBin}coffee -cbw -o ./build ./source"
+      mochaCmd: command: "#{nodeBin}mocha #{buildSpecDir}/**/*-spec.js --recursive --bail --timeout 10000" #--reporter spec"
+      #doc: command: "#{nodeBin}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
       options: verbose: true, failOnError: true, stdout: true, stderr: true
 
-  # copy build files to wherever urequire is a dep
+  # copy build files to wherever urequire is a dev dep testbed
   deps = [] #['uberscore']
   for dep in deps
     gruntConfig.copy[dep] =
@@ -80,39 +73,18 @@ gruntFunction = (grunt) ->
   splitTasks = (tasks)-> if !_.isString tasks then tasks else (_.filter tasks.split(/\s/), (v)-> v)
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-     default: "clean build test"
-     build:   "coffee concat chmod copy"
-     test:    "copy:specResources mochaCmd"
+    default: "clean build test"
+    build: "coffee concat copy"
+    test: "copy:specResources mochaCmd"
 
-     # some shortcuts
-     cf:      "coffee"
-     cfw:     "coffeeWatch"
-
-     # generic shortcuts
-     cl:      "clean"
-     b:       "build"
-     d:       "concat:bin chmod"
-     m:       "mochaCmd"
-     t:       "test"
-     wd:      "watch:dev"
-
-     # IDE shortcuts
-     "alt-c": "copy:wiki"
-     "alt-b": "b"
-     "alt-d": "d"
-     "alt-t": "t"
+    # IDE shortcuts
+    "alt-c": "copy:wiki"
+    "alt-b": "build"
+    "alt-d": "default"
+    "alt-t": "test"
   }
 
-  grunt.loadNpmTasks task for task in [
-    'grunt-contrib-clean'
-    'grunt-contrib-concat'
-    'grunt-contrib-copy'
-    'grunt-contrib-watch'
-    'grunt-shell'
-  ]
-
+  grunt.loadNpmTasks task for task of pkg.devDependencies when startsWith(task, 'grunt-')
   grunt.initConfig gruntConfig
 
   null
-
-module.exports = gruntFunction

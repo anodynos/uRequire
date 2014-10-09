@@ -3,7 +3,7 @@ l = new _B.Logger 'uRequire/Module'#, 100
 _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
 util = require 'util'
-
+When = require 'when'
 
 # uRequire
 upath = require '../paths/upath'
@@ -35,6 +35,7 @@ class Module extends TextResource
         else
           ''
   # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  # @todo: move method to BundleFile, keep only this data to Module
   for bof in ['useStrict', 'bare', 'globalWindow',
               'runtimeInfo', 'noRootExports',
               'allNodeRequires', 'dummyParams'
@@ -53,17 +54,18 @@ class Module extends TextResource
     But the module info needs to provide dependencies information (eg to inject Dependencies etc)
   ###
   refresh: ->
-    if not super
-      return false # no change in parent, why should I change ?
-    else
-      if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
-        @sourceCodeJs = @converted
-        @extract()
-        @prepare()
-        return @hasChanged = true
+    super.then (superRefreshed)=>
+      if not superRefreshed
+        false # no change in parent, why should I change ?
       else
-        l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
-        return @hasChanged = false
+        if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
+          @sourceCodeJs = @converted
+          @extract()
+          @prepare()
+          @hasChanged = true
+        else
+          l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
+          @hasChanged = false
 
   reset:->
     super
@@ -192,11 +194,11 @@ class Module extends TextResource
     if isLikeCode('(function(){}).call()', @AST_top.body) or
        isLikeCode('(function(){}).apply()', @AST_top.body)
       @AST_body = @AST_top.body[0].expression.callee.object.body.body
-      @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
+      @AST_preDefineIIFENodes = []   # store all nodes along IIFEied define()
     else
       if isLikeCode '(function(){})()', @AST_top.body
         @AST_body = @AST_top.body[0].expression.callee.body.body
-        @AST_preDefineIIFENodes = []   # store all nodes preceding IIFEied define()
+        @AST_preDefineIIFENodes = []   # store all nodes along IIFEied define()
       else
         @AST_body = @AST_top.body
 
@@ -218,8 +220,7 @@ class Module extends TextResource
           if not (isLikeCode('var define;', bodyNode)  or
              isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
              isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
-             not isLikeCode(';', bodyNode) and
-             @AST_preDefineIIFENodes # if no define found yet & were in IIFE
+             not isLikeCode(';', bodyNode) and @AST_preDefineIIFENodes
                @AST_preDefineIIFENodes.push bodyNode
 
     # AMD module
@@ -310,7 +311,7 @@ class Module extends TextResource
   @todo: decouple from build, use calculated (cached) properties, populated at convertWithTemplate(@build) step
   ###
   adjust: (@build)->
-    l.debug "\n@adjust for '#{@srcFilename}'" if l.deb 70
+    l.debug "@adjust for '#{@srcFilename}'" if l.deb 70
 
     if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
       @injectDeps @bundle?.dependencies?.exports?.bundle
@@ -522,14 +523,40 @@ class Module extends TextResource
       if dep.type not in ['bundle', 'system'] # ignore 'normal' ones
         @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'local':['lodash']}`
 
-  # Actually converts the module to the target @build options.
-  convertWithTemplate: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
-    l.verbose "Converting '#{@path}' with template = '#{@build.template.name}'"
-    l.debug("'#{@path}' adjusted module.info() = \n",
-      _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 60
-
-    @moduleTemplate or= new ModuleGeneratorTemplates @
-    @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+  # Actually converts the module to the target @build options, passing through ResourceConverters as needed.
+  # @returns promise -> undefined
+  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
+    if @hasErrors
+      l.warn "\n##### Not converting '#{@path}' cause it has errors."
+      When()
+    else
+      l.deb "\n##### Converting '#{@path}' with '#{@build.template.name}'." if l.deb 50
+      When.sequence([
+        => @adjust @build
+        =>
+          l.deb "########### Running BeforeTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.isBeforeTemplate and !rc.isAfterTemplate #@todo: why ? those with both will never run?
+        =>
+          l.verbose "########### Converting with template '#{@build.template.name}' for module '#{@path}'."
+          l.deb("'#{@path}' adjusted module.info() = \n",
+            _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 70
+          @moduleTemplate or= new ModuleGeneratorTemplates @
+          @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+        =>
+          l.deb "########### Running AfterTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.isAfterTemplate and !rc.isBeforeTemplate
+        =>
+          l.deb "########### Running optimize for '#{@path}'." if l.deb 70
+          @optimize @build
+        =>
+          l.deb "########### Running AfterOptimize ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.isAfterOptimize
+        =>
+          @addReportData()
+      ]).catch (err)=>
+        @reset()
+        @hasErrors = true
+        @bundle.handleError new UError "Error at `module.convert()`", nested:err
 
     # apply `optimize` (i.e minification) - uglify2 only
   optimize: (@build)->

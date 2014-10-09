@@ -16,6 +16,8 @@ DependenciesReporter = require './../utils/DependenciesReporter'
 UError = require '../utils/UError'
 ResourceConverterError = require '../utils/ResourceConverterError'
 
+isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
+
 #our file system
 BundleFile = require './../fileResources/BundleFile'
 FileResource = require './../fileResources/FileResource'
@@ -31,6 +33,8 @@ toCode = require '../codeUtils/toCode'
 isFileInSpecs = require '../config/isFileInSpecs'
 
 debugLevelSkipTempDeletion = 50
+
+When = require 'when'
 
 ###
   @todo: doc it!
@@ -178,17 +182,62 @@ class Bundle extends BundleBase
         """
         l.warn @dstFilenames
 
-
     l.debug 80, 'returning inferred depVars =', depVars
-
     depVars
+
+  getBundleFile: (filename)->
+    if not bf = @files[filename] # a new filename
+      # check which ResourceConverters match filename
+      # and instantiate it as BundleFile | FileResource | TextResource | Module
+      lastSrcMain = undefined
+      matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
+      dstFilename = filename
+
+      # Add matched converters
+      # - match filename in resConv.filez, either srcFilename or dstFilename depending on `~` flag
+      # - determine its clazz from type
+      # - until a terminal converter found
+      for resConv in @resources
+        if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+
+          # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
+          if _.isFunction resConv.convFilename
+            dstFilename = resConv.convFilename dstFilename, filename
+
+          lastSrcMain = resConv.srcMain if resConv.srcMain
+          matchedConverters.push resConv
+
+      if lastSrcMain and lastSrcMain not in @filenames
+        throw new UError "srcMain = '#{lastSrcMain}' doesn't exist in bundle's source filenames.", quit: true
+
+      # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
+      lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
+      resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
+
+      l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
+
+      bf = @files[filename] = new resourceClass {
+        bundle:@
+        srcFilename: filename
+        converters: matchedConverters
+        srcMain: lastSrcMain
+      }
+
+      bf.dstFilepath_last = dstFilename # used for bf.clean()
+
+      # duplicate check: check there's no same dstFilename, unless they belong to an 'srcMain' group
+      if not bf.srcMain
+        if sameDstFile = _.find(@files, (f)=> (f.dstFilename is dstFilename) and f isnt bf)
+          sameDstFile.hasErrors = bf.hasErrors = 'duplicate' # @todo: improve lame duplicate check while watching
+          @handleError new UError """
+            Same dstFilename='#{sameDstFile.dstFilename}' for new resource '#{bf.srcFilename}' & '#{sameDstFile.srcFilename}'.
+          """
+    bf
 
   ###
     Processes each filename, either as array of filenames (eg instructed by `watcher`) or all @filenames
 
-    If a filename is new, create a new BundleFile (or more interestingly a TextResource or Module)
-
-    In any case, refresh() each one, either new or existing. Internally BundleFile notes `hasChanged`. 
+    For each filename it retrieves the BundleFile (or subclass) instance and calls refresh()
 
     @param []<String> with filenames to process.
       @default ALL files from filesystem (property @filenames)
@@ -200,90 +249,67 @@ class Bundle extends BundleBase
       #####################################################################
       loadOrRefreshResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
-    # check which filenames match resource converters
-    # and instantiate them as TextResource or Module
-    for filename in filenames
-      isNew = false
 
-      if not bf = @files[filename] # a new filename
-        isNew = true
-        lastSrcMain = undefined
-        matchedConverters = [] # create a XXXResource (eg Module), if we have some matchedConverters
-        dstFilename = filename
+    When.iterate(
+      (i)-> i + 1
+      (i)-> !(i < filenames.length)
+      (i)=>
+        bf = @getBundleFile filename = filenames[i]
 
-        # Add matched converters
-        # - match filename in resConv.filez, either srcFilename or dstFilename depending on `~` flag
-        # - determine its clazz from type
-        # - until a terminal converter found
-        for resConv in @resources
-          if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+        if bf.srcMain # part of srcMain group
+          if filename isnt bf.srcMain
+            l.debug 60, "Skipping conversion(s) of '#{bf.srcFilename}', as part of @srcMain='#{bf.srcMain}'."
 
-            # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
-            if _.isFunction resConv.convFilename
-              dstFilename = resConv.convFilename dstFilename, filename
+            if not @build.current['srcMain_inBuild']
+              if bf.srcMain not in filenames # of this build cycle
+                l.debug 60, "Forcing conversion of @srcMain='#{bf.srcMain}' triggered by '#{bf.srcFilename}'."
+                filenames.push bf.srcMain
+              @build.current['srcMain_inBuild'] = true
 
-            lastSrcMain = resConv.srcMain if resConv.srcMain
-            matchedConverters.push resConv
+              # reset srcMain bundleFiles's attributes if already loaded
+              @files[bf.srcMain].reset() if @files[bf.srcMain]
 
-        # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
-        lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
-        resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
+            return
 
-        l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
-        bf = @files[filename] = new resourceClass {
-          bundle:@
-          srcFilename: filename
-          converters: matchedConverters
-          srcMain: lastSrcMain
-        }
+        l.debug "Refreshing #{bf.constructor.name}: '#{filename}'" if l.deb 80
 
-      if bf.srcMain and @build.current[bf.srcMain]
-        l.debug 60, "Skipping refresh/conversion(s) of '#{bf.srcFilename}', as part of converted @srcMain='#{bf.srcMain}'."
-        continue
+        bf.refresh().then( (isChanged)=>
+          if isChanged
+            @build.addChangedBundleFile filename, bf
+            bf.dstFilepath_last = bf.dstFilepath
+        ).catch (err)=>
+            l.debug "Error while refreshing #{bf.constructor.name}: '#{filename}'", err if l.deb 30
+            @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
+            if bf.srcExists
+              bf.reset()
+              bf.hasErrors = true #todo: why set here ?
 
-      l.debug "Refreshing #{bf.constructor.name}: '#{filename}'" if l.deb 80
-      try
-        if bf.refresh() # updates Resource.hasChanged
-          @build.addChangedBundleFile filename, bf
-      catch err
-        @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
-        if bf.srcExists
-          bf.reset()
-          bf.hasErrors = true
-          if err instanceof ResourceConverterError
-            @handleError err
-          else
-            @handleError new UError """
-              Unknown error while loading/refreshing/processing '#{filename}'.""", {nested:err}
-        else
-          delete @mainModule if @mainModule is @files[filename]
-          delete @files[filename]
-          l.verbose "Missing file #{bf.srcFilepath} - deleting dstFilename = '#{bf.dstFilename}'"
-          if bf.dstExists and bf.hasErrors isnt 'duplicate'
-             bf.dstDelete()
-          bf.hasErrors = false # dont count as error any more
+              bf.clean() if bf.isDeleteErrored
 
-      @build.current[bf.srcMain] = true if bf.srcMain
+              if err instanceof UError
+                @handleError err # improve error handling
+              else
+                @handleError new UError """
+                  Unknown error while loading/refreshing/processing '#{filename}'.""", {nested:err}
+            else
+              delete @mainModule if @mainModule is @files[filename]
+              delete @files[filename]
+              l.verbose "Missing file #{bf.srcFilepath} - deleting dstFilename = '#{bf.dstFilename}'"
+              bf.clean() if bf.hasErrors isnt 'duplicate'
+              bf.hasErrors = false # dont count as error any more
 
-      if isNew and not bf.srcMain # check there is no same dstFilename, unless they belong to an 'srcMain' group
-        if sameDstFile = (_.find @files, (f)=> (f.dstFilename is bf.dstFilename) and (f isnt bf))
-          bf.hasErrors = 'duplicate'
-          @handleError new UError """
-            Same dstFilename='#{sameDstFile.dstFilename}' for new resource '#{bf.srcFilename}' & '#{sameDstFile.srcFilename}'.
-          """, {nested:err}
+    , 0).then =>
+        @cleanProps (if !_.isEmpty @build.changedFiles then isCalcPropFiles),
+                    (if !_.isEmpty @build.changedModules then isCalcPropDepsVars)
 
-    @cleanProps (if !_.isEmpty @build.changedFiles then isCalcPropFiles),
-                (if !_.isEmpty @build.changedModules then isCalcPropDepsVars)
+        l.debug "### finished loadOrRefreshResources: #{_.size @build.changedFiles} changed files."
 
-    l.debug "### finished loadOrRefreshResources: #{_.size @build.changedFiles} changed files."
-    null
-    
   ###
     Our only true entry point
     It builds / converts all resources that are passed as filenames
     It 'temporarilly' sets a @build instance, with which it 'guides' the build.
   ###
-  buildChangedResources: (@build, filenames=@filenames)->
+  buildChangedResources: When.lift (@build, filenames=@filenames)->
     @errorsCount = 0
     isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
     l.debug """ \n
@@ -303,8 +329,8 @@ class Bundle extends BundleBase
           @build.deleteCombinedTemp()
           l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
 
-        @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
-        return # dont run again!
+        return @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
+         # dont run again!
 
       # filter filenames not passing through bundle.filez
       bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
@@ -317,49 +343,36 @@ class Bundle extends BundleBase
     if not filenames.length
       l.verbose "No files to process."
     else
-      @loadOrRefreshResources filenames
+      @loadOrRefreshResources(filenames).then =>
+        if not _.isEmpty @build.changedFiles
+          @convertChangedModules().then =>
+            @concatMainModuleBanner()
+            @saveChangedResources()
+            @copyChangedBundleFiles()
+            if @doneOK and !isPartialBuild and
+              ((@build.template.name isnt 'combined') or @build.watch)
+                @build.hasFullBuild = true
 
-      if !_.isEmpty @build.changedFiles
-        @convertChangedModules()
-        @concatMainModuleBanner()
-        @saveChangedResources()
-        @copyChangedBundleFiles()
-        if @doneOK and !isPartialBuild and
-          ((@build.template.name isnt 'combined') or @build.watch)
-            @build.hasFullBuild = true
-
-        if (@build.template.name is 'combined')
-          return @combine() # return cause report & done() should run only after its finished
-
-      else
-        l.verbose "No bundle files *really* changed."
-
-    @build.report @
-    @build.done @doneOK
+            if (@build.template.name is 'combined')
+              @combine()
+            else
+              @build.report @
+              l.deb "@doneOK = #{@doneOK}" if l.deb 95
+              @doneOK
+        else
+          l.verbose "No bundle files *really* changed."
 
   convertChangedModules:->
-    if !_.isEmpty @build.changedModules
+    if _.isEmpty @build.changedModules
+      When()
+    else
+      changedModules = (mod for fn, mod of @modules when mod.hasChanged)
       l.debug """ \n
         #####################################################################
-        Converting changed modules with template '#{@build.template.name}'
+        Converting #{changedModules.length} changed modules with template '#{@build.template.name}'
         #####################################################################""" if l.deb 30
-      for fn, mod of @modules when mod.hasChanged # if it changed, conversion needed
-        if mod.hasErrors
-          l.debug 30, "Not converting '#{mod.srcFilename}' cause it has errors."
-        else
-          try
-            mod.adjust @build
-            mod.runResourceConverters (rc)-> rc.isBeforeTemplate and !rc.isAfterTemplate #@todo: why ? those with both will never run?
-            mod.convertWithTemplate @build
-            mod.runResourceConverters (rc)-> rc.isAfterTemplate and !rc.isBeforeTemplate
-            mod.optimize @build
-            mod.runResourceConverters (rc)-> rc.isAfterOptimize
-            mod.addReportData()
-          catch err
-            mod.reset()
-            mod.hasErrors = true
-            @handleError new UError "Error at `convertChangedModules()`", {nested:err}
-    null
+
+      When.each changedModules, (mod)=> mod.convert @build
 
   # add template.banner to 'bundle.main', if it exists & has changed
   concatMainModuleBanner:->
@@ -381,7 +394,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
       for fn, res of @fileResources when res.hasChanged
         if res.hasErrors
-          l.deb 40, "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
+          l.warn "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
         else
           if res.converted and _.isString(res.converted) # only non-empty Strings are written
             try
@@ -430,163 +443,168 @@ class Bundle extends BundleBase
     @mainModule = mainMod
 
   requirejs: require 'requirejs'
-  ###
-  ###
+
+  ###  ###
   combine: ->
-    # run only if we have changedFiles without errors
-    if _.isEmpty @build.changedModules # @todo: or (!_.isEmpty(@build.changedfiles) and build.template.{combined}.noModulesBuild)
-      l.verbose "Not executing *'combined' template optimizing with r.js*: no @modules changed in build ##{@build.count}."
-      @build.report @
-      @build.done @doneOK
-      return
-    else
-      if _.size(@build.errorFiles)
-        if (_.size(@build.changedModules) - _.size(@build.errorFiles)) <= 0
-          l.er "Not executing *'combined' template optimizing with r.js*: no changed modules without error in build ##{@build.count}."
-          @build.report @
-          @build.done @doneOK
-          return
-        else
-          l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
-
-    l.debug """ \n
-      #####################################################################
-      'combined' template: optimizing with r.js & almond
-      #####################################################################""" if l.deb 30
-
-    if @mainModule or @inferMainModule()
-      if not @main
-        @main = @mainModule.path
-        l.warn """
-          `combine` template note: `bundle.main`, your *entry-point module* was missing from `bundle` config.
-          It's defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
-          }', as uRequire found an existing '#{@path}/#{@mainModule.srcFilename}' module in your path.
-        """
-    else
-      combErr = """`bundle.main` should be your *entry-point module*, kicking off the bundle.
-                    It is required for `combined` template execution."""
-      if not @main
-        @handleError new UError """
-          Missing `bundle.main` from config.
-          #{combErr}
-          Tried to infer it from `bundle.name` = '#{@name}', or as ['index', 'main'], but no suitable module was found in bundle.
-        """
-      else
-        @handleError new UError """
-          Module `bundle.main` = '#{@main}' not found in bundle.
-          #{combErr}
-          NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is respected.
-        """
-
-    combinedTemplate = new AlmondOptimizationTemplate @
-    for depfilename, genCode of combinedTemplate.dependencyFiles
-      TextResource.save upath.join(@build.template._combinedFileTemp, depfilename+'.js'), genCode
-
-    @copyAlmondJs()
-    @copyWebMapDeps()
-
-    rjsConfig =
-      paths: _.extend combinedTemplate.paths, @getRequireJSConfig().paths
-      wrap: combinedTemplate.wrap
-      baseUrl: @build.template._combinedFileTemp
-      include: [@main]
-
-      # include the 'fake' AMD files 'getExcluded_XXX'
-      # and `export: bundle` deps
-      # @todo: why 'rjs.deps' and not 'rjs.include' ?
-      deps: _.union _.keys(@nodeOnly_depsVars), _.keys(combinedTemplate.exportsBundle_bundle_depsVars)
-      useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
-      name: 'almond'
-
-      out: (text)=>
-        text =
-          (if @build.template.banner then @build.template.banner + '\n' else '') +
-          combinedTemplate.uRequireBanner +
-          "// Combined template optimized with RequireJS/r.js v#{@requirejs.version} & almond." + '\n' +
-          text
-
-        FileResource.save @build.template.combinedFile, text
-
-    # todo: re-move this to blendConfigs
-    if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
-      rjsConfig[@build.optimize] = @build[@build.optimize] # copy { uglify2: {...uglify2 options...}}
-    else
-      rjsConfig.optimize = "none"
-    rjsConfig.logLevel = 0 if l.deb 90
-
-
-    #@todo: blend it !
-    if not _.isEmpty @build.rjs
-      _.defaults rjsConfig, _.clone(@build.rjs, true)
-
-    # actually combine (r.js optimize)
-#    @rjsOptimize rjsConfig
-#  rjsOptimize: (rjsConfig)=>
-    l.debug("requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])) if l.deb 20
-    rjsStartDate = new Date()
-    @requirejs.optimize rjsConfig,
-      (buildResponse)=>
-        l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
-        if fs.existsSync @build.template.combinedFile
-          l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
-
-          if not _.isEmpty @localNonNode_depsVars
-            if (not @build.watch) or l.deb 50
-              l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
-                combinedTemplate.localDepsVars,
-                """\n
-                are available when combined script '#{@build.template.combinedFile}' is running on:
-                  a) nodejs: they should exist as a local `nodes_modules`.
-                  b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
-                  c) Web/Script: the binded variables (eg '_' or '$')
-                     must be a globally loaded (i.e `window.$`)
-                     BEFORE loading '#{@build.template.combinedFile}'\n
-                """
-
-          # delete _combinedFileTemp, used as temp directory with individual AMD files
-          if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
-            @build.deleteCombinedTemp()
-          else
-            l.debug(10, "NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
-
-          @build.report @
-          @build.done @doneOK
-        else
-          l.er """
-            Combined file '#{@build.template.combinedFile}' NOT written - this should not have happened, requirejs reported success.
-            Check requirejs's build response:\n
-          """, buildResponse
-          @build.report @
-          @build.done false
-
-      (errorResponse)=>
+    When.promise (resolve, reject)=>
+      # run only if we have changedFiles without errors
+      if _.isEmpty @build.changedModules # @todo: or (!_.isEmpty(@build.changedfiles) and build.template.{combined}.noModulesBuild)
+        l.verbose "Not executing *'combined' template optimizing with r.js*: no @modules changed in build ##{@build.count}."
         @build.report @
+        return resolve @doneOK
+      else
+        if errFiles = _.size(@build.errorFiles)
 
-        l.er '@requirejs.optimize errorResponse: ', errorResponse, """\n
-        Combined file '#{@build.template.combinedFile}' NOT written."
+          if isTrueOrFileInSpecs @build.deleteErrored, @build.template.combinedFile
+            if fs.existsSync @build.template.combinedFile
+              l.verbose "Deleting previous destination combined file `#{@build.template.combinedFile}` cause of #{errFiles} error files."
+              try
+                fs.unlinkSync upath.join @build.template.combinedFile
+              catch err
+                l.warn "Can't delete `#{@build.template.combinedFile}`.", err
 
-          Some remedy:
+          if (_.size(@build.changedModules) - errFiles) <= 0
+              l.er "Not executing *'combined' template optimizing with r.js*: no changed modules without error in build ##{@build.count}."
+              @build.report @
+              return resolve @doneOK
+            else
+              l.warn "Executing *'combined' template optimizing with r.js*: although there are errors in build ##{@build.count} (using last valid saved modules)."
 
-           a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
-              - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
-              - 'name' is what 'main' defaults to, if its a module.
+      l.debug """ \n
+        #####################################################################
+        'combined' template: optimizing with r.js & almond
+        #####################################################################""" if l.deb 30
 
-           b) Perhaps you have a missing dependcency ?
-              r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+      if @mainModule or @inferMainModule()
+        if not @main
+          @main = @mainModule.path
+          l.warn """
+            `combine` template note: `bundle.main`, your *entry-point module* was missing from `bundle` config.
+            It's defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
+            }', as uRequire found an existing '#{@path}/#{@mainModule.srcFilename}' module in your path.
+          """
+      else
+        combErr = """`bundle.main` should be your *entry-point module*, kicking off the bundle.
+                      It is required for `combined` template execution."""
+        if not @main
+          @handleError new UError """
+            Missing `bundle.main` from config.
+            #{combErr}
+            Tried to infer it from `bundle.name` = '#{@name}', or as ['index', 'main'], but no suitable module was found in bundle.
+          """
+        else
+          @handleError new UError """
+            Module `bundle.main` = '#{@main}' not found in bundle.
+            #{combErr}
+            NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is respected.
+          """
 
-           c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
-              *Note this prevents uRequire from finishing properly / printing this message!*
+      combinedTemplate = new AlmondOptimizationTemplate @
+      for depfilename, genCode of combinedTemplate.dependencyFiles
+        TextResource.save upath.join(@build.template._combinedFileTemp, depfilename+'.js'), genCode
 
-           Note that you can check the AMD-ish files used in temporary directory '#{@build.template._combinedFileTemp}'.
+      @copyAlmondJs()
+      @copyWebMapDeps()
 
-           More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+      rjsConfig =
+        paths: _.extend combinedTemplate.paths, @getRequireJSConfig().paths
+        wrap: combinedTemplate.wrap
+        baseUrl: @build.template._combinedFileTemp
+        include: [@main]
 
-        """, rjsConfig
+        # include the 'fake' AMD files 'getExcluded_XXX'
+        # and `export: bundle` deps
+        # @todo: why 'rjs.deps' and not 'rjs.include' ?
+        deps: _.union _.keys(@nodeOnly_depsVars), _.keys(combinedTemplate.exportsBundle_bundle_depsVars)
+        useStrict: if @build.useStrict or _.isUndefined(@build.useStrict) then true else false # any truthy or undefined instructs `true`
+        name: 'almond'
 
-        @build.done false
+        out: (text)=>
+          text =
+            (if @build.template.banner then @build.template.banner + '\n' else '') +
+            combinedTemplate.uRequireBanner +
+            "// Combined template optimized with RequireJS/r.js v#{@requirejs.version} & almond." + '\n' +
+            text
+
+          FileResource.save @build.template.combinedFile, text
+
+      # todo: re-move this to blendConfigs
+      if rjsConfig.optimize = @build.optimize                # set if we have build:optimize: 'uglify2',
+        rjsConfig[@build.optimize] = @build[@build.optimize] # copy { uglify2: {...uglify2 options...}}
+      else
+        rjsConfig.optimize = "none"
+      rjsConfig.logLevel = 0 if l.deb 90
 
 
-  getRequireJSConfig: -> #@todo:(7 5 2) HOW LAME - remove & fix this!
+      #@todo: blend it !
+      if not _.isEmpty @build.rjs
+        _.defaults rjsConfig, _.clone(@build.rjs, true)
+
+      # actually combine (r.js optimize)
+      l.debug("requirejs.optimize (v#{@requirejs.version}) with uRequire's 'build.js' = \n", _.omit(rjsConfig, ['wrap'])) if l.deb 20
+      rjsStartDate = new Date()
+      @requirejs.optimize rjsConfig,
+        (buildResponse)=>
+          l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
+          if fs.existsSync @build.template.combinedFile
+            l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
+
+            if not _.isEmpty @localNonNode_depsVars
+              if (not @build.watch) or l.deb 50
+                l.verbose "\nDependencies: make sure the following `local` depsVars bindinds:\n",
+                  combinedTemplate.localDepsVars,
+                  """\n
+                  are available when combined script '#{@build.template.combinedFile}' is running on:
+                    a) nodejs: they should exist as a local `nodes_modules`.
+                    b) Web/AMD: they should be declared as `rjs.paths` (and/or `rjs.shim`)
+                    c) Web/Script: the binded variables (eg '_' or '$')
+                       must be a globally loaded (i.e `window.$`)
+                       BEFORE loading '#{@build.template.combinedFile}'\n
+                  """
+
+            # delete _combinedFileTemp, used as temp directory with individual AMD files
+            if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
+              @build.deleteCombinedTemp()
+            else
+              l.debug(10, "NOT Deleting temporary directory '#{@build.template._combinedFileTemp}', due to build.watch || debugLevel >= #{debugLevelSkipTempDeletion}.")
+
+            @build.report @
+            resolve @doneOK
+          else
+            l.er """
+              Combined file '#{@build.template.combinedFile}' NOT written - this should not have happened, requirejs reported success.
+              Check requirejs's build response:\n
+            """, buildResponse
+            @build.report @
+            reject false
+
+        (errorResponse)=>
+          @build.report @
+
+          l.er '@requirejs.optimize errorResponse: ', errorResponse, """\n
+          Combined file '#{@build.template.combinedFile}' NOT written."
+
+            Some remedy:
+
+             a) Is your *bundle.main = '#{@main}'* or *bundle.name = '#{@name}'* properly defined ?
+                - 'main' should refer to your 'entry' module, that requires all other modules - if not defined, it defaults to 'name'.
+                - 'name' is what 'main' defaults to, if its a module.
+
+             b) Perhaps you have a missing dependcency ?
+                r.js doesn't like this at all, but it wont tell you unless logLevel is set to error/trace, which then halts execution.
+
+             c) Re-run uRequire with debugLevel >=90, to enable r.js's logLevel:0 (trace).
+                *Note this prevents uRequire from finishing properly / printing this message!*
+
+             Note that you can check the AMD-ish files used in temporary directory '#{@build.template._combinedFileTemp}'.
+
+             More remedy on the way... till then, you can try running r.js optimizer your self, based on the following build.js: \u001b[0m
+
+          """, rjsConfig
+
+          reject false
+
+  getRequireJSConfig: ->
     if not _.isEmpty @build?.rjs
       @build.rjs
     else
@@ -637,27 +655,41 @@ class Bundle extends BundleBase
         l.er "NOT IMPLEMENTED: copyWebMapDeps #{@webRoot}#{depName}, #{@build.template._combinedFileTemp}#{depName}"
     null
 
-  printError: (error)->
-    l.er (error.message or 'no error.message'),
-         '\n error.nested = ', (error.nested or "no error.nested")
-    l.deb 110, '\n error.stack = \n', error.stack # dev only
+  printError: (error, nesting=0)->
+    if not error
+      l.er "printError: NO ERROR (#{error})"
+    else
+      if not error.printed
+        error.printed = true
+        l.er "printError ##{nesting}:", (error?.constructor?.name or "No error.constructor.name"),
+             "\n #{_.repeat('    ', nesting)}",
+             (if error.message
+                "error.message = #{error.message}"
+              else error)
+
+        l.deb 110, '\n error.stack = \n', error.stack # dev only
+
+        if error.nested
+          l.warn "With nested error ##{nesting+1} following ... :"
+          @printError error.nested, nesting+1
 
   # @todo: refactor error handling!
-  handleError: (error = new UError "Undefined or null error!")->
+  handleError: (error)->
+    @printError error
+    error or= new UError "Undefined or null error!"
+
     @errorsCount++
     if error.quit
       throw error # 'gracefully' quit: caught by bundleBuilder.buildBundle
     else
       if @build
         if (@build.continue or @build.watch)
-          @printError error
           l.warn "Continuing despite of error due to `build.continue` || `build.watch`"
         else
           error.quit = true
           throw error #'gracefully' quit: caught by bundleBuilder.buildBundle
 
       else # we have no build to guide us - be optimistic
-        @printError error
         l.warn "Continuing despite of error, cause we have not one build (i.e we might have many!)"
     null
 

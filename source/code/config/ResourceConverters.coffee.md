@@ -390,7 +390,10 @@ A `function(filename, content, options)` that saves the contents to the destinat
 
 #### `srcMain`
 
-If a ResourceConverter has an `srcMain`, it is copied to each FileResource matched. The role of `srcMain` is to group all matching `ResourceConverter.filez` together, noting that its the `srcMain` that really needs processing (eg `main.less`). Resources with an `srcMain` can have the same `dstFilename`. It is still in its infancy but look at the [External Processes](#External-Processes) for a working example.
+If a ResourceConverter has an `srcMain`, then its *only* the `srcMain` that really needs processing (eg `main.less`).
+The `srcMain` is copied to each `FileResource` matched and its role can be seen as to group all matching `ResourceConverter.filez` together and be converted as one main destination file, whenever each source file in the gorup changes. Resources with an `srcMain` can have the same `dstFilename` and are best to be kept as FileResource (and not for instance TextResource that reads the text content), since all `import 'otherstyle.less'` happens outside the control of uRequire and it would be pointless.
+
+Since uRequire 0.7.0 ResourceConverter authors don't need to add any special `srcMain` sauce, it works out of the box.
 
 _____
 ### TextResource extends FileResource
@@ -700,13 +703,13 @@ The code preceding `define` when it is enclosed in an IFI - see [Merging pre-def
 _____
 # Default Resource Converters
 
-The following code [(that is actually part of uRequire's code)](#note:-literate-coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'LiveScript' & 'coco'` all as `type:'module'` (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
+The following code [(that is actually part of uRequire's code)](#note:-literate-coffescript), defines the **Default Resource Converters** `'javascript', 'coffee-script', 'livescript' & 'coco'` all as `type:'module'` (via '$' flag). They are the default [`bundle.resources`](MasterDefaultsConfig.coffee#bundle.resources):
 
     defaultResourceConverters = [
 
 ### The formal **Object way** to define a Resource Converter
 
-This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-Converter):
+This is a dummy .js RC, following the [formal & boring ResourceConverter definition as an `{}`](#Inside-a-Resource-Converter):
 
         {
           # name - with a '$' flag to denote `type: 'module'`.
@@ -746,65 +749,30 @@ This is a dummy .js RC, following the [formal RC definition](#Inside-a-Resource-
 
 ### The alternative (less verbose) **Array way**
 
-This RC is using an [] instead of {}. Key names of RC are assumed from their posision in the array:
+Thankfully there are better & quicker ways to define a ResourceConverter. The ["coffee-script"](https/github.com/anodynos/urequire-rc-coffee-script) RC is defined as an `[]` instead of `{}` and is much less verbose.
+It is by default loaded as a separate `urequire-rc-coffee-script` node dependency, just referenced here.
 
-        [
-          # `name` & flags as a String at pos 0
-          '$coffee-script'
+        'coffee-script'
 
-          # `descr` at pos 1
-          "Coffeescript compiler, using locally installed 'coffee-script'."
+### The alternative, even shorter `[]` RC way for ["livescript"](https/github.com/anodynos/urequire-rc-livescript).
 
-          # `filez` [] at pos 2
-          [ '**/*.coffee', /.*\.(coffee\.md|litcoffee)$/i]
+Again loaded as `urequire-rc-livescript` node dependency with this reference.
 
-          # `convert` Function at pos 3
-          (m)->
-             # 'coffee-script' must be in 'node_modules',
-             # only if any 'coffee' file matches
-             coffee = require 'coffee-script'
+        'livescript'
 
-             # return converted converted
-             coffee.compile m.converted
+### The shortest way ever, one-liner, no comments converters.
 
-          # `convFilename` Function at pos 4
-          (srcFn)->
+The following two are for ["iced-coffee-script"](https/github.com/anodynos/urequire-rc-iced-coffee-script) & ["coco"](https/github.com/anodynos/urequire-rc-coco).
 
-            # RexExp for all coffeescript extensions
-            coffeeExtensions =   /.*\.(coffee\.md|litcoffee|coffee)$/
+        'iced-coffee-script'
 
-            # retrieve matched extension
-            ext = srcFn.replace coffeeExtensions , "$1"
+This is what the 'coco' RC [actually looks like](https://github.com/anodynos/urequire-rc-coco/blob/master/source/code/urequire-rc-coco.coffee):
 
-            # replace it and return new filename
-            srcFn.replace (new RegExp ext+'$'), 'js'
-        ]
+`['$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted, @options), '.js']`.
 
-### The alternative, even shorter `[]` way
+As an example, if you wanted to pass some coco `options` (that `_.extend` default options), use this format instead of a plain `'coco'` String:
 
-        [
-          '$LiveScript'
-
-          # if pos 1 is Array, its `filez` (& undefined `descr`)
-          [ '**/*.ls']
-
-          # `convert` Function at pos 2
-          (m)->(require 'LiveScript').compile m.converted
-
-          # if `convFilename` is String starting with '.',
-          # it denotes an extension replacement of `dstFilename`
-          # if `~` flag was used, eg `~.js`, ext replacement
-          # would be applied on `srcFilename`
-          '.js'
-        ]
-
-
-### The shortest way ever, one-liner, no comments converters!
-
-        [ '$iced-coffee-script', [ '**/*.iced'], ((r)-> require('iced-coffee-script').compile r.converted), '.js']
-
-        [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']
-
+        ['coco', {bare: false}]
     ]
 
 How do we get such flexibility with both [] & {} formats? Check [ResourceConverter.coffee](https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverter.coffee)
@@ -851,96 +819,6 @@ To save loading & processing time, these RC-specs aren't instantiated as proper 
          # starting with '.' is an extension replacement
          '.html'
       ]
-
-## External Processes
-
-The `execSync` extra RC is a helper, that can be used as-is or cloned to alter its behavior.
-
-It mainly converts (a changed FileResource) through an **external sync process** that outputs its result on stdout.
-
-There **is a special `srcMain` mode** integrated with uRequire: if there is a property 'srcMain' on this RC, this is the only
-filename that is really processed, instead of the actual changed file. It results to a single file conversion, saved as 'dstFilename'.
-Useful if your want to convert `main.less` only, whenever any of your `./layout/*.less` files change - see below for an example.
-
-Note: this RC uses the 'execSync' npm package, which IS NOT in urequire's dependencies (windows headaches) - add it to your project's.
-
-      # Use an enclosing function to make it lazy,
-      # cause 'execSync' is deliberatelly not in package.json
-      # RC registry takes care of nested functions
-      execSync: -> do->
-
-        # keep these in the closure of the IIFE
-        execSync = require('execSync')
-
-        # return an Array spec, its fine with RC's registry
-        [
-          # a FileResource, as we dont read source - matches srcFilename for safety
-          '@~execSync'
-
-          [] # no filez are matched by this `abstract` RC
-
-          (r)->
-            procFilename =
-              if @srcMain
-                r.bundle.path + '/' + @srcMain
-              else
-                r.srcFilepath
-
-            command =
-              if _.isString @cmd
-                "#{@cmd} #{procFilename}"
-              else
-                if _.isFunction @cmd
-                  @cmd procFilename
-                else
-                  throw """
-                    execSync derived ResourceConverter '#{@name}'
-                    `cmd` is not String or Function. `cmd` = #{@cmd}
-                  """
-
-            l.debug 50, 'execSync.exec: "' + command + '"'
-            result = execSync.exec command
-
-            throw result.stdout if result.code isnt 0
-            result.stdout
-        ]
-
-LESS (via lessc) comes as an example using `execSync` & `srcMain`:
-
-      lessc: ->
-        # lookup 'execSync', clone it and extend it
-        _.extend (@ '@execSync').clone(),
-          # give a unique name
-          name: 'lessc'
-          # filez that participate in this srcMain group
-          filez: 'less/*.*'
-          # the name of the external process - srcMain is simply appended to it
-          cmd: 'lessc'
-          # the filename to be processed once at each build, when any filez change
-          srcMain: 'less/main.less'
-          # the destination file of the group
-          convFilename: 'css/main.css'
-
-Another Example (not part of `extraResourceConverters`):
-
-```
-[
- 'lessc'
-...
- ->
-   _.extend (@ '@execSync').clone(),
-     name: 'lessc-bootstrap'
-     filez: 'less/bootstrap/*.*'
-     # cmd as callback is called with `srcMain`,
-     # resulting to the execSync cmd string.
-     cmd: (filename)-> 'lessc --compress ' + filename
-     srcMain: 'less/bootstrap/bootstrap.less'
-     convFilename: 'lessTocss/bootstrap/bootstrap.css'
-
-...
-]
-```
-
 
 # Finito
 

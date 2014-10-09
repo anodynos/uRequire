@@ -16,7 +16,8 @@ rcSpec1 = [
     '!**/*.amd.coffee'
   ]
   (source)-> source
-  (filename)-> filename.replace '.coffee', '.js' # dummy filename converter
+  (fn)-> fn.replace '.coffee', '.js' # dummy filename converter
+  {some: "option"}
 ]
 
 expectedRc =
@@ -40,6 +41,8 @@ expectedRc =
   isAfterOptimize: false
 
   enabled: true
+
+  options: some: "option"
 
 describe 'ResourceConverter creation, cloning & updating:', ->
 
@@ -208,6 +211,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
           isAfterTemplate: false
           isAfterOptimize: false
           enabled: true
+          options: some : 'option'
 
         expect(foundRc.convFilename is rcSpec1[3]).to.be.true
 

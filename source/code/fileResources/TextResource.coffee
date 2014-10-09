@@ -1,5 +1,6 @@
 _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/TextResource'
+When = require 'when'
 
 # uRequire
 FileResource = require './FileResource'
@@ -21,19 +22,19 @@ class TextResource extends FileResource
     @return true if there was a change (and conversions took place) and note as @hasChanged, false otherwise
   ###
   refresh: ->
-    if not super
-      return false # no change in parent, why should I change ?
-
-    else # refresh only if parent says so
-      source = @read()
-      if source and (@source isnt source) # go through converters, converting source & filename in turn
-        @source = source
-        @converted = @source
-        @dstFilename = @srcFilename
-        return @hasChanged = @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
-      else
-        l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@srcFilename}' " if l.deb 90
-        return @hasChanged = false
+    super.then (superRefreshed)=>
+      if not superRefreshed
+        false # no change in parent, why should I change ?
+      else # refresh only if parent says so
+        source = @read()
+        if source and (@source isnt source) # go through converters, converting source & filename in turn
+          @source = source
+          @converted = @source
+          @dstFilename = @srcFilename
+          @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
+        else
+          l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@srcFilename}' " if l.deb 90
+          @hasChanged = false
 
   reset:-> super; delete @source
 

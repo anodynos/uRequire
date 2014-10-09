@@ -156,6 +156,9 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       scanAllow: '|': 'arraysConcatOrOverwrite'
       noLoaderUMD: '|': 'arraysConcatOrOverwrite'
       warnNoLoaderUMD: '|': 'arraysConcatOrOverwrite'
+      deleteErrored: '|': 'arraysConcatOrOverwrite'
+
+      exportsRoot: '|': 'overwrite'
 
       exportsRoot: '|': 'overwrite'
 
@@ -294,7 +297,7 @@ blendConfigs = (configsArray, deriveLoader, withMaster = false)->
     resources = []
     for resourceConverter, idx in finalCfg.bundle.resources
       resources.push rc if not _.isEmpty rc = ResourceConverter.searchRegisterUpdate resourceConverter
-    finalCfg.bundle.resources = resources
+    finalCfg.bundle.resources = _(resources).reverse().unique().reverse().value() # keep only last RC encountered.
 
   finalCfg
 

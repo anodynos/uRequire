@@ -7,7 +7,6 @@ expect = chai.expect
   ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 CodeMerger = require '../../code/codeUtils/CodeMerger'
-Module = require '../../code/fileResources/Module'
 UError = require '../../code/utils/UError'
 
 esprima = require 'esprima'

@@ -2,20 +2,29 @@ _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/BundleFile'
 
 fs = require 'fs'
-
-Build = require '../process/Build'
 mkdirp = require "mkdirp"
+When = require 'when'
 
+# urequire
+Build = require '../process/Build'
 upath = require '../paths/upath'
 UError = require '../utils/UError'
 
 isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
 
 pathRelative = '../paths/pathRelative'
+
 ###
   Represents any file in the bundle (that matched `bundle.filez`)
 ###
 class BundleFile
+
+  # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
+  for bof in ['clean', 'deleteErrored']
+    do (bof)->
+      Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
+        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
+
   ###
     @param bundle {Object} The Bundle where this BundleFile belongs
     @param filename {String} bundleRelative eg 'models/PersonModel.coffee'
@@ -24,7 +33,7 @@ class BundleFile
     _.extend @, data
     @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
 
-  refresh:-> # check for filesystem timestamp etc
+  refresh: When.lift -> # check for filesystem timestamp etc
     if not @srcExists
       throw new UError "BundleFile missing '#{@srcFilepath}'"
     else
@@ -33,26 +42,21 @@ class BundleFile
         @fileStats = stats
         @hasChanged = true
       else
-        @hasChanged = false
         l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
-
-    @hasChanged
+        @hasChanged = false
 
   reset:->
     delete @fileStats
     delete @hasErrors
 
-  for bof in ['clean']
-    do (bof)->
-      Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
-        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
-
-  dstDelete: ->
-    l.verbose "Deleting file: #{@dstFilepath}"
-    try
-      fs.unlinkSync @dstFilepath
-    catch err
-      l.er "Cant delete destination file '#{@dstFilepath}'."
+  # deletes @dstFilepath or passed filename
+  clean: (filename=(@dstFilepath_last or @dstFilepath))->
+    if fs.existsSync filename
+      l.verbose "Deleting file: #{filename}"
+      try
+        fs.unlinkSync filename
+      catch err
+        l.er "Cant delete file '#{filename}'.", err
 
   Object.defineProperties @::,
     extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
@@ -67,7 +71,6 @@ class BundleFile
     dstFilepath: get:-> upath.join @dstPath, @dstFilename # destination filename with `build.dstPath`, eg `myBuildProject/mybundle/mymodule.js`
     dstRealpath: get:-> "#{process.cwd()}/#{@dstFilepath}"
     dstExists: get:-> if @dstFilepath then fs.existsSync @dstFilepath
-
 
     # paths
     pathToRoot: get:-> pathRelative upath.dirname(@path), "/", { assumeRoot:true }
@@ -91,7 +94,7 @@ class BundleFile
 
   # Without params it copies (binary) the source file from `bundle.path`
   # to `build.dstPath`
-  copy: (srcFilename=@srcFilename, dstFilename=@srcFilename)->
+  copy: (srcFilename=@srcFilename, dstFilename=@dstFilename)->
     BundleFile.copy upath.join(@bundle?.path or '', srcFilename),
                     upath.join(@bundle?.build?.dstPath or '', dstFilename)
 
@@ -134,27 +137,7 @@ class BundleFile
     catch err
       throw new UError "copy: Error copying from '#{srcFile}' to '#{dstFile}'", nested:err
 
-  # helper - uncaching require
-  # based on http://stackoverflow.com/questions/9210542/node-js-require-cache-possible-to-invalidate
-  # Removes a nodejs module from the cache
-  @requireUncached: (name) ->
-    # Runs over the cache to search for all the cached nodejs modules files
-    searchCache = (name, callback) ->
-      # Resolve the module identified by the specified name
-      mod = require.resolve(name)
-      # Check if the module has been resolved and found within the cache
-      if mod and ((mod = require.cache[mod]) isnt undefined)
-        # Recursively go over the results
-        (run = (mod) ->
-           # Go over each of the module's children and run over it
-           mod.children.forEach (child)-> run child
-           # Call the specified callback providing the found module
-           callback mod
-        ) mod
-
-    # Run over the cache looking for the files loaded by the specified module name
-    searchCache name, (mod)-> delete require.cache[mod.id]
-    require name
+  @requireUncached: require "../utils/requireUncached"
 
   #shortcut as instance var
   requireUncached: (name=@srcRealpath)-> BundleFile.requireUncached(name)

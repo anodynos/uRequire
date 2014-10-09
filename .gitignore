@@ -1,4 +1,5 @@
-/.idea/
-/node_modules/
-/build/
-DRAFT/
+.idea
+node_modules
+build
+DRAFT
+temp

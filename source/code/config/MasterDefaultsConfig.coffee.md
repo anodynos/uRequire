@@ -482,7 +482,7 @@ resources: [
 
 @default 
 
-By default `resources` has ResourceConverters `'javascript', 'coffee-script', 'LiveScript', 'iced-coffee-script' and 'coco'` as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters). 
+By default `resources` has ResourceConverters `'javascript', 'coffee-script', 'livescript', 'iced-coffee-script' and 'coco'` as defined in [Default Resource Converters](ResourceConverters.coffee#Default-Resource-Converters).
 
 Some [extra RCs are registered](ResourceConverters.coffee#Extra-Resource-Converters), but not added to 'resources' - they can be used by searching for 'teacup', 'execSync' or 'lessc'. Feel free to contribute yours.
 
@@ -899,7 +899,7 @@ This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearl
 
 @todo: **NOT TESTED** in user configs!
 
-      done: (doneVal)-> console.log "done() is missing and I got a #{doneVal} on the default done()"
+      done: (doneVal)-> # console.log "done() is missing and I got a #{doneVal} on the default done()"
 
 ## build.clean
 
@@ -924,6 +924,20 @@ If `clean` is a [filesspec type](types-and-derive#filespecs) (eg `clean: ['some/
 On subsequent partial builds, **no files are deleted**.
 
       clean: undefined
+
+## build.deleteErrored
+
+Delete destination files while their source is at error. Useful when watching builds or when the directory is not [clean](#build.clean).
+
+@note One successful conversion of the source file needs to be in place for dstFilename to be established.
+
+@note On ['combined' template](combined-template), it also deletes the last `combinedFile.js` that was build.
+
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs). Note: filespecs refer to **source** filenames (but of course only their corresponding destination files are deleted).
+
+@derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
+
+      deleteErrored: true
 
 ## build.rjs
 

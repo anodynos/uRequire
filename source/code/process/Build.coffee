@@ -14,10 +14,9 @@ DependenciesReporter = require './../utils/DependenciesReporter'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 UError = require '../utils/UError'
 
-BundleFile = require './../fileResources/BundleFile'
-FileResource = require './../fileResources/FileResource'
-TextResource = require './../fileResources/TextResource'
-Module = require './../fileResources/Module'
+# circular dependencies, lazily loaded on constructor for testing
+FileResource = null
+Module = null
 
 class Build extends _B.CalcCachedProperties
 
@@ -34,6 +33,11 @@ class Build extends _B.CalcCachedProperties
   constructor: (buildCfg)->
     super
     _.extend @, buildCfg
+
+    # circular dependencies, lazily loaded
+    Module = require './../fileResources/Module'
+    FileResource = require './../fileResources/FileResource'
+
     @count = 0
 
     # setup 'combinedFile' on 'combined' template

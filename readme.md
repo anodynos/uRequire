@@ -162,7 +162,7 @@ bundle: commonCode: 'var expect = chai.expect;'
 function(m) { m.beforeBody = 'var l = new _B.Logger("Logger" + m.dstFilename);' }
 ```
 
-A [ResourceConverter](http://urequire.org/resourceconverters.coffee#what-is-a-resourceconverter) for our `.coco` files (included along with coffeescript, LiveScript, iced-coffee-script)
+A [ResourceConverter](http://urequire.org/resourceconverters.coffee#what-is-a-resourceconverter) for our `.coco` files (included along with coffeescript, livescript, iced-coffee-script)
 
 ```coffee
 [ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']
@@ -253,7 +253,7 @@ Continue reading at http://urequire.org
 
 The MIT License
 
-Copyright (c) 2013 Agelos Pikoulas (agelos.pikoulas@gmail.com)
+Copyright (c) 2013-2014 Agelos Pikoulas (agelos.pikoulas@gmail.com)
 
 Permission is hereby granted, free of charge, to any person
 obtaining a copy of this software and associated documentation
