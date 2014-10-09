@@ -1,4 +1,4 @@
-# uRequire v0.6.20
+# uRequire v0.7.0-beta
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.svg?branch=master)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
