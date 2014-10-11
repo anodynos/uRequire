@@ -60,8 +60,8 @@ describe "urequire BundleBuilder:", ->
     path: "#{exampleTemp}/source/code"
     dependencies: exports: bundle: lodash: ['_']
     main: "urequire-example"
-    resources: [
 
+    resources: [
         # disable `coffee-script` RC & replace with `coffee-script-exec`
         (lookup)->
           (cf = lookup 'coffee-script').enabled = false
@@ -87,10 +87,9 @@ describe "urequire BundleBuilder:", ->
             $srcMain: 'style/myMainStyle.less'
             compress: true
         }]
-
     ]
     clean: true
-    debugLevel: 100
+    debugLevel: 0
 
   describe "`BundleBuilder.buildBundle` builds all files in `#{exampleTemp}/source/code`}`: ", ->
     tests = [
@@ -116,10 +115,12 @@ describe "urequire BundleBuilder:", ->
 
     for test in tests
       do (test, cfg = test.cfg, mylib = test.mylib)->
+        buildResult = null
         describe "with `#{cfg.template}` template:", ->
           before ->
             bb = new urequire.BundleBuilder [cfg, defaultConfig]
-            bb.buildBundle().then ->
+            bb.buildBundle().then (res)->
+              buildResult = res
               global.urequireExample = global_urequireExample
               global.uEx = global_uEx
               buildLib = require '../../../' + mylib
@@ -128,6 +129,9 @@ describe "urequire BundleBuilder:", ->
             tru _B.isHash bb.bundle #todo: test more
             tru _B.isHash bb.build
             equal bb.build.template.name, cfg.template
+
+          it "bb.buildBundle().then (res)-> res is bundleBuilder", ->
+            equal buildResult, bb
 
           describe "ResourceConverters work", ->
 
@@ -173,4 +177,3 @@ describe "urequire BundleBuilder:", ->
                 equal buildLib.noConflict(), buildLib
                 equal urequireExample, global_urequireExample
                 equal uEx, global_uEx
-

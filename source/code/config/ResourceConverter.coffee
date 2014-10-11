@@ -182,7 +182,7 @@ class ResourceConverter
         catch err
           throw new UError """
             ResourceConverter as a String not found in registry nor 'node_modules'.
-            RC name = '#{name}', searchNameOrRC = '#{rc}'
+            RC name = '#{name}', searchNameOrRC = #{l.prettify rc}
             #{l.prettify err}
           """
 

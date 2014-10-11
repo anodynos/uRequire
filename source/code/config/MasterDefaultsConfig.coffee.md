@@ -817,7 +817,9 @@ The *watch feature* of uRequire works with:
 
 * Instead of `watch:true`, you use [grunt-urequire >=0.6.x](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.5.x](https://github.com/gruntjs/grunt-contrib-watch).
 
-@note at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed instead. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
+@note In `grunt-urequire`, at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed instead. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
+
+@type `truthy`/`falsey` OR `Integer` which the [`_.debounce wait`](https://lodash.com/docs#debounce) (in milliseconds) after each file watch event (works *only* when using [urequire's](https://github.com/anodynos/uRequire-cli) watch instead of grunt's. Effectively its how long to wait to start the build, after each file watch event. DebounceWait defaults to `1000` otherwise.
 
       watch: false
 

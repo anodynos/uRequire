@@ -10,7 +10,6 @@ upath = require '../paths/upath'
 
 UError = require '../utils/UError'
 
-
 {VERSION} = require('../urequire')
 ###
   Load config :
@@ -20,9 +19,12 @@ UError = require '../utils/UError'
 ###
 class BundleBuilder
   constructor: (@configs, deriveLoader)->
-    #l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
+#    l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
+    @configs = configs = _B.arrayize configs
+    @l = l # provide to outsiders
 
-    @Build = require './Build' # lazy, to solve circular dep problem
+    # lazy, to solve circular dep problems
+    @Build = require './Build'
     @Bundle = require './Bundle'
     blendConfigs = require '../config/blendConfigs'
 
@@ -55,7 +57,7 @@ class BundleBuilder
         _B.Logger::verbose = verboseRef
         l.warn 'Enabling verbose, because debugLevel >= 50' if @build?.count is undefined
       else
-        _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like debugLevel ?
+        _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like _B.Logger's debugLevel ?
 
   buildBundle: When.lift (filenames)->
     if @build and @bundle
@@ -66,10 +68,11 @@ class BundleBuilder
           if res is false
             l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
           else
-            l.debug 40, "@bundle.buildChangedResources result is :", res
-          @build.done res
+            l.debug 101, "@bundle.buildChangedResources result is :", res
+          @build.done @
+          return @
       ).catch (err)=>
-          @build.done false
+          @build.done err
           @bundle.handleError err
           l.er 'Uncaught exception @ bundle.buildChangedResources'
           throw err
@@ -78,12 +81,16 @@ class BundleBuilder
       @config.build.done false
       throw err
 
-  watch: =>
+  watch: (debounceWait)=>
+    debounceWait = 1000 if not _.isNumber debounceWait
+    l.ok "Watching started... (with `_.debounce wait` #{debounceWait}ms)"
     bundleBuilder = @
     buildDone = @build.done
     @build.done = (doneValue)->
       buildDone doneValue
-      l.ok "Watched build ##{bundleBuilder.build.count} took #{(new Date() - bundleBuilder.build.startDate) / 1000 }secs - Watching again..."
+      l.ok "Watched build ##{bundleBuilder.build.count} took #{
+            (new Date() - bundleBuilder.build.startDate) / 1000
+           }secs - Watching again..."
     watchFiles = []
     gaze = require 'gaze'
     path = require 'path'
@@ -100,21 +107,23 @@ class BundleBuilder
         filepath = path.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
 
         if filepathStat?.isDirectory()
-          l.log "Adding '#{filepath}' as new watch directory is NOT SUPPORTED by gaze."
+          l.warn "Adding '#{filepath}' as new watch directory is NOT SUPPORTED by gaze."
         else
-          l.log "Watched file '#{filepath}' has '#{event}'."
+          l.verbose "Watched file '#{filepath}' has '#{event}'. \u001b[33m (waiting watch events for #{debounceWait}ms)"
           watchFiles.push path.relative bundleBuilder.bundle.path, filepath
+
           runBuildBundleDebounced()
 
-    runBuildBundle = ->
-      if not _.isEmpty watchFiles
-        bundleBuilder.buildBundle watchFiles
-        watchFiles = []
-        runBuildBundleDebounced = _.debounce runBuildBundle, 100
-      else
-        l.warn 'EMPTY watchFiles = ', watchFiles
+    runBuildBundleDebounced = _.debounce(
+      ->
+        if not _.isEmpty watchFiles = _.unique watchFiles
+          l.ok "Starting build ##{bundleBuilder.build.count + 1} for #{l.prettify watchFiles}"
+          bundleBuilder.buildBundle(watchFiles).finally -> watchFiles = []
+        else
+          l.warn 'Ignoring EMPTY watchFiles = ', watchFiles
 
-    runBuildBundleDebounced = _.debounce runBuildBundle, 100
+      debounceWait
+    )
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
   isCheckTemplate: ->

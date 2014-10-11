@@ -45,11 +45,11 @@ expectedRc =
   options: some: "option"
 
 describe 'ResourceConverter creation, cloning & updating:', ->
-
-  initialRegistryKeys = _.keys ResourceConverter.registry
-
+  initialRegistryKeys = null
   rc1 = new ResourceConverter rcSpec1
   rc2 = rc1.clone()
+
+  before -> initialRegistryKeys = _.keys ResourceConverter.registry
 
   for rc, rcIdx in [rc1, rc2, rc2.clone()]
     do (rc, rcIdx)->
@@ -100,7 +100,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
             expect(rc.convFilename).to.not.be.equal rcSpec1[2]
             expect(rc.convFilename 'myFilename.coffee', 'mySrcFilename.coffee').to.equal 'mySrcFilename.javascript'
 
-          it.skip "No RC added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
+          it "No RC added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
             expect(_.keys(ResourceConverter.registry).length).to.equal initialRegistryKeys.length
             equalSet (_.keys ResourceConverter.registry), initialRegistryKeys
   null
@@ -230,7 +230,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
         expect(ResourceConverter.registry['someOtherName']).to.equal newRc
         expect(ResourceConverter.searchRegisterUpdate 'someOtherName').to.equal newRc
 
-      it.skip "Two more RC are added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
+      it "Two more RC are added to registry", -> # blendConfigs-spec has run before reaching here... argh mocha!
         expect(_.keys(ResourceConverter.registry).length).to.equal initialRegistryKeys.length + 2
 
     describe "accepts null and undefined, they just dont get registered", ->

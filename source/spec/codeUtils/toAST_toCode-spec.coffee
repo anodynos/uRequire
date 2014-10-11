@@ -57,8 +57,6 @@ describe "`toCode` & `toAST`:", ->
       it "from AST node", ->
         tru isEqualCode toCode(ast.body[0], type: 'BlockStatement'), "{ var x = 1; }"
 
-    describe.skip "produces javascript formated code: ", ->
-
   describe "`toAST`:", ->
 
     describe "produces AST 'Program' object: ", ->

@@ -320,11 +320,26 @@ describe 'blendConfigs & its Blenders: ', ->
 #          name: 'combined'
 
   describe "blending config with ResourceConverters :", ->
-    it "converts array of RC-specs' into array of RC-instances", ->
-      resultRCs = blendConfigs [{resources}]
-      deepEqual resultRCs.bundle.resources, expectedResources
+    resultRCsCfg = null
+    rcNames = null
 
-  describe "dependenciesBindingsBlender converts to proper dependenciesBinding structure", ->
+    before ->
+      resultRCsCfg = blendConfigs [{resources}]
+      rcNames = _.map resultRCsCfg.bundle.resources, (rc)-> rc[' name']
+
+    it "converts array of RC-specs' into array of RC-instances:", ->
+      deepEqual resultRCsCfg.bundle.resources, expectedResources
+
+    it "array of RC-specs can be an array of (registered) RC-names:", ->
+      resultRCsCfg = blendConfigs [{resources:rcNames}]
+      deepEqual resultRCsCfg.bundle.resources, expectedResources
+
+    it "array of RC-names reversed results to reversed RC-instances:", ->
+      reversedRCs = blendConfigs [{resources: _(rcNames).clone().reverse()}]
+      deepEqual reversedRCs.bundle.resources, _(expectedResources).clone().reverse()
+
+describe "dependenciesBindingsBlender converts to proper dependenciesBinding structure", ->
+
     it "converts undefined to an empty {}", ->
       deepEqual dependenciesBindingsBlender.blend(undefined), {}
 
