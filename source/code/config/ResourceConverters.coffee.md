@@ -785,7 +785,7 @@ The registry is populated with all Default and user-defined RCs.
 
 The registry allows to easily **look up, clone, change, reuse or even call functions** of registered RCs.
 
-To save loading & processing time, these RC-specs aren't instantiated as proper RC instances and not added to [bundle.resources](MasterDefaultsConfig.coffee#bundle.resources) until they are retrieved/used in a user's config `bundle.resources`. 
+To save loading & processing time, these RC-specs aren't instantiated as proper RC instances and not added to [bundle.resources](MasterDefaultsConfig.coffee#bundle.resources) until they are retrieved/used in a user's config `bundle.resources`.
 
     _ = (_B = require 'uberscore')._
     l = new _B.Logger 'uRequire/ResourceConverters'

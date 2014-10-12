@@ -69,25 +69,26 @@ class BundleBuilder
             l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
           else
             l.debug 101, "@bundle.buildChangedResources result is :", res
-          @build.done @
+          @build.done null, @ # use the nodejs callback signature
           return @
       ).catch (err)=>
-          @build.done err
-          @bundle.handleError err
-          l.er 'Uncaught exception @ bundle.buildChangedResources'
-          throw err
+          @build.done err, @
+          @bundle.handleError err # why ?
+          l.er 'Uncaught exception @ bundle.buildChangedResources', err
+          throw err # needed always ?
     else
       l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
-      @config.build.done false
-      throw err
+      err = new Error err
+      @config.build.done err, @
+      throw err # needed ?
 
   watch: (debounceWait)=>
     debounceWait = 1000 if not _.isNumber debounceWait
     l.ok "Watching started... (with `_.debounce wait` #{debounceWait}ms)"
     bundleBuilder = @
     buildDone = @build.done
-    @build.done = (doneValue)->
-      buildDone doneValue
+    @build.done = (err, res)->
+      buildDone err, res
       l.ok "Watched build ##{bundleBuilder.build.count} took #{
             (new Date() - bundleBuilder.build.startDate) / 1000
            }secs - Watching again..."

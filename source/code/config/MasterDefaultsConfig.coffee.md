@@ -1031,9 +1031,9 @@ Finally the `'urequire: min'` task
 
 * manipulates each module:
 
-  * removes all debuging code, matching *skeletons*
-
   * replaces 'lodash' with 'underscore' (for compatibility, mocking etc)
+
+  * removes all debuging code, matching *skeletons*
 
   * removes code (eg debug stuff ) and a dependency from a specific file.
 
@@ -1060,12 +1060,14 @@ min:
                      'l.debug()', 'this.l.debug()']
          # replace with undefined, i.e delete
          m.replaceCode code
-       # replace code & dep on a specific file
+       #
+       # replace AST maching code & a dependency
+       # from a specific file
        if m.dstFilename is 'uberscore.js'
          m.replaceCode
            type: 'Property'
            key: {type: 'Identifier', name: 'deepExtend'}
-         # actually remove this dependency
+         # remove this dependency
          m.replaceDep 'blending/deepExtend'
    ]
   ]

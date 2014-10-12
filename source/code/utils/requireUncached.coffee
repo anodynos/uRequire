@@ -15,3 +15,7 @@ module.exports = (name)->
         # Call the specified callback providing the found module
         callback mod
       ) mod
+
+  # Run over the cache looking for the files loaded by the specified module name
+  searchCache name, (mod)-> delete require.cache[mod.id]
+  require name

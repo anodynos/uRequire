@@ -126,7 +126,7 @@ class FileResource extends BundleFile
   save: (filename=@dstFilename, content=@converted, options)->
     @constructor.save.call @, upath.join(@dstPath, filename), content, options
 
-  saveOptions = 'utf-8' # compatible with node 0.8 {encoding: 'utf-8', mode: 438, flag: 'w'}
+  saveOptions = {encoding: 'utf-8', mode: 438, flag: 'w'}
   @save: (filename, content, options=saveOptions)->
     _.defaults options, saveOptions if options isnt saveOptions
     l.debug("Saving file '#{filename}'...") if l.deb 95
