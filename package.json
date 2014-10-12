@@ -59,7 +59,7 @@
     "esmangle": "1.x.x",
     "esprima": "1.x.x",
     "fs-exists": "*",
-    "gaze": "0.6.x",
+    "gaze": "0.5.x",
     "glob-expand": "0.0.2",
     "lodash": "*",
     "minimatch": "1.0.x",
