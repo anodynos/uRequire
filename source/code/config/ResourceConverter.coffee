@@ -60,16 +60,19 @@ class ResourceConverter
       @isTerminal ?= false
       @isMatchSrcFilename ?= false
 
-      # when to run
-      @isBeforeTemplate ?= false
-      @isAfterTemplate ?= false
-      @isAfterOptimize ?=false
+      @runAt or= ''
 
-      # some sanity checks
+    # some sanity checks
+    if @runAt not in ResourceConverter.runAt_all
+      throw new UError "ResourceConverter '#{@name}': `runAt` '#{@runAt}' isnt valid - use one of #{l.prettify runAtAll} "
+
     if (@type in ['file', 'text', 'bundle']) and
-       (@isBeforeTemplate or @isAfterTemplate or @isAfterOptimize)
-          throw new UError "ResourceConverter with name: '#{@name}': you should NOT have a non-module RC with any of @isBeforeTemplate or @isAfterTemplate or @isAfterOptimize"
+       (@runAt in ResourceConverter.runAt_modOnly)
+         throw new UError "ResourceConverter '#{@name}': you should NOT have a non-module (#{@type}) RC with any of #{l.prettify runAtModOnly}."
     @
+
+  @runAt_all: ['', 'beforeTemplate', 'afterTemplate', 'afterOptimize', 'afterSave']
+  @runAt_modOnly: ['beforeTemplate', 'afterTemplate', 'afterOptimize']
 
   clone: ->
     # make sure it's initialized to an RC instance
@@ -152,7 +155,7 @@ class ResourceConverter
           @_convFilename = cf
 
   ### ResourceConverters Registry functions ###
-  @registry = require('./ResourceConverters').extraResourceConverters
+  @registry = {}
 
   # A highly argument overloaded function:
   #
@@ -275,10 +278,11 @@ class ResourceConverter
     '~': (rc)-> rc.isMatchSrcFilename = true
     '|': (rc)-> rc.isTerminal = true
 
-    # module only, when to run
-    '+': (rc)-> rc.isBeforeTemplate = true
-    '!': (rc)-> rc.isAfterTemplate = true
-    '%': (rc)-> rc.isAfterOptimize = true
+    # when to run
+    '+': (rc)-> rc.runAt = 'beforeTemplate' # module only
+    '!': (rc)-> rc.runAt = 'afterTemplate'  # module only
+    '%': (rc)-> rc.runAt = 'afterOptimize'  # module only
+    '>': (rc)-> rc.runAt = 'afterSave'     # all
 
   nameFlags = _.keys nameFlagsActions
 

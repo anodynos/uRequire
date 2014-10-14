@@ -1,7 +1,7 @@
 _ = (_B = require 'uberscore')._
 
-isFileInSpecs = require './isFileInSpecs'
+isFileIn = require 'is_file_in'
 
 module.exports = (val, filename)->
-  _.isEqual(val, true) or (_.isArray(val) and isFileInSpecs(filename, val))
+  _.isEqual(val, true) or (_.isArray(val) and isFileIn(filename, val))
 

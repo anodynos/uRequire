@@ -9,6 +9,7 @@ When = require 'when'
 BundleFile = require './BundleFile'
 upath = require '../paths/upath'
 UError = require '../utils/UError'
+ResourceConverter = require '../config/ResourceConverter'
 ResourceConverterError = require '../utils/ResourceConverterError'
 
 ###
@@ -46,7 +47,7 @@ class FileResource extends BundleFile
         false # no change in parent, why should I change ?
       else
         if @constructor is FileResource # run only for this class,
-          @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
+          @runResourceConverters (rc)-> rc.runAt not in _.flatten [ResourceConverter.runAt_modOnly, 'afterSave']
         else
           true # let subclasses decide whether to run ResourceConverters.
 

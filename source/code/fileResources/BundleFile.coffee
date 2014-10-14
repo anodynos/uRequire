@@ -51,12 +51,14 @@ class BundleFile
 
   # deletes @dstFilepath or passed filename
   clean: (filename=(@dstFilepath_last or @dstFilepath))->
-    if fs.existsSync filename
-      l.verbose "Deleting file: #{filename}"
+    if not fs.existsSync filename
+      l.warn "clean: Not existing file '#{filename}' - cant delete!."
+    else
+      l.verbose "clean: Deleting file: #{filename}"
       try
         fs.unlinkSync filename
       catch err
-        l.er "Cant delete file '#{filename}'.", err
+        l.er "clean: Cant delete file '#{filename}'.", err
 
   Object.defineProperties @::,
     extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
@@ -137,10 +139,10 @@ class BundleFile
     catch err
       throw new UError "copy: Error copying from '#{srcFile}' to '#{dstFile}'", nested:err
 
-  @requireUncached: require "../utils/requireUncached"
+  @requireClean: require "require-clean"
 
   #shortcut as instance var
-  requireUncached: (name=@srcRealpath)-> BundleFile.requireUncached(name)
+  requireClean: (name=@srcRealpath)-> BundleFile.requireClean(name)
 
   inspect: ->
     inspectText = " #{@constructor.name} : '#{@srcFilename}' "

@@ -173,6 +173,9 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           l.warn 'Not a Number debugLevel: ', src[prop], ' - defaulting to 1.'
           1
 
+      done: '|': (prop, src, dst)->
+        arrayizePusher.blend dst[prop], _.clone(src[prop]) # no function array blending, cause we deal with functions
+
       # 'optimize' ? in 3 different ways
       # todo: spec it
       optimize: '|':

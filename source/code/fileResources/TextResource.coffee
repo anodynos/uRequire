@@ -5,6 +5,7 @@ When = require 'when'
 # uRequire
 FileResource = require './FileResource'
 UError = require '../utils/UError'
+ResourceConverter = require '../config/ResourceConverter'
 
 ###
   Represents a FileResource that is any *textual/utf-8* resource (including but not limited to js-convertable code).
@@ -31,7 +32,7 @@ class TextResource extends FileResource
           @source = source
           @converted = @source
           @dstFilename = @srcFilename
-          @runResourceConverters (rc)-> !rc.isBeforeTemplate and !rc.isAfterTemplate
+          @runResourceConverters (rc)-> rc.runAt not in _.flatten [ResourceConverter.runAt_modOnly, 'afterSave']
         else
           l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@srcFilename}' " if l.deb 90
           @hasChanged = false

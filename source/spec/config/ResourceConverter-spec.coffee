@@ -35,10 +35,7 @@ expectedRc =
   isTerminal: false
   isMatchSrcFilename: false
 
-  #when to run
-  isBeforeTemplate: false
-  isAfterTemplate: false
-  isAfterOptimize: false
+  runAt: ''
 
   enabled: true
 
@@ -84,7 +81,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
             expect(rc.clazz.name).to.equal 'Module'
             expect(rc.type).to.equal 'module'
             expect(rc[' type']).to.equal 'module'
-            expect(rc.isAfterTemplate).to.equal true
+            expect(rc.runAt).to.equal 'afterTemplate'
 
           it "`convFilename` as a '.changeExt' String, updates relevant fields", ->
             rc.convFilename = '.javascript'
@@ -207,9 +204,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
           _convFilename: rcSpec1[3]
           isTerminal: false
           isMatchSrcFilename: false
-          isBeforeTemplate: false
-          isAfterTemplate: false
-          isAfterOptimize: false
+          runAt: ''
           enabled: true
           options: some : 'option'
 

@@ -10,7 +10,8 @@ upath = require '../paths/upath'
 
 UError = require '../utils/UError'
 
-{VERSION} = require('../urequire')
+{VERSION} = urequire = require '../urequire'
+
 ###
   Load config :
     * check options
@@ -21,7 +22,10 @@ class BundleBuilder
   constructor: (@configs, deriveLoader)->
 #    l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
     @configs = configs = _B.arrayize configs
-    @l = l # provide to outsiders
+
+    # provide to outsiders
+    @l = l
+    @urequire = urequire
 
     # lazy, to solve circular dep problems
     @Build = require './Build'
@@ -68,30 +72,36 @@ class BundleBuilder
           if res is false
             l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
           else
-            l.debug 101, "@bundle.buildChangedResources result is :", res
-          @build.done null, @ # use the nodejs callback signature
-          return @
+            l.debug 99, "@bundle.buildChangedResources result is :", res
+          @runPostBuildTasks(null).yield @
       ).catch (err)=>
-          @build.done err, @
-          @bundle.handleError err # why ?
-          l.er 'Uncaught exception @ bundle.buildChangedResources', err
-          throw err # needed always ?
+        @bundle.handleError err # why ?
+        @runPostBuildTasks(err)
     else
       l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
       err = new Error err
-      @config.build.done err, @
-      throw err # needed ?
+      @runPostBuildTasks(err).then ->
+        throw err # needed ?
+
+  runPostBuildTasks: (err)->
+    When.each @build.done, (task)=>
+      When( # call with callback, or promise/simple call
+        if task.length is 3 # nodejs style callback is 3rd arg
+          taskPromise = (deferred = When.defer()).promise
+          task err, @, When.node.createCallback deferred.resolver
+          taskPromise
+        else
+          task err, @
+      )
 
   watch: (debounceWait)=>
     debounceWait = 1000 if not _.isNumber debounceWait
     l.ok "Watching started... (with `_.debounce wait` #{debounceWait}ms)"
-    bundleBuilder = @
-    buildDone = @build.done
-    @build.done = (err, res)->
-      buildDone err, res
-      l.ok "Watched build ##{bundleBuilder.build.count} took #{
-            (new Date() - bundleBuilder.build.startDate) / 1000
-           }secs - Watching again..."
+
+    @build.done.push (err, res)=>
+      msg = "Watched build ##{@build.count} took #{(new Date() - @build.startDate) / 1000}secs - Watching again..."
+      if err then l.err msg else l.ok msg
+
     watchFiles = []
     gaze = require 'gaze'
     path = require 'path'

@@ -530,12 +530,11 @@ class Module extends TextResource
       l.warn "\n##### Not converting '#{@path}' cause it has errors."
       When()
     else
-      l.deb "\n##### Converting '#{@path}' with '#{@build.template.name}'." if l.deb 50
       When.sequence([
         => @adjust @build
         =>
-          l.deb "Running BeforeTemplate ResourceConverters for '#{@path}'." if l.deb 70
-          @runResourceConverters (rc)-> rc.isBeforeTemplate and !rc.isAfterTemplate #@todo: why ? those with both will never run?
+          l.deb "\nRunning BeforeTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.runAt is 'beforeTemplate'
         =>
           l.verbose "Converting with template '#{@build.template.name}' for module '#{@path}'."
           l.deb("'#{@path}' adjusted module.info() = \n",
@@ -543,14 +542,14 @@ class Module extends TextResource
           @moduleTemplate or= new ModuleGeneratorTemplates @
           @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
         =>
-          l.deb "Running AfterTemplate ResourceConverters for '#{@path}'." if l.deb 70
-          @runResourceConverters (rc)-> rc.isAfterTemplate and !rc.isBeforeTemplate
+          l.deb "\nRunning AfterTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.runAt is 'afterTemplate'
         =>
-          l.deb "Running optimize for '#{@path}'." if l.deb 70
+          l.deb "\nRunning optimize for '#{@path}'." if l.deb 70
           @optimize @build
         =>
-          l.deb "Running AfterOptimize ResourceConverters for '#{@path}'." if l.deb 70
-          @runResourceConverters (rc)-> rc.isAfterOptimize
+          l.deb "\nRunning AfterOptimize ResourceConverters for '#{@path}'." if l.deb 70
+          @runResourceConverters (rc)-> rc.runAt is 'afterOptimize'
         =>
           @addReportData()
       ]).catch (err)=>

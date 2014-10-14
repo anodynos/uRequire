@@ -22,7 +22,7 @@ else
         iterArray = collection
         isArray = true
       else
-        return When.reject("each: collection is neither [] or {}.")
+        return When.reject new Error "When.each: collection is neither [] or {}."
 
     When.iterate(
       (i)-> i + 1

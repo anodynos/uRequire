@@ -30,7 +30,7 @@ BundleBase = require './BundleBase'
 CodeMerger = require '../codeUtils/CodeMerger'
 toCode = require '../codeUtils/toCode'
 
-isFileInSpecs = require '../config/isFileInSpecs'
+isFileIn = require 'is_file_in'
 
 debugLevelSkipTempDeletion = 50
 
@@ -57,7 +57,7 @@ class Bundle extends BundleBase
 
     filenames:->
       if _.isEmpty @files
-        _.filter globExpand({cwd: @path, filter: 'isFile'}, '**/*'), (f)=> isFileInSpecs f, @filez #our initial filenames
+        _.filter globExpand({cwd: @path, filter: 'isFile'}, '**/*'), (f)=> isFileIn f, @filez #our initial filenames
       else
         _.keys @files
 
@@ -78,18 +78,35 @@ class Bundle extends BundleBase
       if _.isEmpty @copy
         {}
       else
-        _.pick @files, (f, filename)=> not (f instanceof FileResource) and (isFileInSpecs filename, @copy)
+        _.pick @files, (f, filename)=> not (f instanceof FileResource) and (isFileIn filename, @copy)
 
     # XXX_depsVars: format {dep1:['dep1Var1', 'dep1Var2'], dep2:[...], ...}
     localNonNode_depsVars: ->
-      @inferEmptyDepVars (@getDepsVars (dep)-> dep.isLocal and not dep.isNode),
+      @inferEmptyDepVars (@getAllModuleDepsVars (dep)-> dep.isLocal and not dep.isNode),
         'Gathering @localNonNode_depsVars (bundle`s local dependencies) & infering empty depVars'
 
     nodeOnly_depsVars:->
-      l.debug 80, "Gathering 'node'-only dependencies"
-      @getDepsVars (dep)-> dep.isNode # also gets `nodeLocal`
+      n = @getAllModuleDepsVars (dep)-> dep.isNode # also gets `nodeLocal`
+      l.debug 80, "Gathered 'node'-only dependencies:", n
+      n
 
-    all_depsVars:-> @inferEmptyDepVars @getDepsVars(), 'Gathering @all_depsVars & infering empty depVars', false
+    allModule_depsVars:->
+      @inferEmptyDepVars @getAllModuleDepsVars(), 'Gathering @allModule_depsVars & infering empty depVars', false
+
+    all_depsVars:->
+      depVars = {}
+      (depVarObjectPaths =
+          _.map ['depsVars', 'exports.bundle', 'exports.root'], (v)-> 'dependencies.' + v
+      ).push 'allModule_depsVars'
+
+      for depVarsPath in depVarObjectPaths
+        temp = _B.getp @, depVarsPath, {separator:'.'}
+        for depName, vars of temp
+          depVars[depName] or= []
+          for aVar in vars
+            if aVar not in depVars[depName]
+              depVars[depName].push aVar
+      depVars
 
     exportsBundle_depsVars:->
       @inferEmptyDepVars _.clone(@dependencies.exports.bundle, true),
@@ -116,7 +133,7 @@ class Bundle extends BundleBase
         'models/PersonModel': ['persons', 'personsModel']
     }
   ###
-  getDepsVars: (depFltr=->true)->
+  getAllModuleDepsVars: (depFltr=->true)->
     depsVars = {}
     for k, mod of @modules
       for dep, vars of mod.getDepsVars(depFltr)
@@ -135,7 +152,7 @@ class Bundle extends BundleBase
       if _.isEmpty (depVars[depName] or= [])
 
         l.deb "inferEmptyDepVars : Dependency '#{depName}' has no corresponding parameters/variable names to bind with." if l.deb(80)
-        for aVar in (@getDepsVars((dep)->dep.name(relative:'bundle') is depName)[depName] or [])
+        for aVar in (@getAllModuleDepsVars((dep)->dep.name(relative:'bundle') is depName)[depName] or [])
           depVars[depName].push aVar if aVar not in depVars[depName]
 
         l.deb "inferEmptyDepVars: Dependency '#{depName}', inferred varNames from bundle's Modules: ", depVars[depName] if l.deb(80)
@@ -198,7 +215,7 @@ class Bundle extends BundleBase
       # - determine its clazz from type
       # - until a terminal converter found
       for resConv in @resources
-        if isFileInSpecs (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+        if isFileIn (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
 
           # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
           if _.isFunction resConv.convFilename
@@ -311,6 +328,7 @@ class Bundle extends BundleBase
   ###
   buildChangedResources: When.lift (@build, filenames=@filenames)->
     @errorsCount = 0
+    file.hasChanged = false for fn, file of @files
     isPartialBuild = filenames isnt @filenames # 'partial' i.e 'watched' filenames
     l.debug """ \n
       #####################################################################
@@ -328,12 +346,11 @@ class Bundle extends BundleBase
         if @build.template.name is 'combined'
           @build.deleteCombinedTemp()
           l.warn "Partial/watch build with 'combined' template wont DELETE '#{@build.template._combinedFileTemp}' - when you quit 'watch'-ing, delete it your self!"
-
+        # dont run again!
         return @buildChangedResources @build, @filenames # call self, with all filesystem @filenames
-         # dont run again!
 
       # filter filenames not passing through bundle.filez
-      bundleFilenames = _.filter filenames, (f)=> isFileInSpecs(f, @filez) and f[0] isnt '.' # exclude relative paths
+      bundleFilenames = _.filter filenames, (f)=> isFileIn(f, @filez) and f[0] isnt '.' # exclude relative paths
       if diff = filenames.length - bundleFilenames.length
         l.verbose "Ignored #{diff} non-`bundle.filez`"
         filenames = bundleFilenames
@@ -353,26 +370,38 @@ class Bundle extends BundleBase
               ((@build.template.name isnt 'combined') or @build.watch)
                 @build.hasFullBuild = true
 
-            if (@build.template.name is 'combined')
-              @combine()
-            else
-              @build.report @
-              l.deb "@doneOK = #{@doneOK}" if l.deb 95
-              @doneOK
+            When(
+              if @build.template.name is 'combined'
+                @combine()
+              else
+                @build.report @
+                l.deb "@doneOK = #{@doneOK}" if l.deb 95
+            ).then => @runAfterSaveConverters().yield @doneOK
         else
           l.verbose "No bundle files *really* changed."
 
+  runAfterSaveConverters: ->
+    changedFileResources = (file for fn, file of @fileResources when file.hasChanged)
+    if changedFileResources.length
+      l.debug """ \n
+        #####################################################################
+        Running `runAt: 'afterSave'` ResourceConverters for #{changedFileResources.length} changed `FileResource`s.
+        #####################################################################""" if l.deb 30
+    When.each changedFileResources, (f)=>
+      f.hasChanged = false # temporarilly
+      f.runResourceConverters((rc)-> rc.runAt is 'afterSave').then ->
+        f.save() if f.hasChanged
+        f.hasChanged = true # revert always
+
   convertChangedModules:->
-    if _.isEmpty @build.changedModules
-      When()
-    else
-      changedModules = (mod for fn, mod of @modules when mod.hasChanged)
+    changedModules = (mod for fn, mod of @modules when mod.hasChanged)
+    if changedModules.length
       l.debug """ \n
         #####################################################################
         Converting #{changedModules.length} changed modules with template '#{@build.template.name}'
         #####################################################################""" if l.deb 30
 
-      When.each changedModules, (mod)=> mod.convert @build
+    When.each changedModules, (mod)=> mod.convert @build
 
   # add template.banner to 'bundle.main', if it exists & has changed
   concatMainModuleBanner:->
@@ -396,7 +425,7 @@ class Bundle extends BundleBase
         if res.hasErrors
           l.warn "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
         else
-          if res.converted and _.isString(res.converted) # only non-empty Strings are written
+          if (not _.isEmpty res.converted) and _.isString(res.converted) # only non-empty Strings are written
             try
               if _.isFunction @build.out
                 @build.out res.dstFilename, res.converted
@@ -409,7 +438,6 @@ class Bundle extends BundleBase
           else
             l.debug 80, "Not saving non-String: '#{res.srcFilename}' as '#{res.dstFilename}'."
 
-        res.hasChanged = false # @todo: multiple builds - note at @build instead of res
     null
 
   # All @files (i.e bundle.filez) that ARE NOT `FileResource`s and below (i.e are plain `BundleFile`s)
@@ -424,7 +452,6 @@ class Bundle extends BundleBase
       for fn, bundleFile of @copyBundleFiles when bundleFile.hasChanged
         try
           if bundleFile.copy() then copiedCount++ else skippedCount++
-          bundleFile.hasChanged = false # @todo: multiple builds - note at @build
         catch err
           bundleFile.hasErrors = true #todo : needed ?
           @handleError err
@@ -646,7 +673,7 @@ class Bundle extends BundleBase
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
   copyWebMapDeps: ->
-    webRootDeps = _.keys @getDepsVars (dep)->dep.isWebRootMap
+    webRootDeps = _.keys @getAllModuleDepsVars (dep)->dep.isWebRootMap
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps

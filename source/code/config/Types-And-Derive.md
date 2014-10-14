@@ -30,6 +30,7 @@ Filename specifications (or simply filenames), expressed in either:
    ```
    [ ..., ['AllowMe*.*', '!', function(f){ return f === 'excludeMe.js' }, [.., []], ...], ...]
    ```
+@see uses ['is_file_in'](https://github.com/anodynos/is_file_in)
 
 @example
 

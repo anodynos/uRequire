@@ -18,7 +18,6 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
 
 arrayizePushBlender = new _B.ArrayizePushBlender
 
-#ResourceConverter = requireUncached require.resolve '../../code/config/ResourceConverter'
 ResourceConverter = require '../../code/config/ResourceConverter'
 
 resources =  [
@@ -80,9 +79,7 @@ expectedResources = [
     _convFilename: resources[1][4]
     isTerminal: false
     isMatchSrcFilename: true
-    isBeforeTemplate: false
-    isAfterTemplate: false
-    isAfterOptimize: false
+    runAt: ''
     enabled: true
     options: {}
   }
@@ -94,10 +91,8 @@ expectedResources = [
     convert: resources[2].convert
     ' type': 'text'
     isTerminal: true
-    isAfterTemplate: false
-    isBeforeTemplate: false
     isMatchSrcFilename: false
-    isAfterOptimize: false
+    runAt: ''
     enabled: true
     options: {}
   }
@@ -110,9 +105,7 @@ expectedResources = [
     ' type': 'file'
     isTerminal: false
     isMatchSrcFilename:true
-    isAfterTemplate: false
-    isBeforeTemplate: false
-    isAfterOptimize: false
+    runAt: ''
     enabled: true
     options: { some: options: after: 'convert' }
   }
@@ -125,9 +118,7 @@ expectedResources = [
     ' type': 'text'
     isTerminal: false
     isMatchSrcFilename: false
-    isBeforeTemplate: false
-    isAfterTemplate: false
-    isAfterOptimize: false
+    runAt: ''
     enabled: true
     options: {}
   }
@@ -146,9 +137,7 @@ expectedResources = [
     ' type': 'module'
     isTerminal: false
     isMatchSrcFilename: false
-    isBeforeTemplate: true
-    isAfterTemplate: false
-    isAfterOptimize: false
+    runAt: 'beforeTemplate'
     enabled: true
     options: {some: coffee: 'options'}
   }
@@ -181,7 +170,7 @@ describe 'blendConfigs & its Blenders: ', ->
       scanAllow: false
       allNodeRequires: false
       verbose: false
-      debugLevel: 0
+      debugLevel: 10
       done:->
 
     result = moveKeysBlender.blend rootLevelKeys
@@ -209,7 +198,7 @@ describe 'blendConfigs & its Blenders: ', ->
             scanAllow: false
             allNodeRequires: false
             verbose: false
-            debugLevel: 0
+            debugLevel: 10
             done: rootLevelKeys.done
 
 
@@ -458,6 +447,7 @@ describe "dependenciesBindingsBlender converts to proper dependenciesBinding str
           globalWindow: ['globalWindow-child.js']
           bare: true
           runtimeInfo: ['runtimeInfo-child.js']
+          done: ->
         ,
           bundle:
             path: "source/code"
@@ -472,6 +462,7 @@ describe "dependenciesBindingsBlender converts to proper dependenciesBinding str
                 root:
                   'index': 'globalVal'
           verbose: true
+          done: ->
           derive:
             debugLevel: 90
         ,
@@ -576,6 +567,7 @@ describe "dependenciesBindingsBlender converts to proper dependenciesBinding str
             globalWindow: ['globalWindow-inherited.js', 'globalWindow-child.js']
             bare: true
             runtimeInfo: ['runtimeInfo-inherited.js', 'runtimeInfo-child.js']
+            done: [configs[2].done, configs[1].done]
 
       it "all {} in bundle.resources are instanceof ResourceConverter :", ->
         for resConv in blended.bundle.resources
@@ -585,4 +577,3 @@ describe "dependenciesBindingsBlender converts to proper dependenciesBinding str
         freshResources = blendConfigs [{resources:[ [null], expectedResources[0]]}, blended]
         blended.bundle.resources = [expectedResources[0]]
         deepEqual freshResources, blended
-

@@ -21,9 +21,8 @@ rimraf = require 'rimraf'
 urequire = require '../../code/urequire'
 
 globExpand = require 'glob-expand'
-isFileInSpecs = require '../../code/config/isFileInSpecs'
+
 BundleFile = require '../../code/fileResources/BundleFile'
-requireUncached = require "../../code/utils/requireUncached"
 
 example = 'urequire-example'
 exampleDir = "../#{example}"
@@ -133,7 +132,17 @@ describe "urequire BundleBuilder:", ->
           it "bb.buildBundle().then (res)-> res is bundleBuilder", ->
             equal buildResult, bb
 
-          describe "ResourceConverters work", ->
+          describe "bundleBuilder.bundle:", ->
+            it "has the correct `all_depsVars`", ->
+              deepEqual buildResult.bundle.all_depsVars,
+                "calc/add": ["add" ]
+                "calc/index": [ "calc" ]
+                "calc/multiply": []
+                "lodash": [ "_" ]
+                "models/Animal": [ "Animal" ]
+                "models/Person": [ "Person" ]
+
+          describe "ResourceConverters work sync & async", ->
 
             it "lib has VERSION (injected via a promise returning RC)", ->
                 equal buildLib.VERSION, VERSION

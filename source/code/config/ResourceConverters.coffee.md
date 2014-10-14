@@ -320,13 +320,13 @@ or copies them renamed, from `bundle.path` to `build.dstPath` eg
 `['@copyRenamedVendorJs', ['vendorJs/**/*.js'], (r)-> r.copy(undefined, 'renamed_' + e.dstFilename)]`
 
 
-#### `requireUncached()`
+#### `requireClean()`
 
 A utility `function(moduleName)` that is a wrapper to nodejs's `require(moduleName)`, that makes sure the cached module (and its dependencies) is cleared before loading it.
 
 Its useful if you want to load a file (that changed on disk's [`bundle.path`](MasterDefaultsConfig.coffee#build.dstPath)) as a nodejs module. The problem with plain `require` is that nodejs modules are cached and don't reload when file on disk changes.
 
-The instance method is a wrapper to the `BundleFile.requireUncached()` static method, added as instance method for convenience **with `resource.srcRealpath` as the default value** of the `name` argument.
+The instance method is a wrapper to the `BundleFile.requireClean()` static method, added as instance method for convenience **with `resource.srcRealpath` as the default value** of the `name` argument.
 
 Example: see `'teacup'` at [Extra Resource Converters](#Extra-Resource-Converters)
 
@@ -345,7 +345,7 @@ A `FileResource` represents an external file, whose `source` contents we know no
 
  * read their contents our selves
  
- * require them as modules (perhaps with [`requireUncached()`](#requireUncached)) and execute their code to get some result.
+ * require them as modules (perhaps with [`requireClean()`](#requireClean)) and execute their code to get some result.
  
  * spawn external programs to convert them, copy 'em, etc
 
@@ -740,11 +740,6 @@ This is a dummy .js RC, following the [formal & boring ResourceConverter definit
 
           # not needed, we have '$' flag to denote `type: 'module'`
           type: 'module'
-
-          # these are defaults, can be omitted
-          isAfterTemplate: false
-          isTerminal: false
-          isMatchSrcFilename: false
         }
 
 ### The alternative (less verbose) **Array way**
@@ -777,58 +772,12 @@ As an example, if you wanted to pass some coco `options` (that `_.extend` defaul
 
 How do we get such flexibility with both [] & {} formats? Check [ResourceConverter.coffee](https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverter.coffee)
 
-## Extra Resource Converters
-
-We register some **Extra Resource Converters** on registry with `name` as key.
-
-The registry is populated with all Default and user-defined RCs.
-
-The registry allows to easily **look up, clone, change, reuse or even call functions** of registered RCs.
-
-To save loading & processing time, these RC-specs aren't instantiated as proper RC instances and not added to [bundle.resources](MasterDefaultsConfig.coffee#bundle.resources) until they are retrieved/used in a user's config `bundle.resources`.
-
-    _ = (_B = require 'uberscore')._
-    l = new _B.Logger 'uRequire/ResourceConverters'
-
-    extraResourceConverters =
-
-      teacup: [
-         '@~teacup'
-         """
-          Renders teacup as nodejs modules (exporting the template function or a `renderable`), to HTML.
-          `FileResource` means the file's source is not read on resource.refresh().
-         """
-         ['**/*.teacup']
-
-         # our `convert()` function is a IIFE
-         # that returns the real `convert` fn.
-         do ->
-            # register extension once, as a node/coffee module
-            require.extensions['.teacup'] = require.extensions['.coffee']
-
-            # our real, IIFE returned `convert()` function
-            (r)->
-              # Clear nodejs caching with `requireUncached` helper
-              # and get the `realpath` of module's location.
-              template = r.requireUncached r.srcRealpath
-
-              # require `teacup` on demand from project's `node_modules`
-              # and return rendered string
-              (require 'teacup').render template
-
-         # starting with '.' is an extension replacement
-         '.html'
-      ]
-
 # Finito
 
 Just export default and extra RCs and go grab a cup of coffee!
 
     # used as is by `bundle.resources`
     exports.defaultResourceConverters = defaultResourceConverters
-
-    #registered on `ResourceConverter` registry, instantiated on demand.
-    exports.extraResourceConverters = extraResourceConverters
 
 ## Add some coffeescript `define` and merge
 

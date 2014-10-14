@@ -8,7 +8,7 @@ MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 upath = require './../paths/upath'
 pathRelative = require './../paths/pathRelative'
 
-isFileInSpecs = require '../config/isFileInSpecs'
+isFileIn = require 'is_file_in'
 UError = require '../utils/UError'
 
 minimatch = require 'minimatch'
@@ -150,7 +150,7 @@ class Dependency
 
     isNode: get:->
       (@plugin?.name?() is 'node') or # 'node' is a fake plugin signaling nodejs-only executing modules.
-      isFileInSpecs @name(plugin:false, relative:'bundle'),
+      isFileIn @name(plugin:false, relative:'bundle'),
         (@module?.bundle?.dependencies?.node or
           MasterDefaultsConfig.bundle.dependencies.node)
 

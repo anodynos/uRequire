@@ -49,7 +49,7 @@ module.exports = gruntFunction = (grunt) ->
 
     watch:
       dev: # requires `coffeeWatch` to compile changed only files! need a changed-only-files coffee task!
-        files: ["build/**/*", "!build/spec/urequire/code/**/*"]
+        files: ["build/**/*"]
         tasks: ['copy', 'mochaCmd']
 
       copy:

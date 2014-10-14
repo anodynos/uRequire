@@ -8,7 +8,7 @@ globExpand = require 'glob-expand'
 # uRequire
 upath = require '../paths/upath'
 
-isFileInSpecs = require '../config/isFileInSpecs'
+isFileIn = require 'is_file_in'
 
 DependenciesReporter = require './../utils/DependenciesReporter'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
@@ -93,7 +93,7 @@ class Build extends _B.CalcCachedProperties
         else
           l.verbose "clean: build.dstPath '#{@dstPath}' does not exist."
       else # filespecs - delete only files specified
-        delFiles = _.filter(globExpand({cwd: @dstPath, filter: 'isFile'}, '**/*'), (f)=> isFileInSpecs f, @clean)
+        delFiles = _.filter(globExpand({cwd: @dstPath, filter: 'isFile'}, '**/*'), (f)=> isFileIn f, @clean)
         if not _.isEmpty delFiles
           l.verbose "clean: deleting #{delFiles.length} files matched with filespec", @clean
           for df in delFiles

@@ -899,9 +899,7 @@ Callback to pass you the [`converted`](resourceconverters.coffee#converted) cont
 
 This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build.
 
-@todo: **NOT TESTED** in user configs!
-
-      done: (doneVal)-> # console.log "done() is missing and I got a #{doneVal} on the default done()"
+      done: []
 
 ## build.clean
 
