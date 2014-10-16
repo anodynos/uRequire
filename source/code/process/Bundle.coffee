@@ -299,10 +299,8 @@ class Bundle extends BundleBase
             @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
             if bf.srcExists
               bf.reset()
-              bf.hasErrors = true #todo: why set here ?
-
+              bf.hasErrors = true
               bf.clean() if bf.isDeleteErrored
-
               if err instanceof UError
                 @handleError err # improve error handling
               else
@@ -423,7 +421,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
       for fn, res of @fileResources when res.hasChanged
         if res.hasErrors
-          l.warn "Not saving with errors: '#{res.dstFilename}' (srcFilename = '#{res.srcFilename}')."
+          l.warn "Not saving with errors: '#{res.dstFilepath_last}' (srcFilename = '#{res.srcFilename}')."
         else
           if (not _.isEmpty res.converted) and _.isString(res.converted) # only non-empty Strings are written
             try
@@ -572,7 +570,7 @@ class Bundle extends BundleBase
       rjsStartDate = new Date()
       @requirejs.optimize rjsConfig,
         (buildResponse)=>
-          l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 20
+          l.debug '@requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 40
           if fs.existsSync @build.template.combinedFile
             l.ok "Combined file '#{@build.template.combinedFile}' written successfully for build ##{@build.count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
 
@@ -588,7 +586,6 @@ class Bundle extends BundleBase
                        must be a globally loaded (i.e `window.$`)
                        BEFORE loading '#{@build.template.combinedFile}'\n
                   """
-
             # delete _combinedFileTemp, used as temp directory with individual AMD files
             if not (l.deb(debugLevelSkipTempDeletion) or @build.watch)
               @build.deleteCombinedTemp()
@@ -598,17 +595,16 @@ class Bundle extends BundleBase
             @build.report @
             resolve @doneOK
           else
-            l.er """
+            l.er err = """
               Combined file '#{@build.template.combinedFile}' NOT written - this should not have happened, requirejs reported success.
-              Check requirejs's build response:\n
-            """, buildResponse
+              Check requirejs's build response:\n""", buildResponse
             @build.report @
-            reject false
+            reject new UError err, nested: buildResponse
 
-        (errorResponse)=>
+        (error)=>
           @build.report @
 
-          l.er '@requirejs.optimize errorResponse: ', errorResponse, """\n
+          l.er '@requirejs.optimize error: ', error, """\n
           Combined file '#{@build.template.combinedFile}' NOT written."
 
             Some remedy:
@@ -629,7 +625,7 @@ class Bundle extends BundleBase
 
           """, rjsConfig
 
-          reject false
+          reject new UError "requirejs.optimize() error: Combined file '#{@build.template.combinedFile}' NOT written.", nested: error
 
   getRequireJSConfig: ->
     if not _.isEmpty @build?.rjs
@@ -688,7 +684,7 @@ class Bundle extends BundleBase
     else
       if not error.printed
         error.printed = true
-        l.er "printError ##{nesting}:", (error?.constructor?.name or "No error.constructor.name"),
+        l.er "#{if nesting then 'nested' else ''} ##{nesting}:", (error?.constructor?.name or "No error.constructor.name"),
              "\n #{_.repeat('    ', nesting)}",
              (if error.message
                 "error.message = #{error.message}"
@@ -696,9 +692,7 @@ class Bundle extends BundleBase
 
         l.deb 110, '\n error.stack = \n', error.stack # dev only
 
-        if error.nested
-          l.warn "With nested error ##{nesting+1} following ... :"
-          @printError error.nested, nesting+1
+        @printError error.nested, nesting+1 if error.nested
 
   # @todo: refactor error handling!
   handleError: (error)->

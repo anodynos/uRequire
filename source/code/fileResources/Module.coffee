@@ -188,7 +188,7 @@ class Module extends TextResource
     try
       @AST_top = toAST @sourceCodeJs #, {comment:true, range:true}
     catch err
-      throw new UError "Error while parsing top Module's javascript.", nested: err
+      throw new UError "Error while parsing Module's javascript.", nested: err
 
     # retrieve bare body, i.e without coffeescript IIFE (function(){..body..}).call(this);
     if isLikeCode('(function(){}).call()', @AST_top.body) or
@@ -527,35 +527,36 @@ class Module extends TextResource
   # @returns promise -> undefined
   convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
     if @hasErrors
-      l.warn "\n##### Not converting '#{@path}' cause it has errors."
+      l.warn "\nNot converting '#{@path}' cause it has errors."
       When()
     else
+      step = null
       When.sequence([
         => @adjust @build
         =>
-          l.deb "\nRunning BeforeTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          l.deb 70, step = "\nRunning BeforeTemplate ResourceConverters for '#{@path}'."
           @runResourceConverters (rc)-> rc.runAt is 'beforeTemplate'
         =>
-          l.verbose "Converting with template '#{@build.template.name}' for module '#{@path}'."
+          l.verbose step = "Converting with template '#{@build.template.name}' for module '#{@path}'."
           l.deb("'#{@path}' adjusted module.info() = \n",
             _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 70
           @moduleTemplate or= new ModuleGeneratorTemplates @
           @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
         =>
-          l.deb "\nRunning AfterTemplate ResourceConverters for '#{@path}'." if l.deb 70
+          l.deb 70, step = "\nRunning AfterTemplate ResourceConverters for '#{@path}'."
           @runResourceConverters (rc)-> rc.runAt is 'afterTemplate'
         =>
-          l.deb "\nRunning optimize for '#{@path}'." if l.deb 70
+          l.deb 70, step = "\nRunning optimize for '#{@path}'."
           @optimize @build
         =>
-          l.deb "\nRunning AfterOptimize ResourceConverters for '#{@path}'." if l.deb 70
+          l.deb 70, step = "\nRunning AfterOptimize ResourceConverters for '#{@path}'."
           @runResourceConverters (rc)-> rc.runAt is 'afterOptimize'
         =>
           @addReportData()
       ]).catch (err)=>
         @reset()
         @hasErrors = true
-        @bundle.handleError new UError "Error at `module.convert()`", nested:err
+        @bundle.handleError new UError "Error at `module.convert()`: #{step}", nested:err
 
     # apply `optimize` (i.e minification) - uglify2 only
   optimize: (@build)->

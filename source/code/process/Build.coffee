@@ -66,6 +66,8 @@ class Build extends _B.CalcCachedProperties
 
   @templates = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
 
+  inspect: -> "Build:" + l.prettify { @dstPath, @template, @startDate, @count}
+
   newBuild:->
     @startDate = new Date();
     @count++

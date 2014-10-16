@@ -19,8 +19,8 @@ UError = require '../utils/UError'
     * Build & watch for changes
 ###
 class BundleBuilder
-  constructor: (@configs, deriveLoader)->
-#    l.verbose 'uRequire v' + VERSION + ' BundleBuilder constructed.'
+
+  constructor: (configs, deriveLoader)->
     @configs = configs = _B.arrayize configs
 
     # provide to outsiders
@@ -32,9 +32,9 @@ class BundleBuilder
     @Bundle = require './Bundle'
     blendConfigs = require '../config/blendConfigs'
 
+    # debugLevel not really established before configs are blended
     l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
-    if l.deb 90 # @todo: debugLevel not established before configs are blended
-      l.deb 'User configs (not blended / not flatten)', blendConfigs _.flatten(configs), deriveLoader
+    l.deb('User configs (not blended with Master config)', blendConfigs _.flatten(configs), deriveLoader) if l.deb 90
 
     @config = blendConfigs _.flatten(configs), deriveLoader, true    # our 'final' @config withMaster
     _.defaults @config.bundle, {filez: ['**/*']}  # the only(!) hard coded default
@@ -50,6 +50,8 @@ class BundleBuilder
       catch err
         l.er uerr = "Generic error while initializing @bundle or @build", err
         throw new UError uerr, nested:err
+
+  inspect: -> "BundleBuilder:\n" + l.prettify(@bundle) + '\n' + l.prettify(@build)
 
   verboseRef = _B.Logger::verbose # hack & travestry
   setDebugVerbose: ->
@@ -67,31 +69,40 @@ class BundleBuilder
     if @build and @bundle
       @setDebugVerbose()
       @build.newBuild()
-      @bundle.buildChangedResources(@build, filenames).then(
-        (res)=>
-          if res is false
-            l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
-          else
-            l.debug 99, "@bundle.buildChangedResources result is :", res
-          @runPostBuildTasks(null).yield @
-      ).catch (err)=>
-        @bundle.handleError err # why ?
-        @runPostBuildTasks(err)
+      buildP = @bundle.buildChangedResources(@build, filenames)
+
+      possError = null
+      buildP.then (res)=>
+        if res is false
+          l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
+          possError = res
+        else
+          l.debug 99, "@bundle.buildChangedResources result is :", res
+          possError = null
+
+      buildP.catch (err)=>
+        @bundle.printError possError = err
+
+      buildP.finally( => @runPostBuildTasks possError).yield @
     else
-      l.er err = "buildBundle(): I have !@build or !@bundle - can't build!"
-      err = new Error err
-      @runPostBuildTasks(err).then ->
-        throw err # needed ?
+      l.er err = "buildBundle(): I have !@build or !@bundle - can't build anything!"
+      throw new UError err # no `runPostBuildTasks` in this case
 
   runPostBuildTasks: (err)->
-    When.each @build.done, (task)=>
+    When.each _B.arrayize(@build.done), (task, idx)=>
+      l.deb "Running post-build `done()` task ##{idx}", task.toString()[0..150]+'...more...' if l.deb 70
       When( # call with callback, or promise/simple call
         if task.length is 3 # nodejs style callback is 3rd arg
           taskPromise = (deferred = When.defer()).promise
           task err, @, When.node.createCallback deferred.resolver
           taskPromise
         else
-          task err, @
+          if task.length is 2 # sync OR promise
+            task err, @
+          else
+            if task.length <= 1 # done() for urequire < 0.7.0-beta4
+              task(if err is null then true else err)
+            else throw new Error "Unknown number of arguments for done(): " + task.toString()
       )
 
   watch: (debounceWait)=>
