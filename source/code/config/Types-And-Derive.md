@@ -49,7 +49,7 @@ bundle: {
 
 Defines one or more **dependencies** (i.e **Modules** or other **Resource**s), that each is bound to one or more identifiers (i.e variable or property names).
 
-Its used in many places (like injecting deps in [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle)) and [is often useful](#Binding-deps-and-vars-is-required).
+Its used in many places (like injecting deps in [`bundle.dependencies.imports`](#bundle.dependencies.imports)) and [is often useful](#Binding-deps-and-vars-is-required).
 
 ### Formal `depsVars` type
 
@@ -86,7 +86,7 @@ The `depsVars` type has *shortcuts*:
 
 ### Binding deps and vars is required
 
-* *when injecting dependencies*, eg exporting declarativelly through [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle) eg 'lodash', bind '_' as the var to access the module in the code.
+* *when injecting dependencies*, eg exporting declarativelly through [`bundle.dependencies.imports`](#bundle.dependencies.imports) eg 'lodash', bind '_' as the var to access the module in the code.
 
 * **when converting** through ['combined' template](combined-template). Local dependencies (like `'underscore'` or `'jquery'`) are not part of the `combined.js` file.
   At run time, when running on the module-less **Web** side as a `combined.js` via a simple `<script/>`, the uRequire generated code *will only know how to grab* the dependency using the binding `$` from the *global* object (i.e `window`).

@@ -5,13 +5,11 @@ fs = require 'fs'
 mkdirp = require "mkdirp"
 When = require 'when'
 
+upath = require 'upath'
+
 # urequire
-Build = require '../process/Build'
-upath = require '../paths/upath'
 UError = require '../utils/UError'
-
 isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
-
 pathRelative = '../paths/pathRelative'
 
 ###
@@ -26,12 +24,13 @@ class BundleFile
         get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
 
   ###
-    @param bundle {Object} The Bundle where this BundleFile belongs
-    @param filename {String} bundleRelative eg 'models/PersonModel.coffee'
+    `data` has
+    * bundle this BundleFile belongs
+    * srcFilename {String} bundleRelative eg 'models/PersonModel.coffee'
   ###
   constructor: (data)->
     _.extend @, data
-    @dstFilename = @srcFilename # initial dst filename, assume no filename conversion
+    @dstFilename = @srcFilename # initial dstfilename, assume no filename conversion
 
   refresh: When.lift -> # check for filesystem timestamp etc
     if not @srcExists
@@ -42,23 +41,25 @@ class BundleFile
         @fileStats = stats
         @hasChanged = true
       else
-        l.debug "No changes in #{statProps} of file '#{@dstFilename}' " if l.deb 90
+        l.verbose "No changes in #{l.prettify statProps} of file '#{@srcFilename}'"
         @hasChanged = false
 
   reset:->
     delete @fileStats
     delete @hasErrors
+    @dstFilename = @srcFilename
 
-  # deletes @dstFilepath or passed filename
-  clean: (filename=(@dstFilepath_last or @dstFilepath))->
-    if not fs.existsSync filename
-      l.warn "clean: Not existing file '#{filename}' - cant delete!."
-    else
-      l.verbose "clean: Deleting file: #{filename}"
-      try
-        fs.unlinkSync filename
-      catch err
-        l.er "clean: Cant delete file '#{filename}'.", err
+  clean: ()->
+    filenames = @dstFilenamesSaved or [ @dstFilename ]
+    for fname in _.map(filenames, (f)=> upath.join @dstPath, f)
+      if not fs.existsSync fname
+        l.deb 30, "clean: Not existing file '#{fname}' - cant delete!."
+      else
+        l.verbose "clean: Deleting file: #{fname}"
+        try
+          fs.unlinkSync fname
+        catch err
+          l.er "clean: Cant delete file '#{fname}'.", err
 
   Object.defineProperties @::,
     extname: get: -> upath.extname @srcFilename                # original extension, eg `.js` or `.coffee`
@@ -100,6 +101,7 @@ class BundleFile
     BundleFile.copy upath.join(@bundle?.path or '', srcFilename),
                     upath.join(@bundle?.build?.dstPath or '', dstFilename)
 
+  # todo: use `fs-extra` instead
   # copyFile helper (missing from fs)
   # @return true if copy was made, false if skipped (eg. same file)
   # copyFileSync based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/) @todo: improve !
@@ -145,9 +147,9 @@ class BundleFile
   requireClean: (name=@srcRealpath)-> BundleFile.requireClean(name)
 
   inspect: ->
-    inspectText = " #{@constructor.name} : '#{@srcFilename}' "
-    inspectText += '(hasChanged)' if @hasChanged
-    inspectText += '(hasErrors)' if @hasErrors
+    inspectText = " #{@constructor.name} : '#{@dstFilename}' "
+    inspectText += '\u001b[32m(hasChanged)' if @hasChanged
+    inspectText += '\u001b[31m(hasErrors)' if @hasErrors
     inspectText
 
 module.exports = BundleFile

@@ -3,7 +3,7 @@ l = new _B.Logger 'uRequire/process/BundleBase'
 
 fs = require 'fs'
 
-upath = require '../paths/upath'
+upath = require 'upath'
 pathRelative = require '../paths/pathRelative'
 Dependency = require '../fileResources/Dependency'
 UError = require '../utils/UError' #todo: use this instead!

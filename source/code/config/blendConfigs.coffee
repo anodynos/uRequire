@@ -1,16 +1,15 @@
 _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/blendConfigs'
 fs = require 'fs'
+upath = require 'upath'
 require('butter-require')() # no need to store it somewhere
 
-upath = require '../paths/upath'
 MasterDefaultsConfig = require './MasterDefaultsConfig'
 ResourceConverter = require './ResourceConverter'
-
 UError = require '../utils/UError'
 
-arrayizeUniquePusher = new _B.ArrayizePushBlender [], unique: true
-arrayizePusher = new _B.ArrayizePushBlender
+arrayizeUniqueReversingUnshifter = new _B.ArrayizeBlender [], {unique: true, reverse:true, addMethod: 'unshift'}
+arrayizeBlender = new _B.ArrayizeBlender
 
 # Copy/clone all keys from the 'root' of src,
 # to either `dst.bundle` or `dst.build` (the legitimate parts of the config),
@@ -42,22 +41,27 @@ moveKeysBlender = new _B.Blender [
 #  compilers: '|': -> _B.Blender.NEXT # @todo: how do we blend this ?
 ]
 
-# Backwards compatibility:
-# rename DEPRACATED keys to their new ones
+# Backwards compatibility: rename DEPRACATED keys to their new ones
 renameKeys =
   $:
     bundle:
-       bundlePath: 'path'
-       bundleName: 'name'
-       copyNonResources: 'copy'
-       filespecs: 'filez'
-       dependencies:
-         noWeb: 'node'
-         bundleExports: 'exports.bundle'
-         variableNames: 'depsVars'
-         _knownVariableNames: '_knownDepsVars'
+      bundlePath: 'path'
+      bundleName: 'name'
+      copyNonResources: 'copy'
+      filespecs: 'filez'
+      dependencies:
+        noWeb: 'node'
+        bundleExports: 'imports'
+        exports:
+          bundle: '../imports'
+          root: '../rootExports'
+        variableNames: 'depsVars'
+        _knownVariableNames: '_knownDepsVars'
     build:
       outputPath: 'dstPath'
+      done: 'afterBuild'
+      exportsRoot: 'rootExports/runtimes'
+      noRootExports: 'rootExports/ignore'
 
 _.extend renameKeys.$, renameKeys.$.bundle # copy $.bundle.* to $.*
 _.extend renameKeys.$, renameKeys.$.build # copy $.build.* to $.*
@@ -67,8 +71,10 @@ depracatedKeysBlender = new _B.DeepDefaultsBlender [
   '*': (prop, src, dst)->
     renameTo = _B.getp renameKeys, @path
     if  _.isString renameTo
-      l.warn "DEPRACATED key '#{_.last @path}' found @ config path '#{@path.join '.'}' - rename to '#{renameTo}'"
-      _B.setp @dstRoot, @path.slice(1,-1).join('.')+'.'+renameTo, src[prop], {overwrite:true, separator:'.'}
+      renameToPath = upath.normalizeSafe upath.join @path.slice(1,-1).join('/'), renameTo
+      l.warn "DEPRACATED config path found '#{@path.slice(1).join '/'}' - rename to '#{renameToPath}'"
+      _B.setp @dstRoot, renameToPath, src[prop], {overwrite:true, separator:'/'}
+      #todo: delete empty parents - eg `dependencies/exports`: {}
       return @SKIP
 
     @NEXT
@@ -101,16 +107,16 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
     arrayizeConcat: (prop, src, dst)->
       if _.isFunction src[prop]
-        src[prop] _.clone(_B.arrayize dst[prop]), dst, prop  #todo: move -> functionality to arrayizePusher
+        src[prop] _.clone(_B.arrayize dst[prop]), dst, prop  #todo: move -> functionality to arrayizeBlender
       else
-        arrayizePusher.blend dst[prop], _.clone(src[prop])
+        arrayizeBlender.blend dst[prop], _.clone(src[prop])
 
     arraysConcatOrOverwrite: (prop, src, dst)->
       if _.isFunction src[prop]
         src[prop] _.clone(_B.arrayize dst[prop]), dst, prop
       else
         if _.isArray(dst[prop]) and _.isArray(src[prop])
-          arrayizePusher.blend _.clone(dst[prop]), src[prop] #takes care of 'parent reset'
+          arrayizeBlender.blend _.clone(dst[prop]), src[prop] #takes care of 'parent reset'
         else
           src[prop] # just copy src[prop] over to dst[prop]
 
@@ -129,11 +135,9 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 
         node: '|': '*': 'arrayizeConcat'
 
-        exports:
+        imports: '|': '*': 'dependenciesBindings'
 
-          bundle: '|': '*': 'dependenciesBindings'
-
-          root: '|': '*': 'dependenciesBindings'
+        rootExports: '|': '*': 'dependenciesBindings'
 
         replace: '|': '*': 'dependenciesBindings' # paradoxically, its compatible albeit a different meaning!
 
@@ -142,6 +146,16 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         depsVars: '|': '*': 'dependenciesBindings'
 
         _knownDepsVars: '|': '*': 'dependenciesBindings'
+
+        paths: override: '|': '*': 'dependenciesBindings'
+
+        # @todo: throw on unknown keys eg:
+        #"*": "|" : '*': (prop, src, dst)->
+        #   throw new Error "unknown key #{prop} in #{@path.join('/')}"
+        # needs to
+        # a) delete old/empty parents in `depracatedKeysBlender`
+        #    so we need a _B.delp like _B.setp / _B.getp
+        # b) generalize with a customized Blender
 
     build:
       # todo: generalize this :
@@ -152,15 +166,31 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       allNodeRequires: '|': 'arraysConcatOrOverwrite'
       dummyParams: '|': 'arraysConcatOrOverwrite'
       injectExportsModule: '|': 'arraysConcatOrOverwrite'
-      noRootExports: '|': 'arraysConcatOrOverwrite'
       scanAllow: '|': 'arraysConcatOrOverwrite'
       noLoaderUMD: '|': 'arraysConcatOrOverwrite'
       warnNoLoaderUMD: '|': 'arraysConcatOrOverwrite'
       deleteErrored: '|': 'arraysConcatOrOverwrite'
 
-      exportsRoot: '|': 'overwrite'
+      rootExports:
+        runtimes: '|': 'overwrite'
+        ignore: '|': 'arraysConcatOrOverwrite'      # renamed from `noRootExports`
+        noConflict: '|': 'arraysConcatOrOverwrite'
 
-      exportsRoot: '|': 'overwrite'
+      watch: '|':
+        String: (prop, src, dst)-> # cast to number, store as `debounceDelay`
+          num = parseInt src[prop]
+          w = if not _.isNaN num
+            debounceDelay: num
+            enabled: true
+          else
+            info: src[prop]       # store the string, perhaps useful in future
+            enabled: true
+          deepCloneBlender.blend dst[prop], w
+
+        Number: (prop, src, dst)-> deepCloneBlender.blend dst[prop], {enabled: true, debounceDelay: src[prop]}
+        Boolean: (prop, src, dst)-> deepCloneBlender.blend dst[prop], enabled: src[prop]
+        '{}': (prop, src, dst)-> deepCloneBlender.blend dst[prop], src[prop]
+        '*': (prop, src)-> throw new UError "Invalid watch value #{l.prettify src[prop]}"
 
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
@@ -173,8 +203,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           l.warn 'Not a Number debugLevel: ', src[prop], ' - defaulting to 1.'
           1
 
-      done: '|': (prop, src, dst)->
-        arrayizePusher.blend dst[prop], _.clone(src[prop]) # no function array blending, cause we deal with functions
+      afterBuild: '|': (prop, src, dst)->
+        arrayizeBlender.blend dst[prop], _.clone(src[prop]) # no function array blending, cause we deal with functions
 
       # 'optimize' ? in 3 different ways
       # todo: spec it
@@ -215,11 +245,11 @@ So with    *source*                 is converted to proper      *destination*
 
 * Object: `{lodash:['_'], jquery: '$'}`     --->          as is @todo: convert '$' to proper ['$'], i.e `{lodash:['_'], jquery: ['$']}`
 
-The resulting array of bindings for each 'variable' is blended via arrayizeUniquePusher
+The resulting array of bindings for each 'variable' is blended via arrayizeUniqueReversingUnshifter
 to the existing? corresponding array on the destination
 ###
 dependenciesBindingsBlender = new _B.DeepCloneBlender [
-  order: ['src']                                                     # our src[prop] (i.e. depsVars eg exports.bundle) is either a:
+  order: ['src']                                                     # our src[prop] (i.e. depsVars eg imports) is either a:
 
   'String': (prop, src, dst)->                                       # String eg  'lodash', convert to {'lodash':[]}
     dst[prop] or= {}
@@ -244,7 +274,7 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
       dst[prop] = _B.mutate _.clone(dst[prop], true), _B.arrayize
 
     for dep, depVars of src[prop]
-      dst[prop][dep] = arrayizeUniquePusher.blend dst[prop][dep], depVars
+      dst[prop][dep] = arrayizeUniqueReversingUnshifter.blend dst[prop][dep], depVars
 
     dst[prop]
 
@@ -255,6 +285,8 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
       dst[prop] = _B.mutate _.clone(dst[prop], true), _B.arrayize
 
     src[prop] dst[prop], dst, prop
+
+  '*': -> _B.Blender.SKIP
 ]
 
 deepCloneBlender = new _B.DeepCloneBlender #@todo: why deepCloneBlender need this instead of @
@@ -288,15 +320,28 @@ defaultDeriveLoader = (derive)->
     if _.isObject derive
       return derive
 
+# keep track of which cfgs have been added,
+# to filter out duplicates due to multiple inheritance
+# only the higher level same cfg is blended
+# as in diamond style multiple inheritance
+addedCfgs = null
+
+inArrayWithEquals = (item, array)->
+  for arItem in array
+    if _.isEqual item, arItem
+      return true
+  false
+
 # create a finalCfg object & a default deriveLoader
 # and call the recursive _blendDerivedConfigs
 blendConfigs = (configsArray, deriveLoader, withMaster = false)->
   configsArray.push MasterDefaultsConfig if withMaster
   deriveLoader = defaultDeriveLoader if not _.isFunction deriveLoader
+  addedCfgs = []
 
-  _blendDerivedConfigs finalCfg = {}, configsArray, deriveLoader, withMaster
+  _blendDerivedConfigs finalCfg = {}, configsArray, deriveLoader
 
-  if !_.isEmpty finalCfg.bundle.resources
+  if !_.isEmpty finalCfg.bundle?.resources
     resources = []
     for resourceConverter, idx in finalCfg.bundle.resources
       resources.push rc if not _.isEmpty rc = ResourceConverter.searchRegisterUpdate resourceConverter
@@ -309,8 +354,8 @@ _blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
   # We always blend in reverse order: start copying all items in the most base config
   # (usually 'MasterDefaultsConfig') and continue overwritting/blending backwards
   # from most general to the more specific. Hence the 1st item in configsArray is blended last.
-  for cfg in cfgsArray by -1 when cfg
-
+  for cfg in cfgsArray by -1 when cfg and not inArrayWithEquals(cfg, addedCfgs)
+    addedCfgs.push cfg
     # in each cfg, we might have nested `derive`s
     # recurse for each of those, depth first style - i.e we apply current cfg LAST
     # (and AFTER we have visited the furthest `derive`d config which has been applied first)

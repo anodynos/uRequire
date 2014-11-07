@@ -6,7 +6,7 @@ util = require 'util'
 When = require 'when'
 
 # uRequire
-upath = require '../paths/upath'
+upath = require 'upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 TextResource = require './TextResource'
 Dependency = require "./Dependency"
@@ -24,11 +24,11 @@ toCode = require "../codeUtils/toCode"
 # Represents a Javascript nodejs/commonjs or AMD module
 class Module extends TextResource
 
-  # override @dstFilename, save modules in build.template._combinedFileTemp if it exists
+  # override @dstFilename, save modules in build.template._combinedTemp if it exists
   Object.defineProperties @::,
     dstPath: get:->
-      if @bundle?.build.template._combinedFileTemp
-        @bundle.build.template._combinedFileTemp
+      if @bundle?.build.template._combinedTemp
+        @bundle.build.template._combinedTemp
       else
         if @bundle?.build.dstPath
           @bundle.build.dstPath
@@ -37,13 +37,16 @@ class Module extends TextResource
   # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
   # @todo: move method to BundleFile, keep only this data to Module
   for bof in ['useStrict', 'bare', 'globalWindow',
-              'runtimeInfo', 'noRootExports',
+              'runtimeInfo', 'rootExports_ignore',
+              'rootExports_noConflict'
               'allNodeRequires', 'dummyParams'
               'scanAllow', 'injectExportsModule',
               'noLoaderUMD', 'warnNoLoaderUMD']
     do (bof)->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
-        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @path
+        get: ->
+          value = _B.getp @bundle?.build, bof, separator: '_'
+          isTrueOrFileInSpecs value, @path
 
   ###
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)
@@ -56,20 +59,28 @@ class Module extends TextResource
   refresh: ->
     super.then (superRefreshed)=>
       if not superRefreshed
-        false # no change in parent, why should I change ?
+        @hasChanged = false # no change in parent, why should I change ?
       else
-        if @sourceCodeJs isnt @converted # @converted is produced by TextResource's refresh
-          @sourceCodeJs = @converted
-          @extract()
-          @prepare()
-          @hasChanged = true
-        else
-          l.debug "No changes in compiled sourceCodeJs of module '#{@srcFilename}' " if l.deb 90
+        if @sourceCodeJs is @converted # @converted is produced by TextResource's refresh
+          l.verbose  "No changes in **compiled sourceCodeJs** of module '#{@srcFilename}' "
           @hasChanged = false
+        else
+          @sourceCodeJs = @converted
+          @parse()
+          if _.isEqual @AST_top, @AST_top_previous
+            l.verbose "No changes in **parsed AST sourceCodeJs** of module '#{@srcFilename}' "
+            @hasChanged = false
+          else
+            if @bundle?.build?.watch.enabled is true
+              @AST_top_previous = _.clone @AST_top, true # a deep clone, to know when refresh() hasChanged next time
+            @extract()
+            @prepare()
+            @hasChanged = true
 
   reset:->
     super
     delete @sourceCodeJs
+    delete @AST_top_previous
     @resetModuleInfo()
 
   # init / clear stuff & create those on demand
@@ -77,8 +88,8 @@ class Module extends TextResource
     @flags = {}
 #    delete @[dv] for dv in @AST_data
     @[dv] = [] for dv in @keys_extractedDepsAndVarsArrays
-    delete @defineArrayDeps
-    delete @parameters
+    delete @defineArrayDeps # = [] @todo: set to []
+    delete @parameters # = []
 
   # keep a reference to our data, easy to init & export
   AST_data: [
@@ -182,13 +193,17 @@ class Module extends TextResource
 
     return null
 
-  extract: ->
-    l.debug "@extract for '#{@srcFilename}'" if l.deb 70
-    @resetModuleInfo()
+  parse: ->
+    l.debug "Module::parse() for '#{@srcFilename}'" if l.deb 70
     try
       @AST_top = toAST @sourceCodeJs #, {comment:true, range:true}
     catch err
       throw new UError "Error while parsing Module's javascript.", nested: err
+    @
+
+  extract: ->
+    l.debug "Module::extract for '#{@srcFilename}'" if l.deb 70
+    @resetModuleInfo()
 
     # retrieve bare body, i.e without coffeescript IIFE (function(){..body..}).call(this);
     if isLikeCode('(function(){}).call()', @AST_top.body) or
@@ -281,7 +296,7 @@ class Module extends TextResource
 
     # Our final' defineArrayDeps will eventually have -in this order-:
     #   - original ext_defineArrayDeps, each instantiated as a Dependency
-    #   - all dependencies.exports.bundle, if template is not 'combined'
+    #   - all dependencies.imports, if template is not 'combined'
     #   - module injected dependencies
     #   - Add all deps in `require('dep')`, from @module.ext_requireDeps are added
     # @see adjust
@@ -314,14 +329,14 @@ class Module extends TextResource
     l.debug "@adjust for '#{@srcFilename}'" if l.deb 70
 
     if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
-      @injectDeps @bundle?.dependencies?.exports?.bundle
+      @injectDeps @bundle?.dependencies?.imports
 
-    # add exports.root, i.e {'models/PersonModel': ['persons', 'personsModel']}`
+    # add rootExports, i.e {'models/PersonModel': ['persons', 'personsModel']}`
     # is like having a `{rootExports: ['persons', 'personsModel'], noConflict:true}` in 'models/PersonModel' module.
     @flags.rootExports = _B.arrayize @flags.rootExports if @flags.rootExports
-    if rootExports = @bundle?.dependencies?.exports?.root?[@path]
-      (@flags.rootExports or= []).push rt for rt in _B.arrayize rootExports
-      @flags.noConflict = true
+    if rootExports = @bundle?.dependencies?.rootExports?[@path]
+      (@flags.rootExports or= []).push rt for rt in _B.arrayize rootExports when rt not in (@flags.rootExports or [])
+      @flags.noConflict = @isRootExports_noConflict
 
     @webRootMap = @bundle?.webRootMap || '.'
 
@@ -357,7 +372,7 @@ class Module extends TextResource
   # It by default replaces each bundleRelative dep in require('someDir/someDep') calls
   # with the fileRelative path eg '../someDir/someDep' -that works everywhere-, remove 'node' fake pluging etc
   updateRequireLiteralASTs: ->
-    for dep in _.flatten [ @defineArrayDeps, @ext_asyncRequireDeps ]
+    for dep in _.uniq _.flatten [ @defineArrayDeps, @ext_requireDeps, @ext_asyncRequireDeps ]
       if dep and not dep.untrusted
         dep.updateAST()
 
@@ -367,6 +382,9 @@ class Module extends TextResource
     if l.deb(40)
       if not _.isEmpty depVars
         l.debug("#{@path}: injecting dependencies: ", depVars)
+
+    if not @parameters # todo: remove this limitation
+      throw new UError "Can't use `Module.injectDeps` so early - for now use it on `runAt = 'beforeTemplate` RCs only!"
 
     {dependenciesBindingsBlender} = require '../config/blendConfigs' # circular reference delayed loading
     return if _.isEmpty depVars = dependenciesBindingsBlender.blend depVars
@@ -496,7 +514,7 @@ class Module extends TextResource
       }
   ###
   getDepsVars: (depFltr=->true)->
-    varNames = {}
+    depVars = {}
     depVarArrays = # use the Array<Dependency> ones, cause they talk 'bundleRelative'
       'defineArrayDeps'        : 'parameters'
       'ext_requireDeps'        : 'ext_requireVars'
@@ -505,12 +523,11 @@ class Module extends TextResource
     for depsArrayName, varsArrayName of depVarArrays
       for dep, idx in (@[depsArrayName] or []) when depFltr(dep)
         bundleRelativeDep = dep.name relative:'bundle'
-        dv = (varNames[bundleRelativeDep] or= [])
+        dv = (depVars[bundleRelativeDep] or= [])
         # store the variable(s) associated with dep
         if @[varsArrayName][idx] and not (@[varsArrayName][idx] in dv )
           dv.push @[varsArrayName][idx] # if there is a var, add once
-    varNames
-
+    depVars
 
   replaceCode: (matchCode, replCode)->
     replaceCode @AST_factoryBody, matchCode, replCode
@@ -521,42 +538,41 @@ class Module extends TextResource
                            @ext_asyncRequireDeps
                            _.filter(@ext_requireDeps, (dep)-> dep.isNode) ]
       if dep.type not in ['bundle', 'system'] # ignore 'normal' ones
-        @bundle?.reporter.addReportData _B.okv(dep.type, dep.name relative:'bundle'), @path # build a `{'local':['lodash']}`
+        @bundle?.reporter.addReportData _B.okv(dep.type, dep.name()), @path # build a `{'local':['lodash']}`
 
   # Actually converts the module to the target @build options, passing through ResourceConverters as needed.
   # @returns promise -> undefined
-  convert: (@build) -> #set @build 'temporarilly': options like scanAllow & noRootExports are needed to calc deps arrays
-    if @hasErrors
-      l.warn "\nNot converting '#{@path}' cause it has errors."
-      When()
-    else
-      step = null
-      When.sequence([
-        => @adjust @build
-        =>
-          l.deb 70, step = "\nRunning BeforeTemplate ResourceConverters for '#{@path}'."
-          @runResourceConverters (rc)-> rc.runAt is 'beforeTemplate'
-        =>
-          l.verbose step = "Converting with template '#{@build.template.name}' for module '#{@path}'."
-          l.deb("'#{@path}' adjusted module.info() = \n",
-            _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 70
-          @moduleTemplate or= new ModuleGeneratorTemplates @
-          @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
-        =>
-          l.deb 70, step = "\nRunning AfterTemplate ResourceConverters for '#{@path}'."
-          @runResourceConverters (rc)-> rc.runAt is 'afterTemplate'
-        =>
-          l.deb 70, step = "\nRunning optimize for '#{@path}'."
-          @optimize @build
-        =>
-          l.deb 70, step = "\nRunning AfterOptimize ResourceConverters for '#{@path}'."
-          @runResourceConverters (rc)-> rc.runAt is 'afterOptimize'
-        =>
-          @addReportData()
-      ]).catch (err)=>
-        @reset()
-        @hasErrors = true
-        @bundle.handleError new UError "Error at `module.convert()`: #{step}", nested:err
+  convert: (@build) ->
+    step = null
+    When.sequence([
+      =>
+        l.deb 90, step = "\nRunning @adjust for '#{@path}'."
+        @adjust @build
+      =>
+        l.deb 70, step = "\n ResourceConverters runAt: 'beforeTemplate' for '#{@path}'."
+        @runResourceConverters (rc)-> rc.runAt is 'beforeTemplate'
+      =>
+        l.verbose step = "Converting with template '#{@build.template.name}' for module '#{@path}'."
+        l.deb("'#{@path}' adjusted module.info() = \n",
+          _.pick @info(), _.flatten [@keys_resolvedDependencies, 'parameters', 'kind', 'name', 'flags']) if l.deb 70
+        @moduleTemplate or= new ModuleGeneratorTemplates @
+        @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
+      =>
+        l.deb 70, step = "\n ResourceConverters runAt: 'afterTemplate' for '#{@path}'."
+        @runResourceConverters (rc)-> rc.runAt is 'afterTemplate'
+      =>
+        l.deb 70, step = "\nRunning optimize for '#{@path}'."
+        @optimize @build
+      =>
+        l.deb 70, step = "\n ResourceConverters runAt: 'afterOptimize' for '#{@path}'."
+        @runResourceConverters (rc)-> rc.runAt is 'afterOptimize'
+      =>
+        l.deb 70, step = "\n addReportData '#{@path}'."
+        @addReportData()
+    ]).catch (err)=>
+      @reset()
+      @hasErrors = true
+      @bundle.handleError new UError "Error at `module.convert()`: step = `#{step}`", nested:err
 
     # apply `optimize` (i.e minification) - uglify2 only
   optimize: (@build)->

@@ -7,7 +7,7 @@ When = require 'when'
 
 # uRequire
 BundleFile = require './BundleFile'
-upath = require '../paths/upath'
+upath = require 'upath'
 UError = require '../utils/UError'
 ResourceConverter = require '../config/ResourceConverter'
 ResourceConverterError = require '../utils/ResourceConverterError'
@@ -51,8 +51,9 @@ class FileResource extends BundleFile
         else
           true # let subclasses decide whether to run ResourceConverters.
 
-  reset:-> super; delete @converted
-
+  reset:->
+    super
+    delete @converted
 
   Object.defineProperties @::,
     # only if @srcMain exists
@@ -91,7 +92,7 @@ class FileResource extends BundleFile
                 convPromise
               else
                 resConv.convert @
-            ).then (@converted)=> # store resolved value at @converted
+            ).then (@converted)=> # stores resolved value at @converted
         =>
           if _.isFunction resConv.convFilename
             l.deb "`resourceConverter.convFilename()` for '#{resConv.name}'..." if l.deb 60
@@ -105,12 +106,8 @@ class FileResource extends BundleFile
                 l.deb 80, "@dstFilename remained '#{oldDstFn}'"
       ]).catch (err)=>
           throw @hasErrors = new ResourceConverterError """
-            Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}' @ #{atStep} :\n""" +
-            (if err.toString
-               a=err.toString()
-               delete err.code
-               a
-             else err), {nested: err}
+            Error converting #{@constructor?.name} '#{@srcFilename}' with ResourceConverter '#{resConv?.name}' @ step #{atStep}.
+          """, {nested: err}
     ).yield @hasChanged
 
   readOptions = 'utf-8' # compatible with node 0.8 #{encoding: 'utf-8', flag: 'r'}
@@ -126,6 +123,8 @@ class FileResource extends BundleFile
 
   save: (filename=@dstFilename, content=@converted, options)->
     @constructor.save.call @, upath.join(@dstPath, filename), content, options
+    if filename not in (@dstFilenamesSaved or= [])
+      @dstFilenamesSaved.push filename
 
   saveOptions = {encoding: 'utf-8', mode: 438, flag: 'w'}
   @save: (filename, content, options=saveOptions)->

@@ -112,21 +112,21 @@ class ModuleGeneratorTemplates extends Template
         ''
 
     isRootExports: get: ->
-      (not (  @module.isNoRootExports or
+      (not (  @module.isRootExports_ignore or
               _.isEmpty(@module.flags.rootExports) or
-              _.isEmpty(@build.exportsRoot)
+              _.isEmpty(@build.rootExports.runtimes)
       )) and not (
         (@build.template.name in ['UMD', 'UMDplain']) and
         (not @build.noLoaderUMD) and
-        ('AMD' not in @build.exportsRoot) and
-        ('node' not in @build.exportsRoot)
+        ('AMD' not in @build.rootExports.runtimes) and
+        ('node' not in @build.rootExports.runtimes)
       )
 
     exportRootCheck: get: ->
       checks = []
-      checks.push '!__isAMD' if 'AMD' not in @build.exportsRoot
-      checks.push '!__isNode' if 'node' not in @build.exportsRoot
-      checks.push '!(__isNode || __isAMD)' if 'script' not in @build.exportsRoot
+      checks.push '!__isAMD' if 'AMD' not in @build.rootExports.runtimes
+      checks.push '!__isNode' if 'node' not in @build.rootExports.runtimes
+      checks.push '!(__isWeb && !__isAMD)' if 'script' not in @build.rootExports.runtimes
 
       checks.join ' && '
 
@@ -210,8 +210,7 @@ class ModuleGeneratorTemplates extends Template
         fullBody
       else
         if @module.isGlobalWindow
-          root = "(typeof exports === 'object' ? global : window)"
-          @__functionIIFE fullBody, 'window', root, 'global', root
+          @__functionIIFE fullBody, 'window', @globalSelector, 'global', @globalSelector
         else
           @__functionIIFE fullBody
      )# + ';'
@@ -315,7 +314,7 @@ class ModuleGeneratorTemplates extends Template
         """
           if (typeof exports === 'object') {#{
             if isNodeRequirer
-              "\n    var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, __dirname, '#{@module.webRootMap}');"
+              "\n    var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, require, __dirname, '#{@module.webRootMap}', #{@build.template.debugLevel});"
             else ''}
               module.exports = #{ if @isRootExports then 'rootExport(global, ' else ''
                }factory(#{nr}require#{@injectExportsModuleParamsPrint}#{

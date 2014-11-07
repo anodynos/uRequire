@@ -40,11 +40,11 @@ codegenOptions =
 
 # helper: create Module, set its js, extract, delete empties, return info()
 moduleInfo = (js)->
-  (new Module {sourceCodeJs: js, codegenOptions}).extract().info()
+  (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().info()
 
 
 moduleAdjustedInfo = (js)->
-  (new Module {sourceCodeJs: js, codegenOptions}).extract().prepare().adjust().info()
+  (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().prepare().adjust().info()
 
 describe "Module:", ->
 
@@ -67,23 +67,23 @@ describe "Module:", ->
         kind: 'nodejs'
         factoryBody: 'function dosomething(someVar){abc(["underscore","depdir1/dep1"],function(_,dep1){dep1=new dep1();var someVar=require("someDep");return dep1.doit();});}'
 
-      it.skip "TODO: should identify a UMD (!?) module", ->
-        deepEqual moduleInfo("""
-          (function (root, factory) {
-              "use strict";
-              if (typeof exports === 'object') {
-                  var nodeRequire = require('urequire').makeNodeRequire('.', __dirname, '.');
-                  module.exports = factory(nodeRequire);
-              } else if (typeof define === 'function' && define.amd) {
-                  define(factory);
-              }
-          })(this, function (require) {
-            doSomething();
-          });
-          """
-        ),
-          kind: 'UMD'
-          XXXX: 'what?'
+#      it.skip "TODO: should identify a UMD (!?) module", ->
+#        deepEqual moduleInfo("""
+#          (function (root, factory) {
+#              "use strict";
+#              if (typeof exports === 'object') {
+#                  var nodeRequire = require('urequire').makeNodeRequire('.', __dirname, '.');
+#                  module.exports = factory(nodeRequire);
+#              } else if (typeof define === 'function' && define.amd) {
+#                  define(factory);
+#              }
+#          })(this, function (require) {
+#            doSomething();
+#          });
+#          """
+#        ),
+#          kind: 'UMD'
+#          XXXX: 'what?'
 
     describe "AMD modules :", ->
       describe "AMD define() signature:", ->
@@ -184,7 +184,7 @@ describe "Module:", ->
               });
             """
 
-            mod = (new Module {sourceCodeJs: js, codegenOptions}).extract().prepare().adjust()
+            mod = (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().prepare().adjust()
             mod.injectDeps 'someDep': 'someVar'
             mod.replaceDep 'aa', 'aaaaa'
 
@@ -290,9 +290,8 @@ describe "Module:", ->
         mod = new Module {sourceCodeJs: js, codegenOptions: codegenOptions}
 
         it "should extract, prepare & adjust a module's info", ->
-          mod.extract()
-          mod.prepare()
-          mod.adjust()
+          mod.parse().extract().prepare().adjust()
+
           expected =
             # extract info
             ext_defineArrayDeps: [
@@ -504,6 +503,7 @@ describe "Module:", ->
           ]
 
         it "should extract all deps, even untrusted and mark them so", ->
+          mod.parse()
           mod.extract()
           mod.prepare()
           mod.adjust()
@@ -570,6 +570,7 @@ describe "Module:", ->
         'depDir1/readyToBeRemoved.js'
       ]
     })
+      .parse()
       .extract()
       .prepare()
       .adjust()

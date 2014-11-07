@@ -1,15 +1,18 @@
 _ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/NodeRequirer', 0 # disable runtime debug
 
 fs = require 'fs'
+upath = require 'upath'
 
-upath = require './paths/upath'
+util = require 'util'
+
 pathRelative = require './paths/pathRelative'
 Dependency = require './fileResources/Dependency'
 
 urequire = require './urequire'
 
 BundleBase = require './process/BundleBase'
+UError = require './utils/UError'
+
 ###
 The `nodejs`'s require facility.
 
@@ -34,28 +37,31 @@ class NodeRequirer extends BundleBase
   @param {Object} modyle The node `module` object of the current UMD module (that calls 'require').
                   Used to issue the actual node `require` on the module, to preserve the correct `node_modules` lookup paths (as opposed to using the NodeRequirer's paths.
 
+  @param {Function} The original module's `require`, used for debuging `require.resolve`
+
   @param {String} dirname `__dirname` passed at runtime from the UMD module, poiniting to its self (i.e filename of the .js file).
 
   @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to path).
   ###
-  constructor: (@moduleNameBR, @modyle, @dirname, @webRootMap)->
-
+  constructor: (@moduleNameBR, @modyle, @moduleRequire, @dirname, @webRootMap, debugLevel)->
+    @l = new _B.Logger "uRequire/NodeRequirer `#{@moduleNameBR}`}",  debugLevel # template.debugLevel
     @path = upath.normalize (
-      @dirname + '/' + (pathRelative "#{upath.dirname @moduleNameBR}", ".", assumeRoot:true) + '/'
+      @dirname + '/' + (pathRelative "#{upath.dirname @moduleNameBR}", ".", assumeRoot: true) + '/'
     )
 
-    l.debug("""
-      new NodeRequirer(
-        @moduleNameBR='#{@moduleNameBR}'
-        @dirname='#{@dirname}'
-        @webRootMap='#{@webRootMap}')
-        @path (Calculated from @moduleNameBR & @dirname) = '#{@path}'
-    """) if l.deb 90
+    @l.deb("""\n
+      `new NodeRequirer()` instanciating
+            @moduleNameBR = '#{@moduleNameBR}'
+            @modyle.id = '#{@modyle.id}'
+            @dirname = '#{@dirname}'
+            @webRootMap = '#{@webRootMap}')
+            @path = '#{@path}'
+      """) if @l.deb 30
 
     if @getRequireJSConfig().baseUrl
       baseUrl = @getRequireJSConfig().baseUrl
 
-      l.debug("`baseUrl` (from requireJsConfig ) = #{baseUrl}") if l.deb 15
+      @l.deb("`baseUrl` (from requireJsConfig ) = #{baseUrl}") if @l.deb 15
 
       @path = upath.normalize (
         if baseUrl[0] is '/'  #web root as reference
@@ -64,7 +70,7 @@ class NodeRequirer extends BundleBase
           @path
       ) + '/' + baseUrl + '/'
 
-      l.debug("Final `@path` (from requireJsConfig.baseUrl & @path) = #{@path}") if l.deb 30
+      @l.deb("Final `@path` (from requireJsConfig.baseUrl & @path) = #{@path}") if @l.deb 30
 
   ###
   Defaults to node's `require`, invoked on the module to preserve `node_modules` path lookup.
@@ -92,10 +98,52 @@ class NodeRequirer extends BundleBase
         for pathsRjsConfig, config of NodeRequirer::requireJSConfigs
           rjsConfigs[pathsRjsConfig] = config
 
-        l.prettify di
+        @l.prettify di
+
+    ###
+    Load the [Requirejs](http://requirejs.org/) system module (as npm installed), & cache for @path as key.
+
+    Then cache it in static NodeRequirer::requirejsLoaded[@path], so only one instance
+    is shared among all `NodeRequirer`s for a given @path. Hence, its created only once,
+    first time it's needed (for each distinct @path).
+
+    It is configuring rjs with resolved paths, for each of the paths entry in `requirejs.config.json`.
+    Resolved paths are relative to `@path` (instead of `@dirname`).
+
+    @return {requirejs} The module `RequireJS` for node, configured for this @path.
+    ###
+    requirejs: get: ->
+      NodeRequirer::requirejsLoaded ?= {}  # static / store in class
+
+      if not NodeRequirer::requirejsLoaded[@path]
+        requirejs = @nodeRequire 'requirejs'
+
+        requireJsConf =
+          nodeRequire: @nodeRequire
+          baseUrl: @path
+
+        # resolve each path, as we do in modules - take advantage of webRoot etc.
+        if @getRequireJSConfig().paths
+          requireJsConf.paths = {}
+          for pathName, pathEntries of @getRequireJSConfig().paths
+            pathEntries = _B.arrayize pathEntries
+
+            requireJsConf.paths[pathName] or= []
+
+            for pathEntry in pathEntries
+              for resolvedPath in @resolvePaths(new Dependency(pathEntry), @path) #rjs paths are relative to path, not some file
+                requireJsConf.paths[pathName].push resolvedPath if not (resolvedPath in requireJsConf.paths[pathName])
+
+        requirejs.config requireJsConf
+
+        NodeRequirer::requirejsLoaded[@path] = requirejs
+
+      return NodeRequirer::requirejsLoaded[@path]
+
 
   ###
   Load 'requirejs.config.json' for @path & cache it with @path as key.
+  @todo: do we really need this complexity ?
   @return {RequireJSConfig object} the requireJSConfig for @path (or {} if 'requirejs.config.json' not found/not valid json)
   ###
   getRequireJSConfig: ->
@@ -104,59 +152,17 @@ class NodeRequirer extends BundleBase
     if NodeRequirer::requireJSConfigs[@path] is undefined
       try
         rjsc = require('fs').readFileSync @path + 'requirejs.config.json', 'utf-8'
-      catch error
-      # l.er "urequire: error loading requirejs.config.json from #{@path + 'requirejs.config.json'}"
-      #do nothing, we just dont have a requirejs.config.json
+      catch  #do nothing, we just dont have a requirejs.config.json
 
       if rjsc
         try
           NodeRequirer::requireJSConfigs[@path] = JSON.parse rjsc
-        catch error
-          l.er "urequire: error parsing requirejs.config.json from #{@path + 'requirejs.config.json'}"
+        catch err
+          throw new UError "urequire: error parsing requirejs.config.json from #{@path + 'requirejs.config.json'}", nested: err
 
       NodeRequirer::requireJSConfigs[@path] ?= {} # if still undefined, after so much effort
 
     return NodeRequirer::requireJSConfigs[@path]
-
-  ###
-  Load the [Requirejs](http://requirejs.org/) system module (as npm installed), & cache for @path as key.
-
-  Then cache it in static NodeRequirer::requirejsLoaded[@path], so only one instance
-  is shared among all `NodeRequirer`s for a given @path. Hence, its created only once,
-  first time it's needed (for each distinct @path).
-
-  It is configuring rjs with resolved paths, for each of the paths entry in `requirejs.config.json`.
-  Resolved paths are relative to `@path` (instead of `@dirname`).
-
-  @return {requirejs} The module `RequireJS` for node, configured for this @path.
-  ###
-  getRequirejs: ->
-    NodeRequirer::requirejsLoaded ?= {}  # static / store in class
-
-    if not NodeRequirer::requirejsLoaded[@path]
-      requirejs = @nodeRequire 'requirejs'
-
-      requireJsConf =
-        nodeRequire: @nodeRequire
-        baseUrl: @path
-
-      # resolve each path, as we do in modules - take advantage of webRoot etc.
-      if @getRequireJSConfig().paths
-        requireJsConf.paths = {}
-        for pathName, pathEntries of @getRequireJSConfig().paths
-          pathEntries = _B.arrayize pathEntries
-
-          requireJsConf.paths[pathName] or= []
-
-          for pathEntry in pathEntries
-            for resolvedPath in @resolvePaths(new Dependency(pathEntry), @path) #rjs paths are relative to path, not some file
-              requireJsConf.paths[pathName].push resolvedPath if not (resolvedPath in requireJsConf.paths[pathName])
-
-      requirejs.config requireJsConf
-
-      NodeRequirer::requirejsLoaded[@path] = requirejs
-
-    return NodeRequirer::requirejsLoaded[@path]
 
   ###
   Loads *one* module, synchronously.
@@ -170,69 +176,65 @@ class NodeRequirer extends BundleBase
 
   @param {Dependency} dep The Dependency to be load.
   @return {module} loaded module or quits if it fails
-  @todo:2 refactor/simplify
   ###
   unloaded = {}
   loadModule: (dep)=> #load module either via nodeRequire OR requireJS if it needs a plugin or if it fails!
     attempts = []
-    loadedModule = unloaded
+    loadedModule = unloaded # cater for module returning 'undefined/null' which is a valid value
 
-    l.debug 95, "loading dep '#{dep}'"
+    @l.deb 95, "called `loadModule('#{dep}')`"
     resolvedPaths = @resolvePaths(dep, @dirname)
-    l.debug "resolvedPaths = \n", resolvedPaths if l.deb 95
+    @l.deb "resolvedPaths = \n", resolvedPaths if @l.deb 95
 
-    for modulePath, resolvedPathNo in resolvedPaths when loadedModule is unloaded
-      if dep.plugin?.name?() in [undefined, 'node'] # plugin 'node' is dummy: just signals ommit from defineArrayDeps
-        l.debug("@nodeRequire '#{modulePath}'") if l.deb 95
-        attempts.push {modulePath, requireUsed: 'nodeRequire', resolvedPathNo, dependency: dep.name()}
-        try
-          loadedModule = @nodeRequire modulePath
-        catch err
-          l.debug "FAILED: @nodeRequire '#{modulePath}' err=\n", err if l.deb 35
-          _.extend _.last(attempts),
-            urequireError: "Error loading node or UMD module through nodejs require."
-            error: {string:err.toString(), err: err}
-
-          modulePath = upath.addExt modulePath, '.js' # RequireJS wants this for some reason
-          l.debug("@nodeRequire failure caused: @getRequirejs() '#{modulePath}'") if l.deb 25
-          attempts.push {modulePath, requireUsed: 'RequireJS', resolvedPathNo, dependency: dep.name()}
-          try
-            loadedModule = @getRequirejs() modulePath
-            if _.isUndefined loadedModule then loadedModule = unloaded
-          catch err
-            l.debug "FAILED: @getRequirejs() '#{modulePath}' err=\n", err if l.deb 25
-            _.extend _.last(attempts),
-              urequireError: "Error loading module through RequireJS; it previously failed with node's require."
-              error: {string:err.toString(), err: err}
+    requirers =
+      if hasPlugin = dep.plugin?.name?() not in [undefined, 'node'] # plugin 'node' is dummy: just signals ommit from defineArrayDeps
+        ['requirejs']
       else
-        modulePath = "#{dep.pluginName}!#{modulePath}"
-        l.debug "Dependency plugin '#{dep.pluginName}' caused: @getRequirejs() '#{modulePath}'" if l.deb 25
-        attempts.push {
-          modulePath, requireUsed: 'RequireJS', resolvedPathNo, dependency: dep.name(),
-          pluginName: dep.pluginName,
-          pluginPaths: @requireJSConfig?.paths[dep.pluginName],
-          pluginResolvedPaths: @requirejs?.s?.contexts?._?.config?.paths[dep.pluginName]
-        }
+        ['nodeRequire', 'requirejs']
+
+    for requirer in requirers
+      for modulePath, resolvedPathNo in resolvedPaths
+        if hasPlugin then modulePath = "#{dep.pluginName}!#{modulePath}"
+        if @l.deb 50
+          @l.deb 50, "resolvedPathNo ##{resolvedPathNo}: '#{modulePath}'"
+          if @l.deb(70) and requirer is 'nodeRequire'
+            try @l.deb "@moduleRequire.resolve() = `#{@moduleRequire.resolve(modulePath)}`" catch
+
+        attempts.push {resolvedPathNo, modulePath, requirerUsed: requirer, dependency: dep.name()}
+        # modulePath = upath.addExt modulePath, '.js' # RequireJS wants this for some reason ?
+        @l.deb "ISSUING: #{requirer}('#{modulePath}')" if @l.deb 30
         try
-          loadedModule = @getRequirejs() modulePath # pluginName!modulePath
-          if _.isUndefined loadedModule then loadedModule = unloaded
+          loadedModule = @[requirer](modulePath)
         catch err
+          @l.warn "FAILED: `@#{requirer}('#{modulePath}')` err=\n", err if @l.deb 30
+          @requirejs.undef(modulePath) if requirer is 'requirejs' # solves https://github.com/jrburke/requirejs/issues/1224
+
           _.extend _.last(attempts),
-            urequireError: "Error loading module with plugin '#{dep.pluginName}' through RequireJS."
+            urequireError: "Error loading module through requirer `#{requirer}`."
             error: {string:err.toString(), err: err}
+
+          if hasPlugin
+            _.extend _.last(attempts),
+              pluginName: dep.pluginName,
+              pluginPaths: @requireJSConfig?.paths[dep.pluginName],
+              pluginResolvedPaths: @requirejs?.s?.contexts?._?.config?.paths[dep.pluginName]
+
+        break if loadedModule isnt unloaded
+      break if loadedModule isnt unloaded
 
     if loadedModule is unloaded
-      l.er """\n
+      @l.er """\n
         *uRequire #{urequire.VERSION}*: failed to load dependency: '#{dep}' in module '#{@moduleNameBR}'.
         Tried paths:
         #{ _.uniq("'" + att.modulePath + "'" for att in attempts).join '\n  '}
 
         Quiting with throwing 1st error at the end - Detailed attempts follow:
-        #{("  \u001b[33m Attempt #" +  (attIdx + 1) + '\n' + l.prettify(att) for att, attIdx in attempts).join('\n\n')}
+        #{("  \u001b[33m Attempt #" +  (attIdx + 1) + '\n' + @l.prettify(att) for att, attIdx in attempts).join('\n\n')}
 
         Debug info:\n """, @debugInfo
       throw attempts[0]?.error?.err or '1st err was undefined!'
     else
+      @l.ok "`@#{requirer}` loaded dep `#{dep}` from `#{modulePath}` (resolvedPathNo ##{resolvedPathNo}) " if @l.deb 20
       loadedModule
 
 
@@ -252,15 +254,15 @@ class NodeRequirer extends BundleBase
           [not needed any more in 2.1.x](https://github.com/jrburke/requirejs/wiki/Upgrading-to-RequireJS-2.1#wiki-breaking-async) )
   @return {module} module loaded if called *synchronously*, or `undefined` if it was called *asynchronously*
   ###
-  require: (strDeps, callback )=> # strDeps is { 'String' | '[]<String>' }
-    if _.isString strDeps # String - synchronous call
-      return @loadModule new Dependency strDeps, path: @moduleNameBR
+  require: (strDeps, callback)=> # strDeps is { 'String' | '[]<String>' }
+    if _.isString strDeps
+      @l.deb "`nr.require('#{strDeps}')` called - @loadModule synchronously single dep." if @l.deb 80
+      @loadModule new Dependency strDeps, path: @moduleNameBR
     else
       if _.isArray(strDeps) and _.isFunction(callback) # we have an arrayDeps []<String> & cb
+        @l.deb "`nr.require(#{util.inspect strDeps})` called: @loadModule called asynchronously for each dep in array." if @l.deb 50
         process.nextTick => #load asynchronously
           # load each dependency and callback()
           callback.apply null, (@loadModule(new Dependency strDep, path: @moduleNameBR) for strDep in strDeps)
-
-    undefined
 
 module.exports = NodeRequirer

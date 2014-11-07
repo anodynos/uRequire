@@ -101,8 +101,6 @@ Copy (binary & sync) of all non-resource [bundle.filez](MasterDefaultsConfig.cof
 
 The *name* of the bundle, eg 'MyLibrary'.
 
-@note When using [grunt-urequire](https://github.com/aearly/grunt-urequire), it *defaults* to the multi-task `@target`. So with grunt config `{urequire: 'MyBundlename': {bundle : {name:undefined}, build:{} }}`, `bundle.name` will default to `'MyBundlename'`.
-
 @note: `bundle.name` serves as the 1st default for [`bundle.main`](#bundle.main) (if main is not explicit).
 
 @alias `bundleName` DEPRECATED
@@ -158,19 +156,13 @@ All information related to dependencies handling is listed here.
 
       dependencies:
 
-### bundle.dependencies.exports
-
-Holds keys related to binding and exporting modules (i.e making them available to bundle modules, or globally).
-
-        exports:
-
-#### bundle.dependencies.exports.bundle
+#### bundle.dependencies.imports
 
 Allows you to *export* or [*inject*](resourceconverters.coffee#inject-replace-dependencies) (i.e have available) specific dependencies (other modules) throughout the *whole bundle*, under the given variable name(s).
 
 Eg you want to access `'underscore'` from  `_`, `'backbone'` from `Backbone` etc, from all modules, without having to declare it in each module.
 
-Effectively this means that each module will have an *injection* of all `dependencies.exports.bundle`, so you don't have to list them in each module.
+Effectively this means that each module will have an *injection* of all `dependencies.imports`, so you don't have to list them in each module.
 
 @example
 
@@ -196,15 +188,11 @@ will give you :
 
 @note the [shortcut depsvars format](Types-and-derive#shortcut-depsvars-types), can also be used (eg `['underscore', 'jquery', 'models/PersonModel']`), in which case the [vars are inferred]](types-and-derive#inferred-binding-idenifiers).
 
-@alias `bundleExports` DEPRECATED
+@alias `bundleExports`, `exports.bundle` both DEPRECATED
 
-          bundle: {}
+        imports: {}
 
-#### bundle.dependencies.imports [.bundle ?]
-
-@todo NOT IMPLEMENTED https://github.com/anodynos/uRequire/issues/39
-
-#### bundle.dependencies.exports.root
+#### bundle.dependencies.rootExports
 
 Make a module be available GLOBALY (by attaching it to `window` and/or nodejs's `global` object) under `varName`(s), same as in [Exporting Modules](Exporting-Modules).
 
@@ -214,11 +202,11 @@ Access via plain `varName` works both in browser *and* nodejs.
 
   * On nodejs its attached to the `global` object with the same effect: accessing it via its name from everywhere.
 
-@note: When `bundle.dependencies.exports.root` is used (instead of precise [Exporting Modules](Exporting-Modules)), `noConflict` is always true.
+@note: When `bundle.dependencies.rootExports` is present, you control `noConflict` via [`build.rootExports.noConflict`](#build.rootExports.noConflict) which defaults to `true` (overriding `noConflict` defined within the module, as described in [Exporting Modules](Exporting-Modules)).
 
 @example
 
-  `bundle: dependencies: exports: root: {'models/PersonModel': ['persons', 'personsModel']}`
+  `bundle: dependencies: rootExports: {'models/PersonModel': ['persons', 'personsModel']}`
 
 is like having a
 
@@ -230,11 +218,11 @@ in module `'models/PersonModel'` as described in [Exporting Modules](Exporting-M
 
 @derive [dependenciesbindings](types-and-derive#dependenciesbindings)
 
-@todo [`dependencies.exports.root` globals being optional on AMD or node](https://github.com/anodynos/uRequire/issues/36)
+@note both `window` and `global` objects exist as an alias of each other on the ['combined' template](combined-template) or when [`build.globalWindow: true`](#build.globalWindow) (the default) on all other templates.
 
-@note both `window` and `global` objects exist as an alias of each other on the ['combined' template](combined-template) or when [`build.globalWindow: true`](#build.globalWindow) (the default).
+@alias `dependencies: exports: root` DEPRECATED
 
-          root: {}
+        rootExports: {}
 
 ### bundle.dependencies.replace
 
@@ -263,7 +251,7 @@ All deps are considered / translated to [bundleRelative](http://urequire.org/fle
 
 @derive paradoxically its [dependenciesbindings](types-and-derive#dependenciesbindings)
 
-          replace: undefined
+        replace: {}
 
 ### bundle.dependencies.node
 
@@ -298,21 +286,17 @@ Using `bundle.dependencies.node` has the same effect as the `node!` fake plugin,
 
 ### bundle.dependencies.locals
 
-Declare your local packages, like `'lodash'` or `'when'` that are installed either on npm (i.e `/node_modules`), bower (i.e `/bower_components`) or vanilla (eg `/vendor`). Local deps are NOT considered part of the bundle, hence they are not reported as _"Bundle-looking dependencies not found in bundle"_.
+Declare your local packages, like `'lodash'` or `'when'` that are installed either on npm (i.e `node_modules`), bower (i.e `bower_components`) or vanilla (eg `/vendor`). Local deps are NOT considered part of the bundle, hence they are not reported as _"Bundle-looking dependencies not found in bundle"_.
 
-All deps that have no nested path (i.e no `'/'`) and are not in the bundle's path (eg `'someDepNotInBundle'`) are considered as local automatically. **The only reason you would need to declare a dep as local is :**
+All deps that have no nested path (i.e no `'/'`) and are not in the bundle's path (eg `'lodash'`) are considered as local automatically. **The only reason you would need to declare a dep as local is :**
 
- * you use something like `require('when/node/function')` and it's reported as _"Bundle-looking dependencies not found in bundle"_, but it shouldn't be. So you list `when` in `locals` and everything that falls below `'when/**/*'` is also considered local (@todo it could be inferred from `package.json / bower.json` etc).
-
- * (@todo: inlining NOT IMPLEMENTED yet) you want to override the paths infered from `bower.json/package.json` for `lodash` and also inline `'lodash'` in a combined build.
+ * you use something like `require('when/callbacks')` and it's reported as _"Bundle-looking dependencies not found in bundle"_, but it shouldn't be. So you list `when` in `locals` and everything that falls below `'when/**/*'` is also considered local.
 
 @optional
 
-@todo experimental / partially implemented (especially for AMD's loading mechanism that doesn't understand the CommonJS semantics of `'when/node/function'`).
+@stability 3
 
-@stability 1
-
-@example `locals: ['when']` or `locals: {'when': '../node_modules/when'}`
+@example `locals: ['when']` or `locals: {'when': 'bower_components/when'}`
 
 @type :
 
@@ -320,21 +304,39 @@ All deps that have no nested path (i.e no `'/'`) and are not in the bundle's pat
 
  * [depsVars](types-and-derive#depsVars) type where
 
-   * keys are the first part of local deps
+   * keys are the first part of the local dep name
 
    * value(s) are the paths when the dependency 'main' can be found. eg
     ```
      {
-      'when': "./node_modules/when"
-      'backbone': "./node_modules/backbone"
-      'lodash': "./node_modules/lodash"
+      'when': "bower_components/when"
+      'backbone': "node_modules/backbone"
+      'lodash': "node_modules/lodash"
      }
     ```
-    @todo: NOT IMPLEMENTED yet: the paths are not taken into consideration (and not needed anyway if you don't indent to inline them in a [combined template](combined-template)).
-
-@todo infer locals AND their paths from package.json, bower.json etc
 
         locals: {}
+
+@example
+
+```
+dependencies:
+ imports:
+  'when/callbacks': 'whenCallbacks'
+
+ locals:
+  'when': 'bower_components/when'
+```
+
+Doesn't work with `combined` template running as plain script - `when` needs to be combined too - check their docs.
+
+
+### bundle.dependencies.paths
+
+        paths:
+          override: undefined
+          bower: undefined
+          npm: undefined
 
 ### bundle.dependencies.depsVars
 
@@ -496,7 +498,7 @@ This is an opportunity to add code once and have it included:
 
  * Once within the bundle's closure, available to all modules, when using the ['combined' template](combined-template).
 
-In all templates, the code should access only `bundle.dependencies.exports.bundle` vars & other globals. It should not it self `require` anything, cause its depedencies are not (and should not be) analyzed.
+In all templates, the code should access only `bundle.dependencies.imports` vars & other globals. It should not it self `require` anything, cause its depedencies are not (and should not be) analyzed.
 
 @see [inject code and strings in modules](resourceconverters.coffee#inject-any-string-before-after-body) & [Merging code in bundles](combined-template#merging-code)
 
@@ -548,6 +550,17 @@ Output converted files (Modules & Resources) onto this:
 
       dstPath: undefined
 
+
+## build.target
+
+The name of the build target - when using [grunt-urequire](https://github.com/aearly/grunt-urequire), it becomes the multi-task `@target`. So with grunt config `{urequire: 'dev': {bundle : {...}, build:{target:undefined} }}`, `build.target` will become `'dev'`.
+
+@optional coerced to @target if using grunt - otherwise set it what ever describes your build.
+
+@example `'UMD'`, `'dev'`, `'min'`, `'specDev'` etc
+
+      target: undefined
+
 ## build.forceOverwriteSources
 
 Output on the same directory as the _source_ [`bundle.path`](MasterDefaultsConfig.coffee#bundle.path), overwriting all files. Useful if your sources are not *real sources*.
@@ -560,42 +573,43 @@ Output on the same directory as the _source_ [`bundle.path`](MasterDefaultsConfi
 
 The **template** to use to either convert:
 
-  * each module file, to a new format like `'UMD'`, `'UMDPlain'`, `'nodejs'`, `'AMD'` etc
+  * each module file, to a new format like `'UMD'`, `'UMDplain'`, `'nodejs'`, `'AMD'` etc
 
   * all modules files into one `combined.js` file, using the special ['combined' template](combined-template) that actually drives an r.js/almond conversion.
 
 @type
 
-  * The simple usage, just the **name of the template** as a string in [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
+  * The _simple usage_ is a String of the **name of the template** as a string among the available [Build.templates](https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee) = ['UMD', 'UMDplain', 'AMD', 'nodejs', 'combined']
 
-  * An options hash such as :
-
+  * A hash that has the following optional values :
 ```
-template: {
-   # the String **name of the template**
+    template: {
+      name: {String}
+      moduleName: {String}
+      banner: {String|Boolean|Function}
+      debugLevel: {Number}
+    }
+```
+
+### build.template.name
+
+The String **name of the template**, as in _simple usage_ above.
+
+#### Example
+
    name: 'combined'
 
-   # for the 'combined' template only, you can declare the `combinedFile`,
-   # if its different (or instead of) [`build.dstPath`](#build.dstPath).
+### build.template.combinedFile
+
+For the 'combined' template only, you can declare the `combinedFile`, if its different (or instead of) [`build.dstPath`](#build.dstPath).
+
+#### Example
+
    combinedFile: 'build/someOtherPath/combinedModulesFilename.js'
 
-   # By default, when AMD is present, 'combined' template calls `define()` that registers your (main) module **anonymously** - you can define it with a [moduleName](http://www.requirejs.org/docs/api.html#modulename) eg `moduleName: "foo/title"` here.
-   # Its useful when you want to 'inject' it inside some other hierarchy (than what its dstPath implicitly defines it as), eg you want to have `'foo/bar' as a separate package `foo_bar.js` but correctly register its self on your dependency tree.
-   # You can even load such combined file with moduleName via plain script eg `<script src='foo_bar.js'>`, without RequireJS throwing `Error: Mismatched anonymous define()` and then `require(['foo/bar', function(foo_bar){ foo_bar.doStuff()})`.
-   moduleName: 'foo/bar'
+#### Usage
 
-   # Adds the **String** banner at the top of your `bundle.main` file, or the top of the combined file.
-   # @note as of v0.6.10, it works independently of rjs optimizer, so you can `rjs: preserveLicenseComments: false` to strip all other banner but yours (but watch out for license deprivation).
-   banner: "/** I am a banner on top */"
-
-   # Template debug - outputs section comments with values of 10, 20, 30.
-   # Multiply that by 10 and you'll get `console.log`s of sections while they load.
-   # Highly experimental and pre-alpha!
-   debugLevel: 0
-}
-```
-
-@note: `combinedFile` and [`build.dstPath`](#build.dstPath) derive from each other, if either is undefined:
+The `combinedFile` and [`build.dstPath`](#build.dstPath) derive from each other, if either is undefined:
 
  * In the previous example, if `build.dstPath` is undefined, it will default to `'build/someOtherPath/'`
 
@@ -603,11 +617,64 @@ template: {
 
  * if both are undefined uRequire will quit (unless [`forceOverwriteSources`](#build.forceOverwriteSources) is true).
 
-@example `template: 'UMDplain'` or see @type example before
+If both are defined, they will be respected, leading to a possible different path where `combinedFile` is written and where all other non-combined files (that are part the bundle) are written (eg [`bundle.copy`](bundle.copy), htmls, css etc).
+
+### build.template.moduleName
+
+By default, when AMD is present, 'combined' template calls `define()` that registers your combined bundle as an **anonymous module** - this registers in the AMD system with the name of its path (eg `uberscore-min`).
+
+You can change this behavior and call `define` with a [moduleName](http://www.requirejs.org/docs/api.html#modulename) eg `moduleName: "foo/title"` here.
+Its useful when you want to 'inject' it inside some other hierarchy (than what its filename implicitly defines it as), eg you want to have `'foo/bar' as a separate package `foo_bar.js` but correctly register its self on your dependency tree.
+
+You can even load such a combined file with `moduleName` via plain script eg `<script src='foo_bar.js'>`, without RequireJS throwing the `Error: Mismatched anonymous define()` and then you can do a `require(['foo/bar', function(foo_bar){ foo_bar.doStuff()})`.
+
+Be careful with it though, cause RequireJS sometimes **silently fails** in some cases, if there's a mismatch between the declared `moduleName` and the name it would give it if it were anonymous when another module requires it. Its complicated and rough, as many things in AMD :-(
+
+#### Example
+
+   moduleName: 'foo/bar'.
+
+### build.template.banner
+
+Adds a banner at the top of either your `bundle.main` UMD/AMD/nodejs file, or the top of the combined file.
+
+It works perfectly along with the [`build.optimize: true`](#build.optimize), knowing when to concat it. This has many positive implications, so for example when the rjs optimizer is used on the combined file, you can have a `build: rjs: preserveLicenseComments: false` to strip all other banners included in the bundle but yours which is added at the end of the process (but watch out for license deprivation).
+
+The value can be of 4 different types:
+
+* `String`: concatenated as-is.
+
+* `Boolean`: a `true` value creates a default banner out of your `package.json` using `name, version, homepage, author, description, license/licenses, repository` and current date.
+
+* `Object`: a hash with values resembling a `package.json`, using the default banner generator above.
+
+* `Function(package, bower, bundle, build)`: is called with these parameters so you can build your own banner generator function that should return a `String`.
+
+#### Examples
+
+   banner: true
+
+   banner: "/** I am a banner on top */"
+
+   banner: {name: "MyProject", version: "2.0-beta"}
+
+   banner: function(pkg) { return "/**" + name + " v" + version + "*/"; }
+
+### build.template.debugLevel
+
+Template debug - outputs section comments. Values are in the range of 10, 20, 30.
+Multiply those by 10 and you'll get `console.log`s of sections while they load.
+Highly experimental and for hard core debugging only!
+
+#### Example
+
+   debugLevel: 0
 
 @see *Conversion Templates* in docs.
 
-      template: 'UMD'
+@default
+
+      template: 'UMDplain'
 
 ## build.runtimeInfo
 
@@ -617,7 +684,7 @@ For example they can be used to select a different execution branch, depending o
 
 See a Q&A / tutorial on how this helps nodejs/browser cross development at [stackoverflow.com](http://stackoverflow.com/questions/22512486/nodejs-browser-cross-development).
 
-@note ['combined' template](combined-template) always has these variables available on the enclosing function cause it needs them!
+@note ['combined' template](combined-template) always has `runtimeInfo` enabled cause it it.
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
@@ -639,7 +706,7 @@ Like coffeescript `--bare`:
   }).call(this);
   ```
 
-* if `bare: true` it doesnt.
+* if `bare: true` it doesn't.
 
 The IIFE is just a top-level safety wrapper used to prevent leaking and have all variables as local to the module and to provide the [`build.globalWindow`](#build.globalWindow) functionality.
 
@@ -655,7 +722,7 @@ The IIFE is just a top-level safety wrapper used to prevent leaking and have all
 
 ## build.useStrict
 
-Add the famous `'use strict';` so you dont have to type it at each module.
+Add the famous `'use strict';` so you don't have to type it at each module.
 
 Its added either at:
 
@@ -667,7 +734,7 @@ Its added either at:
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-@default is `undefined`, which doesn't inject `use strict;` on any module, BUT it in [combined template](combined-template) it enables the corresponding [rjs config `useStrict: true`](https://github.com/jrburke/r.js/blob/master/build/example.build.js). Effectively this allows 'use strict;' on the modules that already have it. Use `false` to give a false on rjs, which strips them off and `true` to inject it on the once on the combined template or on each module in UMD/AMD/nodejs (even if modules already have it).
+@default is `undefined`, which doesn't inject `use strict;` on any module, BUT in [combined template](combined-template) it enables the corresponding [rjs config `useStrict: true`](https://github.com/jrburke/r.js/blob/master/build/example.build.js). Effectively this allows 'use strict;' on the modules that already have it. Use `false` to give a false on rjs, which strips them off and `true` to inject it once on the combined template or on each module in UMD/AMD/nodejs (even if modules already have it).
 
       useStrict: undefined
 
@@ -681,7 +748,7 @@ Allow `global` & `window` to be `global === window`, whether on nodejs or the br
 
 @note the `global === window` functionality is always true in ['combined' template](combined-template) - `false`-ing it makes no difference!
 
-      globalWindow: true
+      globalWindow: false
 
 ## build.injectExportsModule
 
@@ -689,9 +756,9 @@ Always inject `exports, module` as dependencies on AMD/UMD templates from module
 
 Having `exports` around solves the **[circular dependencies](http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd) problem [with AMD](http://requirejs.org/docs/api.html#circular)**, so its enabled by @default as `true`.
 
-@note with this commonjs trick (see it in [requirejs docs](http://requirejs.org/docs/api.html#circular)), you can **export only the plain `{}`** that `exports` already points to, not a `function` or any other type.
+@note to make this commonjs circular dependencies workaround work (see it in [requirejs docs](http://requirejs.org/docs/api.html#circular)), you need to **export only the plain `{}`** that `exports` already points to, not a `function` or any other value of your own. Eg you do only a `exports.myKey = 'myValue' and NOT an `module.exports = "my module value"`
 
-@note uRequire fixes the AMD mandate that you still need to `return exports` or `return module.exports` that both point to {the:'module'} from the AMD factory (not just setting `module.exports = {the:'module'}`). With uRequire conversion and you can use exports as you normally do with nodejs/commonjs modules, and never return it even from AMD modules.
+@note uRequire fixes the AMD mandate that you still need to `return exports` or `return module.exports` that both point to {the:'module'} from the AMD factory (not just setting `module.exports = {the:'module'}`). With uRequire conversion you can use exports as you normally do with nodejs/commonjs modules, and never return it even from AMD modules.
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
@@ -701,29 +768,37 @@ Having `exports` around solves the **[circular dependencies](http://stackoverflo
 
 @optional changing the @default being `true`, would save a few bytes in each module definition, with the cost of falling into the circular dep trap and having to `return exports` etc. Advice is to leave it on, and *never manually type* `define(['require', 'exports', 'module', ..], function(require, exports, module, ..){..}` etc again!
 
-@todo improve detection/injection of the 3 stooges.
-
       injectExportsModule: true
 
-## build.noRootExports
+## build.rootExports
+
+Holds keys relating to how `bundle.dependencies.rootExports` are build into the converted modules.
+
+      rootExports:
+
+## build.rootExports.ignore
 
 When true, it doesn't produce the boilerplate for [exporting modules (& `noConflict`())](exporting-modules). It ignores both :
 
  * `{ rootExports: ['persons', 'personsModel'] }` on top of `'models/PersonsModel.js'`.
 
- * [`bundle.dependencies.exports.root`](#bundle.dependencies.exports.root)
+ * [`bundle.dependencies.rootExports`](#bundle.dependencies.rootExports)
 
- * bundle.exportsRoot (see below)
+ * build.rootExports.runtimes (see below)
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 
-      noRootExports: false
+@optional
 
-## build.exportsRoot
+@alias `build.noRootExports` DEPRECATED
 
-Build in such a way that exporting `bundle.dependencies.exports.root` on root (i.e `window`/`global`) works only on the declared runtimes (among `'AMD'`, `'node'` and `'script'`).
+        ignore: false
+
+## build.rootExports.runtimes
+
+Builds modules in such a way that exporting `bundle.dependencies.rootExports` on root (i.e `window`/`global`) works only on the declared runtimes (among `'AMD'`, `'node'` and `'script'`).
 
 @type Array with one or more among `'AMD'`, `'node'` and `'script'`, which represent the 3 common runtimes.
 
@@ -731,11 +806,21 @@ Build in such a way that exporting `bundle.dependencies.exports.root` on root (i
 
 @example if you want the root exports to work both when running as `script` (eg. `combined` template or [`noLoaderUMD`](#noLoaderUMD) ) but also on when `AMD` loader is used (see rationale in [`amdWebGlobal` UMD variant](https://github.com/umdjs/umd/blob/master/amdWebGlobal.js#L22), use `['AMD', 'script']`.
 
-@note if you specify an empty array `[]`, its effectivelly like having `noRootExports: true`.
+@note if you specify an empty array `[]`, its effectively like having `build.rootExports.ignore: true`.
 
-@default is to export *always* on all runtimes (but ['script'] could be a good choice also).
+@optional
 
-      exportsRoot: ['AMD', 'node', 'script']
+@alias `build.exportsRoot` DEPRECATED
+
+@default is to export only on 'script', not on node's `global` object and not on `window` when loading through AMD.
+
+        runtimes: ['script']
+
+## build.rootExports.noConflict
+
+Controls the generation of the `noConflict` code - considered only when of `bundle.dependencies.rootExports` is present, in which case it overrides the `noConflict` value declared in the module it self (as described in [Exporting Modules](Exporting-Modules)).
+
+        noConflict: true
 
 ## build.scanAllow
 
@@ -747,7 +832,7 @@ With `scanAllow: true` you allow `require('')` scan @ runtime (costs at starting
 
 @note in [combined-template](combined-template), rjs / almond optmization scans and adds all requires on AMD define array, so its completelly useless.
 
-@note: uRequire ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.exports.bundle`](#bundle.dependencies.exports.bundle) or [injected deps](resourceconverters.coffee#inject-replace-dependencies). @todo why, can this be removed ?
+@note: uRequire ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.imports`](#bundle.dependencies.imports) or [injected deps](resourceconverters.coffee#inject-replace-dependencies). @todo why, can this be removed ?
 
 @optional
 
@@ -779,11 +864,11 @@ Add dummy params `__dummy__param__n` for deps that have no corresponding param i
 
 ## build.noLoaderUMD
 
-Allow modules to execute and register their exports (as defined in [`bundle.dependencies.exports.root`] or [rootExports](Exporting-Modules)), even when running without an AMD or CommonJS loader, i.e it runs on a browser via `<script src='my/UMDModule.js'>`. It works only:
+Allow modules to execute and register their exports (as defined in [`bundle.dependencies.rootExports`] or [rootExports](Exporting-Modules)), even when running without an AMD or CommonJS loader, i.e it runs on a browser via `<script src='my/UMDModule.js'>`. It works only:
 
  * on 'UMD' and 'UMDplain' templates.
 
- * if module has local/global dependencies only (eg `'underscore'`) and it has already load it self (eg as `window._`).
+ * if module has local/global dependencies only (eg `'underscore'`) and those have already load them selves (eg as `window._`).
 
 If the UMD module has bundle deps (eg `'my/models/Person'`) it needs an AMD loader and loading as `<script src="require.js" data-main="MainModule">`.
 
@@ -895,11 +980,13 @@ Callback to pass you the [`converted`](resourceconverters.coffee#converted) cont
 
       out: undefined
 
-## build.done
+## build.afterBuild
 
 This is set by either *urequireCMD* or [grunt-urequire](https://github.com/aearly/grunt-urequire) to signify the end of a build.
 
-      done: []
+      afterBuild: []
+
+@alias `done` DEPRECATED (but still supported)
 
 ## build.clean
 
@@ -923,7 +1010,7 @@ If `clean` is a [filesspec type](types-and-derive#filespecs) (eg `clean: ['some/
 
 On subsequent partial builds, **no files are deleted**.
 
-      clean: undefined
+      clean: true
 
 ## build.deleteErrored
 
@@ -942,7 +1029,7 @@ Delete destination files while their source is at error. Useful when watching bu
 ## build.rjs
 
 The [r.js config] https://github.com/jrburke/r.js/blob/master/build/example.build.js,
-when cobining with r.js ([combined template](combined-template)).
+when combining with r.js ([combined template](combined-template)).
 
 Its keys are just `_.defaults` for urequire's idea about using r.js with combined template, *so use with caution*!
 

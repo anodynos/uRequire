@@ -134,4 +134,7 @@ class Template
         else ''
       )
 
+    globalSelector: get:->
+      "(typeof exports === 'object' || typeof window === 'undefined' ? global : window)"
+
 module.exports = Template

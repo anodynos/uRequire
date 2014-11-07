@@ -1,7 +1,8 @@
 _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/config/ResourceConverter', 0 # config's `build.debugLevel` doesn't work here, cause the config is not read yet!
 
-upath = require '../paths/upath'
+upath = require 'upath'
+
 UError = require '../utils/UError'
 
 # ResourceConverter creates materialized RC instances

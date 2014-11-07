@@ -3,16 +3,14 @@ l = new _B.Logger 'uRequire/Dependency' #, 110
 
 _.mixin (require 'underscore.string').exports()
 
-MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
-
-upath = require './../paths/upath'
-pathRelative = require './../paths/pathRelative'
-
-isFileIn = require 'is_file_in'
-UError = require '../utils/UError'
-
-minimatch = require 'minimatch'
 util = require 'util'
+minimatch = require 'minimatch'
+upath = require 'upath'
+isFileIn = require 'is_file_in'
+
+MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
+pathRelative = require './../paths/pathRelative'
+UError = require '../utils/UError'
 
 untrust = (str)->
   str = new String(str + '')
@@ -77,9 +75,10 @@ class Dependency
         if _.last(@resourceName) is '/'
           @resourceName = @resourceName[0..@resourceName.length-2]
 
-        if upath.extname @resourceName # trim & store file extension
-          @extname = upath.extname @resourceName
-          @resourceName = upath.trimExt @resourceName
+        if ext = upath.extname @resourceName # trim & store file extension
+          if ext is '.js'
+            @extname = upath.extname @resourceName
+            @resourceName = upath.trimExt @resourceName
 
         @updateAST() # wasted initially, but best to always keep in sync
 
@@ -125,7 +124,7 @@ class Dependency
           else
             # lets see if its found in the bundle
             if @isNode
-              if @_isInLocals
+              if @_isInLocals or (@resourceName.indexOf('/') < 0)
                 'nodeLocal'
               else
                 'node'
@@ -139,28 +138,39 @@ class Dependency
                   if (@resourceName.indexOf('/') < 0) or               # a) its without '/', eg 'when'
                      @_isInLocals                                      # b) its 'when/node/function', but in `dependencies.local`
                      # todo : need to check `(@resourceName[0] isnt '.')` ?
-                     # @todo infer locals from package.json, bower.json etc & use depsVars type
                     'local'
                   else
                     'notFoundInBundle'
 
     _isInLocals: get:->
-      (@module?.bundle?.dependencies?.locals or
-        MasterDefaultsConfig.bundle.dependencies.locals)[ @resourceName.split('/')[0] ] # we have the 'when' key
+      firstPart = @resourceName.split('/')[0] # the 'when' part of 'when/callbacks'
+      deps = @module.bundle.dependencies
+      pkg = @module.bundle.package
+      depPlaces = [
+        deps.locals
+        MasterDefaultsConfig.bundle.dependencies.locals
+        deps.paths.bower
+        pkg.dependencies
+        pkg.devDependencies
+      ]
+      for depPlace in depPlaces when depPlace
+        return true if depPlace[firstPart]
+
+      false
 
     isNode: get:->
       (@plugin?.name?() is 'node') or # 'node' is a fake plugin signaling nodejs-only executing modules.
       isFileIn @name(plugin:false, relative:'bundle'),
-        (@module?.bundle?.dependencies?.node or
+        (@module.bundle?.dependencies?.node or
           MasterDefaultsConfig.bundle.dependencies.node)
 
     isFound: get:->
-      if _.isArray @module?.bundle?.dstFilenames
-        upath.defaultExt(@_bundleRelative, '.js') in @module.bundle.dstFilenames
+      if _.isArray @module.bundle?.dstFilenames
+        upath.addExt(@_bundleRelative, '.js') in @module.bundle.dstFilenames
 
     isFoundAsIndex: get:->
-      if _.isArray @module?.bundle?.dstFilenames
-        upath.defaultExt(@_bundleRelative + '/index', '.js') in @module.bundle.dstFilenames
+      if _.isArray @module.bundle?.dstFilenames
+        upath.normalize(upath.addExt(@_bundleRelative + '/index', '.js')) in @module.bundle.dstFilenames
 
     isWebRootMap: get:-> @resourceName[0] is '/'
 
@@ -171,7 +181,7 @@ class Dependency
         @depString
       else
         if @isRelative #and @_isBundleBoundary
-          upath.join upath.dirname(@module?.path or '.'), @resourceName
+          upath.join upath.dirname(@module.path or '.'), @resourceName
         else # keep bundleRelative outside of bundle with at least ./
           upath.normalizeSafe @resourceName
 
@@ -179,8 +189,8 @@ class Dependency
       if @untrusted
         @_depString
       else
-        if @module?.path and (@isFound or @isFoundAsIndex)
-          pathRelative upath.dirname(@module?.path or '__root__'), @_bundleRelative, { dot4Current:true, assumeRoot:true}
+        if @module.path and (@isFound or @isFoundAsIndex)
+          pathRelative upath.dirname(@module.path or '__root__'), @_bundleRelative, { dot4Current:true, assumeRoot:true}
         else
           upath.normalizeSafe @resourceName
 
@@ -189,13 +199,13 @@ class Dependency
       if @untrusted or @isWebRootMap
         false
       else
-        !!@pathToRoot
+        @pathToRoot isnt null
 
     pathToRoot: get: ->  # 2 `..` steps back :resourceName & modulePath
-      pathRelative "#{@module?.path}/../../#{@resourceName}", ".", assumeRoot: true
+      pathRelative "#{@module.path}/../../#{@resourceName}", ".", assumeRoot: true
 
     modulePathToRoot: get: ->
-      pathRelative upath.dirname(@module?.path or "__root__"), "/", assumeRoot:true
+      pathRelative upath.dirname(@module.path or "__root__"), "/", assumeRoot:true
 
   name: (options = {})->
     if @untrusted
@@ -206,10 +216,14 @@ class Dependency
       options.relative ?= 'file'
       options.quote ?= false
 
+      appendIndex = if !@isFound and @isFoundAsIndex then '/index' else ''
+
       (if options.quote then "'" else '') + # @todo: use _.quote
       (if options.plugin and @plugin and not @isNode then @plugin.name() + '!' else '') +
-      (if options.relative is 'bundle' then @_bundleRelative else @_fileRelative) + # default = 'file'
-      (if !@isFound and @isFoundAsIndex then '/index' else '') +
+      (if options.relative is 'bundle'
+        upath.join @_bundleRelative, appendIndex
+      else
+        @_fileRelative + appendIndex) + # default = 'file'
       (if options.ext is false or not @extname then '' else @extname) +
       (if options.quote then "'" else '')
 
@@ -240,12 +254,12 @@ class Dependency
     if not (dep instanceof Dependency)
       dep = new Dependency dep, @module
 
-    return false if @module?.bundle? isnt dep.module?.bundle? #only if we have a bundle, for testing
+    return false if @module.bundle? isnt dep.module?.bundle? #only if we have a bundle, for testing
 
     isSameJSFile @name(relative:'bundle', ext:true),
                  dep.name(relative:'bundle', ext:true)
 
-  isSameJSFile = (a,b)-> upath.defaultExt(a, '.js') is upath.defaultExt(b, '.js')
+  isSameJSFile = (a,b)-> upath.addExt(a, '.js') is upath.addExt(b, '.js')
 
   ###
   Check if this Dependency instance matches with a:
@@ -294,7 +308,7 @@ class Dependency
       throw new UError err
     else
 
-      if @module?.bundle? isnt matchDep.module?.bundle? #only if we have a bundle, for testing
+      if @module.bundle? isnt matchDep.module?.bundle? #only if we have a bundle, for testing
         l.deb "isMatch: false cause of module.bundle" if l.deb(120)
         return false
 
@@ -309,8 +323,8 @@ class Dependency
           l.deb "isMatch: false cause isPartial _.startsWith '#{thisName}', '#{matchDepName}'" if l.deb(120)
           return false
       else
-        matchDepName = upath.defaultExt matchDepName, '.js'
-        thisName = upath.defaultExt thisName, '.js'
+        matchDepName = upath.addExt matchDepName, '.js'
+        thisName = upath.addExt thisName, '.js'
         if not minimatch matchDepName, thisName
           l.deb "isMatch: false cause of false minimatch('#{matchDepName}', '#{thisName}')" if l.deb(120)
           return false

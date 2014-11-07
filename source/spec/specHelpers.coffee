@@ -27,8 +27,8 @@ are = (name, asEqual=true)->
     if asEqual
       if !isEq
         l.warn " \nDiscrepancy, expected `true` from _B.#{name} \n at path: ", path.join('.'),
-               ' \n * left value = ', _B.getp(a, path), '\n * right value =', _B.getp(b, path),
-               ' \n\n * left Object = \n', a, ' \n\n * right Object = \n', b
+               ' \n \u001B[33;1m * left value = ', _B.getp(a, path), '\n \u001B[33;1m * right value =', _B.getp(b, path),
+               ' \n\n \u001B[33;1m * left Object = \n', a, ' \n\n \u001B[33;1m * right Object = \n', b
       expect(isEq).to.be.true
     else
       if isEq

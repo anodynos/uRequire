@@ -10,45 +10,36 @@ AlmondOptimizationTemplate = require "../../code/templates/AlmondOptimizationTem
 
 describe "AlmondOptimizationTemplate:", ->
 
-  it "handles *empty* locals & exports.bundle", ->
+  it "handles *empty* locals & imports", ->
     bundle =
-      localNonNode_depsVars: {}
-      nodeOnly_depsVars: {}
-      exportsBundle_depsVars:{}
+      modules_localNonNode_depsVars: {}
+      modules_node_depsVars: {}
+      imports_depsVars:{}
 
     aot = new AlmondOptimizationTemplate bundle
 
     likeBA aot,
       bundle: bundle
-      localDeps: []
-      localParams: []
-      localArgs: []
-      localDepsVars: {}
-      exportsBundle_bundle_depsVars: {}
-      local_nonExportsBundle_depsVars: {}
-      localDeps: []
+      local_nonNode_deps: []
+      local_nonNode_params: []
+      local_nonNode_args: []
 
-  describe "handling of locals & exports.bundle & nodeonly deps.", ->
+
+  describe "handling of locals & imports & nodeonly deps.", ->
 
     bundle =
       dstFilenames: ['agreement/isAgree.js']
 
-      localNonNode_depsVars:
+      local_nonNode_depsVars:
         lodash: [ '__lodash' ] # a local dep, under a funny name
         uberscore: ['_uB']     # another local dep, under a funny name
         chai: [ 'chai' ]       # a local dep, with a name for introspection
         useless: ['_skipMe_']
 
-      exportsBundle_depsVars:
-        chai: ['chai']        # a local dep, # @todo: test without no var
-        lodash: [ '_']        # a local dep, one depVar
-        uberscore: [          # a local dep, many depVars
-          '_B'
-          'uber'
-        ]
+      imports_bundle_depsVars:
         'agreement/isAgree': [ 'isAgree', 'isAgree2' ] # a bundle dep
 
-      nodeOnly_depsVars:
+      local_node_depsVars:
         util: []
         fs: []
 
@@ -60,39 +51,22 @@ describe "AlmondOptimizationTemplate:", ->
 
       likeBA aot,
         bundle: bundleDeepClone
-        localDeps: [
-          'chai'
-          'lodash'
-          'uberscore'
-          'uberscore'
-        ]
-        localArgs: [
-          'chai'
-          '_'
-          '_B'
-          'uber'
-        ]
-        localDepsVars:
-          'chai': ['chai']
-          'lodash': ['_']
-          'uberscore': ['_B', 'uber']
 
-        exportsBundle_bundle_depsVars:
-          'agreement/isAgree': [ 'isAgree', 'isAgree2' ]
+        local_nonNode_deps: [
+          'lodash',
+          'uberscore',
+          'chai',
+          'useless' ],
 
-        local_nonExportsBundle_depsVars:
-          useless: [ '_skipMe_' ]
+        local_nonNode_args:[
+          '__lodash',
+          '_uB',
+          'chai',
+          '_skipMe_' ]
 
-    it 'correct bundle.localNonNode_depsVars', ->
-      deepEqual bundle.localNonNode_depsVars,
-        lodash: [ '__lodash' ]
-        chai: [ 'chai' ]
-        uberscore: ['_uB' ]
-        useless: [ '_skipMe_' ]
 
-    it "creates stubs for grabbing local deps from `global` / `window`, AMD shim or node's require", ->
+    it "creates stubs for grabbing local deps from `global` / `window`, AMD shim or node's require:", ->
       equalSet _.keys(aot.dependencyFiles), [
-          'getLocal_useless'
           'getExcluded_util'
           'getExcluded_fs'
 
@@ -100,11 +74,11 @@ describe "AlmondOptimizationTemplate:", ->
           'getLocal_lodash'
           'getLocal_uberscore'
           'getLocal_chai'
+          'getLocal_useless'
         ]
 
     it "creates corresponding paths for stubs", ->
       deepEqual aot.paths,
-        useless: 'getLocal_useless'
         util: 'getExcluded_util'
         fs: 'getExcluded_fs'
 
@@ -112,3 +86,4 @@ describe "AlmondOptimizationTemplate:", ->
         lodash: 'getLocal_lodash'
         chai: 'getLocal_chai'
         uberscore: 'getLocal_uberscore'
+        useless: 'getLocal_useless'

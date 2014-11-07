@@ -1,24 +1,14 @@
 _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/process/BundleBuilder'
-
 fs = require 'fs'
-
+upath = require 'upath'
 When = require 'when'
 
 # urequire
-upath = require '../paths/upath'
-
 UError = require '../utils/UError'
-
 {VERSION} = urequire = require '../urequire'
 
-###
-  Load config :
-    * check options
-    * Load (a) bundle(s) and (a) build(s)
-    * Build & watch for changes
-###
-class BundleBuilder
+module.exports = class BundleBuilder
 
   constructor: (configs, deriveLoader)->
     @configs = configs = _B.arrayize configs
@@ -32,9 +22,9 @@ class BundleBuilder
     @Bundle = require './Bundle'
     blendConfigs = require '../config/blendConfigs'
 
-    # debugLevel not really established before configs are blended
-    l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
-    l.deb('User configs (not blended with Master config)', blendConfigs _.flatten(configs), deriveLoader) if l.deb 90
+    # oops, debugLevel not really established before configs are blended :-(
+    # l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
+    # l.deb('User configs (not blended with Master config)', blendConfigs _.flatten(configs), deriveLoader) if l.deb 90
 
     @config = blendConfigs _.flatten(configs), deriveLoader, true    # our 'final' @config withMaster
     _.defaults @config.bundle, {filez: ['**/*']}  # the only(!) hard coded default
@@ -42,14 +32,16 @@ class BundleBuilder
     @setDebugVerbose()
     l.debug "Final config (with master defaults):\n", @config if l.deb 10
 
-    # check & fix different formats or quit if we have anomalies
-    if @isCheckAndFixPaths() and @isCheckTemplate()
-      try
-        @bundle = new @Bundle @config.bundle
-        @build = new @Build @config.build
-      catch err
-        l.er uerr = "Generic error while initializing @bundle or @build", err
-        throw new UError uerr, nested:err
+    # check & fix paths/template or quit if we have anomalies
+    @checkAndFixPaths()
+    @checkTemplate()
+
+    try
+      @bundle = new @Bundle @config.bundle
+      @build = new @Build @config.build, @bundle
+    catch err
+      l.er uerr = "Generic error while initializing @bundle or @build \n", err
+      throw new UError uerr, nested:err
 
   inspect: -> "BundleBuilder:\n" + l.prettify(@bundle) + '\n' + l.prettify(@build)
 
@@ -67,58 +59,72 @@ class BundleBuilder
 
   buildBundle: When.lift (filenames)->
     if @build and @bundle
+
+      if urequire.targets # throw if old grunt-urequire
+        return When.reject new Error "urequire >= v0.7.0 requires grunt-urequire >= 0.7.0"
+
       @setDebugVerbose()
-      @build.newBuild()
-      buildP = @bundle.buildChangedResources(@build, filenames)
+      urequire.addBBExecuted @
 
-      possError = null
-      buildP.then (res)=>
-        if res is false
-          l.err "@bundle.buildChangedResources promise returned false" #throw new Error?
-          possError = res
+      bcr = @bundle.buildChangedResources(@build, filenames)
+        .catch (err)=>
+            @build.handleError err #log and add to `build.errors`
+        .finally =>
+          @runAfterBuildTasks() # never throws, each one handled while loopo
+
+      bcr.then =>
+        if not @build.hasErrors
+          @
         else
-          l.debug 99, "@bundle.buildChangedResources result is :", res
-          possError = null
-
-      buildP.catch (err)=>
-        @bundle.printError possError = err
-
-      buildP.finally( => @runPostBuildTasks possError).yield @
+          When.reject @build.errors # reject with the whole array, is this good practice ?
     else
       l.er err = "buildBundle(): I have !@build or !@bundle - can't build anything!"
-      throw new UError err # no `runPostBuildTasks` in this case
+      throw new UError err # no `runAfterBuildTasks` in this case
 
-  runPostBuildTasks: (err)->
-    When.each _B.arrayize(@build.done), (task, idx)=>
-      l.deb "Running post-build `done()` task ##{idx}", task.toString()[0..150]+'...more...' if l.deb 70
-      When( # call with callback, or promise/simple call
-        if task.length is 3 # nodejs style callback is 3rd arg
-          taskPromise = (deferred = When.defer()).promise
-          task err, @, When.node.createCallback deferred.resolver
-          taskPromise
+  runAfterBuildTasks: ->
+    When.each _B.arrayize(@build.afterBuild), (task, idx)=>
+
+      l.deb 30, "Running `build.afterBuild()` task ##{idx}" +
+        if l.deb(70) then task.toString()[0..100] + '...more...' else ''
+
+      errors = if _.isEmpty(@build.errors) then null else @build.errors
+      When().then( => #idiomatic handling of simple exceptions
+        # depending on args, call with callback / promise/ simple call
+        if task.length is 3 # nodejs style callback is 3rd arg, but also retrieves promise (When.race)
+          callbackPromise = (deferred = When.defer()).promise
+          fnPromise = task errors, @, When.node.createCallback deferred.resolver # also deals with promises, which ever resolves 1st!
+          When.race(_.filter [callbackPromise, fnPromise], (it)-> When.isPromiseLike it)
         else
           if task.length is 2 # sync OR promise
-            task err, @
+            task errors, @
           else
-            if task.length <= 1 # done() for urequire < 0.7.0-beta4
-              task(if err is null then true else err)
-            else throw new Error "Unknown number of arguments for done(): " + task.toString()
-      )
+            if task.length is 1 # deprecated `done(true/false)` for urequire < 0.7.0-beta4
+              task(if errors is null then true else errors)
+            else # be strict about it!
+              throw new UError "Unknown number of arguments for `afterBuild()`: \n #{task.toString()[0..100]}"
+      ).catch (er)=>
+        l.err er
+        @build.errors.push er # dont use handleError cause it might throw, but all ab's need to run
 
-  watch: (debounceWait)=>
-    debounceWait = 1000 if not _.isNumber debounceWait
-    l.ok "Watching started... (with `_.debounce wait` #{debounceWait}ms)"
+  watch: (options=@build.watch)=>
+    options = @build.watch if _.isNumber options #remedy for older urequire-cli
+    options.debounceDelay = 1000 if not _.isNumber options.debounceDelay
+    l.ok "Watching started... (with `_.debounce delay` #{options.debounceDelay}ms)"
 
-    @build.done.push (err, res)=>
-      msg = "Watched build ##{@build.count} took #{(new Date() - @build.startDate) / 1000}secs - Watching again..."
-      if err then l.err msg else l.ok msg
+    bundleBuilder = @
+
+    @build.afterBuild.push (errors, res)=>
+      msg = "Watched build ##{@build.count} took #{(new Date() - @build.startDate) / 1000}secs - "
+      if not err
+        l.ok msg +  "Watching again..."
+      else
+        l.err msg + "it has #{_.size(errors)} - Watching again..."
 
     watchFiles = []
     gaze = require 'gaze'
     path = require 'path'
     fs = require 'fs'
 
-    # @todo build this according to watch.filez || bundle.filez
     gaze bundleBuilder.bundle.path + '/**/*', (err, watcher)->
       watcher.on 'all', (event, filepath)->
         if event isnt 'deleted'
@@ -131,12 +137,12 @@ class BundleBuilder
         if filepathStat?.isDirectory()
           l.warn "Adding '#{filepath}' as new watch directory is NOT SUPPORTED by gaze."
         else
-          l.verbose "Watched file '#{filepath}' has '#{event}'. \u001b[33m (waiting watch events for #{debounceWait}ms)"
+          l.verbose "Watched file '#{filepath}' has '#{event}'. \u001b[33m (waiting watch events for #{options.debounceDelay}ms)"
           watchFiles.push path.relative bundleBuilder.bundle.path, filepath
 
           runBuildBundleDebounced()
 
-    runBuildBundleDebounced = _.debounce(
+    runBuildBundleDebounced = _.debounce( #todo: use gaze's debounceDelay instead of lodash
       ->
         if not _.isEmpty watchFiles = _.unique watchFiles
           l.ok "Starting build ##{bundleBuilder.build.count + 1} for #{l.prettify watchFiles}"
@@ -144,61 +150,43 @@ class BundleBuilder
         else
           l.warn 'Ignoring EMPTY watchFiles = ', watchFiles
 
-      debounceWait
+      options.debounceDelay
     )
 
   # check if template is Ok - @todo: (2,3,3) embed checks in blenders ?
-  isCheckTemplate: ->
+  checkTemplate: ->
     if @config.build.template.name not in @Build.templates
-      l.er """
+      throw new UError """
         Quitting build, invalid template '#{@config.build.template.name}' specified.
         Use -h for help"""
-      return false
 
-    true
-
-  isCheckAndFixPaths: ->
-    pathsOk = true
-
+  checkAndFixPaths: ->
     if not @config.bundle?.path?
-      # assume path, from the 1st configFile that came along
-      if cfgFile = @configs[0]?.derive?[0]
+      if cfgFile = @configs[0]?.derive?[0] # assume path, from the 1st configFile that came along
         if dirName = upath.dirname cfgFile
           l.warn "Assuming path = '#{dirName}' from 1st configFile: '#{cfgFile}'"
           @config.bundle.path = dirName
         else
-          l.er "Quitting build, cant assume path from 1st configFile: '#{cfgFile}'"
-          pathsOk = false
+          throw new UError "Quitting build, cant assume `bundle.path` from 1st configFile: '#{cfgFile}'"
       else
-        l.er "Quitting build, no path specified. Use -h for help."
-        pathsOk = false
+        throw new UError "Quitting build, no `path` / `bundle.path` specified. Use -h for help."
 
-    if pathsOk
-      if not fs.existsSync @config.bundle.path
-        l.er "Quitting build, `bundle.path` '#{@config.bundle.path}' not fs.exists. \nprocess.cwd()= #{process.cwd()}"
-        pathsOk = false
+    if not fs.existsSync @config.bundle.path
+      throw new UError "Quitting build, `bundle.path` '#{@config.bundle.path}' not fs.exists. \nprocess.cwd()= #{process.cwd()}"
+    else
+      if @config.build.forceOverwriteSources
+        @config.build.dstPath = @config.bundle.path
+        l.verbose "forceOverwriteSources: `build.dstPath` set to `bundle.path` '#{@config.build.dstPath}'"
       else
-        if @config.build.forceOverwriteSources
-          @config.build.dstPath = @config.bundle.path
-          l.verbose "forceOverwriteSources: dstPath set to '#{@config.build.dstPath}'"
-        else
-          if not (@config.build.dstPath or
-            ((@config.build.template.name is 'combined') and @config.build.template.combinedFile)
-          )
-            l.er """
-              Quitting build:
-                * no --dstPath / `build.dstPath` specified.
-                #{if @config.build.template.name is 'combined' then "* no `build.template.combinedFile` specified" else ''}
-              Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
-            pathsOk = false
+        if not (@config.build.dstPath or ((@config.build.template.name is 'combined') and @config.build.template.combinedFile))
+          throw new UError """
+            Quitting build cause:
+              * no `--dstPath` / `build.dstPath` specified.
+              #{if @config.build.template.name is 'combined' then "* no `build.template.combinedFile` specified" else ''}
+            Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath)."""
 
-          if @config.build.dstPath and upath.normalize(@config.build.dstPath) is upath.normalize(@config.bundle.path)
-            l.er """
-              Quitting build, dstPath === path.
-              Use -f *with caution* to overwrite sources (no need to specify & ignored --dstPath).
-              """
-            pathsOk = false
-
-    pathsOk
-
-module.exports = BundleBuilder
+        if @config.build.dstPath and upath.normalize(@config.build.dstPath) is upath.normalize(@config.bundle.path)
+          throw new UError """
+            Quitting build, dstPath === path.
+            Use -f *with caution* to overwrite sources (no need to specify & ignored `--dstPath` / `build.dstPath`).
+            """

@@ -59,7 +59,7 @@ module.exports = gruntFunction = (grunt) ->
     shell:
       coffee: command: "#{nodeBin}coffee -cb -o ./build ./source"
       coffeeWatch: command: "#{nodeBin}coffee -cbw -o ./build ./source"
-      mochaCmd: command: "#{nodeBin}mocha #{buildSpecDir}/**/*-spec.js --recursive --bail --timeout 10000" #--reporter spec"
+      mochaCmd: command: "#{nodeBin}mocha #{buildSpecDir}/**/*-spec.js --recursive --timeout 5000" #--reporter spec"
       #doc: command: "#{nodeBin}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
       options: verbose: true, failOnError: true, stdout: true, stderr: true
 
@@ -70,7 +70,7 @@ module.exports = gruntFunction = (grunt) ->
       files: [ expand: true, src: ["**/*.js", "**/*.json", "!node_modules/**/*"], dest: "../#{dep}/node_modules/urequire"]
 
   ### shortcuts generation ###
-  splitTasks = (tasks)-> if !_.isString tasks then tasks else (_.filter tasks.split(/\s/), (v)-> v)
+  splitTasks = (tasks)-> if !_.isString tasks then tasks else _.filter tasks.split(/\s/)
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
     default: "clean build test"

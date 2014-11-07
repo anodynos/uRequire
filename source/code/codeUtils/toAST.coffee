@@ -1,4 +1,6 @@
 _ = (_B = require 'uberscore')._
+l = new _B.Logger 'uRequire/codeUtils/toAST'#, 100
+
 esprima =  require 'esprima'
 
 UError = require '../utils/UError'
@@ -16,7 +18,10 @@ module.exports = toAST = (codeOrAST, type)->
     try
       codeOrAST = esprima.parse codeOrAST #, raw:false #raw is ignored in >1.1
     catch err
-      throw new UError "*esprima.parse* in toAST while parsing javascript fragment: \n #{codeOrAST}.", nested:err
+      if l.deb(90) #todo: print fragment only around error
+        throw new UError "*esprima.parse* in toAST while parsing javascript fragment: \n #{codeOrAST}.", nested:err
+      else
+        throw err
 
   if _.isArray codeOrAST
     # an array of statements/declarations, i.e a body array

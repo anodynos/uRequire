@@ -1,4 +1,8 @@
-# uRequire v0.7.0-beta
+# uRequire v0.7.0-beta5
+
+## Beta release note
+
+**Docs / wiki / http://uRequire.org mainly are Work In Progress (in transition from v0.6.x) - but everything should works except you'll need `npm install urequire-cli -g` & `npm install urequire` locally.**
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.svg?branch=master)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
@@ -203,7 +207,7 @@ This `'uberscore'` config (coffeescript) will:
 uberscore:
   path: 'source'
   dstPath: 'build'
-  filez: ['**/*', (f)-> f isnt 'badfile']
+  filez: ['**/*', '!', (f)-> f is 'badfile']
   copy: [/./]
   runtimeInfo: ['!**/*', 'Logger.js']
   dependencies: exports:

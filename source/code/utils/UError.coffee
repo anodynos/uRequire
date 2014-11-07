@@ -1,11 +1,12 @@
-l = console
+_ = (_B = require 'uberscore')._
+l = new _B.Logger 'uRequire/UError'#, 100
 # see http://stackoverflow.com/questions/1382107/whats-a-good-way-to-extend-error-in-javascript
 module.exports =
   class UError extends Error
     constructor: (@message, props)->
       super
       @[p] = v for p, v of props #copy all props to @
-#      @stack = (new Error()).stack.replace(/\n[^\n]*/,'') # dev mode only!
+      @stack = (new Error()).stack.replace(/\n[^\n]*/,'') if l.deb 100 # dev mode only!
 
 #    @todo: finish this - perhaps do toString ?
 #    Object.defineProperties @::,

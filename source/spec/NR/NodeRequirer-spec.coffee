@@ -6,7 +6,7 @@ expect = chai.expect
   iqual, notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require './../specHelpers'
 
 fs = require('fs')
-upath = require '../../code/paths/upath'
+upath = require 'upath'
 
 NR = require "../../code/NodeRequirer"
 Dependency = require "../../code/fileResources/Dependency"
@@ -29,7 +29,7 @@ rjsconf = JSON.parse fs.readFileSync "#{__dirname}/requirejs.config.json", 'utf-
 
 nr = new NR moduleNameBR, module, dirname, webRootMap
 
-describe "NodeRequirer basics:", ->
+describe.skip "NodeRequirer basics:", ->
 
   it "identifies path", ->
     equal nr.path, upath.normalize "#{__dirname}/"
@@ -65,7 +65,7 @@ describe "NodeRequirer basics:", ->
       deepEqual nr.resolvePaths(new Dependency 'src/depName', path:moduleNameBR),
         [upath.normalize "#{__dirname}/../../src/depName"]
 
-describe "NodeRequirer uses requirejs config :", ->
+describe.skip "NodeRequirer uses requirejs config :", ->
 
   it "statically stores parsed 'requirejs.config.json' for this path", ->
     deepEqual NR::requireJSConfigs[nr.path], rjsconf

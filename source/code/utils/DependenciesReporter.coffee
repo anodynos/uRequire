@@ -16,52 +16,71 @@ class DependenciesReporter
   dependencyTypesMessages =
     # 'problematic' ones
     'untrusted':
-      header: "\u001b[33m Untrusted dependencies (i.e non literal String) found:"
-      footer: "They are left AS-IS, BUT are added to the dependency array." +
-              "If evaluated name of the `require( utrustedDep )` isnt in dependency array [..]," +
-              "your app WILL HALT and WILL NOT WORK on the web/AMD side (but should be OK on node).\u001b[0m"
+      color: "\u001B[35;1m"
+      header: "Untrusted dependencies (i.e non literal String) found:"
+      footer: """They are left AS-IS, BUT are added to the dependency array.
+              If evaluated name of the `require( utrustedDep )` isnt in dependency array [..],
+              your app WILL HALT and WILL NOT WORK on the web/AMD side (but should be OK on node)."""
 
     # simply interesting
     'node':
-      header: "\u001b[33m Node only dependencies, NOT added to AMD deps array:"
-      footer: "Make sure they are not `require`d when running on Web, " +
-              "(i.e separate execution branches when __isNode / __isWeb), " +
-              "otherwise you code will halt on Web."
+      color: "\u001B[35;1m"
+      header: "Node-only *bundle dependencies*, NOT added to AMD deps array:"
+      footer: """Make sure they are not `require`d when running on Web,
+              (i.e use separate execution branches with `__isNode` / `__isWeb` using `runtimeInfo:true`),
+              otherwise you code will halt on Web."""
 
     'nodeLocal':
-      header: "\u001b[33m Node only *local dependencies*, NOT added to AMD deps array:"
-      footer: "Make sure they are not `require`d when running on Web, " +
-              "(i.e separate execution branches when __isNode / __isWeb), " +
-              "otherwise you code will halt on Web."
+      color: "\u001B[34;1m"
+      header: "Node-only *local dependencies*, NOT added to AMD deps array:"
+      footer: """Make sure they are not `require`d when running on Web,
+              (i.e use separate execution branches with `__isNode` / `__isWeb` using `runtimeInfo:true`),
+              otherwise you code will halt on Web."""
 
     'local':
-      header: "\u001b[33m `local` deps (i.e either looking 'local' / declared in deps.locals) not present in bundle :" # @todo: or infered from package/bower.JSON
-      footer: "Note: When executing on plain nodejs, locals are `require`d as is. " +
-              "When executing on Web/AMD or uRequire/UMD they use `rjs.baseUrl`/`rjs.paths`, if present."
+      color: "\u001b[33;1m"
+      header: "`local` deps (i.those either looking 'localdep' / declared in deps.locals / found in bower.json or package.json) and part of bundle :"
+      footer: """Note, when executing :
+                  * on nodejs, locals are `require`d as is.
+                  * on Web/AMD or uRequire/UMD they use `rjs.baseUrl` / `rjs.paths`.
+                  * on Web/Script they are loaded via <script src='path/to/localdep.js'/>.
+              """
 
     'notFoundInBundle':
-      header: "\u001b[31m Bundle-looking dependencies not found in bundle:",
-      footer: "They are added as-is.\u001b[0m"
+      color: "\u001b[31;1m"
+      header: "Bundle-looking dependencies not found in bundle:",
+      footer: """They are added as-is, without path translation from *bundleRelative* to *fileRelative*.
+              Even if they are later added to the `dstPath`, they will not load on nodejs cause
+              nodejs expects `./` fileRelative paths.
+
+              If a dep is indeed a local dependency, eg `when/callbacks` you must either :
+                 * Install it with either `bower install when` or `npm install when` (only the first path part)
+                                                OR
+                 * Declare it as `dependencies: locals: ['when']` (only the first path part).
+              and urequire will recognize it as a local (instead of missing).
+              """
 
     'external':
+      color: "\u001b[33m"
       header: "External dependencies (not checked in this version):"
       footer: "They are added as-is."
 
     'webRootMap':
+      color: "\u001b[35m"
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
 
   reportTemplate: (texts, depsFound)->
     maxDepLength = _.max _.map depsFound, (v, k)-> k.length
 
-    '\n   ' + texts.header + '\n' +
+    '\n   ' + texts.color + texts.header + '\u001B[37;1m\n' +
 
     ( for dep, modules of depsFound
-        "    - '#{dep}'#{ _.pad '(in ' + modules.length + " modules: '", 18 + (maxDepLength - dep.length) + (modules.length + '').length}" +
-        (mod for mod, i in modules when i<3).join("', '") + (if modules.length >=3 then "', ...)" else "')")
+        "    - '#{dep}'#{ _.pad '(in ' + modules.length + " modules: '", 18 + (maxDepLength - dep.length) +
+        (modules.length + '').length}" + modules[0..3].join("', '") + (if modules.length >4 then "', ...)" else "')")
     ).join('\n') +
 
-    '\n    ' + texts.footer + '\n'
+    '\n   ' + texts.color + texts.footer.split('\n').join('\n   ') + '\u001B[0m\n'
 
   # Augments reportData, that ends up in this form
   #   {

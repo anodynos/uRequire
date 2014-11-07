@@ -16,11 +16,11 @@ untrust = (indexes, depsStrings)->
   depsStrings
 
 describe "Dependency:", ->
-
+  
   describe "init & and extracting data:", ->
 
     it "split plugin, extension, resourceName & recostruct as String", ->
-      dep = new Dependency depString = 'somePlugin!somedir//dep.js'
+      dep = new Dependency depString = 'somePlugin!somedir//dep.js', {}
 
       equal dep.pluginName, 'somePlugin'
       equal dep.extname, '.js'
@@ -29,7 +29,7 @@ describe "Dependency:", ->
       equal dep.name(plugin:no, ext:no), 'somedir/dep'
 
     it "'node' is not considered a plugin - its just a flag", ->
-      dep = new Dependency depString = 'node!somedir/dep.js'
+      dep = new Dependency depString = 'node!somedir/dep.js', {}
 
       equal dep.pluginName, 'node'
       equal dep.name(), 'somedir/dep' #.js
@@ -269,26 +269,30 @@ describe "Dependency:", ->
         dstFilenames: [
           'main.js'
           'actions/greet.js'
-          'actions/moreactions/say.js'
+          'actions/moreactions/say.min.js'
           'calc/add.js'
           'calc/multiply.js'
           'data/numbers.js'
-          'data/messages/bye.js'
-          'data/messages/hello.js'
+          'data/messages/bye.ext.js'
+          'data/messages/hello.min.js'
           'url.js'                          # url is in 'bundle.dependencies.node' bu if in bundle, its a bundle!
           'somedir/index.js'
           'some/deep/dir/index.js'
+          'actions/index.js'
+          'index.js'
         ]
         dependencies:
           node: MasterDefaultsConfig.bundle.dependencies.node.concat [
                   'when/node/function', 'node/**/*', '!stream', '!url']
           locals: { when: [] }
+          paths: {}
+        package: {}
 
     strDependencies = [
       'underscore'                    # should add to 'local'
-      'data/messages/hello.js'        # should remove .js, since its in bundle.dstFilenames
-      './/..//data//messages/bye'     # should normalize
-      './moreactions/say.js'          # should normalize
+      'data/messages/hello.min.js'        # should remove .js, since its in bundle.dstFilenames
+      './/..//data//messages/bye.ext'     # should normalize
+      './moreactions/say.min.js'      # should normalize & find, even with .min as ext
       '../lame/dir.js'                # should add to 'notFoundInBundle', add as is
       '.././../some/external/lib.js'  # should add to 'external', add as is
       '/assets/jpuery-max'            # should add to webRootMap
@@ -308,6 +312,10 @@ describe "Dependency:", ->
       '../somedir'
       'some/deep/dir'
       '../some/deep/dir'
+
+      './'   # should find 'actions/index.js'
+
+      './..' # should find 'index.js'
     ]
 
     dependencies = []
@@ -317,11 +325,12 @@ describe "Dependency:", ->
     dependencies.push ddd = new Dependency '"main"+".js"', mod, untrusted:true
 
     expected =
+
       bundleRelative: untrust [dependencies.length-1], [ # @todo: with .js removed or not ?
         'underscore'                 # local lib
-        'data/messages/hello'        # .js is removed since its in bundle.dstFilenames
-        'data/messages/bye'          # as bundleRelative
-        'actions/moreactions/say'
+        'data/messages/hello.min'        # .js is removed since its in bundle.dstFilenames
+        'data/messages/bye.ext'          # as bundleRelative
+        'actions/moreactions/say.min'
         'lame/dir' # relative to bundle, event its NOT in bundle.dstFilenames # @todo: .js ?
         '../some/external/lib'    # relative to bundle, considering module.path
         '/assets/jpuery-max'
@@ -339,13 +348,18 @@ describe "Dependency:", ->
         'some/deep/dir/index'
         'some/deep/dir/index'
 
+        'actions/index'
+
+        'index'
+
         '"main"+".js"'
       ]
+
       fileRelative: untrust [dependencies.length-1], [     # @todo: with .js removed or not ?
         'underscore'                    # local lib, as is
-        '../data/messages/hello'        # converted fileRelative
-        '../data/messages/bye'
-        './moreactions/say'
+        '../data/messages/hello.min'        # converted fileRelative
+        '../data/messages/bye.ext'
+        './moreactions/say.min'
         '../lame/dir' #@todo  .js'
         '../../some/external/lib' #todo .js'    #exactly as is
         '/assets/jpuery-max'
@@ -363,9 +377,14 @@ describe "Dependency:", ->
         '../some/deep/dir/index'
         '../some/deep/dir/index'
 
+        './index'
+
+        '../index'
+
         '"main"+".js"'
       ]
-      local: [ 'underscore', 'stream', 'when/node/function' ]
+
+      local: [ 'underscore', 'stream', 'util', 'when/node/function' ]
       external:[ '../../some/external/lib'] #.js' ]
       notFoundInBundle:[ '../lame/dir'] #.js' ]
 
@@ -373,8 +392,7 @@ describe "Dependency:", ->
       system: ['require', 'module', 'exports']
       untrusted: untrust [0], ['"main"+".js"']
       node: ['util', 'when/node/function', 'node/nodeOnly/deps']
-      nodeLocal: ['when/node/function']
-
+      nodeLocal: ['util', 'when/node/function']
 
     it "using dep.isXXX:", ->
       fileRelative =  ( d.name relative:'file' for d in dependencies )

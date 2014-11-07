@@ -518,7 +518,7 @@ What you can do is:
   }
 ]
 ```
-* make `stuff/myModule` available as an [`bundle.dependencies.exports.bundle`](MasterDefaultsConfig.coffee#bundle.dependencies.exports.bundle), with the `myModule` identifier.
+* make `stuff/myModule` available as an [`bundle.dependencies.imports`](MasterDefaultsConfig.coffee#bundle.dependencies.imports), with the `myModule` identifier.
 
 ```
  dependencies: exports: bundle: { 'stuff/myModule': 'myModule' }
@@ -668,9 +668,9 @@ The deps are are always given in [bundleRelative](Flexible-Path-Conventions#bund
 
 @note: uRequire doesn't enforce that the injected dependency is valid, for example whether it exists in the bundle - but you 'll get an error report in the end.
 
-@note `injectDeps()` is used internally to inject [`dependencies.exports.bundle`](MasterDefaultsConfig.coffee#bundle.dependencies.exports.bundle) (on templates that actually need this injection, i.e all except ['combined'](combined-template)).
+@note `injectDeps()` is used internally to inject [`dependencies.imports`](MasterDefaultsConfig.coffee#bundle.dependencies.imports) (on templates that actually need this injection, i.e all except ['combined'](combined-template)).
 
-@note If you 're injecting a dep in all modules, consider adding to [`dependencies.exports.bundle`](MasterDefaultsConfig.coffee#bundle.dependencies.exports.bundle), to save size/speed on ['combined' template](combined-template).
+@note If you 're injecting a dep in all modules, consider adding to [`dependencies.imports`](MasterDefaultsConfig.coffee#bundle.dependencies.imports), to save size/speed on ['combined' template](combined-template).
 
 #### Other Properties
 
@@ -736,7 +736,7 @@ This is a dummy .js RC, following the [formal & boring ResourceConverter definit
 
           # convert .js | .javascript to .js
           convFilename: (srcFilename)->
-            (require '../paths/upath').changeExt srcFilename, 'js'
+            require('upath').changeExt srcFilename, 'js'
 
           # not needed, we have '$' flag to denote `type: 'module'`
           type: 'module'

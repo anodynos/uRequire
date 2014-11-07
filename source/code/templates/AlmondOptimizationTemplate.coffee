@@ -14,35 +14,17 @@ module.exports = class AlmondOptimizationTemplate extends Template
 
   constructor: (@bundle)->
     super
-    ### locals & exports.bundle handling. ###
 
-    @localDeps = []
-    @localParams = []
-    @localArgs = []
+    ### locals & imports handling. ###
+    @local_nonNode_deps = []
+    @local_nonNode_params = []
+    @local_nonNode_args = []
 
-    # decide type of each dependency in exports.bundle
-    @localDepsVars = {}
-    for dep, vars of @bundle.exportsBundle_depsVars
-      if (new Dependency dep, {path: '__rootOfBundle__', bundle:@bundle}).isLocal
-        @localDepsVars[dep] = vars
-
-    for dep, vars of @bundle.localNonNode_depsVars
-      if not @localDepsVars[dep]
-        @localDepsVars[dep] = vars
-
-    for dep, vars of @localDepsVars
+    for dep, vars of @bundle.local_nonNode_depsVars
       for aVar in vars
-        @localDeps.push dep
-        @localArgs.push aVar
-        @localParams.push varSelector vars
-
-    @exportsBundle_bundle_depsVars = #i.e, bundle deps like 'agreement/isAgree'
-      _.pick @bundle.exportsBundle_depsVars, (vars, dep)=>
-        (new Dependency dep, {path: '__rootOfBundle__', @bundle}).isBundle
-
-    @local_nonExportsBundle_depsVars =
-      _.pick @bundle.localNonNode_depsVars, (vars, dep)=>
-         not @bundle.exportsBundle_depsVars[dep]
+        @local_nonNode_deps.push dep
+        @local_nonNode_args.push aVar
+        @local_nonNode_params.push varSelector vars
 
   Object.defineProperties @::,
 
@@ -50,11 +32,11 @@ module.exports = class AlmondOptimizationTemplate extends Template
 
     # require each bundle dependency with its variables, eg
     # `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
-    # for all exports.bundle deps IN the bundle (i.e non-local).
-    # with `exportsBundle_bundle_depsVars = {'agreement/isAgree': ['isAgree', 'isAgree2'], ...}`
+    # for all imports deps IN the bundle (i.e non-local).
+    # with `imports_bundle_depsVars = {'agreement/isAgree': ['isAgree', 'isAgree2'], ...}`
     # we get `var isAgree, isAgree2; isAgree = isAgree2 = require('agreement/isAgree');`
-    dependenciesExportsBundle_bundle_depsLoader: get:->
-      (for dep, vars of @exportsBundle_bundle_depsVars
+    imports_bundle_depsLoader: get:->
+      (for dep, vars of @bundle.imports_bundle_depsVars
         '    var ' +
         ( if vars.length is 1
             vars[0]
@@ -71,19 +53,19 @@ module.exports = class AlmondOptimizationTemplate extends Template
     bundleFactoryRegistar: get: -> """
         if (__isAMD) {
           return define(#{@moduleNamePrint}#{
-            if @localDeps.length
-              "['" + @localDeps.join("', '") + "'], "
+            if @local_nonNode_deps.length
+              "['" + @local_nonNode_deps.join("', '") + "'], "
             else ''
           }bundleFactory);
         } else {
             if (__isNode) {
                 return module.exports = bundleFactory(#{
-                  if @localDeps.length
-                    "require('" + @localDeps.join("'), require('") + "')"
+                  if @local_nonNode_deps.length
+                    "require('" + @local_nonNode_deps.join("'), require('") + "')"
                   else ''
                   });
             } else {
-                return bundleFactory(#{@localParams.join(', ')});
+                return bundleFactory(#{@local_nonNode_params.join(', ')});
             }
         }
     """
@@ -96,24 +78,30 @@ module.exports = class AlmondOptimizationTemplate extends Template
         (function (global, window){
           #{if _B.isTrue @build.useStrict then "'use strict';\n" else ''
           }#{@sp 'runtimeInfo'}
-          var __nodeRequire = (__isNode ? require :
-              function(dep){
-                throw new Error("uRequire detected missing dependency: '" + dep + "' - in a non-nodejs runtime. All it's binding variables were 'undefined'.")
-              });\n
+
+          var __nodeRequire = (__isNode ? require : function(dep){
+                throw new Error("uRequire: combined template, trying to load `node` dep `" + dep + "` in non-nodejs runtime (browser).")
+              }),
+              __throwMissing = function(dep, vars) {
+                throw new Error("uRequire: combined template `#{@bundle.name}`, detected missing dependency `" + dep + "` - all it's known binding variables `" + vars + "` were `undefined`")
+              },
+              __throwExcluded = function(dep, descr) {
+                throw new Error("uRequire: combined template `#{@bundle.name}`, trying to access unbound / excluded `" + descr + "` dependency `" + dep + "` on browser");
+              };\n
         """ +
 
         @sp('bundle.mergedPreDefineIIFECode') +
 
         @deb(30, "*** START *** bundleFactory, containing all modules (as AMD) & almond's `require`/`define`") +
-        "var bundleFactory = function(#{@localArgs.join ', '}) {"
+        "var bundleFactory = function(#{@local_nonNode_args.join ', '}) {\n"
 
       end:
         @sp(
-           [ 'dependenciesExportsBundle_bundle_depsLoader'
-             '`template:combined` loads `dependencies.exports.bundle` with `dep.isBundle` )'],
+           [ 'imports_bundle_depsLoader'
+             '`template:combined` loads `dependencies.imports` with `dep.isBundle` )'],
 
            [ 'bundle.commonCode'
-             'added after `dependencies.exports.bundle` deps are loaded`'],
+             'added after `dependencies.imports` deps are loaded`'],
 
            [ 'bundle.mergedCode'
              '`mergedCode` code from all modules is merged and added after `bundle.commonCode`']
@@ -125,10 +113,10 @@ module.exports = class AlmondOptimizationTemplate extends Template
 
         @sp('bundleFactoryRegistar') +
 
-        @deb(20, 'IIFE call of bundle enclosure, with `global === window` always available') +
+        @deb(20, 'IIFE call of bundle enclosure, with @globalSelector i.e `global === window` always available') +
         """
-        }).call(this, (typeof exports === 'object' ? global : window),
-                      (typeof exports === 'object' ? global : window))
+        }).call(this, #{@globalSelector},
+                      #{@globalSelector})
         """
 
     # @return {
@@ -137,10 +125,10 @@ module.exports = class AlmondOptimizationTemplate extends Template
     # }
     paths: get:->
       _paths = {}
-      for localDep in @localDeps
+      for localDep in @local_nonNode_deps
         _paths[localDep] = "getLocal_#{_.slugify localDep}"
 
-      for excludedDep of @bundle.nodeOnly_depsVars
+      for excludedDep of @bundle.local_node_depsVars
         _paths[excludedDep] = "getExcluded_#{_.slugify excludedDep}"
 
       _paths
@@ -148,22 +136,22 @@ module.exports = class AlmondOptimizationTemplate extends Template
     # @return {
     #   getLocal_lodash: "code",
     #   getLocal_backbone: "code"
-    #   getExcluded_BadDep_with_paths: "code"
+    #   getExcluded_BadDep: "code"
     # }
     dependencyFiles: get:->
       _dependencyFiles = {}
 
-      l.deb 70, "creating dependencyFiles 'getLocal_XXX' from @localDepsVars = \n", @localDepsVars
-      for dep, vars of @localDepsVars
+      l.deb 70, "creating dependencyFiles 'getLocal_XXX' from @local_nonNode_depsVars = \n", @local_nonNode_depsVars
+      for dep, vars of @bundle.local_nonNode_depsVars
         l.deb 80, "creating 'getLocal_#{_.slugify dep}' by grabDependencyVarOrRequireIt(dep = '", dep, "', aVars = ", vars, ')'
         _dependencyFiles["getLocal_#{_.slugify dep}"] =
             @grabDependencyVarOrRequireIt dep, vars, 'local'
 
-      l.deb 70, "creating dependencyFiles for @bundle.nodeOnly_depsVars = ", @bundle.nodeOnly_depsVars
-      for excludedDep of @bundle.nodeOnly_depsVars
+      l.deb 70, "creating dependencyFiles for @bundle.local_node_depsVars = ", @bundle.local_node_depsVars
+      for excludedDep of @bundle.local_node_depsVars
         l.deb 80, "creating 'getExcluded_#{_.slugify excludedDep}' by grabDependencyVarOrRequireIt(dep=", excludedDep, ', aVars = always empty array!)'
         _dependencyFiles["getExcluded_#{_.slugify excludedDep}"] =
-            @grabDependencyVarOrRequireIt excludedDep, [], 'node-only'
+            @grabDependencyVarOrRequireIt excludedDep, [], 'node-only & local'
 
       _dependencyFiles
 
@@ -180,9 +168,9 @@ module.exports = class AlmondOptimizationTemplate extends Template
 
       (
         if _.isEmpty vars
-          "  throw new Error(\"uRequire: trying to access unbound / excluded \'#{descr}\' dependency \'#{dep}\') on browser\");"
+          "    __throwExcluded('#{dep}', '#{descr}');"
         else
-          "  return #{varSelector vars, "__nodeRequire('#{dep}')"}"
+          """    return #{varSelector vars, "__throwMissing('#{dep}', '#{vars.join(', ')}')"}"""
       ) + "\n}"
 
     "define(" + @__function(depFactory) + ");"

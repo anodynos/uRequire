@@ -8,12 +8,10 @@ for wlib in whenLibs
   if _.isUndefined When[wlib]
     When[wlib] = require "when/#{wlib}"
   else
-    throw new Error "when.#{wlib} not undefined while attatching `require('when/#{wlib}')` to it."
+    throw new Error "when.#{wlib} already exists while attatching `require('when/#{wlib}')` to it."
 
-if not _.isUndefined When.each
-  throw new Error "When.each already defined"
-else
-  When.each = (collection, handler)->
+extraFunctions =
+  each: (collection, handler)->
     if _B.isHash collection
       iterArray = _.keys collection
       isArray = false
@@ -36,5 +34,11 @@ else
         handler collection[idxOrKey], idxOrKey # called with (val, idx|key)
       0
     )
+
+for name, extraFn of extraFunctions
+  if not _.isUndefined When[name]
+    throw new Error "when.#{name} already exists."
+  else
+    When[name] = extraFn
 
 module.exports = When
