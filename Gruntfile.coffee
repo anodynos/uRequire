@@ -42,7 +42,7 @@ module.exports = gruntFunction = (grunt) ->
 
     copy:
       specResources:
-        files: [ expand: true, cwd: "#{sourceSpecDir}/NR", src: ["*.json"], dest: "#{buildSpecDir}/NR"]
+        files: [ expand: true, cwd: "#{sourceSpecDir}/NodeRequirer", src: ["*.json"], dest: "#{buildSpecDir}/NodeRequirer"]
 
       wiki:
         files: [ expand: true, cwd: "#{sourceDir}/config/", src: ["*.md"], dest: "../uRequire.wiki/"]
@@ -59,8 +59,7 @@ module.exports = gruntFunction = (grunt) ->
     shell:
       coffee: command: "#{nodeBin}coffee -cb -o ./build ./source"
       coffeeWatch: command: "#{nodeBin}coffee -cbw -o ./build ./source"
-      mochaCmd: command: "#{nodeBin}mocha #{buildSpecDir}/**/*-spec.js --recursive --timeout 5000" #--reporter spec"
-      #doc: command: "#{nodeBin}codo #{sourceDir} --title '<%= pkg.name %> v<%= pkg.version %> API documentation' --cautious"
+      mochaCmd: command: "#{nodeBin}mocha #{buildSpecDir}/**/*-spec.js --recursive --timeout 5000 --bail"
       options: verbose: true, failOnError: true, stdout: true, stderr: true
 
   # copy build files to wherever urequire is a dev dep testbed
