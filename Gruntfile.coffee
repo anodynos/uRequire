@@ -79,7 +79,6 @@ module.exports = gruntFunction = (grunt) ->
     # IDE shortcuts
     "alt-c": "copy:wiki"
     "alt-b": "build"
-    "alt-d": "default"
     "alt-t": "test"
   }
 
