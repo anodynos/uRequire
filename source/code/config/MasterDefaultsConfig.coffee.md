@@ -334,6 +334,7 @@ Doesn't work with `combined` template running as plain script - `when` needs to 
 ### bundle.dependencies.paths
 
         paths:
+          useCache: true
           override: undefined
           bower: undefined
           npm: undefined

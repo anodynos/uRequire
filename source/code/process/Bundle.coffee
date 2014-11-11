@@ -9,8 +9,7 @@ globExpand = require 'glob-expand'
 isFileIn = require 'is_file_in'
 
 When = require '../promises/whenFull'
-
-try bower = require "bower" catch err
+execP = When.node.lift require("child_process").exec
 
 # uRequire
 upath = require 'upath'
@@ -34,9 +33,7 @@ CodeMerger = require '../codeUtils/CodeMerger'
 toCode = require '../codeUtils/toCode'
 
 {dependenciesBindingsBlender} = require '../config/blendConfigs'
-###
-  @todo: doc it!
-###
+
 class Bundle extends BundleBase
 
   constructor: (bundleCfg)->
@@ -410,35 +407,95 @@ class Bundle extends BundleBase
               @build.handleError new Error "There are still #{_.size @errorFiles} files with errors in bundle:\n" + l.prettify @errorFiles
             @build.finishBuild()
 
-  fillDepsPaths: When.lift -> # @todo: implement `dependencies.paths.node`
-    if @build.count is 1 #only once for each build
-      if @dependencies.paths.bower
-        l.debug """ \n
-          #####################################################################
-          Filling `bundle.dependencies.paths` using bower (npm NOT YET IMPLMENTED)
-          #####################################################################""" if l.deb 30
-        bowerCacheFile = 'bower-paths-local-cache.json'
-        fs.existsP(bowerCacheFile).then( (exists)->
-          if exists
-            l.verbose "Getting bower paths from `#{bowerCacheFile}`"
-            fs.readFileP(bowerCacheFile).then JSON.parse
-          else
-            When(
-              if bower
-                l.verbose "Getting bower paths from `require('bower')` module"
-                When.promise (resolve, reject)->
-                  bcl = bower.commands.list(paths: true)
-                  bcl.on 'end', (result)-> resolve result
-                  bcl.on 'error', (err)-> reject err
+  localPathsCacheFile = 'urequire-local-paths-cache.json'
+  fillDepsPaths: When.lift ->
+    if (@build.count is 1) and #only once for each build
+      (@dependencies.paths.bower or @dependencies.paths.npm)
+        @loadPathsCache().then( (cache)=>
+          dirtyCache = {}
+
+          When.sequence [
+            => # todo: refactor these two
+              if @dependencies.paths.bower
+                When(
+                  if _.isEmpty cache.bower
+                    @getBowerPaths().then (bowerPaths)-> dirtyCache.bower = bowerPaths
+                  else
+                    cache.bower
+                ).then (bowerPaths)=>
+                  @dependencies.paths.bower = dependenciesBindingsBlender.blend bowerPaths, @dependencies.paths.bower
               else
-                l.verbose "Getting bower paths from CLI exec `bower list --paths -j`"
-                execP = When.node.lift require("child_process").exec
-                execP("bower list --paths -j").spread JSON.parse
-            ).then (bowerJson)->
-              l.verbose "Saving bower paths cache to `#{bowerCacheFile}`"
-              fs.writeFileP(bowerCacheFile, JSON.stringify(bowerJson, null, 2)).yield bowerJson
-        ).then (bowerJson)=> # override/fillin bower's missing paths
-          @dependencies.paths.bower = dependenciesBindingsBlender.blend @dependencies.paths.bower, bowerJson
+                When()
+
+            =>
+              if @dependencies.paths.npm
+                When(
+                  if _.isEmpty cache.npm
+                    @getNpmPaths().then (npmPaths)-> dirtyCache.npm = npmPaths
+                  else
+                    cache.npm
+                ).then (npmPaths)=>
+                  @dependencies.paths.npm = dependenciesBindingsBlender.blend npmPaths, @dependencies.paths.npm
+              else
+                When()
+
+            =>
+              if !_.isEmpty(dirtyCache) and @dependencies.paths.useCache
+                l.verbose "Saving dirty paths cache to `#{localPathsCacheFile}`"
+                fs.writeFileP localPathsCacheFile, JSON.stringify(_.extend(cache, dirtyCache), null, 2)
+              else
+                When()
+          ]
+        ).catch (err)=>
+           @build.handleError new UError "Error while filling `bundle.dependencies.paths`", nested: err
+
+  loadPathsCache: ->
+    fs.existsP(localPathsCacheFile).then (isExists)=>
+      if isExists
+        if @dependencies.paths.useCache
+          l.deb 40, "Loading local paths cache `#{localPathsCacheFile}`"
+          fs.readFileP(localPathsCacheFile).then JSON.parse
+        else
+          l.deb 40, "Deleting local paths cache `#{localPathsCacheFile}`"
+          fs.unlinkP(localPathsCacheFile).yield {}
+      else
+        {}
+
+  getNpmPaths: ->
+    l.deb 30, "Getting local npm paths (using `package.json` information)"
+    if _.isEmpty @package
+      throw new UError "`package.json` is missing / empty, cant fill `bundle.dependencies.paths.npm`"
+
+    depPaths = {}
+    for deps in [@package.dependencies, @package.devDependencies]
+      for dep of deps
+        try
+          pkg = JSON.parse fs.readFileSync "node_modules/#{dep}/package.json"
+          depPaths[dep] = upath.join "node_modules", dep, pkg.main
+        catch err
+          @build.handleError new UError "Error while getting local npm paths (using `package.json` information)", nested: err
+
+    When depPaths
+
+  # resolves to bower paths JSON object
+  getBowerPaths: ->
+    l.deb 30, "Getting local bower paths"
+    try bower = require "bower" catch err
+
+    When(
+      if bower
+        l.verbose "Getting bower paths from `require('bower')` module"
+        When.promise (resolve, reject)->
+          bcl = bower.commands.list paths: true
+          bcl.on 'end', (result)-> resolve result
+          bcl.on 'error', (err)-> reject err
+      else
+        cmd = "bower list --paths -j"
+        l.verbose "Getting bower paths from CLI exec `#{cmd}`"
+        execP(cmd).spread JSON.parse
+    ).then (bowerPaths)->
+      throw new UError "Bower returned empty - run `bower install`" if _.isEmpty bowerPaths
+      bowerPaths
 
   runAfterSaveConverters: ->
     changedFileResources = (file for fn, file of @fileResources when file.hasChanged and not file.hasErrors)
