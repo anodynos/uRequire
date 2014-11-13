@@ -13,7 +13,7 @@ Object.defineProperties exports, # lazily export
 
   #some bonus usefull stuff for `afterBuild`-ers
   upath: get:-> require "upath"
-  isFileIn: get:-> require 'is_file_in'
+  umatch: get:-> require 'umatch'
 
   # below, just for reference
   Bundle: get:-> require "./process/Bundle"

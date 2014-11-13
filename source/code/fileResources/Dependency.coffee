@@ -6,7 +6,7 @@ _.mixin (require 'underscore.string').exports()
 util = require 'util'
 minimatch = require 'minimatch'
 upath = require 'upath'
-isFileIn = require 'is_file_in'
+umatch = require 'umatch'
 
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 pathRelative = require './../paths/pathRelative'
@@ -160,7 +160,7 @@ class Dependency
 
     isNode: get:->
       (@plugin?.name?() is 'node') or # 'node' is a fake plugin signaling nodejs-only executing modules.
-      isFileIn @name(plugin:false, relative:'bundle'),
+      umatch @name(plugin:false, relative:'bundle'),
         (@module.bundle?.dependencies?.node or
           MasterDefaultsConfig.bundle.dependencies.node)
 

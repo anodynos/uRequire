@@ -12,7 +12,7 @@ TextResource = require './TextResource'
 Dependency = require "./Dependency"
 UError = require '../utils/UError'
 
-isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
+isTrueOrFileMatch = require '../config/isTrueOrFileMatch'
 
 isLikeCode = require "../codeUtils/isLikeCode"
 isEqualCode = require "../codeUtils/isEqualCode"
@@ -46,7 +46,7 @@ class Module extends TextResource
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
         get: ->
           value = _B.getp @bundle?.build, bof, separator: '_'
-          isTrueOrFileInSpecs value, @path
+          isTrueOrFileMatch value, @path
 
   ###
     Check if `super` in TextResource has spotted changes and thus has a possibly changed @converted (javascript code)

@@ -7,8 +7,6 @@ whenLibs = ['keys', 'function', 'node', 'callbacks', 'generator', 'sequence', 'p
 for wlib in whenLibs
   if _.isUndefined When[wlib]
     When[wlib] = require "when/#{wlib}"
-  else
-    throw new Error "when.#{wlib} already exists while attatching `require('when/#{wlib}')` to it."
 
 extraFunctions =
   each: (collection, handler)->
@@ -36,9 +34,7 @@ extraFunctions =
     )
 
 for name, extraFn of extraFunctions
-  if not _.isUndefined When[name]
-    throw new Error "when.#{name} already exists."
-  else
+  if _.isUndefined When[name]
     When[name] = extraFn
 
 module.exports = When

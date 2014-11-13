@@ -6,7 +6,7 @@ _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
 globExpand = require 'glob-expand'
 
-isFileIn = require 'is_file_in'
+umatch = require 'umatch'
 
 When = require '../promises/whenFull'
 execP = When.node.lift require("child_process").exec
@@ -55,7 +55,7 @@ class Bundle extends BundleBase
 
     filenames:->
       if _.isEmpty @files
-        _.filter globExpand({cwd: @path, filter: 'isFile'}, '**/*'), (f)=> isFileIn f, @filez #our initial filenames
+        _.filter globExpand({cwd: @path, filter: 'isFile'}, '**/*'), (f)=> umatch f, @filez #our initial filenames
       else
         _.keys @files
 
@@ -73,10 +73,13 @@ class Bundle extends BundleBase
     mainModule: ->
       if @main # respect only @main
         mainMod = _.find @modules, (m)=> m.path is @main
-      else # if @main is empty, try @name, 'index', 'main'
-        for mainCand in [@name, 'index', 'main'] when mainCand
-          mainMod = _.find @modules, (m)-> m.path is mainCand
-          break if mainMod
+      else
+        if _.size(@modules) is 1
+          mainMod = _.find @modules
+        else # if @main is empty and we have many, try @name, 'index', 'main'
+          for mainCand in [@name, 'index', 'main'] when mainCand
+            mainMod = _.find @modules, (m)-> m.path is mainCand
+            break if mainMod
       mainMod
 
     # all of these hold instances of Module, TextResource etc
@@ -238,7 +241,7 @@ class Bundle extends BundleBase
       # - determine its clazz from type
       # - until a terminal converter found
       for resConv in @resources
-        if isFileIn (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
+        if umatch (if resConv.isMatchSrcFilename then filename else dstFilename), resConv.filez
 
           # converted dstFilename for converters `filez` matching (i.e 'myDep.js' instead of 'myDep.coffee')
           if _.isFunction resConv.convFilename
@@ -364,7 +367,7 @@ class Bundle extends BundleBase
         isPartialBuild = false
       else
         # filter filenames not passing through bundle.filez
-        bundleFilenames = _.filter filenames, (f)=> isFileIn(f, @filez) and f[0] isnt '.' # exclude relative paths
+        bundleFilenames = _.filter filenames, (f)=> umatch(f, @filez) and f[0] isnt '.' # exclude relative paths
         if diff = filenames.length - bundleFilenames.length
           l.verbose "Ignored #{diff} non-`bundle.filez`"
           filenames = bundleFilenames
@@ -560,7 +563,7 @@ class Bundle extends BundleBase
   copyBundleFiles: (all)->
     # filtered for copy only # todo: allow all & then filter them
     bundleFilesToCopy = _.pick @files, (f, filename)=>
-      not (f instanceof FileResource) and (isFileIn filename, @copy) and (f.hasChanged or all)
+      not (f instanceof FileResource) and (umatch filename, @copy) and (f.hasChanged or all)
 
     if !_.isEmpty bundleFilesToCopy
       l.debug """ \n
@@ -583,7 +586,8 @@ class Bundle extends BundleBase
         @main = @mainModule.path
         l.warn """
             `bundle.main` is defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
-            }', as uRequire found a valid module '#{@path}/#{@mainModule.srcFilename}' in your path.
+            }', as uRequire found #{if _.size(@modules) is 1 then "only one" else "a valid main"
+            } module `#{@mainModule.srcFilename}` in `bundle.path` filtered with `bundle.filez`.
           """
       @main
     else
@@ -594,13 +598,13 @@ class Bundle extends BundleBase
       error =
         if not @main
           """
-            Missing `bundle.main` from config of bundle `#{@name}`.
+            Missing `bundle.main` from config of bundle.name=`#{@name}`, build.target=`#{@build.target}`.
             #{combErr}
             Tried to infer it from `bundle.name` = '#{@name}', or as ['index', 'main'], but no suitable module was found in bundle.
           """
         else
           """
-            Module `bundle.main` = '#{@main}' not found in bundle `#{@name}`.
+            Module `bundle.main` = '#{@main}' not found in bundle `#{@name}`, build.target=`#{@build.target}`.
             #{combErr}
             NOT trying to infer from `bundle.name` = '#{@name}', nor as ['index', 'main'] - `bundle.main` is always respected.
           """

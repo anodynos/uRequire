@@ -9,7 +9,7 @@ upath = require 'upath'
 
 # urequire
 UError = require '../utils/UError'
-isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
+isTrueOrFileMatch = require '../config/isTrueOrFileMatch'
 pathRelative = '../paths/pathRelative'
 
 ###
@@ -21,7 +21,7 @@ class BundleFile
   for bof in ['clean', 'deleteErrored']
     do (bof)->
       Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
-        get: -> isTrueOrFileInSpecs @bundle?.build?[bof], @dstFilename
+        get: -> isTrueOrFileMatch @bundle?.build?[bof], @dstFilename
 
   ###
     `data` has

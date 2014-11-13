@@ -9,12 +9,12 @@ moment = require 'moment'
 url = require 'url'
 
 upath = require 'upath'
-isFileIn = require 'is_file_in'
+umatch = require 'umatch'
 
 # uRequire
 When = require '../promises/whenFull'
 
-isTrueOrFileInSpecs = require '../config/isTrueOrFileInSpecs'
+isTrueOrFileMatch = require '../config/isTrueOrFileMatch'
 
 BundleFile = require './../fileResources/BundleFile'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
@@ -212,7 +212,7 @@ module.exports = class Build extends _B.CalcCachedProperties
         else
           l.verbose "clean: build.dstPath '#{@dstPath}' does not exist."
       else # filespecs - delete only files specified
-        delFiles = _.filter(globExpand({cwd: @dstPath, filter: 'isFile'}, '**/*'), (f)=> isFileIn f, @clean)
+        delFiles = _.filter(globExpand({cwd: @dstPath, filter: 'isFile'}, '**/*'), (f)=> umatch f, @clean)
         if not _.isEmpty delFiles
           l.verbose "clean: deleting #{delFiles.length} files matched with filespec", @clean
           for df in delFiles
@@ -288,7 +288,7 @@ module.exports = class Build extends _B.CalcCachedProperties
         return resolve()
       else
         if errFiles = _.size(@bundle.errorFiles)
-          if isTrueOrFileInSpecs @deleteErrored, @template.combinedFile
+          if isTrueOrFileMatch @deleteErrored, @template.combinedFile
             @deleteCombinedFile()
             if @continue
               l.er "Executing *'combined' optimizing with r.js* although there are #{errFiles} error files in the bundle, due to `build.continue`."
