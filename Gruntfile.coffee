@@ -69,7 +69,7 @@ module.exports = gruntFunction = (grunt) ->
       files: [ expand: true, src: ["**/*.js", "**/*.json", "!node_modules/**/*"], dest: "../#{dep}/node_modules/urequire"]
 
   ### shortcuts generation ###
-  splitTasks = (tasks)-> if !_.isString tasks then tasks else _.filter tasks.split(/\s/)
+  splitTasks = (tasks)-> if (tasks instanceof Array) then tasks else tasks.split(/\s/).filter((f)->!!f)
   grunt.registerTask cmd, splitTasks "shell:#{cmd}" for cmd of gruntConfig.shell # shortcut to all "shell:cmd"
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
     default: "clean build test"

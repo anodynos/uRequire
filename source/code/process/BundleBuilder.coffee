@@ -103,8 +103,8 @@ module.exports = class BundleBuilder
             else # be strict about it!
               throw new UError "Unknown number of arguments for `afterBuild()`: \n #{task.toString()[0..100]}"
       ).catch (er)=>
-        l.err er
-        @build.errors.push er # dont use handleError cause it might throw, but all ab's need to run
+        @build.printError er # dont use handleError cause it might throw, but all ab's need to run
+        @build.errors.push er
 
   watch: (options=@build.watch)=>
     options = @build.watch if _.isNumber options #remedy for older urequire-cli

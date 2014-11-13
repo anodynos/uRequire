@@ -87,7 +87,7 @@ module.exports = class Build extends _B.CalcCachedProperties
           * #{ pkg.name } #{ if pkg?.homepage and (pkg?.homepage isnt pkg?.repository?.url) then pkg?.homepage else ''}
           *
           * #{ pkg?.description }
-          * Version #{ pkg?.version } - Compiled on #{ moment().format("YYYY-MM-DD HH:MM:ss") }
+          * Version #{ pkg?.version } - Compiled on #{ moment().format("YYYY-MM-DD HH:mm:ss") }
           * Repository #{ pkg?.repository?.url }
           * Copyright(c) #{ moment().format("YYYY") } #{
               if _.isString pkg.author
@@ -392,6 +392,9 @@ module.exports = class Build extends _B.CalcCachedProperties
       interestingDepTypes = null #all
     else
       interestingDepTypes = ['notFoundInBundle', 'untrusted'] if not @verbose
+
+    if @template.name is 'nodejs'
+        interestingDepTypes = ['notFoundInBundle']
 
     if not _.isEmpty report = @bundle.reporter.getReport(interestingDepTypes)
       l.warn "\n \nDependency types report for `#{@bundle.name or 'empty bundle.name'}` target `#{@target}` build ##{@count}:\n", report
