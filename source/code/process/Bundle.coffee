@@ -591,9 +591,13 @@ class Bundle extends BundleBase
           """
       @main
     else
-      combErr = """
-        `bundle.main` should be your *entry-point module*, kicking off the bundle.
-         It is required for `combined` template & various `ResourceConverter`s & `afterBuild`ers."""
+      combErr = "`bundle.main` should be your *entry-point module*, kicking off the bundle:\n" +
+          (
+            if @build.template.name is 'combined'
+               '   * It is the return value of the `combined` template bundle factory, i.e. the value of the whole bundle. '+
+               'Without it, ALL modules will be loaded (usefull if this bundle is just `specs`), but the value of the bundle as a module will be `undefined` on AMD.\n'
+             else ''
+          ) +  '   * various `ResourceConverter`s & `afterBuild`ers might need it.'
 
       error =
         if not @main

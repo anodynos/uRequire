@@ -301,9 +301,11 @@ module.exports = class Build extends _B.CalcCachedProperties
         'combined' template: optimizing with r.js & almond
         #####################################################################""" if l.deb 30
 
-      if not @bundle.main
-        l.warn "`combine` template note: `bundle.main`, your *entry-point module* is missing from `bundle` config."
-        @bundle.ensureMain() # throws if not found
+      if (not @bundle.main) and (@count is 1)
+        l.warn """
+          `combine` template warning: `bundle.main`, your *entry-point module* is missing from `bundle` config.
+        """
+        @bundle.ensureMain(false)
 
       combinedTemplate = new AlmondOptimizationTemplate @bundle
       for depfilename, genCode of combinedTemplate.dependencyFiles
@@ -316,11 +318,14 @@ module.exports = class Build extends _B.CalcCachedProperties
         paths: combinedTemplate.paths
         wrap: combinedTemplate.wrap
         baseUrl: @template._combinedTemp
-        include: [@bundle.main]
+        include: if @bundle.main
+                   [ @bundle.ensureMain() ] # ensure its valid & return main, or throw
+                 else
+                   (upath.trimExt(mod.dstFilename) for k, mod of @bundle.modules)
 
-      # include the 'fake' AMD files 'getExcluded_XXX',
-      # `imports` deps &
-      # @todo: why 'rjs.deps' and not 'rjs.include' ?
+        # include the 'fake' AMD files 'getExcluded_XXX',
+        # `imports` deps &
+        # @todo: why 'rjs.deps' and not 'rjs.include' ?
         deps: _.union _.keys(@bundle.local_node_depsVars),
                       _.keys(@bundle.imports_bundle_depsVars),
                       _.keys(@bundle.modules_node_depsVars)

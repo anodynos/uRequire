@@ -148,8 +148,8 @@ class BundleFile
 
   inspect: ->
     inspectText = " #{@constructor.name} : '#{@dstFilename}' "
-    inspectText += '\u001b[32m(hasChanged)' if @hasChanged
-    inspectText += '\u001b[31m(hasErrors)' if @hasErrors
+    inspectText += '\u001B[32;1m(hasChanged)\u001B[0m' if @hasChanged
+    inspectText += '\u001b[31;1m(hasErrors)\u001B[0m' if @hasErrors
     inspectText
 
 module.exports = BundleFile

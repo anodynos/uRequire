@@ -1,6 +1,8 @@
 _ = (_B = require 'uberscore')._
 l = new _B.Logger 'uRequire/AlmondOptimizationTemplate'
 
+upath = require 'upath'
+
 Dependency = require '../fileResources/Dependency'
 Template = require './Template'
 
@@ -106,9 +108,15 @@ module.exports = class AlmondOptimizationTemplate extends Template
            [ 'bundle.mergedCode'
              '`mergedCode` code from all modules is merged and added after `bundle.commonCode`']
         ) +
+        (
+          if @bundle.main
+            @deb(30, "require and return `bundle.main` from `bundleFactory()`, kicking off the bundle.") +
+            "    return require('#{@bundle.main}');\n"
+          else
+            @deb(30, "require all `bundle.modules` from `bundleFactory()`, since `bundle.main` is missing.") +
+            ("\nrequire('#{upath.trimExt(mod.dstFilename)}');" for k, mod of @bundle.modules).join('')
+        ) +  "\n};" +
 
-        @deb(30, "require and return `bundle.main` from `bundleFactory()`, kicking off the bundle.") +
-        "    return require('#{@bundle.main}');\n  };" +
         @deb(30, "*** END *** bundleFactory: all modules (as AMD), common code & almond's `require`/`define`") +
 
         @sp('bundleFactoryRegistar') +

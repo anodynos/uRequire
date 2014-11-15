@@ -20,13 +20,13 @@ module.exports = class BundleBuilder
     # lazy, to solve circular dep problems
     @Build = require './Build'
     @Bundle = require './Bundle'
-    blendConfigs = require '../config/blendConfigs'
+    @blendConfigs = require '../config/blendConfigs'
 
     # oops, debugLevel not really established before configs are blended :-(
     # l.deb 5, 'uRequire v' + VERSION + ' loading config files...'
     # l.deb('User configs (not blended with Master config)', blendConfigs _.flatten(configs), deriveLoader) if l.deb 90
 
-    @config = blendConfigs _.flatten(configs), deriveLoader, true    # our 'final' @config withMaster
+    @config = @blendConfigs _.flatten(configs), deriveLoader, true    # our 'final' @config withMaster
     _.defaults @config.bundle, {filez: ['**/*']}  # the only(!) hard coded default
 
     @setDebugVerbose()
@@ -44,6 +44,14 @@ module.exports = class BundleBuilder
       throw new UError uerr, nested:err
 
   inspect: -> "BundleBuilder:\n" + l.prettify(@bundle) + '\n' + l.prettify(@build)
+
+  # experimental, not really refreshing the whole @bundle & @build
+#  addConfigs: (configs, deriveLoader)->
+#    configs = _B.arrayize configs
+#    configs.unshift @config
+#    @blendConfigs configs, deriveLoader
+#    configs[1..].unshift {@bundle, @build}
+#    @blendConfigs configs, deriveLoader
 
   verboseRef = _B.Logger::verbose # hack & travestry
   setDebugVerbose: ->
