@@ -93,6 +93,7 @@
     "teacup": "0.4.x",
     "urequire": ">=0.7.0-beta10",
     "urequire-ab-specrunner": "^0.1.9",
-    "urequire-rc-inject-version": "^0.1.2"
+    "urequire-rc-inject-version": "^0.1.2",
+    "urequire-rc-import-keys": "^0.1.2"
   }
 }
