@@ -92,7 +92,7 @@
     "urequire-rc-teacup-js": "0.2.x",
     "teacup": "0.4.x",
     "urequire": ">=0.7.0-beta10",
-    "urequire-ab-specrunner": "^0.1.9",
+    "urequire-ab-specrunner": "^0.1.10",
     "urequire-rc-inject-version": "^0.1.2",
     "urequire-rc-import-keys": "^0.1.2"
   }

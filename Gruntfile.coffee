@@ -35,7 +35,7 @@ module.exports = gruntFunction = (grunt) ->
               equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual,
               notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet"""
             chai: 'expect' ] ]
-        afterBuild: require 'urequire-ab-specrunner'
+        afterBuild: require('urequire-ab-specrunner').options {mochaOptions: "-t 4000"}
 
       specWatch: derive: 'spec', watch: true
 
