@@ -1,27 +1,18 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/process/Build'
 fs = require 'fs'
-
 rimraf = require 'rimraf'
 globExpand = require 'glob-expand'
-
 moment = require 'moment'
 url = require 'url'
-
 upath = require 'upath'
 umatch = require 'umatch'
 
 # uRequire
 When = require '../promises/whenFull'
-
 isTrueOrFileMatch = require '../config/isTrueOrFileMatch'
-
 BundleFile = require './../fileResources/BundleFile'
 AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 DependenciesReporter = require './../utils/DependenciesReporter'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
-
-UError = require '../utils/UError'
 
 {dependenciesBindingsBlender} = require '../config/blendConfigs'
 

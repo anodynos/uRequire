@@ -1,5 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/Module'#, 100
 _.mixin (require 'underscore.string').exports()
 fs = require 'fs'
 util = require 'util'
@@ -10,8 +8,6 @@ upath = require 'upath'
 ModuleGeneratorTemplates = require '../templates/ModuleGeneratorTemplates'
 TextResource = require './TextResource'
 Dependency = require "./Dependency"
-UError = require '../utils/UError'
-
 isTrueOrFileMatch = require '../config/isTrueOrFileMatch'
 
 isLikeCode = require "../codeUtils/isLikeCode"

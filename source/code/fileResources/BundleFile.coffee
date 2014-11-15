@@ -1,6 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/BundleFile'
-
 fs = require 'fs'
 mkdirp = require "mkdirp"
 When = require 'when'
@@ -8,7 +5,6 @@ When = require 'when'
 upath = require 'upath'
 
 # urequire
-UError = require '../utils/UError'
 isTrueOrFileMatch = require '../config/isTrueOrFileMatch'
 pathRelative = '../paths/pathRelative'
 

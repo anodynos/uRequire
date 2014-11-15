@@ -1,26 +1,18 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/process/Bundle'
-
 _.mixin (require 'underscore.string').exports()
-
 fs = require 'fs'
 globExpand = require 'glob-expand'
-
 umatch = require 'umatch'
+upath = require 'upath'
 
 When = require '../promises/whenFull'
 execP = When.node.lift require("child_process").exec
 
 # uRequire
-upath = require 'upath'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
-
 Dependency = require '../fileResources/Dependency'
 DependenciesReporter = require './../utils/DependenciesReporter'
-UError = require '../utils/UError'
 ResourceConverterError = require '../utils/ResourceConverterError'
 
-#our file system
 BundleFile = require './../fileResources/BundleFile'
 FileResource = require './../fileResources/FileResource'
 TextResource = require './../fileResources/TextResource'

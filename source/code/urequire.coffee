@@ -1,5 +1,4 @@
-exports.VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' variable is added by grant:concat
-_ = (_B = require 'uberscore')._
+exports.VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' injected by urequire-rc-inject-version
 
 When = require './promises/whenFull'
 fs = require 'fsp'

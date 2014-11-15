@@ -1,5 +1,3 @@
-_ = (_B = require 'uberscore')._
-
 When = require 'when'
 
 # augmenting When

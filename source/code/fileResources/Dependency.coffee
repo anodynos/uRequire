@@ -1,6 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/Dependency' #, 110
-
 _.mixin (require 'underscore.string').exports()
 
 util = require 'util'
@@ -10,7 +7,6 @@ umatch = require 'umatch'
 
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 pathRelative = require './../paths/pathRelative'
-UError = require '../utils/UError'
 
 untrust = (str)->
   str = new String(str + '')

@@ -1,5 +1,3 @@
-_ = (_B = require 'uberscore')._
-
 umatch = require 'umatch'
 
 module.exports = (val, filename)->

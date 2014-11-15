@@ -1,11 +1,7 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/codeUtils/toCode'#  100
-
 escodegen =  require 'escodegen'
 
 dfb = new _B.DeepDefaultsBlender
 
-UError = require '../utils/UError'
 toAST = require './toAST'
 
 # returns the AST of the 1st statement/expression if its a String, as-is otherwise

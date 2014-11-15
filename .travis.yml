@@ -5,5 +5,4 @@ node_js:
 
 before_script:
   - npm install -g grunt-cli
-  - npm install -g coffee-script
-  - grunt build
+  - npm install -g mocha

@@ -1,8 +1,4 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/ModuleGeneratorTemplates'
 _.mixin (require 'underscore.string').exports()
-
-UError = require '../utils/UError'
 
 {VERSION} = require '../urequire'
 

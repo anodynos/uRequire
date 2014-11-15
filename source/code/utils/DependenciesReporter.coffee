@@ -1,6 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/utils/DependencyReporter'
-
 Dependency = require './../fileResources/Dependency'
 
 #

@@ -1,14 +1,4 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/codeUtils/CodeMerger-spec'
-
-chai = require 'chai'
-expect = chai.expect
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
-
 CodeMerger = require '../../code/codeUtils/CodeMerger'
-UError = require '../../code/utils/UError'
-
 esprima = require 'esprima'
 
 toAST = require "../../code/codeUtils/toAST"

@@ -1,6 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/FileResource'
-
 fs = require 'fs'
 mkdirp = require 'mkdirp'
 When = require 'when'
@@ -8,7 +5,6 @@ When = require 'when'
 # uRequire
 BundleFile = require './BundleFile'
 upath = require 'upath'
-UError = require '../utils/UError'
 ResourceConverter = require '../config/ResourceConverter'
 ResourceConverterError = require '../utils/ResourceConverterError'
 

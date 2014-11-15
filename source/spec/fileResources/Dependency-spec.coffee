@@ -1,9 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/Dependency-spec'
-
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
-
 MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
 Dependency = require "../../code/fileResources/Dependency"
 

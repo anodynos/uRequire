@@ -1,11 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/config/ResourceConverter-spec'
-
-chai = require 'chai'
-expect = chai.expect
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
-
 ResourceConverter = require '../../code/config/ResourceConverter'
 
 rcSpec1 = [

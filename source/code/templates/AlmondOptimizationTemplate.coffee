@@ -1,6 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/AlmondOptimizationTemplate'
-
 upath = require 'upath'
 
 Dependency = require '../fileResources/Dependency'

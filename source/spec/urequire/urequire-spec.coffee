@@ -1,12 +1,4 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/urequire/urequire-spec', 1
-
-chai = require 'chai'
 chai.use require 'chai-as-promised'
-expect = chai.expect
-
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
 
 globExpand = require 'glob-expand'
 upath = require 'upath'
@@ -21,7 +13,6 @@ mkdirP = When.node.lift require 'mkdirp'
 rimraf = require 'rimraf'
 
 urequire = require '../../code/urequire'
-UError = require '../../code/utils/UError'
 
 BundleFile = require '../../code/fileResources/BundleFile'
 

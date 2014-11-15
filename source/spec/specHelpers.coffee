@@ -1,7 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/specHelpers'
-chai = require 'chai'
-expect = chai.expect
 
 # Mimic & extend http://api.qunitjs.com/category/assert/
 

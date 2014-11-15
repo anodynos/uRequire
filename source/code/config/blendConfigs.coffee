@@ -1,12 +1,9 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/blendConfigs'
 fs = require 'fs'
 upath = require 'upath'
 require('butter-require')() # no need to store it somewhere
 
 MasterDefaultsConfig = require './MasterDefaultsConfig'
 ResourceConverter = require './ResourceConverter'
-UError = require '../utils/UError'
 
 arrayizeUniqueReversingUnshifter = new _B.ArrayizeBlender [], {unique: true, reverse:true, addMethod: 'unshift'}
 arrayizeBlender = new _B.ArrayizeBlender

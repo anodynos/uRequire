@@ -1,11 +1,7 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/process/BundleBuilder'
 fs = require 'fs'
 upath = require 'upath'
 When = require 'when'
 
-# urequire
-UError = require '../utils/UError'
 {VERSION} = urequire = require '../urequire'
 
 module.exports = class BundleBuilder

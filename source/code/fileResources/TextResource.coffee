@@ -1,10 +1,6 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/TextResource'
 When = require 'when'
-
 # uRequire
 FileResource = require './FileResource'
-UError = require '../utils/UError'
 ResourceConverter = require '../config/ResourceConverter'
 
 ###

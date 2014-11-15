@@ -1,15 +1,5 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/codeUtils/toAST_toCode-spec'
-
-chai = require 'chai'
-expect = chai.expect
-{ equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual, notIqual
-  ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet } = require '../specHelpers'
-
 coffee = require 'coffee-script'
 esprima = require 'esprima'
-
-UError = require "../../code/utils/UError"
 
 isLikeCode = require "../../code/codeUtils/isLikeCode"
 isEqualCode = require "../../code/codeUtils/isEqualCode"

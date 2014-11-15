@@ -1,5 +1,3 @@
-_ = (_B = require 'uberscore')._
-
 module.exports = (l)->
   throw "not (l instanceof _B.Logger)" if not (l instanceof _B.Logger)
 

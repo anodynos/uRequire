@@ -42,7 +42,7 @@
   "main": "./build/code/urequire.js",
   "preferGlobal": false,
   "scripts": {
-    "test": "grunt test"
+    "test": "grunt"
   },
   "directories": {
     "doc": "./doc",
@@ -68,29 +68,31 @@
     "require-clean": "0.1.x",
     "requirejs": "2.1.15",
     "rimraf": "2.2.x",
-    "upath": "^0.1.3",
+    "upath": "^0.1.4",
     "uberscore": "0.0.17",
     "uglify-js": "^2.4.15",
     "underscore.string": "^2.3.3",
     "urequire-rc-coco": "0.1.x",
-    "urequire-rc-coffee-script": "0.1.x",
+    "urequire-rc-coffee-script": "^0.1.1",
     "urequire-rc-iced-coffee-script": "0.1.x",
     "urequire-rc-livescript": "0.1.x",
     "when": "^3.6.2"
   },
   "devDependencies": {
+    "mocha": "2.0.x",
     "chai": "1.9.2",
     "chai-as-promised": "4.1.1",
     "grunt": "0.4.5",
     "grunt-contrib-clean": "0.4.x",
-    "grunt-contrib-concat": "0.1.x",
     "grunt-contrib-copy": "0.4.x",
     "grunt-contrib-watch": "0.5.x",
-    "grunt-shell": "0.3.x",
-    "mocha": "2.0.x",
+    "grunt-urequire": "0.7.x",
     "urequire-rc-exec": "0.1.x",
     "urequire-rc-less": "0.1.x",
     "urequire-rc-teacup-js": "0.2.x",
-    "teacup": "0.4.x"
+    "teacup": "0.4.x",
+    "urequire": ">=0.7.0-beta10",
+    "urequire-ab-specrunner": "^0.1.9",
+    "urequire-rc-inject-version": "^0.1.2"
   }
 }

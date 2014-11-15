@@ -1,8 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/codeUtils/CodeMerger'
-
-UError = require '../utils/UError'
-
 toCode = require   "./toCode"
 toAST = require   "./toAST"
 isLikeCode = require  "./isLikeCode"

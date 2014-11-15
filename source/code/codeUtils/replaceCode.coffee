@@ -1,6 +1,3 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/codeUtils/replaceCode'
-
 toCode = require   "./toCode"
 toAST = require   "./toAST"
 isLikeCode = require  "./isLikeCode"

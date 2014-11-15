@@ -1,5 +1,3 @@
-_ = (_B = require 'uberscore')._
-
 fs = require 'fs'
 upath = require 'upath'
 
@@ -11,7 +9,6 @@ Dependency = require './fileResources/Dependency'
 urequire = require './urequire'
 
 BundleBase = require './process/BundleBase'
-UError = require './utils/UError'
 
 ###
 The `nodejs`'s require facility.

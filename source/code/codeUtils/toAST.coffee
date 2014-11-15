@@ -1,9 +1,4 @@
-_ = (_B = require 'uberscore')._
-l = new _B.Logger 'uRequire/codeUtils/toAST'#, 100
-
 esprima =  require 'esprima'
-
-UError = require '../utils/UError'
 # @param codeOrAST {String|AST}
 # @return an AST that can be generated to code
 #     either as type: 'Program' or type: 'BlockStatement'
