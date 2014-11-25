@@ -14,7 +14,7 @@ AlmondOptimizationTemplate = require '../templates/AlmondOptimizationTemplate'
 DependenciesReporter = require './../utils/DependenciesReporter'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 
-{dependenciesBindingsBlender} = require '../config/blendConfigs'
+{shimBlender, dependenciesBindingsBlender} = require '../config/blendConfigs'
 
 # circular dependencies, lazily loaded on constructor for testing
 FileResource = null
@@ -122,6 +122,9 @@ module.exports = class Build extends _B.CalcCachedProperties
     dstRealpath: get: ->
       upath.join process.cwd(), @dstPath
 
+    hasErrors: get: ->
+      !_.isEmpty(@bundle.errorFiles) or !_.isEmpty(@errors)
+
   @calcProperties:
 
     changedModules: -> _.pick @_changed, (f)-> f instanceof Module
@@ -134,13 +137,11 @@ module.exports = class Build extends _B.CalcCachedProperties
 
     hasChanged: -> not _.isEmpty @_changed
 
-    hasErrors: -> !_.isEmpty(@bundle.errorFiles) or !_.isEmpty(@errors)
-
     dstPathToRoot: -> upath.relative upath.join(process.cwd(), @dstPath), process.cwd()
 
-  calcRequireJsConfig: (toPath = @dstPath, blendWithCfg)->
+  calcRequireJsConfig: (toPath = @dstPath, blendWithCfg, strictDeps, ignoreDeps=[])->
 
-    blendedPaths = dependenciesBindingsBlender.blend.apply null, [
+    depPaths = dependenciesBindingsBlender.blend.apply null, [ # {dep1: [paths1...], dep2: [paths2...]}
       @bundle.dependencies.paths.override
       blendWithCfg?.paths # undefined is fine with dependenciesBindingsBlender
       @bundle.dependencies.locals
@@ -149,25 +150,76 @@ module.exports = class Build extends _B.CalcCachedProperties
       @bundle.dependencies.paths.npm
     ].reverse()          # higher in above [] means higher precedence
 
+    if strictDeps # filter & return only needed ones, ie local non-node ones, blended & strictDeps
+      strictDeps = [] if strictDeps is true
+
+      localNonNodeDepFilter = (d)-> d.isLocal and !d.isNode
+      neededDeps = _.keys(dependenciesBindingsBlender.blend {},
+        @bundle.getImports_depsVars(localNonNodeDepFilter),
+        @bundle.getModules_depsVars(localNonNodeDepFilter),
+        blendWithCfg?.paths
+      ).concat(strictDeps).map (dep)-> dep.split('/')[0] #cater for locals like 'when/callbacks'
+
+      for dep in neededDeps
+        if _.isEmpty(depPaths[dep]) and (dep not in ignoreDeps)
+          throw new Error """\n
+            `calcRequireJsConfig` error for build.target='#{@target}', bundle.name='#{@bundle.name}':
+             Path for local non-node dependency `#{dep}` is undefined in `dependencies.paths.xxx`.
+
+             * If you want to include this path you can either:
+                 a) `$ bower install #{dep}` and set `dependencies: paths: bower: true` in your config.
+                 b) `$ npm install #{dep}` and set `dependencies: paths: npm: true` in your config (but be careful cause some npm `node_modules` wont work on the browser/AMD).
+                 c) manually set `dependencies: paths: override` to the `#{dep}.js` lib eg
+                  `dependencies: paths: override: { '#{dep}': 'node_modules/#{dep}/path/to/#{dep}.js' }` (relative from project root, not `path`/`dstPath`)
+               Then delete `urequire-local-deps-cache.json` and re-run uRequire.
+
+             * If you want to ignore this dep add it to `ignoreDeps` (4rth param) of `calcRequireJsConfig()`
+
+             All discovered paths (before duplicates removal) are:
+            \n""" + l.prettify depPaths
+
+    depPaths = _.pick depPaths, (p, dep)->
+      (not neededDeps or (dep in neededDeps)) and (dep not in ignoreDeps)
+
     pathToRoot = upath.relative upath.join(process.cwd(), toPath), process.cwd()
+    depPaths =
+      _.mapValues depPaths, (paths)->
+        _.uniq _.map paths, (path)->
+          if not url.parse(path).protocol
+            path = upath.join pathToRoot, path
+          upath.removeExt path, '.js'
 
-    return {
+    l.warn "calcRequireJsConfig: `@bundle.dependencies.shim` is not enabled - shim info will be incomplete." if not @bundle.dependencies.shim
+    nonEmptyShims = _.pick(
+      shimBlender.blend.apply(null, [{}, blendWithCfg?.shim, @rjs?.shim, @bundle.dependencies.shim].reverse()), # left ones have precedence
+      (sh)-> (not _.isEmpty sh.deps) or (not _.isEmpty sh.exports)
+    )
+
+    rjsCfg = {
       baseUrl: if toPath is @dstPath then '.' else (
-          upath.relative upath.join(process.cwd(), @dstPath),
-                         upath.join(process.cwd(), toPath)
-          ) or '.'
+        upath.relative upath.join(process.cwd(), @dstPath),
+                       upath.join(process.cwd(), toPath)
+        ) or '.'
 
-      paths:  _.mapValues blendedPaths, (paths)->
-                _.uniq _.map paths, (path)->
-                  if not url.parse(path).protocol
-                    path = upath.join pathToRoot, path
-                  if upath.extname(path) is '.js'
-                    upath.trimExt path
-                  else
-                    path
-
-      shim: _.merge {}, @rjs?.shim, blendWithCfg?.shim
+      paths: depPaths
+      shim: nonEmptyShims
     }
+    Object.defineProperties rjsCfg, shimSortedDeps: get:-> sortDepsByShim _.keys(depPaths), nonEmptyShims
+    rjsCfg
+
+  # Yeah, we DO need bubblesort for sort deps bu shim,
+  # cause deps compare two-ways and it's the simplest n^2 way
+  sortDepsByShim = (arr, shim)->
+    swap = (a, b)->
+      temp = arr[a]
+      arr[a] = arr[b]
+      arr[b] = temp
+
+    for dep_i, i in arr
+      for dep_j, j in arr
+        if arr[i] in (shim?[arr[j]]?.deps or [])
+          swap j, i
+    arr
 
   newBuild:->
     @startDate = new Date();
@@ -335,10 +387,11 @@ module.exports = class Build extends _B.CalcCachedProperties
           FileResource.save @template.combinedFile, text
 
       # todo: re-move this to blendConfigs
-      if rjsConfig.optimize = @optimize                # set if we have build:optimize: 'uglify2',
+      if rjsConfig.optimize = @optimize     # set if we have build:optimize: 'uglify2',
         rjsConfig[@optimize] = @[@optimize] # copy { uglify2: {...uglify2 options...}}
       else
         rjsConfig.optimize = "none"
+
       rjsConfig.logLevel = 0 if l.deb 80
 
       #@todo: blend it !

@@ -81,12 +81,21 @@ describe "urequire.BundleBuilder:", ->
           convFilename: '.js'
         }
 
-      # instead of 'inject-version', test some promise & async injectVERSIONs
+      # instead of 'inject-version', test a promise returning injectVERSION
       [ '+injectVERSIONPromises', 'An injectVERSION that returns a promise instead of sync', ["#{main}.js"],
         (m)-> When().delay(0).then -> m.beforeBody = "var VERSION = '#{VERSION }';" ]
 
-      [ '!injectTestAsync', 'An inject test that runs async', ["#{main}.js"],
-        (m, cb)-> setTimeout -> cb null, "'testASync';" + m.converted ]
+      [ '!injectTestAsync', 'An inject test that runs async with callback', ["#{main}.js"],
+        (m, cb)-> setTimeout => cb null, m.converted + ";'#{@name}';" ]
+
+      [ '!injectTestSync', 'An inject test that runs synchronously', ["#{main}.js"],
+        (m)-> m.converted + "'#{@name}';" ]
+
+      [ '!injectTestPromise', 'An inject test that returns a promise', ["#{main}.js"],
+        (m)-> When().delay(0).then => m.converted + "'#{@name}';"]
+      
+      [ '!injectTestAsyncRacePromise', 'An inject test with callback signature, returning promise instead', ["#{main}.js"],
+        (m, cb)-> When().delay(0).then => m.converted + "'#{@name}';"]
     ]
 
     afterBuild: [
@@ -95,6 +104,8 @@ describe "urequire.BundleBuilder:", ->
         When().delay(1).then ->
           buildBundleResults.push 'afterBuild1': donePromise
     ]
+
+  mainTextEndsWithRcInjections = "'injectTestAsync';'injectTestSync';'injectTestPromise';'injectTestAsyncRacePromise';"
 
   parentConfig =
     dependencies:
@@ -112,9 +123,6 @@ describe "urequire.BundleBuilder:", ->
       lodash: "rjs/defined/lodash.min"
 
     resources: [
-      [ '!injectTestSync', 'An inject test that runs synchronously', ["#{main}.js"],
-        (m)-> "'testSync';" + m.converted ]
-
       ['less', { # ['style/**/*.less'], {
           $srcMain: 'style/myMainStyle.less'
           compress: true
@@ -140,6 +148,11 @@ describe "urequire.BundleBuilder:", ->
       (err, bb, cb) -> # return promise instead of calling cb
         When().delay(1).then ->
           buildBundleResults.push 'afterBuild4' : [err, bb]
+          throw new UError "afterBuild4 throws if err" if err
+
+      (err, bb)-> #just sync, throw if err
+        buildBundleResults.push 'afterBuild5' : [err, bb]
+        throw new UError "afterBuild5 throws if err" if err
     ]
 
   describe "`BundleBuilder.buildBundle` :", ->
@@ -222,6 +235,10 @@ describe "urequire.BundleBuilder:", ->
 
                 it "by BundleBuilder build.target string", ->
                   equal buildResult.urequire.findBBExecutedBefore(buildResult.build.target), previousBB
+
+              describe "find the bundleBuilder created : ", ->
+                it "by target name", ->
+                  equal buildResult.urequire.findBBCreated(buildResult.build.target), buildResult
 
             describe "bundleBuilder.bundle has the correct xxx_depVars:", ->
               removeInjectedIfCombined = (expectedDepVars)->
@@ -402,6 +419,7 @@ describe "urequire.BundleBuilder:", ->
                   {'afterBuild2' : [null, bb]}
                   {'afterBuild3' : [null, bb]}
                   {'afterBuild4' : [null, bb]}
+                  {'afterBuild5' : [null, bb]}
                   {'then1' : bb}
                   {'then2' : bb}
                 ]
@@ -413,8 +431,8 @@ describe "urequire.BundleBuilder:", ->
 
               it "injection as async & sync RC work in the right order", ->
                 if cfg.template isnt 'combined'
-                  fs.readFileP(mylib, 'utf8').then (content)->
-                    tru _.startsWith content, "'testSync';'testASync';"
+                  fs.readFileP(mylib, 'utf8').then (text)->
+                    tru _.endsWith text, mainTextEndsWithRcInjections
 
               describe "'less' RC compiles to css:", ->
 
@@ -519,8 +537,8 @@ describe "urequire.BundleBuilder:", ->
       ok bb.build.changedErrorFiles['models/Person.ls']
       tru bb.build.changedErrorFiles['models/Person.ls'].hasErrors
 
-    it "`bb.build.errors` has two errors (one for file, one for 'combined' failure)", ->
-      equal _.size(bb.build.errors), 2
+    it "`bb.build.errors` has 2 + 2 errors (one for file, one for 'combined' failure & afterBuild4 & 5)", ->
+      equal _.size(bb.build.errors), 4
 
     describe "afterBuild tasks:", ->
       it "`afterBuild()` tasks are called once each, in serial order, followed by .catch tasks.", ->
@@ -530,6 +548,7 @@ describe "urequire.BundleBuilder:", ->
           {'afterBuild2' : [buildErrors, bb]}
           {'afterBuild3' : [buildErrors, bb]}
           {'afterBuild4' : [buildErrors, bb]}
+          {'afterBuild5' : [buildErrors, bb]}
           {'catch1': buildErrors}
           {'catch2': buildErrors}
         ]

@@ -36,7 +36,7 @@ class DependenciesReporter
 
     'local':
       color: "\u001b[33;1m"
-      header: "`local` deps (i.those either looking 'localdep' / declared in deps.locals / found in bower.json or package.json) and part of bundle :"
+      header: "`local` deps (i.those either looking 'localdep' / declared in deps.locals / found in bower.json or package.json) and *not* part of bundle :"
       footer: """Note, when executing :
                   * on nodejs, locals are `require`d as is.
                   * on Web/AMD or uRequire/UMD they use `rjs.baseUrl` / `rjs.paths`.

@@ -7,6 +7,8 @@ upath = require 'upath'
 When = require '../promises/whenFull'
 execP = When.node.lift require("child_process").exec
 
+try bower = require "bower" catch err
+
 # uRequire
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 Dependency = require '../fileResources/Dependency'
@@ -24,7 +26,7 @@ BundleBase = require './BundleBase'
 CodeMerger = require '../codeUtils/CodeMerger'
 toCode = require '../codeUtils/toCode'
 
-{dependenciesBindingsBlender} = require '../config/blendConfigs'
+{shimBlender, dependenciesBindingsBlender} = require '../config/blendConfigs'
 
 class Bundle extends BundleBase
 
@@ -379,38 +381,44 @@ class Bundle extends BundleBase
       l.verbose "No files to process."
     else
       @reporter = new DependenciesReporter()
-      @fillDepsPaths().then =>
-        @loadOrRefreshResources(filenames).then =>
-          if not _.isEmpty @build.changedFiles
-            @convertChangedModules().then( =>
-              @concatMainModuleBanner()
-              @saveResources()
-              @copyBundleFiles()
-              (if @build.template.name is 'combined'
-                  @build.combine().catch((err)=> @build.handleError err)
-               else
-                  When()
-              ).then =>
-                @runAfterSaveConverters()
-            ).catch( (err)=>
-              @build.handleError err
-            ).finally =>
-              @build.finishBuild()
-          else
-            l.verbose "No bundle files *really* changed."
-            if not _.isEmpty(@errorFiles)
-              @build.handleError new Error "There are still #{_.size @errorFiles} files with errors in bundle:\n" + l.prettify @errorFiles
+      
+      @loadOrRefreshResources(filenames).then =>
+        if not _.isEmpty @build.changedFiles
+          @convertChangedModules().then( =>
+            @concatMainModuleBanner()
+            @saveResources()
+            @copyBundleFiles()
+            (if @build.template.name is 'combined'
+                @build.combine().catch((err)=> @build.handleError err)
+             else
+                When()
+            ).then =>
+              @runAfterSaveConverters().then =>
+                @fillDepsInfo()
+          ).catch( (err)=>
+            @build.handleError err
+          ).finally =>
             @build.finishBuild()
+        else
+          l.verbose "No bundle files *really* changed."
+          if not _.isEmpty(@errorFiles)
+            @build.handleError new Error "There are still #{_.size @errorFiles} files with errors in bundle:\n" + l.prettify @errorFiles
+          @build.finishBuild()
 
-  localPathsCacheFile = 'urequire-local-paths-cache.json'
-  fillDepsPaths: When.lift ->
-    if (@build.count is 1) and #only once for each build
+  localPathsCacheFile = '.urequire-local-deps-cache.json'
+  fillDepsInfo: When.lift ->
+    if (@build.count is 1) and #only once for each build @todo: or when deps change ?
       (@dependencies.paths.bower or @dependencies.paths.npm)
-        @loadPathsCache().then( (cache)=>
+        l.debug """ \n
+          #####################################################################
+          fillDepsInfo: bundle.name = #{@name}, bundle.main = #{@main}, build.target = #{@build.target}
+          #####################################################################""" if l.deb 30
+
+        @useLocalCache().then( (cache)=>
           dirtyCache = {}
 
-          When.sequence [
-            => # todo: refactor these two
+          When.sequence [ #todo: revise the whole caching / dirtying strategy to a more transparent one
+            =>
               if @dependencies.paths.bower
                 When(
                   if _.isEmpty cache.bower
@@ -418,10 +426,26 @@ class Bundle extends BundleBase
                   else
                     cache.bower
                 ).then (bowerPaths)=>
-                  @dependencies.paths.bower = dependenciesBindingsBlender.blend bowerPaths, @dependencies.paths.bower
+                  l.deb 40, "Blending `bundle.dependencies.paths.bower`"
+                  @dependencies.paths.bower = dependenciesBindingsBlender.blend {}, bowerPaths, @dependencies.paths.bower
               else
                 When()
 
+            =>
+              if @dependencies.shim
+                When(
+                  if _.isEmpty(cache.shim)
+                    dirtyCache.shim = @getShimDeps()
+                  else
+                    cache.shim
+                ).then (bowerShims)=> # fill in `exports` from bundle's depVars
+                  for bowerDep of bowerShims
+                    if _.isEmpty(bowerShims[bowerDep].exports) and !_.isEmpty(dv = @local_depsVars[bowerDep])
+                      bowerShims[bowerDep].exports = dv[0] # requirejs `exports` support only one
+                      if _.isEmpty dirtyCache.shim
+                        dirtyCache.shim = bowerShims
+                  l.deb 40, "Blending `bundle.dependencies.shim`"
+                  @dependencies.shim = shimBlender.blend {}, bowerShims, @dependencies.shim
             =>
               if @dependencies.paths.npm
                 When(
@@ -430,10 +454,10 @@ class Bundle extends BundleBase
                   else
                     cache.npm
                 ).then (npmPaths)=>
+                  l.deb 40, "Blending `bundle.dependencies.paths.npm`"
                   @dependencies.paths.npm = dependenciesBindingsBlender.blend npmPaths, @dependencies.paths.npm
               else
                 When()
-
             =>
               if !_.isEmpty(dirtyCache) and @dependencies.paths.useCache
                 l.verbose "Saving dirty paths cache to `#{localPathsCacheFile}`"
@@ -444,14 +468,20 @@ class Bundle extends BundleBase
         ).catch (err)=>
            @build.handleError new UError "Error while filling `bundle.dependencies.paths`", nested: err
 
-  loadPathsCache: ->
+  useLocalCache: ->
     fs.existsP(localPathsCacheFile).then (isExists)=>
       if isExists
         if @dependencies.paths.useCache
-          l.deb 40, "Loading local paths cache `#{localPathsCacheFile}`"
-          fs.readFileP(localPathsCacheFile).then JSON.parse
+          l.deb 60, "Loading local paths cache `#{localPathsCacheFile}`"
+          fs.readFileP(localPathsCacheFile).then(JSON.parse).then (cache)=>
+            if _.isEmpty cache
+              l.warn "Deleting local paths cache `#{localPathsCacheFile}` cause its empty."
+              fs.unlinkP(localPathsCacheFile).yield {}
+            else
+              l.deb 40, "Local paths cache `#{localPathsCacheFile}` loaded"
+              cache
         else
-          l.deb 40, "Deleting local paths cache `#{localPathsCacheFile}`"
+          l.deb 40, "Deleting local paths cache `#{localPathsCacheFile}` cause `@dependencies.paths.useCache` is falsey."
           fs.unlinkP(localPathsCacheFile).yield {}
       else
         {}
@@ -475,22 +505,29 @@ class Bundle extends BundleBase
   # resolves to bower paths JSON object
   getBowerPaths: ->
     l.deb 30, "Getting local bower paths"
-    try bower = require "bower" catch err
-
     When(
       if bower
-        l.verbose "Getting bower paths from `require('bower')` module"
+        l.verbose "Getting offline bower paths from `require('bower')` module"
         When.promise (resolve, reject)->
-          bcl = bower.commands.list paths: true
+          bcl = bower.commands.list {paths: true, offline:true}
           bcl.on 'end', (result)-> resolve result
           bcl.on 'error', (err)-> reject err
       else
-        cmd = "bower list --paths -j"
-        l.verbose "Getting bower paths from CLI exec `#{cmd}`"
+        cmd = "bower list --paths --json --offline"
+        l.verbose "Getting offline bower paths from CLI exec `#{cmd}`"
         execP(cmd).spread JSON.parse
     ).then (bowerPaths)->
       throw new UError "Bower returned empty - run `bower install`" if _.isEmpty bowerPaths
       bowerPaths
+
+  # todo: `bower.commands.info dep, {offline:true}` is problematic https://github.com/bower/bower/issues/1601
+  getShimDeps: ->
+    l.verbose "Getting local bower shims using bower paths info"
+    _.mapValues @dependencies.paths.bower, (paths, bowerPackage)=>
+      path = if _.isArray paths then paths[0] else paths
+      deps: _.keys JSON.parse(
+          fs.readFileSync path[0..path.indexOf(bowerPackage)+bowerPackage.length] + '.bower.json', 'utf8'
+        ).dependencies
 
   runAfterSaveConverters: ->
     changedFileResources = (file for fn, file of @fileResources when file.hasChanged and not file.hasErrors)

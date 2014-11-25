@@ -81,12 +81,14 @@ class FileResource extends BundleFile
             l.deb "`resourceConverter.convert()` for '#{resConv.name}'" if l.deb 90
             atStep = 'convert'
 
-            When( # call with callback, or promise/simple call
+            When(
               if resConv.convert.length is 2 # nodejs style callback is 2nd arg
-                convPromise = (deferred = When.defer()).promise
-                resConv.convert @, When.node.createCallback deferred.resolver
-                convPromise
+                # call wating for callback or a promise (race), but ignoring any other sync return
+                callbackPromise = (deferred = When.defer()).promise
+                fnPromise = resConv.convert @, When.node.createCallback deferred.resolver
+                When.race(_.filter [callbackPromise, fnPromise], (it)-> When.isPromiseLike it)
               else
+                # call exepecting either a promise or any non-promise sync return
                 resConv.convert @
             ).then (@converted)=> # stores resolved value at @converted
         =>

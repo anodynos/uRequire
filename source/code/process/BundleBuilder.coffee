@@ -35,6 +35,7 @@ module.exports = class BundleBuilder
     try
       @bundle = new @Bundle @config.bundle
       @build = new @Build @config.build, @bundle
+      @urequire.addBBCreated @
     catch err
       l.er uerr = "Generic error while initializing @bundle or @build \n", err
       throw new UError uerr, nested:err
@@ -107,6 +108,7 @@ module.exports = class BundleBuilder
             else # be strict about it!
               throw new UError "Unknown number of arguments for `afterBuild()`: \n #{task.toString()[0..100]}"
       ).catch (er)=>
+        er = new UError "Error running `build.afterBuild()` task ##{idx}", nested: er
         @build.printError er # dont use handleError cause it might throw, but all ab's need to run
         @build.errors.push er
 

@@ -6,6 +6,7 @@ MasterDefaultsConfig = require './MasterDefaultsConfig'
 ResourceConverter = require './ResourceConverter'
 
 arrayizeUniqueReversingUnshifter = new _B.ArrayizeBlender [], {unique: true, reverse:true, addMethod: 'unshift'}
+arrayizeUniquePusher = new _B.ArrayizeBlender [], {unique: true}
 arrayizeBlender = new _B.ArrayizeBlender
 
 # Copy/clone all keys from the 'root' of src,
@@ -173,21 +174,8 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         ignore: '|': 'arraysConcatOrOverwrite'      # renamed from `noRootExports`
         noConflict: '|': 'arraysConcatOrOverwrite'
 
-      watch: '|':
-        String: (prop, src, dst)-> # cast to number, store as `debounceDelay`
-          num = parseInt src[prop]
-          w = if not _.isNaN num
-            debounceDelay: num
-            enabled: true
-          else
-            info: src[prop]       # store the string, perhaps useful in future
-            enabled: true
-          deepCloneBlender.blend dst[prop], w
-
-        Number: (prop, src, dst)-> deepCloneBlender.blend dst[prop], {enabled: true, debounceDelay: src[prop]}
-        Boolean: (prop, src, dst)-> deepCloneBlender.blend dst[prop], enabled: src[prop]
-        '{}': (prop, src, dst)-> deepCloneBlender.blend dst[prop], src[prop]
-        '*': (prop, src)-> throw new UError "Invalid watch value #{l.prettify src[prop]}"
+      watch: '|': (prop, src, dst)->
+        watchBlender.blend dst[prop], src[prop]
 
       template: '|': '*': (prop, src, dst)->
         templateBlender.blend dst[prop], src[prop]
@@ -203,8 +191,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
       afterBuild: '|': (prop, src, dst)->
         arrayizeBlender.blend dst[prop], _.clone(src[prop]) # no function array blending, cause we deal with functions
 
-      # 'optimize' ? in 3 different ways
-      # todo: spec it
+      # cant seperate cause it writes on dst
       optimize: '|':
         # enable 'uglify2' for true
         Boolean: (prop, src, dst)-> _optimizers[0] if src[prop]
@@ -218,16 +205,92 @@ bundleBuildBlender = new _B.DeepCloneBlender [
             optimizer
 
         # eg optimize: { uglify2: {...uglify2 options...}}
-        Object: (prop, src, dst)->
+        '{}': (prop, src, dst)->
           # find a key that's an optimizer, eg 'uglify2'
           if not optimizer = (_.find _optimizers, (v)-> v in _.keys src[prop])
-            l.er "Unknown optimize object", src[prop], " - using 'uglify2' as default"
+            l.warn "Unknown optimize object", src[prop], " - using 'uglify2' as default"
             _optimizers[0]
-          else 
+          else
             dst[optimizer] = src[prop][optimizer] # if optimizer is 'uglify2', copy { uglify2: {...uglify2 options...}} to dst ('ie build')
             optimizer
+
+      rjs: shim: '|': (prop, src, dst)->
+        shimBlender.blend dst[prop], src[prop]
   }
 ]
+
+# blend these
+# { 'jquery.colorize': { deps: ['jquery'], exports: 'jQuery.fn.colorize'},
+#       or
+# { 'jquery.colorize': ['jquery'] }
+shimBlender = new _B.DeepCloneBlender [
+  order: ['src']
+
+  '{}': (prop, src, dst)->
+    dst[prop] = {} if !_B.isHash dst[prop]
+    for mod, modShim of src[prop]
+      depsArray = if _.isArray modShim then modShim else modShim.deps
+
+      if dst[prop][mod]
+        depsArray = arrayizeUniquePusher.blend([], depsArray, dst[prop][mod].deps)
+      else
+        dst[prop][mod] = {}
+
+      if _B.isHash modShim
+        _.extend dst[prop][mod], modShim
+
+      dst[prop][mod].deps = depsArray
+
+    @SKIP
+
+  'Undefined': -> @SKIP
+  'Boolean': -> @SKIP
+  '*': (prop, src)->
+    throw new UError "Unknown shim: `#{l.prettify src[prop]}`."
+    # todo: throw FatalError - shouldn't continue when config has errors
+]
+
+watchBlender = new _B.DeepCloneBlender [
+
+    order: ['path', 'src']
+
+    arrayizeUniquePusherSplitStrings: (prop, src, dst)->
+      srcVal =
+        if _.isString src[prop]
+          src[prop].split(/\s/).filter((t)->!!t)
+        else
+          src[prop]
+
+      arrayizeUniquePusher.blend [], dst[prop], srcVal
+
+    after: '|': '*': 'arrayizeUniquePusherSplitStrings'
+    before: '|': '*': 'arrayizeUniquePusherSplitStrings'
+    files: '|': '*': (prop, src, dst)->
+      arrayizeUniquePusher.blend dst[prop], src[prop]
+
+    '|':
+      String: (prop, src, dst)->
+        num = parseInt src[prop]
+        w = if not _.isNaN num # cast to number, store as `debounceDelay`
+              debounceDelay: num
+              enabled: true
+            else
+              info: src[prop]       # store the string as `info`
+              enabled: true
+
+        deepCloneBlender.blend dst[prop], w
+
+      Number: (prop, src, dst)-> deepCloneBlender.blend dst[prop], {enabled: true, debounceDelay: src[prop]}
+
+      Boolean: (prop, src, dst)-> deepCloneBlender.blend dst[prop], enabled: src[prop]
+
+      '{}': (prop, src, dst)-> watchBlender.blend {}, dst[prop], enabled: true, src[prop]
+
+      '*': (prop, src)-> throw new UError "Invalid watch value #{l.prettify src[prop]}"
+
+      'Undefined': -> @SKIP
+
+]#, debugLevel: 90
 
 ###
 *dependenciesBindingsBlender*
@@ -373,9 +436,11 @@ _blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
 _.extend blendConfigs, {
   moveKeysBlender
   depracatedKeysBlender
-  templateBlender
-  dependenciesBindingsBlender
   bundleBuildBlender
+  dependenciesBindingsBlender
+  templateBlender
+  shimBlender
+  watchBlender
 }
 
 module.exports = blendConfigs

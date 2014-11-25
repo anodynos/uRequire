@@ -339,6 +339,8 @@ Doesn't work with `combined` template running as plain script - `when` needs to 
           bower: undefined
           npm: undefined
 
+        shim: true
+
 ### bundle.dependencies.depsVars
 
 List of dependencies bound with one or more vars.
@@ -901,7 +903,7 @@ The *watch feature* of uRequire works with:
 
 * Standalone urequireCmd, setting `watch: true` or -w flag.
 
-* Instead of `watch:true`, you use [grunt-urequire >=0.6.x](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.5.x](https://github.com/gruntjs/grunt-contrib-watch).
+* Instead of `watch:true`, you use [grunt-urequire >=0.7.x](https://github.com/aearly/grunt-urequire) & [grunt-contrib-watch >=0.5.x](https://github.com/gruntjs/grunt-contrib-watch).
 
 @note In `grunt-urequire`, at each `watch` event there is a *partial build*. The first time a partial build is carried out, a full build is automatically performed instead. **You don't need (and shouldn't) perform a full build** before the watched task (i.e dont run the `urequire:xxx` grunt task before running `watch: xxx: tasks: ['urequire:xxx']`). A full build is always enforced by urequire.
 

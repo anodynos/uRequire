@@ -23,8 +23,18 @@ Object.defineProperties exports, # lazily export
   BundleBuilder: get:-> require "./process/BundleBuilder"
 
   BBExecuted: get:-> BBExecuted
+  BBCreated: get:-> BBCreated
 
 BBExecuted = []
+BBCreated = []
+
+exports.addBBCreated = (bb)->
+  if bb.build.target and exports.findBBCreated(bb.build.target)
+    throw new UError "Can't have two BundleBuilders with the same `target` '#{bb.build.target}'"
+  BBCreated.push bb
+
+exports.findBBCreated = (target)->
+  _.find BBCreated, (bb)-> bb.build.target is target
 
 exports.addBBExecuted = (bb)->
   _.pull BBExecuted, bb # mutate existing array
@@ -54,4 +64,8 @@ exports.findBBExecutedBefore = (bbOrTarget)->
     if li >= 1
       BBExecuted[li-1]
     else
-      null      
+      null
+
+blendConfigs = require('./config/blendConfigs')
+for b in ['dependenciesBindingsBlender', 'templateBlender', 'shimBlender', 'watchBlender']
+  exports[b] = blendConfigs[b]

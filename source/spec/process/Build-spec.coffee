@@ -1,8 +1,11 @@
 Build = require '../../code/process/Build'
 
 bundle =
-  dependencies:
+  getImports_depsVars: -> {}
+  getModules_depsVars: -> {}
 
+  dependencies:
+    shim: {lodash: deps: ['_']}
     paths:
       override:
         lodash: ['../../mystuff/user/defined/lodash'
@@ -27,10 +30,11 @@ class Build_mock
       lodash: 'rjs/defined/lodash'
       jquery: ['rjs/defined/jquery']
     shim:
-      anything: 'goes'
+      someDep: deps: ['sd']
 
 b = new Build_mock
 
+# todo: split to proper specs
 describe "process/Build:", ->
 
   describe "`calcRequireJSConfig()` returns a require.config:", ->
@@ -51,7 +55,8 @@ describe "process/Build:", ->
               '../../bower/jquery'
               '../../rjs/defined/jquery' ]
           shim:
-            anything: 'goes'
+            lodash: deps: [ '_' ]
+            someDep: deps: ['sd']
 
       it "adjusted to `path` argument if its passed:", ->
         deepEqual b.calcRequireJsConfig('some/build/path'),
@@ -67,6 +72,7 @@ describe "process/Build:", ->
               '../../../bower/jquery'
               '../../../rjs/defined/jquery' ]
           shim:
-            anything: 'goes'
+            lodash: deps: [ '_' ]
+            someDep: deps: ['sd']
 
       # blendsWith spec is in `urequire-spec`

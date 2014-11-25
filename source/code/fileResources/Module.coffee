@@ -67,8 +67,8 @@ class Module extends TextResource
             l.verbose "No changes in **parsed AST sourceCodeJs** of module '#{@srcFilename}' "
             @hasChanged = false
           else
-            if @bundle?.build?.watch.enabled is true
-              @AST_top_previous = _.clone @AST_top, true # a deep clone, to know when refresh() hasChanged next time
+            if @bundle?.build?.watch.enabled is true     # to know when refresh() hasChanged next time
+              @AST_top_previous = _.clone @AST_top, true # keep a deep clone (cause @AST_top mutates)
             @extract()
             @prepare()
             @hasChanged = true

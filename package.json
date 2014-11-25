@@ -1,7 +1,7 @@
 {
   "name": "urequire",
   "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
-  "version": "0.7.0-beta10",
+  "version": "0.7.0-beta.11",
   "homepage": "http://uRequire.org",
   "author": {
     "name": "Agelos Pikoulas",
@@ -68,7 +68,7 @@
     "require-clean": "0.1.x",
     "requirejs": "2.1.15",
     "rimraf": "2.2.x",
-    "upath": "^0.1.4",
+    "upath": "^0.1.5",
     "uberscore": "0.0.17",
     "uglify-js": "^2.4.15",
     "underscore.string": "^2.3.3",
@@ -86,14 +86,14 @@
     "grunt-contrib-clean": "0.4.x",
     "grunt-contrib-copy": "0.4.x",
     "grunt-contrib-watch": "0.5.x",
-    "grunt-urequire": "0.7.x",
+    "grunt-urequire": "0.7.0",
     "urequire-rc-exec": "0.1.x",
     "urequire-rc-less": "0.1.x",
     "urequire-rc-teacup-js": "0.2.x",
     "teacup": "0.4.x",
-    "urequire": ">=0.7.0-beta10",
-    "urequire-ab-specrunner": "^0.1.10",
-    "urequire-rc-inject-version": "^0.1.2",
+    "urequire": "0.7.0-beta10",
+    "urequire-ab-specrunner": "^0.1.x",
+    "urequire-rc-inject-version": "^0.1.3",
     "urequire-rc-import-keys": "^0.1.2"
   }
 }

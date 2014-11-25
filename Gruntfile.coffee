@@ -8,7 +8,7 @@ module.exports = gruntFunction = (grunt) ->
           'utils/UError': 'UError'
         resources:[
           [ '+inject-_B.logger', ['**/*.js'],
-            (m)-> m.beforeBody = "var l = new _B.Logger('urequire:#{m.path}');"] ]
+            (m)-> m.beforeBody = "var l = new _B.Logger('uRequire/#{m.path}');"] ]
         runtimeInfo: false
         bare: true
         template: name: 'nodejs'
@@ -35,12 +35,12 @@ module.exports = gruntFunction = (grunt) ->
               equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual,
               notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet"""
             chai: 'expect' ] ]
-        afterBuild: require('urequire-ab-specrunner').options {mochaOptions: "-t 4000"}
+        afterBuild: require('urequire-ab-specrunner').options {mochaOptions: "-t 5000 --bail"}
 
       specWatch: derive: 'spec', watch: true
 
     copy: wiki: files: [ expand: true, cwd: "source/code/config", src: ["*.md"], dest: "../uRequire.wiki/"]
-
+    watch: wiki: files: ["source/**/*.md"], tasks: ['copy:wiki']
     clean: build: 'build', temp: 'temp'
 
   splitTasks = (tasks)-> if (tasks instanceof Array) then tasks else tasks.split(/\s/).filter((f)->!!f)

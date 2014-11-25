@@ -6,6 +6,8 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
   templateBlender
   dependenciesBindingsBlender
   bundleBuildBlender
+  shimBlender
+  watchBlender
 } = blendConfigs
 
 arrayizePushBlender = new _B.ArrayizeBlender
@@ -279,16 +281,6 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
             ,
               name: 'UMD'
               otherRandomOption: 'someRandomValue'
-  # functionality surpressed
-  #      it "resets dest Object if src name is changed", ->
-  #        deepEqual templateBlender.blend(
-  #            {}
-  #            {name: 'UMD', otherRandomOption: 'someRandomValue'}
-  #            {}
-  #            'combined'
-  #            )
-  #          ,
-  #            name: 'combined'
 
       describe "template is {}:", ->
         it "blends to existing ", ->
@@ -301,17 +293,6 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
           ,
             name: 'UMD'
             otherRandomOption: 'someRandomValue'
-
-  # functionality surpressed
-  #      it "resets dest Object if template.name is changed", ->
-  #        deepEqual templateBlender.blend(
-  #            {}
-  #            {name: 'UMD', otherRandomOption: 'someRandomValue'}
-  #            {}
-  #            {name: 'combined'}
-  #          )
-  #        ,
-  #          name: 'combined'
 
     describe "blending config with ResourceConverters :", ->
       resultRCsCfg = null
@@ -435,41 +416,52 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
               imports: {'uberscore': ['_B']}
               exports: {} #todo: omit
 
-      describe "`build: watch`:", ->
+      describe "`build: watch` & watchBlender :", ->
 
         describe "as a Number:", ->
           it "becomes debounceDelay", ->
             deepEqual blendConfigs( [ {build: watch: 123} ]),
-              build: watch:
+              build: watch: expected =
                 debounceDelay: 123
                 enabled: true
+
+            deepEqual watchBlender.blend(123), expected
 
         describe "as a String:", ->
           it "parsed as a Number, becomes debounceDelay", ->
             deepEqual blendConfigs( [ {build: watch: '123'} ]),
-              build: watch:
+              build: watch: expected =
                 debounceDelay: 123
                 enabled: true
 
+              deepEqual watchBlender.blend('123'), expected
+
           it "parsed as a Number/String, overwrite debounceDelay", ->
-            deepEqual blendConfigs( [ {build: watch: '123'}, {build: watch: 456} ]),
-              build: watch:
+            deepEqual blendConfigs( [ {watch: '123'}, {watch: 456}, {watch: info: 'grunt'} ]),
+              build: watch: expected =
                 debounceDelay: 123
                 enabled: true
+                info: 'grunt'
+
+            deepEqual watchBlender.blend(456, '123', info:'grunt'), expected
 
           describe "not parsed as a Number:", ->
             it "becomes info", ->
               deepEqual blendConfigs( [ {build: watch: 'not number'} ]),
-                build: watch:
+                build: watch: expected =
                   info: 'not number'
                   enabled: true
 
+              deepEqual watchBlender.blend('not number'), expected
+
             it "becomes info, blended into existing watch {}", ->
               deepEqual blendConfigs( [ {build: watch: '123'}, {build: watch: 'not number'} ]),
-                build: watch:
-                  debounceDelay: 123
-                  info: 'not number'
-                  enabled: true
+              build: watch: expected =
+                debounceDelay: 123
+                info: 'not number'
+                enabled: true
+
+              deepEqual watchBlender.blend({}, 'not number', '123'), expected # todo: allow without {}
 
         describe "as boolean:", ->
           it "overwrites enabled", ->
@@ -485,25 +477,135 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
                 info: 'not number'
 
         describe "as Object:", ->
-          it "shallow copies / overwrites keys", ->
+          it "copies keys and set `enable:true`, if not `enabled: false` is passed", ->
+            deepEqual blendConfigs( [ watch: info: 'grunt' ]),
+              build: watch:
+                info: 'grunt'
+                enabled: true
+
+          it "copies keys and resets exising `enabled: false` value", ->
+            deepEqual blendConfigs( [
+                {watch: info: 'some other'}
+                {watch: info: 'grunt', enabled: false}
+                true
+            ]),
+              build: watch:
+                info: 'some other'
+                enabled: true
+
+          describe "concats arrays of `before` / `after`, having split them if they are strings:", ->
+            input =[
+              {
+                after: 'da asda'
+                files: ['another/path']
+              }
+              {info: 'grunt'}
+              {
+                after: ['1','2','3']
+                files: 'some/path'
+              }
+            ]
+
+            expected =
+              enabled: true
+              after: [ '1', '2', '3','da', 'asda' ]
+              files: ['some/path', 'another/path']
+              info: 'grunt'
+
+            it "with blendConfigs:", ->
+              deepEqual blendConfigs( input.map((v)->watch:v)), build: watch: expected
+
+            it "with watchBlender", ->
+              deepEqual watchBlender.blend.apply(null, input.reverse()), expected
+
+          describe "shallow copies / overwrites keys", ->
             anObj =
-              rootKey: {
-                some:nested:key:
+              rootKey: nested: key:
                   someValue: 'someValue'
                   aFn: ->
-              }
 
-            deepEqual blendConfigs( [
-                {build: watch: anObj},
-                {build: watch: false },
-                {build: watch: '123'},
-                {build: watch: 'not number'}
-              ]),
-                build: watch:
-                  rootKey: anObj.rootKey
-                  enabled: false
-                  debounceDelay: 123
-                  info: 'not number'
+            input = [
+                anObj
+                false
+                'not number'
+                '123'
+                info: 'grunt'
+              ]
+            expected =
+              rootKey: anObj.rootKey
+              enabled: true
+              debounceDelay: 123
+              info: 'not number'
+
+            it "with blendConfigs:", ->
+              deepEqual blendConfigs( input.map((v)->watch:v)), build: watch: expected
+
+            it "with watchBlender", ->
+              deepEqual watchBlender.blend.apply(null, input.reverse()), expected
+
+      describe "`build: optimize`:", ->
+
+        describe "true:", ->
+          it "becomes `uglify2`", ->
+            deepEqual blendConfigs( [ {build: optimize: true} ]),
+              build: optimize: 'uglify2'
+
+        describe "an object with `uglify2` key:", ->
+          it "becomes `build: uglify2: {options}`", ->
+            deepEqual blendConfigs( [ {build: optimize: 'uglify2': {some: 'options'} } ]),
+              build:
+                optimize: 'uglify2'
+                uglify2: {some: 'options'}
+
+        describe "an object with `uglify` key:", ->
+          it "becomes `build: uglify: {options}`", ->
+            deepEqual blendConfigs( [ {build: optimize: 'uglify': {some: 'options'} } ]),
+              build:
+                optimize: 'uglify'
+                'uglify': {some: 'options'}
+
+        describe "an object with `unknown` key:", ->
+          it "becomes `build: uglify2: {options}`", ->
+            deepEqual blendConfigs( [ {build: optimize: 'unknown': {some: 'options'} } ]),
+              build: optimize: 'uglify2'
+
+      describe "`build: rjs: shim` & shimBlender:", ->
+        it.skip "throws with unknown shims", -> #todo: fix throwing wile blending breaks RCs
+          expect(-> blendConfigs [ rjs: shim: 'string'] ).to.throw /Unknown shim/
+
+        describe "`amodule: ['somedep']` becomes  { amodule: { deps:['somedep'] } }", ->
+          input =
+            amodule: ['somedep']
+            anotherModule: deps: ['someOtherdep']
+
+          expected =
+            amodule: deps: ['somedep']
+            anotherModule: deps: ['someOtherdep']
+
+          it "with blendConfig: ", ->
+            deepEqual blendConfigs( [ rjs: shim: input ]),build: rjs: shim: expected
+
+          it "with shimBlender : ", ->
+            deepEqual shimBlender.blend(input), expected
+
+        describe "missing deps are added to array if missing:", ->
+          inputs = [
+            {amodule: {deps: ['somedep'], exports: 'finalExports'}}
+            {amodule: ['someOtherdep', 'somedep', 'missingDep']}
+            {
+              amodule: {deps: ['lastDep'], exports: 'dummy'}
+              anotherModule: {deps: ['someOtherdep'], exports: 'sod'}
+            }
+          ]
+          expected =
+            amodule: {deps: ['somedep', 'someOtherdep', 'missingDep', 'lastDep'], exports: 'finalExports'}
+            anotherModule: {deps: ['someOtherdep'], exports: 'sod'}
+
+          it "with blendConfig: ", ->
+            deepEqual blendConfigs( _.map inputs, (s)-> rjs: shim: s), build: rjs: shim: expected
+
+          it "with shimBlender (in reverse order): ", ->
+            deepEqual shimBlender.blend.apply(null, inputs.reverse()), expected
 
       describe "Nested & derived configs:", ->
         configs = [
@@ -528,6 +630,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
             globalWindow: ['globalWindow-child.js']
             bare: true
             runtimeInfo: ['runtimeInfo-child.js']
+            optimize: 'uglify2': {some: 'options'}
             done: ->
           ,
             bundle:
@@ -676,6 +779,8 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
               useStrict: false
               globalWindow: ['globalWindow-inherited.js', 'globalWindow-child.js']
               bare: true
+              optimize: 'uglify2'
+              uglify2: {some: 'options'}
               runtimeInfo: ['runtimeInfo-inherited.js', 'runtimeInfo-child.js']
               afterBuild: [configs[2].afterBuild, configs[1].done]
 
