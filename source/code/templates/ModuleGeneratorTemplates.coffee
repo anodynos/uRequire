@@ -79,20 +79,23 @@ class ModuleGeneratorTemplates extends Template
     """
 
     defineArrayDepsPrint: get:->
-      ( if _.isEmpty @module.defineArrayDeps
-          "" #keep empty [] not existent, enabling requirejs scan
-        else
+      (
+          # to work around https://github.com/jrburke/r.js/issues/747
+          # DONT keep empty [] not existent to enable requirejs scan
+          #if _.isEmpty @module.defineArrayDeps
+          #  ""
+          #else
           if @isInjectExportsModule
-            "['require', 'exports', 'module'"
-          else
-            "['require'"
+              "['require', 'exports', 'module'"
+            else
+              "['require'"
       ) +
       (
         for dep in @module.defineArrayDeps
            ", #{dep.name(quote:true)}" # quote: single quotes if literal, no quotes otherwise (if untrusted)
       ).join('') +
 
-      ( if _.isEmpty @module.defineArrayDeps then '' else '], ' )
+      '], ' # ( if _.isEmpty @module.defineArrayDeps then '' else '], ' ) # see r.js bug above
 
     # On combined allow either
     # * per Module if filespec is used

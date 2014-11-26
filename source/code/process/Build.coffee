@@ -358,6 +358,7 @@ module.exports = class Build extends _B.CalcCachedProperties
       @copyWebMapDeps()
 
       rjsConfig =
+        #findNestedDependencies: false # not respected - see https://github.com/jrburke/r.js/issues/747, worked around in ModuleGeneratorTemplates
         paths: combinedTemplate.paths
         wrap: combinedTemplate.wrap
         baseUrl: @template._combinedTemp
