@@ -33,13 +33,13 @@ codegenOptions =
 moduleInfo = (js)->
   (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().info()
 
-
 moduleAdjustedInfo = (js)->
   (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().prepare().adjust().info()
 
 describe "Module:", ->
 
   describe "Extracting Module information :", ->
+
     describe "NON-AMD modules:", ->
 
       it "identifies non-AMD/UMD module as nodejs", ->

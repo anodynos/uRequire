@@ -5,7 +5,6 @@ Template = require './Template'
 
 varSelector = (vars, finale = 'void 0')->
   ("(typeof #{v} !== 'undefined') ? #{v} : " for v in vars).join(' ') + finale
-      #if vars.length then finale else ''
 
 module.exports = class AlmondOptimizationTemplate extends Template
 
@@ -16,14 +15,23 @@ module.exports = class AlmondOptimizationTemplate extends Template
 
     ### locals & imports handling. ###
     @local_nonNode_deps = []
-    @local_nonNode_params = []
     @local_nonNode_args = []
-
+    @local_nonNode_params = []
     for dep, vars of @bundle.local_nonNode_depsVars
+      @local_nonNode_params.push varSelector(vars, "__throwMissing('#{dep}', '#{vars.join(', ')}')")
       for aVar in vars
         @local_nonNode_deps.push dep
         @local_nonNode_args.push aVar
-        @local_nonNode_params.push varSelector vars
+
+    @imports_local_nonNode_deps = []
+    @imports_local_nonNode_args = []
+    @imports_local_nonNode_params = []
+    for dep, vars of @bundle.imports_local_nonNode_depsVars
+      varBindings = @bundle.local_nonNode_depsVars[dep] # we need all var bindings, not just imports
+      @imports_local_nonNode_params.push varSelector(varBindings, "__throwMissing('#{dep}', '#{vars.join(', ')}')")
+      for aVar in vars
+        @imports_local_nonNode_deps.push dep
+        @imports_local_nonNode_args.push aVar
 
   Object.defineProperties @::,
 
@@ -52,19 +60,19 @@ module.exports = class AlmondOptimizationTemplate extends Template
     bundleFactoryRegistar: get: -> """
         if (__isAMD) {
           return define(#{@moduleNamePrint}#{
-            if @local_nonNode_deps.length
-              "['" + @local_nonNode_deps.join("', '") + "'], "
+            if @imports_local_nonNode_deps.length
+              "['" + @imports_local_nonNode_deps.join("', '") + "'], "
             else ''
           }bundleFactory);
         } else {
             if (__isNode) {
                 return module.exports = bundleFactory(#{
-                  if @local_nonNode_deps.length
-                    "require('" + @local_nonNode_deps.join("'), require('") + "')"
+                  if @imports_local_nonNode_deps.length
+                    "require('" + @imports_local_nonNode_deps.join("'), require('") + "')"
                   else ''
                   });
             } else {
-                return bundleFactory(#{@local_nonNode_params.join(', ')});
+                return bundleFactory(#{@imports_local_nonNode_params.join(', ')});
             }
         }
     """
@@ -79,20 +87,20 @@ module.exports = class AlmondOptimizationTemplate extends Template
           }#{@sp 'runtimeInfo'}
 
           var __nodeRequire = (__isNode ? require : function(dep){
-                throw new Error("uRequire: combined template, trying to load `node` dep `" + dep + "` in non-nodejs runtime (browser).")
+                throw new Error("uRequire: combined template '#{@build.target}', trying to load `node` dep `" + dep + "` in non-nodejs runtime (browser).")
               }),
               __throwMissing = function(dep, vars) {
-                throw new Error("uRequire: combined template `#{@bundle.name}`, detected missing dependency `" + dep + "` - all it's known binding variables `" + vars + "` were `undefined`")
+                throw new Error("uRequire: combined template '#{@build.target}', detected missing dependency `" + dep + "` - all it's known binding variables `" + vars + "` were undefined")
               },
               __throwExcluded = function(dep, descr) {
-                throw new Error("uRequire: combined template `#{@bundle.name}`, trying to access unbound / excluded `" + descr + "` dependency `" + dep + "` on browser");
+                throw new Error("uRequire: combined template '#{@build.target}', trying to access unbound / excluded `" + descr + "` dependency `" + dep + "` on browser");
               };\n
         """ +
 
         @sp('bundle.mergedPreDefineIIFECode') +
 
         @deb(30, "*** START *** bundleFactory, containing all modules (as AMD) & almond's `require`/`define`") +
-        "var bundleFactory = function(#{@local_nonNode_args.join ', '}) {\n"
+        "var bundleFactory = function(#{@imports_local_nonNode_args.join ', '}) {\n"
 
       end:
         @sp(

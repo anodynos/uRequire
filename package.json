@@ -1,7 +1,7 @@
 {
   "name": "urequire",
   "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
-  "version": "0.7.0-beta.12",
+  "version": "0.7.0-beta.13",
   "homepage": "http://uRequire.org",
   "author": {
     "name": "Agelos Pikoulas",

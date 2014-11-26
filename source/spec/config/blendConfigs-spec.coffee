@@ -570,7 +570,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
               build: optimize: 'uglify2'
 
       describe "`build: rjs: shim` & shimBlender:", ->
-        it.skip "throws with unknown shims", -> #todo: fix throwing wile blending breaks RCs
+        it.skip "throws with unknown shims", -> #todo: fix throwing while blending breaks RCs
           expect(-> blendConfigs [ rjs: shim: 'string'] ).to.throw /Unknown shim/
 
         describe "`amodule: ['somedep']` becomes  { amodule: { deps:['somedep'] } }", ->

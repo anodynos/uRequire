@@ -115,6 +115,9 @@ class Bundle extends BundleBase
     imports_bundle_depsVars:->  #i.e, bundle deps like 'agreement/isAgree'
       @inferEmptyDepVars @getImports_depsVars( (d)-> d.isBundle ), 'imports_bundle_depsVars'
 
+    imports_local_nonNode_depsVars:->
+      @inferEmptyDepVars @getImports_depsVars( (d)-> d.isLocal and not d.isNode ), 'imports_local_nonNode_depsVars'
+
     # from both modules & imports
 
     local_depsVars: -> #
