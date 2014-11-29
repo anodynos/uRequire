@@ -133,7 +133,6 @@ class Bundle extends BundleBase
                                             @getImports_depsVars (d)-> d.isLocal and d.isNode
 
   # special cases
-
     nonImports_local_depsVars: -> # imports are injected onto modules on non-combined - the real module-only declared ones
       _.pick @modules_local_depsVars, (vars, dep)=> not @dependencies.imports[dep]
 

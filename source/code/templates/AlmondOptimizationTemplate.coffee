@@ -18,20 +18,10 @@ module.exports = class AlmondOptimizationTemplate extends Template
     @local_nonNode_args = []
     @local_nonNode_params = []
     for dep, vars of @bundle.local_nonNode_depsVars
-      @local_nonNode_params.push varSelector(vars, "__throwMissing('#{dep}', '#{vars.join(', ')}')")
       for aVar in vars
+        @local_nonNode_params.push varSelector(vars, "__throwMissing('#{dep}', '#{vars.join(', ')}')")
         @local_nonNode_deps.push dep
         @local_nonNode_args.push aVar
-
-    @imports_local_nonNode_deps = []
-    @imports_local_nonNode_args = []
-    @imports_local_nonNode_params = []
-    for dep, vars of @bundle.imports_local_nonNode_depsVars
-      varBindings = @bundle.local_nonNode_depsVars[dep] # we need all var bindings, not just imports
-      @imports_local_nonNode_params.push varSelector(varBindings, "__throwMissing('#{dep}', '#{vars.join(', ')}')")
-      for aVar in vars
-        @imports_local_nonNode_deps.push dep
-        @imports_local_nonNode_args.push aVar
 
   Object.defineProperties @::,
 
@@ -60,19 +50,19 @@ module.exports = class AlmondOptimizationTemplate extends Template
     bundleFactoryRegistar: get: -> """
         if (__isAMD) {
           return define(#{@moduleNamePrint}#{
-            if @imports_local_nonNode_deps.length
-              "['" + @imports_local_nonNode_deps.join("', '") + "'], "
+            if @local_nonNode_deps.length
+              "['" + @local_nonNode_deps.join("', '") + "'], "
             else ''
           }bundleFactory);
         } else {
             if (__isNode) {
                 return module.exports = bundleFactory(#{
-                  if @imports_local_nonNode_deps.length
-                    "require('" + @imports_local_nonNode_deps.join("'), require('") + "')"
+                  if @local_nonNode_deps.length
+                    "require('" + @local_nonNode_deps.join("'), require('") + "')"
                   else ''
                   });
             } else {
-                return bundleFactory(#{@imports_local_nonNode_params.join(', ')});
+                return bundleFactory(#{@local_nonNode_params.join(', ')});
             }
         }
     """
@@ -100,7 +90,7 @@ module.exports = class AlmondOptimizationTemplate extends Template
         @sp('bundle.mergedPreDefineIIFECode') +
 
         @deb(30, "*** START *** bundleFactory, containing all modules (as AMD) & almond's `require`/`define`") +
-        "var bundleFactory = function(#{@imports_local_nonNode_args.join ', '}) {\n"
+        "var bundleFactory = function(#{@local_nonNode_args.join ', '}) {\n"
 
       end:
         @sp(

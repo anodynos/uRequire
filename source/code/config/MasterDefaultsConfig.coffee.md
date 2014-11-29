@@ -1,5 +1,7 @@
 # Introduction
 
+_**NOTE Work In Progress** Currently migrating docs from 0.6.x to 0.7.0. Everything works, but there are some undocumented parts._
+
 The **config** is the heart of *uRequire*, to the user's side. This file is both **docs** & the **defaults** of the [config file/object](#Config-Usage).
 
 Scroll to some super cool [config examples](#Examples), that show the power of uRequire & its config.
@@ -21,7 +23,7 @@ A `config` determines a `bundle` and a `build` that uRequire will process. A con
 * **File based**, using the urequire CLI (from `npm install urequire -g`) as `$ urequire config myConfig.js`, where `myConfig.js` is a node module file that exports the `config` object. The file can actually be a `.coffee` or `.js` node module, or a `.json` file as well as many other formats - see [butter-require](https://github.com/anodynos/butter-require).
  The 'XXX' of [`derive:'XXX'](types-and-derive#Deriving-behaviors) can be another **parent file** (eg `parentConfig.yml`), relative to the 1st children's path. @todo: make relative to each children's path).
 
-* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The difference is that [`derive:'XXX'](types-and-derive#Deriving-behaviors) can be another `urequire:XXX` task, and if its not found its assumed to be a filename, relative to `Gruntfile.js`.
+* Using [**grunt-urequire**](https://github.com/aearly/grunt-urequire) (preferred), having (almost) the exact `config` object of the file-base, but as a `urequire:XYZ` grunt task. The difference is that [`derive:'XXX'](types-and-derive#Deriving-behaviors) can be another `urequire:XXX` task, and if its not found its assumed to be a filename, relative to `Gruntfile.js`.
 
 * Within your tool's code, [using `urequire.BundleBuilder`](Using-uRequire#Using-within-your-code).
 
@@ -63,7 +65,7 @@ The filesystem path where source files reside (relative to urequire's CWD, or `G
 
 ## bundle.filez
 
-All files that somehow participate in the `bundle` are specified here. Its the ultimate filter of your bundle, virtually including or excluding files. Its very versatile
+All files that participate in the `bundle` are specified here. Its the ultimate filter of your bundle, virtually including or excluding files. Its very versatile
 
 @type [filespecs](types-and-derive#filespecs)
 
@@ -255,7 +257,7 @@ All deps are considered / translated to [bundleRelative](http://urequire.org/fle
 
 ### bundle.dependencies.node
 
-Dependencies ([declared in filespecs](types-and-derive#filespecs)) listed here are treated as node-only: they aren't added to the AMD dependency array (and hence **not available** on the Web/AMD side).
+Dependencies ([declared as filespecs](types-and-derive#filespecs)) listed here are treated as node-only: they aren't added to the AMD dependency array (and hence **not available** on the Web/AMD side).
 
 Your code should not use these deps outside node - you can use `__isNode`, `__isAMD`, `__isWeb` available in uRequire compiled modules with [`build.runtimeInfo`](#build.runtimeInfo) to follow a different branch in your code.
 
@@ -781,7 +783,7 @@ Holds keys relating to how `bundle.dependencies.rootExports` are build into the 
 
 ## build.rootExports.ignore
 
-When true, it doesn't produce the boilerplate for [exporting modules (& `noConflict`())](exporting-modules). It ignores both :
+When evaluating to true for a module, it doesn't produce the boilerplate for [exporting modules (& `noConflict`())](exporting-modules). It ignores both :
 
  * `{ rootExports: ['persons', 'personsModel'] }` on top of `'models/PersonsModel.js'`.
 
@@ -792,8 +794,6 @@ When true, it doesn't produce the boilerplate for [exporting modules (& `noConfl
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
-
-@optional
 
 @alias `build.noRootExports` DEPRECATED
 
@@ -829,15 +829,21 @@ Controls the generation of the `noConflict` code - considered only when of `bund
 
 By default, ALL `require('missing/NodeStyle/Dep')` in your module are added on the dependency array `define(['existingArrayDep',.., 'missing/NodeStyle/Dep'], ...)`.
 
-Even if there is even one dep on [], [runtime scan is disabled on RequireJs](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934). If any `require('dep1')` is forgotten, your app will halt. uRequire adds them all to prevent this problem.
+That's because, even if there is even one dep on the deps array, [runtime scan is disabled on RequireJs](https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934). So, if any `require('dep1')` is not in that AMD deps array, requirejs loading halts. uRequire adds them all to prevent this problem, even if your have ommited them (and well you did, DRY is a virtue).
 
-With `scanAllow: true` you allow `require('')` scan @ runtime (costs at starting up). This is meaningfull **only for source modules that have no other `define([])` deps (even injected)**, that is i.e. modules using ONLY `require('')`, either written as pure nodejs modules or AMD.
+With `scanAllow: true` you allow the `require('')` scan of requirejs that happens either at runtime (costs at starting up) or when using the [combined-template](combined-template) at the rjs / almond optimization stage. This is meaningful **only for source modules that have no other `define([])` deps (even injected)**, i.e. modules using ONLY `require('')`, either written as a pure nodejs module or AMD.
 
-@note in [combined-template](combined-template), rjs / almond optmization scans and adds all requires on AMD define array, so its completelly useless.
+@note: uRequire disables `scanAllow` per module, for modules having any of these :
 
-@note: uRequire ignores `scanAllow` for modules with [`rootExports` / `noConflict()`](exporting-modules), [`bundle.dependencies.imports`](#bundle.dependencies.imports) or [injected deps](resourceconverters.coffee#inject-replace-dependencies). @todo why, can this be removed ?
+ * [`rootExports` / `noConflict()`](exporting-modules)
 
-@optional
+ * [`bundle.dependencies.imports`](#bundle.dependencies.imports)
+
+ * [injected deps](resourceconverters.coffee#inject-replace-dependencies)
+
+ * [node-only deps](#bundle.dependencies.node)
+
+all for a good reason.
 
 @type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs)
 
@@ -958,7 +964,7 @@ Optimizes output files (i.e it minifies/compresses them for production).
 
 * `optimize: true` - simplest, minifies with 'uglify2' defaults.
 
-* Passing options to uglify2, works the same on all templates & r.js optimization.
+* Passing options to [uglify2](https://github.com/mishoo/UglifyJS2), works the same on all templates & r.js optimization.
 
 ```
   optimize:
@@ -1017,13 +1023,13 @@ On subsequent partial builds, **no files are deleted**.
 
 ## build.deleteErrored
 
-Delete destination files while their source is at error. Useful when watching builds or when the directory is not [clean](#build.clean).
+Delete destination files when their source is at an error state. Useful when watching builds or when the directory is not [clean](#build.clean).
 
-@note One successful conversion of the source file needs to be in place for dstFilename to be established.
+@note One successful conversion of the source file needs to be in place for `dstFilename` to be established.
 
 @note On ['combined' template](combined-template), it also deletes the last `combinedFile.js` that was build.
 
-@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs). Note: filespecs refer to **source** filenames (but of course only their corresponding destination files are deleted).
+@type [booleanOrFilespecs](types-and-derive#booleanOrFilespecs). Note: filespecs refer to **source** filenames (but of course only their corresponding destination files are deleted, not the source ones).
 
 @derive [arraysConcatOrOverwrite](types-and-derive#arraysConcatOrOverwrite)
 

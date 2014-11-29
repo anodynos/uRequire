@@ -346,7 +346,7 @@ module.exports = class Build extends _B.CalcCachedProperties
 
       if (not @bundle.main) and (@count is 1)
         l.warn """
-          `combine` template warning: `bundle.main`, your *entry-point module* is missing from `bundle` config.
+          `combined` template warning: `bundle.main`, your *entry-point module* is missing from `bundle` config.
         """
         @bundle.ensureMain(false)
 
