@@ -194,7 +194,7 @@ class Module extends TextResource
     try
       @AST_top = toAST @sourceCodeJs #, {comment:true, range:true}
     catch err
-      throw new UError "Error while parsing Module's javascript.", nested: err
+      throw new UError "Error parsing Module's '#{@srcFilename}' javascript.", nested: err
     @
 
   extract: ->
