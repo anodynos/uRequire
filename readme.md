@@ -2,7 +2,7 @@
 
 ## Beta release note
 
-**Docs / wiki / http://uRequire.org mainly are **Work In Progress** (in transition from v0.6.x) - but everything should work except you'll need `npm install urequire-cli -g` & `npm install urequire` locally (if you are using the CLI urequire instead of the the recommended [grunt-urequire](https://github.com/aearly/grunt-urequire)).** Check * uRequire's [config docs](https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md) for latest usage.
+_Docs / wiki / http://uRequire.org mainly are **Work In Progress** (in transition from v0.6.x) - but everything should work except you'll need `npm install urequire-cli -g` & `npm install urequire` locally (if you are using the CLI urequire instead of the the recommended [grunt-urequire](https://github.com/aearly/grunt-urequire)). Check **uRequire's [master config / docs](https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md)** for up to date usage._
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.svg?branch=master)](https://travis-ci.org/anodynos/uRequire)
 [![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
@@ -15,7 +15,7 @@ All documentation is moved to the [wiki](https://github.com/anodynos/uRequire/wi
 
 For a quick taste of how much uRequire rocks, with minimal grunting or gulping, check [urequire-example-helloworld](https://github.com/anodynos/urequire-example-helloworld). With just ~30 lines of DRY & declarative uRequire config, this example shows off the automagical :
 
-* transparent compilation from **coffee-script**, **coco**, **LiveScript** etc to **javascript**. After all they are all javascript, right ?
+* transparent compilation from **coffee-script**, **coco**, **LiveScript** etc to **javascript**. They are all javascript, right ?
 
 * conversion from **AMD** or **CommonJs** (or a combination of both) to **UMD** or **combined** (`<script>`, `AMD` & `nodejs` compatible) javascript.
 
