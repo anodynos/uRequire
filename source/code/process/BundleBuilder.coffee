@@ -127,21 +127,17 @@ module.exports = class BundleBuilder
         l.err msg + "it has #{_.size(errors)} - Watching again..."
 
     watchFiles = []
-    gaze = require 'gaze'
+    chokidar = require 'chokidar'
     path = require 'path'
     fs = require 'fs'
 
-    gaze bundleBuilder.bundle.path + '/**/*', (err, watcher)->
-      watcher.on 'all', (event, filepath)->
-        if event isnt 'deleted'
-          try
-            filepathStat = fs.statSync filepath # i.e '/mnt/dir/mybundle/myfile.js'
-          catch err
-
+    chokidar.watch(bundleBuilder.bundle.path + '/**/*', alwaysStat: true)
+      .on 'all', (event, filepath, filepathStat) ->
         filepath = path.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
 
         if filepathStat?.isDirectory()
-          l.warn "Adding '#{filepath}' as new watch directory is NOT SUPPORTED by gaze."
+          # ? It is supported.
+          l.warn "Adding '#{filepath}' as new watch directory is NOT SUPPORTED."
         else
           l.verbose "Watched file '#{filepath}' has '#{event}'. \u001b[33m (waiting watch events for #{options.debounceDelay}ms)"
           watchFiles.push path.relative bundleBuilder.bundle.path, filepath
