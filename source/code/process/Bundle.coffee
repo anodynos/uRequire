@@ -174,7 +174,8 @@ class Bundle extends BundleBase
     for depName of depVars
       if _.isEmpty (depVars[depName] or= [])
 
-        l.deb "inferEmptyDepVars : Dependency '#{depName}' has no corresponding parameters/variable names to bind with." if l.deb(80)
+        l.deb 80, "inferEmptyDepVars : Dependency '#{depName}' has no corresponding parameters/variable names to bind with."
+
         for aVar in (@getModules_depsVars((dep)->dep.name(relative:'bundle') is depName)[depName] or [])
           depVars[depName].push aVar if aVar not in depVars[depName]
 
@@ -560,7 +561,8 @@ class Bundle extends BundleBase
       if @mainModule
         if @mainModule.hasChanged and not @mainModule.hasErrors
           l.debug 40, "Concating `bundle.template.banner` to `@bundle.main` module dstFilename = `#{@mainModule.dstFilename}`"
-          @mainModule.converted = @build.template.banner + '\n' + @mainModule.converted
+          if (not _.isEmpty @mainModule.converted) and _.isString(@mainModule.converted) # preppend only on only non-empty Strings
+            @mainModule.converted = @build.template.banner + '\n' + @mainModule.converted
       else
         l.warn "Can't concat `build.template.banner` - no @mainModule - tried `bundle.main`, `bundle.name`, 'index', 'main'."
     null
@@ -620,7 +622,7 @@ class Bundle extends BundleBase
             }', as uRequire found #{if _.size(@modules) is 1 then "only one" else "a valid main"
             } module `#{@mainModule.srcFilename}` in `bundle.path` filtered with `bundle.filez`.
           """
-      @main
+      @mainModule
     else
       combErr = "`bundle.main` should be your *entry-point module*, kicking off the bundle:\n" +
           (

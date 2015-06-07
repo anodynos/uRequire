@@ -1,4 +1,4 @@
-**Resource Converters** is a powerful, generic and extendible **in-memory conversions workflow** / **assets pipeline**, that is expressive and flexible to cater for all common conversions needs (eg coffeescript, Livescript, coffeecup, less, jade etc).
+**Resource Converters** provide a powerful, generic and extendible **in-memory conversions workflow** / **assets pipeline**, that is expressive and flexible to cater for all common conversions needs (eg coffeescript, Livescript, coffeecup, less, jade etc).
 
 *note: This file is written in [Literate Coffeescript](http://ashkenas.com/literate-coffeescript): it serves both as *markdown documentation* AND the *actual code*, just like [MasterDefaultsConfig](MasterDefaultsConfig.coffee#Literate-Coffeescript). This file primary location is https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverters.coffee.md & copied over to the urequire.wiki - DONT edit it separatelly in the wiki.*
 
@@ -10,7 +10,7 @@ Each RC instance performs a conversion from one resource format (eg *coffeescrip
 
 RCs work in a serial chain: one RC's [`converted`](#converted) result, is the next RCs [`source`](#source).
 
-## **ResourceConverter workflow** principles
+## **ResourceConverter workflow** principles 
 
 ### **Simple authoring**...
 

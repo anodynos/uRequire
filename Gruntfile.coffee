@@ -40,7 +40,7 @@ module.exports = gruntFunction = (grunt) ->
 
       specWatch: derive: 'spec', watch: after: 'copy'
 
-    copy: wiki: files: [ expand: true, cwd: "source/code/config", src: ["*.md"], dest: "../urequire.wiki/"]
+    copy: wiki: files: [ expand: true, cwd: "source/code/config", src: ["*.md"], dest: "wiki/"]
     clean: build: 'build', temp: 'temp'
 
   splitTasks = (tasks)-> if (tasks instanceof Array) then tasks else tasks.split(/\s/).filter((f)->!!f)

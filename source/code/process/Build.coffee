@@ -111,7 +111,7 @@ module.exports = class Build extends _B.CalcCachedProperties
       if @template.name is 'combined'
         upath.basename @template.combinedFile
       else
-        @bundle.ensureMain() + '.js' # throws if not found
+        @bundle.ensureMain().dstFilename # throws if not found
 
     dstMainFilepath: get: ->
       upath.join @dstPath, @dstMainFilename
@@ -363,7 +363,7 @@ module.exports = class Build extends _B.CalcCachedProperties
         wrap: combinedTemplate.wrap
         baseUrl: @template._combinedTemp
         include: if @bundle.main
-                   [ @bundle.ensureMain() ] # ensure its valid & return main, or throw
+                   [ @bundle.ensureMain().path ] # ensure its valid & return main, or throw
                  else
                    (upath.trimExt(mod.dstFilename) for k, mod of @bundle.modules)
 

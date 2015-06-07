@@ -218,7 +218,7 @@ class ModuleGeneratorTemplates extends Template
           @__functionIIFE fullBody, 'window', @globalSelector, 'global', @globalSelector
         else
           @__functionIIFE fullBody
-     )# + ';'
+     ) + ';'
   ###
   A Simple `define(['dep'], function(dep){...body...}})`,
   without any common stuff that are not needed for 'combined' template.
@@ -296,6 +296,13 @@ class ModuleGeneratorTemplates extends Template
 
   # todo: revise this
   UMD: (isNodeRequirer=true)->
+
+    replaceParamsPrint = (paramsPrint)->
+      paramsPrint.
+        replace('require', '_require').
+        replace('exports', '_exports').
+        replace('module', '_module')
+
     nr = if isNodeRequirer then "nr." else ""
 
     define = """
@@ -307,7 +314,7 @@ class ModuleGeneratorTemplates extends Template
             "return rootExport(window, factory(#{@parametersPrint}));",
             @parametersPrint
           )
-      })
+      });
       """
 
     @_genFullBody(
@@ -355,7 +362,7 @@ class ModuleGeneratorTemplates extends Template
                                 JSON.stringify @bundle.all_depsVars[dep.name(relative: 'bundle')]
                              ).join(',')
                         }},
-                        require = function(modyle) {
+                        _require = function(modyle) {
                           if (modNameVars[modyle])
                             for (var _i = 0; _i < modNameVars[modyle].length; _i++)
                               if (window.hasOwnProperty(modNameVars[modyle][_i]))
@@ -373,18 +380,18 @@ class ModuleGeneratorTemplates extends Template
                     """
                   else
                     """
-                      var require = function(modyle){
+                      var _require = function(modyle){
                         throw new Error("uRequire: Loading UMD module as <script>, failed to `require('" + modyle + "')`: reason unexpected !");
                       },
                     """
-                ) + " exports = {}, module = {exports: exports};\n" +
+                ) + " _exports = {}, _module = {exports: _exports};\n" +
 
                 if not @isRootExports
-                  "factory(#{@parametersPrint});"
+                  "factory(#{replaceParamsPrint @parametersPrint});"
                 else
-                  "rootExport(window, factory(#{@parametersPrint}));"
+                  "rootExport(window, factory(#{replaceParamsPrint @parametersPrint}));"
 
-            ) + "\n}";
+            ) + ";\n}";
           else
             if @module.isWarnNoLoaderUMD
               " else throw new Error('uRequire: Loading UMD module as <script>, without `build.noLoaderUMD`');"
@@ -394,7 +401,7 @@ class ModuleGeneratorTemplates extends Template
         'factory'
         ,
         @__function( @sp('factoryBodyAMD'), @parametersPrint )
-      )
+      ) + ';'
     )
 
 module.exports = ModuleGeneratorTemplates
