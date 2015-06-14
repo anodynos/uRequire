@@ -69,6 +69,9 @@ class Module extends TextResource
           else
             if @bundle?.build?.watch.enabled is true     # to know when refresh() hasChanged next time
               @AST_top_previous = _.clone @AST_top, true # keep a deep clone (cause @AST_top mutates)
+            delete @beforeBody
+            delete @afterBody
+            delete @mergedCode
             @extract()
             @prepare()
             @hasChanged = true
@@ -77,6 +80,9 @@ class Module extends TextResource
     super
     delete @sourceCodeJs
     delete @AST_top_previous
+    delete @beforeBody
+    delete @afterBody
+    delete @mergedCode
     @resetModuleInfo()
 
   # init / clear stuff & create those on demand
