@@ -759,7 +759,7 @@ Again loaded as `urequire-rc-livescript` node dependency with this reference.
 
 The following two are for ["iced-coffee-script"](https/github.com/anodynos/urequire-rc-iced-coffee-script) & ["coco"](https/github.com/anodynos/urequire-rc-coco).
 
-        'iced-coffee-script'
+        #'iced-coffee-script' # removed from loaded as default cause of a weird npm error - add it manually (`npm install urequire-rc-iced-coffee-script` and then in your `bundle: resources: [ 'iced-coffee-script', ....]` :-)  
 
 This is what the 'coco' RC [actually looks like](https://github.com/anodynos/urequire-rc-coco/blob/master/source/code/urequire-rc-coco.coffee):
 
