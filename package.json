@@ -1,18 +1,13 @@
 {
   "name": "urequire",
   "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
-  "version": "0.7.0-beta.17",
+  "version": "0.7.0-beta.18",
   "homepage": "http://uRequire.org",
   "author": {
     "name": "Agelos Pikoulas",
     "email": "agelos.pikoulas@gmail.com"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "http://www.opensource.org/licenses/mit-license.php"
-    }
-  ],
+  "license": "MIT",
   "keywords": [
     "javascript",
     "convert",
@@ -49,7 +44,7 @@
     "dist": "./build"
   },
   "engines": {
-    "node": "0.10.x"
+    "node": ">=0.10.0"
   },
   "dependencies": {
     "almond": "0.3.x",
@@ -65,17 +60,17 @@
     "minimatch": "1.0.x",
     "mkdirp": "0.5.x",
     "moment": "2.8.x",
-    "require-clean": "0.1.x",
-    "requirejs": "2.1.15",
-    "rimraf": "2.2.x",
+    "require-clean": "~0.1.1",
+    "requirejs": "~2.1.18",
+    "rimraf": "2.4.x",
     "upath": "^0.1.5",
     "uberscore": "0.0.17",
     "uglify-js": "^2.4.15",
     "underscore.string": "^2.3.3",
-    "urequire-rc-coco": "0.1.x",
-    "urequire-rc-coffee-script": "^0.1.1",
-    "urequire-rc-iced-coffee-script": "0.1.x",
-    "urequire-rc-livescript": "0.1.x",
+    "urequire-rc-coco": "~0.1.2",
+    "urequire-rc-coffee-script": "~0.1.4",
+    "urequire-rc-iced-coffee-script": "~0.1.2",
+    "urequire-rc-livescript": "~0.1.0",
     "when": "^3.6.2"
   },
   "devDependencies": {
@@ -86,14 +81,14 @@
     "grunt-contrib-clean": "0.4.x",
     "grunt-contrib-copy": "0.4.x",
     "grunt-contrib-watch": "0.5.x",
-    "grunt-urequire": "^0.7.2",
+    "grunt-urequire": "~0.7.2",
     "urequire-rc-exec": "0.1.x",
     "urequire-rc-less": "0.1.x",
     "urequire-rc-teacup-js": "0.2.x",
     "teacup": "0.4.x",
-    "urequire": "0.7.0-beta.14",
-    "urequire-ab-specrunner": "^0.2.x",
-    "urequire-rc-inject-version": "^0.1.5",
-    "urequire-rc-import-keys": "^0.1.2"
+    "urequire": "0.7.0-beta.17",
+    "urequire-ab-specrunner": "~0.2.1",
+    "urequire-rc-inject-version": "~0.1.5",
+    "urequire-rc-import-keys": "~0.1.2"
   }
 }
