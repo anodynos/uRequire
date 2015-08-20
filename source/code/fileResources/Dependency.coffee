@@ -348,7 +348,7 @@ class Dependency
 
       newDepPaths.push(partialPath)
 
-    newDepString = upath.join.apply null, newDepPaths
+    newDepString = upath.joinSafe.apply null, newDepPaths
 
     if newDep.plugin
       if @plugin
