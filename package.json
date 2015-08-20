@@ -53,7 +53,7 @@
     "escodegen": "1.4.x",
     "esprima": "1.2.x",
     "fsp": "0.1.x",
-    "gaze": "0.5.x",
+    "chokidar": "1.0.x",
     "glob-expand": ">=0.0.2",
     "umatch": "0.2.x",
     "lodash": "2.4.x",
