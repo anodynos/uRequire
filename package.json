@@ -65,7 +65,7 @@
     "rimraf": "2.4.x",
     "upath": "^0.1.6",
     "uberscore": "0.0.17",
-    "uglify-js": "^2.4.15",
+    "uglify-js": "^2.4.24",
     "underscore.string": "^2.3.3",
     "urequire-rc-coco": "~0.1.2",
     "urequire-rc-coffee-script": "~0.1.4",
