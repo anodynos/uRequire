@@ -229,37 +229,61 @@ class Module extends TextResource
         if defines.length > 1
           throw new UError "Each AMD file shoule have one (top-level or IIFE) define call - found #{defines.length} `define` calls"
       else
-        # grab flags - dont add to @AST_preDefineIIFENodes
-        if isLikeCode '({urequire:{}})', bodyNode
-          @flags = (eval @toCode bodyNode).urequire
-        else
-          # omit 'amdefine' from @AST_preDefineIIFENodes
-          if not (isLikeCode('var define;', bodyNode)  or
-             isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
-             isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
-             not isLikeCode(';', bodyNode) and @AST_preDefineIIFENodes
-               @AST_preDefineIIFENodes.push bodyNode
+        currentBranchBodyNode = bodyNode
+        currentConsequent = currentBranchBodyNode.consequent
+        defineFound = false
+        while (not defineFound) and currentConsequent
+          if isLikeCode 'define()', currentConsequent.body
+            defines.push currentConsequent.body[0].expression
+            defineFound = true
+            if defines.length > 1
+              throw new UError "Each AMD file should have one (top-level or IIFE) define call - found #{defines.length} `define` calls"
+          else
+            currentBranchBodyNode = currentBranchBodyNode.alternate
+            currentConsequent = if currentBranchBodyNode then currentBranchBodyNode.consequent else null
+        if not defineFound
+          # grab flags - dont add to @AST_preDefineIIFENodes
+          if isLikeCode '({urequire:{}})', bodyNode
+            @flags = (eval @toCode bodyNode).urequire
+          else
+            # omit 'amdefine' from @AST_preDefineIIFENodes
+            if not (isLikeCode('var define;', bodyNode)  or
+               isLikeCode('if(typeof define!=="function"){define=require("amdefine")(module);}', bodyNode) or
+               isLikeCode('if(typeof define!=="function"){var define=require("amdefine")(module);}', bodyNode)) and
+               not isLikeCode(';', bodyNode) and @AST_preDefineIIFENodes
+                 @AST_preDefineIIFENodes.push bodyNode
 
     # AMD module
     if defines.length is 1
       define = defines[0]
       args = define.arguments
-
-      AMDSignature = ['Literal', 'ArrayExpression', 'FunctionExpression']
-      for i in [0..args.length-1]
-        if args[i].type isnt AMDSignature[i+(3-args.length)]
-          throw new UError "Invalid AMD define() signature with #{args.length} args: got a '#{args[i].type}' as arg #{i}, expected a '#{AMDSignature[i+(3-args.length)]}'."
-
       @kind = 'AMD'
       @name = args[0].value if args.length is 3
+
+      if args[args.length-1].type is 'Identifier'
+        AMDSignature = ['Literal', 'ArrayExpression', 'Identifier' ]
+        for i in [0..args.length-1]
+          if args[i].type isnt AMDSignature[i+(3-args.length)]
+            throw new UError "Invalid AMD define() signature with #{args.length} args: got a '#{args[i].type}' as arg #{i}, expected a '#{AMDSignature[i+(3-args.length)]}'."
+        factoryParamName = args[args.length-1].name
+        for i in [0..this.AST_top.body[0].expression.callee.params.length-1]
+          if this.AST_top.body[0].expression.callee.params[i].name is factoryParamName
+            factory = this.AST_top.body[0].expression.arguments[i]
+      else
+        AMDSignature = ['Literal', 'ArrayExpression', 'FunctionExpression']
+        for i in [0..args.length-1]
+          if args[i].type isnt AMDSignature[i+(3-args.length)]
+            throw new UError "Invalid AMD define() signature with #{args.length} args: got a '#{args[i].type}' as arg #{i}, expected a '#{AMDSignature[i+(3-args.length)]}'."
+        factory = args[args.length-1]
+
       if args.length >=2
-        @readArrayDepsAndVars args[args.length-2],        @ext_defineArrayDeps,     # deps array : either at pos 0 or 1, followed by factory function
-                              args[args.length-1].params, @ext_defineFactoryParams  # factory function, always last argument
+        @readArrayDepsAndVars args[args.length-2], @ext_defineArrayDeps,     # deps array : either at pos 0 or 1, followed by factory function
+                              factory.params,      @ext_defineFactoryParams  # factory function, always last argument
 
       else # just 1 factory arg - pluck name
-        @ext_defineFactoryParams = _.map args[args.length-1].params, 'name'
+        @ext_defineFactoryParams = _.map factory.params, 'name'
 
-      @AST_factoryBody = args[args.length-1].body
+      @AST_factoryBody = factory.body
     else
       @kind = 'nodejs'
 

@@ -118,6 +118,107 @@ describe "Module:", ->
               ext_defineFactoryParams: [ '_', 'Dep1' ]
               factoryBody: 'dep1=new Dep1();return dep1.doit();'
 
+        describe "define() signature within UMD cases:", ->
+
+          it "recognises define() within an amdWeb UMD signature", ->
+            deepEqual moduleInfo("""
+              (function(root, factory) {
+                if (typeof define === 'function' && define.amd) {
+                  define(['underscore', 'depdir1/Dep1'], factory);
+                } else {
+                  root.mymodule = factory(root.underscore, root.Dep1);
+                }
+              }(this, function(_, Dep1) {
+                var dep1 = new Dep1();
+                return dep1.doit();
+              }));
+              """
+            ),
+              kind: 'AMD'
+              ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
+              ext_defineFactoryParams: [ '_', 'Dep1' ]
+              factoryBody: 'var dep1=new Dep1();return dep1.doit();'
+
+          it "recognises define() within a returnExports UMD signature", ->
+            deepEqual moduleInfo("""
+              (function(root, factory) {
+                if (typeof define === 'function' && define.amd) {
+                  define(['underscore', 'depdir1/Dep1'], factory);
+                } else if (typeof module === 'object' && module.exports) {
+                  module.exports = factory(require('underscore'), require('./depdir1/Dep1'));
+                } else {
+                  root.mymodule = factory(root.underscore, root.Dep1);
+                }
+              }(this, function(_, Dep1) {
+                var dep1 = new Dep1();
+                return dep1.doit();
+              }));
+              """
+            ),
+              kind: 'AMD'
+              ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
+              ext_defineFactoryParams: [ '_', 'Dep1' ]
+              factoryBody: 'var dep1=new Dep1();return dep1.doit();'
+
+          it "recognises define() in an out-of-order returnExports UMD signature", ->
+            deepEqual moduleInfo("""
+              (function(root, factory) {
+                if (typeof module === 'object' && module.exports) {
+                  module.exports = factory(require('underscore'), require('./depdir1/Dep1'));
+                } else if (typeof define === 'function' && define.amd) {
+                  define(['underscore', 'depdir1/Dep1'], factory);
+                } else {
+                  root.mymodule = factory(root.underscore, root.Dep1);
+                }
+              }(this, function(_, Dep1) {
+                var dep1 = new Dep1();
+                return dep1.doit();
+              }));
+              """
+            ),
+              kind: 'AMD'
+              ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
+              ext_defineFactoryParams: [ '_', 'Dep1' ]
+              factoryBody: 'var dep1=new Dep1();return dep1.doit();'
+
+          it "recognises define() and the correct factory in a UMD signature without the root parameter", ->
+            deepEqual moduleInfo("""
+              (function(factory) {
+                if (typeof define === 'function' && define.amd) {
+                  define(['underscore', 'depdir1/Dep1'], factory);
+                } else {
+                  module.exports = factory(require('underscore'), require('./depdir1/Dep1'));
+                }
+              }(function(_, Dep1) {
+                var dep1 = new Dep1();
+                return dep1.doit();
+              }));
+              """
+            ),
+              kind: 'AMD'
+              ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
+              ext_defineFactoryParams: [ '_', 'Dep1' ]
+              factoryBody: 'var dep1=new Dep1();return dep1.doit();'
+
+          it "recognises define() and the correct factory in a UMD signature regardless of factory parameter name", ->
+            deepEqual moduleInfo("""
+              (function(a, b, c) {
+                if (typeof define === 'function' && define.amd) {
+                  define(['underscore', 'depdir1/Dep1'], b);
+                } else {
+                  module.exports = b(require('underscore'), require('./depdir1/Dep1'));
+                }
+              }(this, function(_, Dep1) {
+                var dep1 = new Dep1();
+                return dep1.doit();
+              }, "unused"));
+              """
+            ),
+              kind: 'AMD'
+              ext_defineArrayDeps: [ 'underscore', 'depdir1/Dep1' ]
+              ext_defineFactoryParams: [ '_', 'Dep1' ]
+              factoryBody: 'var dep1=new Dep1();return dep1.doit();'
+
         describe "Wrong define() signatures throw error on extract(): ", ->
 
           it "throws with a dependency array as only arg", ->
