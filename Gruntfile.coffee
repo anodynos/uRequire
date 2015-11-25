@@ -20,7 +20,7 @@ module.exports = gruntFunction = (grunt) ->
         template: banner: true
         resources: [ 'inject-version' ]
 
-      spec:
+      preSpec:
         path: 'source/spec'
         dstPath: 'build/spec'
         copy: /./
@@ -35,8 +35,9 @@ module.exports = gruntFunction = (grunt) ->
               equal, notEqual, ok, notOk, tru, fals, deepEqual, notDeepEqual, exact, notExact, iqual,
               notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet"""
             chai: 'expect' ] ]
-        afterBuild: require('urequire-ab-specrunner').options
-          mochaOptions: "-t 10000 --bail"
+
+      spec: derive: 'preSpec', afterBuild: require('urequire-ab-specrunner').options
+        mochaOptions: "-t 10000 --bail"
 
       specWatch: derive: 'spec', watch: after: 'copy'
 
