@@ -36,8 +36,10 @@ module.exports = gruntFunction = (grunt) ->
               notIqual, ixact, notIxact, like, notLike, likeBA, notLikeBA, equalSet, notEqualSet"""
             chai: 'expect' ] ]
 
-      spec: derive: 'preSpec', afterBuild: require('urequire-ab-specrunner').options
-        mochaOptions: "-t 10000 --bail"
+      spec:
+        derive: 'preSpec',
+        afterBuild: require('urequire-ab-specrunner').options
+          mochaOptions: "-t 10000 --bail"
 
       specWatch: derive: 'spec', watch: after: 'copy'
 
