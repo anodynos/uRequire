@@ -1,11 +1,11 @@
-# uRequire v0.7.0-beta15
+# uRequire v0.7.0-beta.24
 
 ## Beta release note
 
 _Docs / wiki / http://uRequire.org mainly are **Work In Progress** (in transition from v0.6.x) - but everything should work except you'll need `npm install urequire-cli -g` & `npm install urequire` locally (if you are using the CLI urequire instead of the the recommended [grunt-urequire](https://github.com/aearly/grunt-urequire)). Check **uRequire's [master config / docs](https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md)** for up to date usage._
 
 [![Build Status](https://travis-ci.org/anodynos/uRequire.svg?branch=master)](https://travis-ci.org/anodynos/uRequire)
-[![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire.png)
+[![Up to date Status](https://david-dm.org/anodynos/urequire.png)](https://david-dm.org/anodynos/urequire)
 
 ## The JavaScript Universal Module & Resource Converter (and automagical builder, test runner and more)...
 
