@@ -1,7 +1,7 @@
 {
   "name": "urequire",
   "description": "Convert AMD & commonjs modules to UMD, AMD, commonjs or `combined.js` (rjs & almond) & run/test on nodejs, Web/AMD or Web/Script. Manipulate & inject module code & dependencies while building & more",
-  "version": "0.7.0-beta.22",
+  "version": "0.7.0-beta.23",
   "homepage": "http://uRequire.org",
   "author": {
     "name": "Agelos Pikoulas",
@@ -44,19 +44,19 @@
     "dist": "./build"
   },
   "engines": {
-    "node": ">=0.10.0"
+    "node": ">=0.10.0 <=5.x"
   },
   "dependencies": {
     "almond": "0.3.x",
     "butter-require": ">=0.0.3",
     "coffee-script": "1.8.x",
-    "escodegen": "1.4.x",
-    "esprima": "1.2.x",
+    "escodegen": "~1.7.1",
+    "esprima": "~1.2.4",
     "fsp": "0.1.x",
     "chokidar": "1.0.x",
     "glob-expand": ">=0.0.2",
     "umatch": "0.2.x",
-    "lodash": "2.4.x",
+    "lodash": "~3.x.x",
     "minimatch": "1.0.x",
     "mkdirp": "0.5.x",
     "moment": "2.8.x",
@@ -65,17 +65,17 @@
     "rimraf": "2.4.x",
     "upath": "^0.1.6",
     "uberscore": "0.0.17",
-    "uglify-js": "^2.4.24",
+    "uglify-js": "^2.6.1",
     "underscore.string": "^2.3.3",
     "urequire-rc-coco": "~0.1.2",
     "urequire-rc-coffee-script": "~0.1.4",
     "urequire-rc-livescript": "~0.1.0",
-    "when": "^3.6.2"
+    "when": "^3.7.5"
   },
   "devDependencies": {
     "mocha": "2.0.x",
-    "chai": "1.9.2",
-    "chai-as-promised": "4.1.1",
+    "chai": "1.9.x",
+    "chai-as-promised": "4.x.x",
     "grunt": "0.4.5",
     "grunt-contrib-clean": "0.4.x",
     "grunt-contrib-copy": "0.4.x",
@@ -85,7 +85,7 @@
     "urequire-rc-less": "0.1.x",
     "urequire-rc-teacup-js": "0.2.x",
     "teacup": "0.4.x",
-    "urequire": "0.7.0-beta.21",
+    "urequire": "0.7.0-beta.22",
     "urequire-ab-specrunner": "~0.2.1",
     "urequire-rc-inject-version": "~0.1.5",
     "urequire-rc-import-keys": "~0.1.2"

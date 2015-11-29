@@ -3,6 +3,8 @@ exports.VERSION = if VERSION? then VERSION else '{NO_VERSION}' # 'VERSION' injec
 When = require './promises/whenFull'
 fs = require 'fsp'
 
+_.mixin require('underscore.string').exports()
+
 require 'coffee-script/register'
 
 Object.defineProperties exports, # lazily export

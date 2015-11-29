@@ -25,7 +25,7 @@ moveKeysBlender = new _B.Blender [
         build: _.keys MasterDefaultsConfig.build   # eg ['dstPath', 'template', ...]
       })->
         (prop, src, dst)->
-          for confPart in _.keys partsKeys # partKeys = ['bundle', 'build'] 
+          for confPart in _.keys partsKeys # partKeys = ['bundle', 'build']
             if prop in partsKeys[confPart]
               _B.setp @dstRoot, "/#{confPart}/#{prop}", src[prop], overwrite:true
               break
@@ -189,7 +189,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           1
 
       afterBuild: '|': (prop, src, dst)->
-        arrayizeBlender.blend dst[prop], _.clone(src[prop]) # no function array blending, cause we deal with functions
+        arrayizeBlender.blend dst[prop], src[prop] # no function array blending, cause we deal with functions
 
       # cant seperate cause it writes on dst
       optimize: '|':
