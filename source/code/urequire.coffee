@@ -27,47 +27,53 @@ Object.defineProperties exports, # lazily export
   BBExecuted: get:-> BBExecuted
   BBCreated: get:-> BBCreated
 
+
+_.each ['CodeMerger', 'isEqualCode', 'isLikeCode', 'replaceCode', 'toAST', 'toCode'], (codeUtil)->
+  Object.defineProperty exports, codeUtil, get: -> require './codeUtils/' + codeUtil
+
 BBExecuted = []
 BBCreated = []
 
-exports.addBBCreated = (bb)->
-  if bb.build.target and exports.findBBCreated(bb.build.target)
-    throw new UError "Can't have two BundleBuilders with the same `target` '#{bb.build.target}'"
-  BBCreated.push bb
+_.extend exports,
 
-exports.findBBCreated = (target)->
-  _.find BBCreated, (bb)-> bb.build.target is target
+  addBBCreated: (bb)->
+    if bb.build.target and exports.findBBCreated(bb.build.target)
+      throw new UError "Can't have two BundleBuilders with the same `target` '#{bb.build.target}'"
+    BBCreated.push bb
 
-exports.addBBExecuted = (bb)->
-  _.pull BBExecuted, bb # mutate existing array
-  BBExecuted.push bb
+  findBBCreated: (target)->
+    _.find BBCreated, (bb)-> bb.build.target is target
 
-exports.findBBExecutedLast = (target)->
-  if _.isUndefined(target) or _.isNull(target)
-    _.last BBExecuted
-  else
-    if _.isString target
-      _.findLast BBExecuted, (bb)-> bb.build.target is target
+  addBBExecuted:  (bb)->
+    _.pull BBExecuted, bb # mutate existing array
+    BBExecuted.push bb
+
+  findBBExecutedLast: (target)->
+    if _.isUndefined(target) or _.isNull(target)
+      _.last BBExecuted
     else
-      throw new Error "urequire: findBBExecutedLast() unknown parameter type `#{_B.type target}`, target argument = #{target}"
-
-exports.findBBExecutedBefore = (bbOrTarget)->
-  if _.isUndefined(bbOrTarget) or _.isNull(bbOrTarget)
-    _.last BBExecuted
-  else
-    if _.isString bbOrTarget
-      li = _.findLastIndex BBExecuted, (bb)-> bb.build.target is bbOrTarget
-    else
-      if bbOrTarget instanceof require("./process/BundleBuilder")
-        li = _.lastIndexOf BBExecuted, bbOrTarget
+      if _.isString target
+        _.findLast BBExecuted, (bb)-> bb.build.target is target
       else
-        throw new Error "urequire: findBBExecutedBefore() unknown parameter type `#{_B.type bbOrTarget}`, bbOrTarget argument = #{bbOrTarget}"
+        throw new Error "urequire: findBBExecutedLast() unknown parameter type `#{_B.type target}`, target argument = #{target}"
 
-    if li >= 1
-      BBExecuted[li-1]
+  findBBExecutedBefore: (bbOrTarget)->
+    if _.isUndefined(bbOrTarget) or _.isNull(bbOrTarget)
+      _.last BBExecuted
     else
-      null
+      if _.isString bbOrTarget
+        li = _.findLastIndex BBExecuted, (bb)-> bb.build.target is bbOrTarget
+      else
+        if bbOrTarget instanceof require("./process/BundleBuilder")
+          li = _.lastIndexOf BBExecuted, bbOrTarget
+        else
+          throw new Error "urequire: findBBExecutedBefore() unknown parameter type `#{_B.type bbOrTarget}`, bbOrTarget argument = #{bbOrTarget}"
 
-blendConfigs = require('./config/blendConfigs')
+      if li >= 1
+        BBExecuted[li-1]
+      else
+        null
+
+blendConfigs = exports.blendConfigs = require './config/blendConfigs'
 for b in ['dependenciesBindingsBlender', 'templateBlender', 'shimBlender', 'watchBlender']
   exports[b] = blendConfigs[b]
