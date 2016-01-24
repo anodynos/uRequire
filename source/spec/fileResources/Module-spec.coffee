@@ -302,8 +302,8 @@ describe "Module:", ->
             kind: 'AMD'
             ext_defineArrayDeps: ['dep1', 'dep2']
             ext_defineFactoryParams: ['depVar1', 'depVar2']
-            factoryBody: 'var p,_ref;_ref={};for(p in _ref){if(!__hasProp.call(_ref,p))continue;return{};}',
-            preDefineIIFEBody: 'var __hasProp={}.hasOwnProperty;'
+            factoryBody: 'var p,ref;ref={};for(p in ref){if(!hasProp.call(ref,p))continue;return{};}',
+            preDefineIIFEBody: 'var hasProp={}.hasOwnProperty;'
 
         it "ignore specific code before define (eg amdefine) & extracts `urequire:` flags", ->
           deepEqual moduleInfo(
@@ -344,7 +344,7 @@ describe "Module:", ->
             ext_requireVars: [ '_', 'dep1' ]
             flags: {rootExports: 'myLib', someUknownFlag: "yeah!"}
             kind: 'nodejs'
-            factoryBody: 'var dep1,_;_=require("underscore");dep1=require("depdir1/dep1");dep1=new dep1();module.exports=dep1.doit();'
+            factoryBody: 'var _,dep1;_=require("underscore");dep1=require("depdir1/dep1");dep1=new dep1();module.exports=dep1.doit();'
 
       describe "trusted and untrusted require('myDep') & require(['myDep'], function(){}) dependencies #1:", ->
 
