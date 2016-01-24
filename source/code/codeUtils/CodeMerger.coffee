@@ -11,7 +11,7 @@ class CodeMerger
     uniqueDeclarations: true
 
   constructor: (@options = CodeMerger.options)->
-    if options isnt CodeMerger.options
+    if @options isnt CodeMerger.options
       dfb.blend @options, CodeMerger.options
 
     @declarations or= []

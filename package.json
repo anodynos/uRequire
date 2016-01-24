@@ -49,7 +49,7 @@
   "dependencies": {
     "almond": "0.3.x",
     "butter-require": ">=0.0.3",
-    "coffee-script": "1.8.x",
+    "coffee-script": "~1.10",
     "escodegen": "~1.7.1",
     "esprima": "~1.2.4",
     "fsp": "0.1.x",

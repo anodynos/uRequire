@@ -328,8 +328,9 @@ class ModuleGeneratorTemplates extends Template
             if isNodeRequirer
               "\n    var nr = new (require('urequire').NodeRequirer) ('#{@module.path}', module, require, __dirname, '#{@module.webRootMap}', #{@build.template.debugLevel});"
             else ''}
-              module.exports = #{ if @isRootExports then 'rootExport(global, ' else ''
-               }factory(#{nr}require#{@injectExportsModuleParamsPrint}#{
+              module.exports = #{
+                if @isRootExports then 'rootExport(global, ' else ''
+              }factory(#{nr}require#{@injectExportsModuleParamsPrint}#{
                   (for nDep in @module.nodeDeps
                     if nDep.isSystem
                       ', ' + nDep.name()

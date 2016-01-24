@@ -73,7 +73,8 @@ module.exports = class AlmondOptimizationTemplate extends Template
 #        @allBanners +
         """
         (function (global, window){
-          #{if _B.isTrue @build.useStrict then "'use strict';\n" else ''
+          #{
+            if _B.isTrue @build.useStrict then "'use strict';\n" else ''
           }#{@sp 'runtimeInfo'}
 
           var __nodeRequire = (__isNode ? require : function(dep){

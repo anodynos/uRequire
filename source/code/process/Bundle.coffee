@@ -384,7 +384,7 @@ class Bundle extends BundleBase
       l.verbose "No files to process."
     else
       @reporter = new DependenciesReporter()
-      
+
       @loadOrRefreshResources(filenames).then =>
         if not _.isEmpty @build.changedFiles
           @convertChangedModules().then( =>
@@ -618,8 +618,10 @@ class Bundle extends BundleBase
       if not @main
         @main = @mainModule.path
         l.warn """
-            `bundle.main` is defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{@main
-            }', as uRequire found #{if _.size(@modules) is 1 then "only one" else "a valid main"
+            `bundle.main` is defaulting to #{if @main is @name then '`bundle.name` = ' else ''}'#{
+              @main
+            }', as uRequire found #{
+              if _.size(@modules) is 1 then "only one" else "a valid main"
             } module `#{@mainModule.srcFilename}` in `bundle.path` filtered with `bundle.filez`.
           """
       @mainModule
