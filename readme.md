@@ -1,4 +1,4 @@
-# uRequire v0.7.0-beta.25
+# uRequire v0.7.0-beta.26
 
 ## Beta release note
 
