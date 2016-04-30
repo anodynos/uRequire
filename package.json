@@ -73,7 +73,6 @@
     "when": "^3.7.5"
   },
   "devDependencies": {
-    "mocha": "2.4.x",
     "chai": "3.5.x",
     "chai-as-promised": "5.2.x",
     "grunt": "0.4.5",
@@ -81,14 +80,14 @@
     "grunt-contrib-copy": "0.4.x",
     "grunt-contrib-watch": "0.5.x",
     "grunt-urequire": "^0.7.3",
-    "urequire-rc-exec": "0.1.x",
-    "urequire-rc-less": "0.1.x",
-    "urequire-rc-teacup-js": "0.2.x",
-    "urequire-rc-teacup-js2html": "0.2.x",
+    "mocha": "2.4.x",
     "teacup": "0.4.x",
-    "urequire": "0.7.0-beta.25",
-    "urequire-ab-specrunner": "^0.2.2",
+    "urequire-ab-specrunner": "^0.2.4",
+    "urequire-rc-exec": "^0.1.2",
+    "urequire-rc-import-keys": "^0.1.4",
     "urequire-rc-inject-version": "^0.1.6",
-    "urequire-rc-import-keys": "^0.1.4"
+    "urequire-rc-less": "^0.1.2",
+    "urequire-rc-teacup-js": "^0.2.1",
+    "urequire-rc-teacup-js2html": "^0.2.1"
   }
 }
