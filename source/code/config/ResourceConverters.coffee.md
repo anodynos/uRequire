@@ -521,7 +521,7 @@ What you can do is:
 * make `stuff/myModule` available as an [`bundle.dependencies.imports`](MasterDefaultsConfig.coffee#bundle.dependencies.imports), with the `myModule` identifier.
 
 ```
- dependencies: exports: bundle: { 'stuff/myModule': 'myModule' }
+ dependencies: imports: { 'stuff/myModule': 'myModule' }
 ```
 
 That's it!

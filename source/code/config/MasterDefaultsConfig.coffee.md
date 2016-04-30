@@ -1142,9 +1142,9 @@ min:
   filez: [ '!**deepExtend.coffee' ]
   dstPath: 'build/uberscore-min.js'
   dependencies:
-   exports: bundle: [
+    imports: [
       [null], 'underscore', 'agreement/isAgree']
-   replace: 'underscore': ['lodash']
+    replace: 'underscore': ['lodash']
   resources: [
   [
      '+remove:debug/deb & deepExtend', [/./]
