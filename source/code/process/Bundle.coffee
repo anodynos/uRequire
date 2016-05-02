@@ -347,7 +347,7 @@ class Bundle extends BundleBase
     @build.newBuild()
     l.debug """ \n
       #####################################################################
-      buildChangedResources: build ##{build.count}
+      buildChangedResources: build ##{@build.count}
       bundle.name = #{@name}, bundle.main = #{@main}, build.target = #{@build.target}
       #####################################################################""" if l.deb 20
 

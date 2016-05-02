@@ -64,7 +64,7 @@
     "requirejs": "2.2.x",
     "rimraf": "2.5.x",
     "upath": "^0.1.7",
-    "uberscore": "0.0.18",
+    "uberscore": "0.0.17",
     "uglify-js": "^2.6.2",
     "underscore.string": "3.x.x",
     "urequire-rc-coco": "^0.1.2",
