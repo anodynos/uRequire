@@ -3,7 +3,7 @@ esprima =  require 'esprima'
 # @return an AST that can be generated to code
 #     either as type: 'Program' or type: 'BlockStatement'
 #todo: split/configure to 'strict mode', no undefined, no AST etc
-module.exports = toAST = (codeOrAST, type)->
+module.exports = toAST = (codeOrAST, type) ->
   # some type checking!
   validTypes = ['Program', 'BlockStatement']
   if type and type not in validTypes

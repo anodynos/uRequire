@@ -18,7 +18,7 @@ class ResourceConverter
   # - strips the nameflags, updating boolean flags & type
   # - fixes the convFilename, if its a String (but stores its info for later cloning reusage)
   # @return the proper RC instance
-  constructor: (rc)->
+  constructor: (rc) ->
     rc = getResourceConverterObject rc # make sure we deal with an {}
 #    l.log "Constructed new RC: ", rc
 
@@ -27,10 +27,10 @@ class ResourceConverter
     else
       return rc # return null / undefined
 
-  update: (rc)->
+  update: (rc) ->
     if rc isnt @
 
-      _.extend @, _.omit rc, (v, k, o)-> (k is 'options') or !_.has o,k
+      _.extend @, _.omit rc, (v, k, o) -> (k is 'options') or !_.has o,k
 
       if rc.options
         # pick props inside '$' and then delete it
@@ -83,7 +83,7 @@ class ResourceConverter
     # setting name strips flags & applies them on instance
     name:
       get: -> @[' name']
-      set: (name)->
+      set: (name) ->
         # Read & remove the flags in name, setting the proper RC object flags.
         if (not name) or !_.isString(name)
           l.er uerr = "ResourceConverter `name` should be a unique, non empty String - was '#{name}'"
@@ -105,7 +105,7 @@ class ResourceConverter
     # note an RC might be type-less - matching filez type determined by previous/following RC
     type:
       get: -> @[' type']
-      set: (type)->
+      set: (type) ->
         if type not in types = ['bundle', 'file', 'text', 'module']
           l.er uerr = "Invalid resourceConverter.type '#{type}' - must be in [#{types.join ','}]"
           throw new UError uerr
@@ -125,7 +125,7 @@ class ResourceConverter
     convFilename:
       enumerable: true
       get: -> @_convFilename
-      set: (cf)->
+      set: (cf) ->
         if cf
           @[' convFilename'] = cf # display original value
 
@@ -136,12 +136,12 @@ class ResourceConverter
 
             if cf[0] is '.' # change filename extension
               cf =
-                do (ext=cf)->
-                  (dstFilename, srcFilename)-> # replaces `dstFilename`, with `~` flag it replaces `srcFilename`
+                do (ext=cf) ->
+                  (dstFilename, srcFilename) -> # replaces `dstFilename`, with `~` flag it replaces `srcFilename`
                     upath.changeExt (if isSrcFilename then srcFilename else dstFilename), ext
 
             else # a fn that returns the `convFilename` String
-              cf = do (filename=cf)-> -> filename
+              cf = do (filename=cf) -> -> filename
 
           else # some checks
             if not (_.isFunction(cf) or _.isUndefined(cf))
@@ -167,7 +167,7 @@ class ResourceConverter
   #   formal or informal spec (Object or Array notation), instantiated as RC instance, update existing if it exists.
   #
   # @return The new or found and/or Updated ResourceConverter instance.
-  @searchRegisterUpdate: (rc)->
+  @searchRegisterUpdate: (rc) ->
 
     if _.isString rc # a searchName
       name = rc
@@ -215,9 +215,9 @@ class ResourceConverter
   # @param rc either the {}, [] or  -> representation of an RC
   # todo: improve: use a state machine of allowed RC signatures & their associated interpretation
   # @return the {} representation of an RC
-  getResourceConverterObject = (rc)->
+  getResourceConverterObject = (rc) ->
 
-    isLikeFilez = (v)-> _.isArray(v) or _.isString(v) or _.isRegExp(v)
+    isLikeFilez = (v) -> _.isArray(v) or _.isString(v) or _.isRegExp(v)
 
     if _.isFunction rc
       rc = rc.call ResourceConverter.searchRegisterUpdate, ResourceConverter.searchRegisterUpdate
@@ -268,19 +268,19 @@ class ResourceConverter
     rc
 
   nameFlagsActions =
-    '&': (rc)-> rc.type = 'bundle'
-    '@': (rc)-> rc.type = 'file'
-    '#': (rc)-> rc.type = 'text'
-    '$': (rc)-> rc.type = 'module'
+    '&': (rc) -> rc.type = 'bundle'
+    '@': (rc) -> rc.type = 'file'
+    '#': (rc) -> rc.type = 'text'
+    '$': (rc) -> rc.type = 'module'
 
-    '~': (rc)-> rc.isMatchSrcFilename = true
-    '|': (rc)-> rc.isTerminal = true
+    '~': (rc) -> rc.isMatchSrcFilename = true
+    '|': (rc) -> rc.isTerminal = true
 
     # when to run
-    '+': (rc)-> rc.runAt = 'beforeTemplate' # module only
-    '!': (rc)-> rc.runAt = 'afterTemplate'  # module only
-    '%': (rc)-> rc.runAt = 'afterOptimize'  # module only
-    '>': (rc)-> rc.runAt = 'afterSave'     # all
+    '+': (rc) -> rc.runAt = 'beforeTemplate' # module only
+    '!': (rc) -> rc.runAt = 'afterTemplate'  # module only
+    '%': (rc) -> rc.runAt = 'afterOptimize'  # module only
+    '>': (rc) -> rc.runAt = 'afterSave'     # all
 
   nameFlags = _.keys nameFlagsActions
 

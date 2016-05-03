@@ -313,11 +313,11 @@ Both filenames passed as arguments are appended respectively to [`bundle.path`](
 
 With `copy()` you can have a converter that simply copies each file in `RC.filez`, eg:
 
-`['@copyVendorJs', ['vendorJs/**/*.js'], (r)-> r.copy()]`
+`['@copyVendorJs', ['vendorJs/**/*.js'], (r) -> r.copy()]`
 
 or copies them renamed, from `bundle.path` to `build.dstPath` eg
 
-`['@copyRenamedVendorJs', ['vendorJs/**/*.js'], (r)-> r.copy(undefined, 'renamed_' + e.dstFilename)]`
+`['@copyRenamedVendorJs', ['vendorJs/**/*.js'], (r) -> r.copy(undefined, 'renamed_' + e.dstFilename)]`
 
 
 #### `requireClean()`
@@ -586,7 +586,7 @@ resources: [
     '+remove:debug/deb', [/./]
     # perform the replacement / deletion
     # note: return value is ignored in '+' `isBeforeTemplate` RCs
-    (modyle)-> modyle.replaceCode 'if (l.deb()){}'
+    (modyle) -> modyle.replaceCode 'if (l.deb()){}'
   ]
   ...  
 ]
@@ -732,10 +732,10 @@ This is a dummy .js RC, following the [formal & boring ResourceConverter definit
           # could have `undefined` in convert's place
           # we use m.converted (which defaults to m.source), cause
           # you never know what super duper RC conversion run before!
-          convert: (modyle)-> modyle.converted
+          convert: (modyle) -> modyle.converted
 
           # convert .js | .javascript to .js
-          convFilename: (srcFilename)->
+          convFilename: (srcFilename) ->
             require('upath').changeExt srcFilename, 'js'
 
           # not needed, we have '$' flag to denote `type: 'module'`
@@ -763,7 +763,7 @@ The following two are for ["iced-coffee-script"](https/github.com/anodynos/urequ
 
 This is what the 'coco' RC [actually looks like](https://github.com/anodynos/urequire-rc-coco/blob/master/source/code/urequire-rc-coco.coffee):
 
-`['$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted, @options), '.js']`.
+`['$coco', [ '**/*.co'], ((r) -> require('coco').compile r.converted, @options), '.js']`.
 
 As an example, if you wanted to pass some coco `options` (that `_.extend` default options), use this format instead of a plain `'coco'` String:
 
@@ -796,7 +796,7 @@ We need to add this as the very 1st in `defaultResourceConverters`, and have it 
         [ '**/*.coffee' # not working with .litcoffee
           '**/*.co', '**/*.ls', '**.iced' ]
 
-        (r)->
+        (r) ->
           lines = r.converted.split '\n'
           r.converted = 'define ->\n'
           for line in lines when line

@@ -1,13 +1,13 @@
-module.exports = (l)->
+module.exports = (l) ->
   throw "not (l instanceof _B.Logger)" if not (l instanceof _B.Logger)
 
-  logPromise = (promisingFn, fnName='not-named promising function', resultName='result', rejectName='reject')->
+  logPromise = (promisingFn, fnName='not-named promising function', resultName='result', rejectName='reject') ->
     throw new Error '1st param must be a promise-returning function' if not _.isFunction promisingFn
-    (args...)->
+    (args...) ->
       (argsClone = _.clone args).unshift "#{fnName} called with:\n"
       l.debug.apply l, argsClone
       (promisingFn.apply @, args).then(
-        (res)->
+        (res) ->
           head = "#{fnName} #{resultName} is:\n"
           if _.isArray res
             (resLog = _.clone res).unshift head
@@ -15,7 +15,7 @@ module.exports = (l)->
             resLog = [head, res]
           l.debug.apply l, resLog
           res
-      , (rej)->
+      , (rej) ->
         head = "#{fnName} #{rejectName} is:\n"
         if _.isArray rej
           (rejLog = _.clone rej).unshift head

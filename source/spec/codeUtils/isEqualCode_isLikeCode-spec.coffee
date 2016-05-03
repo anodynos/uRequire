@@ -29,7 +29,7 @@ describe "`isEqualCode` & `isLikeCode` compare code structure:", ->
 
   count = 0
   for code1, code2 of codes
-    do (code1, code2, count=count++)->
+    do (code1, code2, count=count++) ->
 
       code1AST = esprima.parse code1
       code2AST = esprima.parse code2

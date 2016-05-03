@@ -10,7 +10,7 @@ class CodeMerger
   @options:
     uniqueDeclarations: true
 
-  constructor: (@options = CodeMerger.options)->
+  constructor: (@options = CodeMerger.options) ->
     if @options isnt CodeMerger.options
       dfb.blend @options, CodeMerger.options
 
@@ -21,11 +21,11 @@ class CodeMerger
     @declarations = []
     @statements = []
 
-  addbodyNode: (node)->
+  addbodyNode: (node) ->
     if node.type is 'VariableDeclaration'
       for decl in node.declarations
-        if not _.any(@declarations, (fd)-> _.isEqual decl, fd)
-          if dublicateDecl = _.find(@declarations, (fd)-> isLikeCode {type:decl.type, id:decl.id}, fd)
+        if not _.any(@declarations, (fd) -> _.isEqual decl, fd)
+          if dublicateDecl = _.find(@declarations, (fd) -> isLikeCode {type:decl.type, id:decl.id}, fd)
             if @options.uniqueDeclarations
               throw new UError """
                 Duplicate var declaration while merging code:\n
@@ -40,7 +40,7 @@ class CodeMerger
             l.debug 90, "Adding declaration of '#{decl.id.name}'"
             @declarations.push decl
     else
-      if not _.any(@statements, (fd)-> _.isEqual node, fd)
+      if not _.any(@statements, (fd) -> _.isEqual node, fd)
         @statements.push node
 
     null
@@ -51,7 +51,7 @@ class CodeMerger
       * Array: of body nodes
       * Object: a single node OR a program
   ###
-  add: (code)->
+  add: (code) ->
     if !_.isEmpty code
       @addbodyNode node for node in toAST(code, 'Program')?.body or []
 

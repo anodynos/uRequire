@@ -7,7 +7,7 @@ for wlib in whenLibs
     When[wlib] = require "when/#{wlib}"
 
 extraFunctions =
-  each: (collection, handler)->
+  each: (collection, handler) ->
     if _B.isHash collection
       iterArray = _.keys collection
       isArray = false
@@ -19,9 +19,9 @@ extraFunctions =
         return When.reject new Error "When.each: collection is neither [] or {}."
 
     When.iterate(
-      (i)-> i + 1
-      (i)-> !(i < iterArray.length)
-      (i)->
+      (i) -> i + 1
+      (i) -> !(i < iterArray.length)
+      (i) ->
         if isArray
           idxOrKey = i
         else

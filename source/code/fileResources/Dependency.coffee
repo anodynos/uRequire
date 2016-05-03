@@ -8,7 +8,7 @@ umatch = require 'umatch'
 MasterDefaultsConfig = require '../config/MasterDefaultsConfig'
 pathRelative = require './../paths/pathRelative'
 
-untrust = (str)->
+untrust = (str) ->
   str = new String(str + '')
   str.untrusted = true
   str.inspect = -> """'#{@}' (untrusted Dependency)"""
@@ -31,7 +31,7 @@ class Dependency
   ###
   @defaults = { untrusted: false }
 
-  constructor: (depString, @module, defaults = Dependency.defaults)->
+  constructor: (depString, @module, defaults = Dependency.defaults) ->
     _.defaults @, defaults if defaults isnt Dependency.defaults
     @AST_requireLiterals or= [] # stores the AST(s) of this dep
     @depString = depString
@@ -45,7 +45,7 @@ class Dependency
     depString:
       get:-> if @untrusted then untrust @_depString else @_depString
 
-      set: (depString='')->
+      set: (depString='') ->
         @_depString = depString
         dp = depString.replace /\\/g, '/'
 
@@ -98,7 +98,7 @@ class Dependency
     #'node'  # node is a generic function :-)
   ]
   for type in TYPES
-    do (type)->
+    do (type) ->
       Object.defineProperty Dependency::, 'is' + _.capitalize(type),
         get: -> @type is type
 
@@ -203,7 +203,7 @@ class Dependency
     modulePathToRoot: get: ->
       pathRelative upath.dirname(@module.path or "__root__"), "/", assumeRoot:true
 
-  name: (options = {})->
+  name: (options = {}) ->
     if @untrusted
       @depString
     else
@@ -243,7 +243,7 @@ class Dependency
   @param dep {Dependency | String | .toString} The depedency to compare with this - returns true if
   @todo: use @isMatch dep, {some:options}
   ###
-  isEqual: (dep)->
+  isEqual: (dep) ->
     return true if dep is @
     return false if not dep or @untrusted
 
@@ -255,7 +255,7 @@ class Dependency
     isSameJSFile @name(relative:'bundle', ext:true),
                  dep.name(relative:'bundle', ext:true)
 
-  isSameJSFile = (a,b)-> upath.addExt(a, '.js') is upath.addExt(b, '.js')
+  isSameJSFile = (a,b) -> upath.addExt(a, '.js') is upath.addExt(b, '.js')
 
   ###
   Check if this Dependency instance matches with a:
@@ -291,7 +291,7 @@ class Dependency
   # @todo: convert to agreement / _B.Blender
   # @todo: return  matched part if its a partial match (needs tweak for minimatch / impossible!)
   ###
-  isMatch: (matchDep, options)->
+  isMatch: (matchDep, options) ->
     l.deb "isMatch: options =", options, "\nmatchDep =", matchDep, "\n@ =", @ if l.deb(105)
 
     return false if not matchDep or @untrusted # @todo: match untrusted also, as text representation or isEqualCode
@@ -328,7 +328,7 @@ class Dependency
       l.deb "isMatch: true" if l.deb(110)
       true
 
-  update: (newDep, matchDep, options)->
+  update: (newDep, matchDep, options) ->
     if l.deb(80)
       l.deb "update: options =", options, "\n@ =", @, "\nnewDep =", newDep, "\nmatchDep =", matchDep
 

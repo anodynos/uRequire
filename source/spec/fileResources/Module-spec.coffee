@@ -5,7 +5,7 @@ isEqualCode = require "../../code/codeUtils/isEqualCode"
 toCode = require "../../code/codeUtils/toCode"
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
-untrust = (indexes, depsStrings)->
+untrust = (indexes, depsStrings) ->
   for idx in indexes
     depsStrings[idx] = new String depsStrings[idx]
     depsStrings[idx].untrusted = true
@@ -30,10 +30,10 @@ codegenOptions =
     semicolons: true
 
 # helper: create Module, set its js, extract, delete empties, return info()
-moduleInfo = (js)->
+moduleInfo = (js) ->
   (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().info()
 
-moduleAdjustedInfo = (js)->
+moduleAdjustedInfo = (js) ->
   (new Module {sourceCodeJs: js, codegenOptions}).parse().extract().prepare().adjust().info()
 
 describe "Module:", ->
@@ -297,7 +297,7 @@ describe "Module:", ->
 
         it "removes IIFE & gets generated code as preDefineIIFEBody", ->
           deepEqual moduleInfo(
-            coffee.compile "define ['dep1', 'dep2'], (depVar1, depVar2)-> for own p of {} then return {}"
+            coffee.compile "define ['dep1', 'dep2'], (depVar1, depVar2) -> for own p of {} then return {}"
           ),
             kind: 'AMD'
             ext_defineArrayDeps: ['dep1', 'dep2']
@@ -607,7 +607,7 @@ describe "Module:", ->
           for rd in mod.keys_resolvedDependencies
             expect(modInfo[rd]).to.be.undefined
           expect(modInfo.parameters).to.be.undefined
-          exp = _.omit expected, (v,k)-> (k is 'parameters') or (k in mod.keys_resolvedDependencies)
+          exp = _.omit expected, (v,k) -> (k is 'parameters') or (k in mod.keys_resolvedDependencies)
           deepEqual modInfo, exp
 
         it "should re-adjust with the exact results:", ->
@@ -668,16 +668,16 @@ describe "Module:", ->
       .adjust()
 
     # replace & inject deps
-    mod.replaceDep ((d)-> d is 'underscore'), 'lodash'
+    mod.replaceDep ((d) -> d is 'underscore'), 'lodash'
 
     mod.replaceDep /.*aLocal/, 'plugins/spy!smallVillage'
 
-    mod.replaceDep 'depDir2/Dep2/', (depName, dep)->
+    mod.replaceDep 'depDir2/Dep2/', (depName, dep) ->
       throw "Error newDep as Function didnt pass correct depName #{depName}"  if depName isnt 'depDir2/Dep2'
       throw "Error newDep as Function dep.name() is wrong #{dep.name()}" if dep.name() isnt '../depDir2/Dep2'
       'aNewDepInTown' # relative to bundle, cause we searched with bundleRelative path
 
-    mod.replaceDep '../aNewDepInTown', (depName, dep)->
+    mod.replaceDep '../aNewDepInTown', (depName, dep) ->
       throw "Error newDep as Function didnt pass correct depName depName #{depName}" if depName isnt '../aNewDepInTown'
       '../aNewDepInTown'
 
@@ -694,7 +694,7 @@ describe "Module:", ->
     mod.replaceDep '../depDir1/uselessDep', 'shouldNotBeChanged', {relative:'bundle'}
 
     # delete this weird dep that resolves to a found dep
-    mod.replaceDep '.././/./depDir1/../depDir1/uselessDep/./', (depName)->
+    mod.replaceDep '.././/./depDir1/../depDir1/uselessDep/./', (depName) ->
       throw "Error in 1st param of newDep as Function" if depName isnt '../depDir1/uselessDep'
       return undefined # delete
 

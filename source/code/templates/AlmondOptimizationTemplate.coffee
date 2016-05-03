@@ -3,14 +3,14 @@ upath = require 'upath'
 Dependency = require '../fileResources/Dependency'
 Template = require './Template'
 
-varSelector = (vars, finale = 'void 0')->
+varSelector = (vars, finale = 'void 0') ->
   ("(typeof #{v} !== 'undefined') ? #{v} : " for v in vars).join(' ') + finale
 
 module.exports = class AlmondOptimizationTemplate extends Template
 
   scope: 'bundle'
 
-  constructor: (@bundle)->
+  constructor: (@bundle) ->
     super
 
     ### locals & imports handling. ###
@@ -159,7 +159,7 @@ module.exports = class AlmondOptimizationTemplate extends Template
 
       _dependencyFiles
 
-  grabDependencyVarOrRequireIt: (dep, vars, descr)->
+  grabDependencyVarOrRequireIt: (dep, vars, descr) ->
     depFactory =
       @deb(50, "define factory (mock) for `#{descr}` '#{dep}' called.") +
       "if (__isNode) {" +

@@ -14,7 +14,7 @@
   #   dot4Current: return './dep' instead of 'dep'
   #   assumeRoot: add a leading fake path, like path.resolve does
   # @return {String} the path that connects from -> to
-pathRelative = (from, to, options)->
+pathRelative = (from, to, options) ->
     options or= {}
     #console.log "from: #{from}, to: #{to}"
 

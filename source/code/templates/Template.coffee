@@ -7,15 +7,15 @@ class Template
   constructor: ->
 
     #todo: improve this
-    @getp = do (_this=@)->
-      (path, options={})->
+    @getp = do (_this=@) ->
+      (path, options={}) ->
         if not path
           _this
         else
           _B.getp _this, path, _.defaults(options, separator:'.')
 
-    @setp = do (_this=@)->
-      (path, value, options={})->
+    @setp = do (_this=@) ->
+      (path, value, options={}) ->
         if not path
           _this
         else
@@ -35,7 +35,7 @@ class Template
   #     ---> (function (root, $) {
   #            var a = root;
   #           })(window, jQuery)
-  __functionIIFE: (codeBody, paramValuePairs...)-> """
+  __functionIIFE: (codeBody, paramValuePairs...) -> """
     (function (#{(param for param, i in paramValuePairs when i%2 is 0).join(', ')}) {
       #{codeBody}
     }).call(this#{if paramValuePairs.length>0 then ', ' else ''}#{
@@ -52,12 +52,12 @@ class Template
   #     ---> function (root, factory) {
   #            var a = root;
   #           }
-  __function: (codeBody, params...)-> """
+  __function: (codeBody, params...) -> """
     function (#{(param for param, i in params).join(', ')}) {
       #{codeBody}
     }
     """
-  deb: (debugLevel, str)->
+  deb: (debugLevel, str) ->
     if (@build?.template?.debugLevel or 0 ) >= debugLevel
       if str
         str = str.replace('\n',  ' | ')
@@ -88,7 +88,7 @@ class Template
   #     [<name, descr>]
   #     @function returning the above
   #     @todo: blend
-  sp: (sections...)->
+  sp: (sections...) ->
     (for sect in sections
       if _.isFunction sect
         sect = sect()

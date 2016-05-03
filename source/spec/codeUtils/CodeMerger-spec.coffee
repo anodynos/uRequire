@@ -100,14 +100,14 @@ describe 'CodeMerger:', ->
       # generate our expected code with changed init value
       replaceCode expectedAST = toAST(expectedCode),
         {arguments: [ { type: 'Literal', value: 'lodash' } ]},
-          (ast)-> ast.arguments[0].value = 'underscore'; ast
+          (ast) -> ast.arguments[0].value = 'underscore'; ast
 
       tru isEqualCode cm.code, expectedAST
 
   describe "handles adding empties: ", ->
     beforeEach -> cm.add code for code in simpleCodes
 
-    for item in [undefined, null, '', ' ', {}, []] then do (item)->
+    for item in [undefined, null, '', ' ', {}, []] then do (item) ->
       it "#{_B.type item} / #{item}", ->
         cm.add item
         tru isEqualCode cm.code, expectedCode

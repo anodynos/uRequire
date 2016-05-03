@@ -22,8 +22,8 @@ resources =  [
       /.*\.(coffee\.md|litcoffee)$/i
       '!**/*.amd.coffee'
     ]
-    (source)-> source
-    (filename)-> filename.replace '.coffee', '.js' # dummy filename converter
+    (source) -> source
+    (filename) -> filename.replace '.coffee', '.js' # dummy filename converter
     {some: coffee: 'options'}
   ]
 
@@ -31,8 +31,8 @@ resources =  [
     '~Streamline' # a title of the resource (without type since its not in [@ # $], but with isAfterTemplate:true due to '!' (runs only on Modules)
     'I am the Streamline descr' # a descr (String) at pos 1
     '**/*._*'                         # even if we have a String as an implied `filez` array
-    (source)-> source
-    (filename)-> filename.replace '._js', '.js' # dummy filename converter
+    (source) -> source
+    (filename) -> filename.replace '._js', '.js' # dummy filename converter
   ]
 
   {
@@ -300,7 +300,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
 
       before ->
         resultRCsCfg = blendConfigs [{resources}]
-        rcNames = _.map resultRCsCfg.bundle.resources, (rc)-> rc[' name']
+        rcNames = _.map resultRCsCfg.bundle.resources, (rc) -> rc[' name']
 
       it "converts array of RC-specs' into array of RC-instances:", ->
         deepEqual resultRCsCfg.bundle.resources, expectedResources
@@ -513,7 +513,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
               info: 'grunt'
 
             it "with blendConfigs:", ->
-              deepEqual blendConfigs( input.map((v)->watch:v)), build: watch: expected
+              deepEqual blendConfigs( input.map((v) ->watch:v)), build: watch: expected
 
             it "with watchBlender", ->
               deepEqual watchBlender.blend.apply(null, input.reverse()), expected
@@ -538,7 +538,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
               info: 'not number'
 
             it "with blendConfigs:", ->
-              deepEqual blendConfigs( input.map((v)->watch:v)), build: watch: expected
+              deepEqual blendConfigs( input.map((v) ->watch:v)), build: watch: expected
 
             it "with watchBlender", ->
               deepEqual watchBlender.blend.apply(null, input.reverse()), expected
@@ -602,7 +602,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
             anotherModule: {deps: ['someOtherdep'], exports: 'sod'}
 
           it "with blendConfig: ", ->
-            deepEqual blendConfigs( _.map inputs, (s)-> rjs: shim: s), build: rjs: shim: expected
+            deepEqual blendConfigs( _.map inputs, (s) -> rjs: shim: s), build: rjs: shim: expected
 
           it "with shimBlender (in reverse order): ", ->
             deepEqual shimBlender.blend.apply(null, inputs.reverse()), expected
@@ -613,12 +613,12 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
           ,
             dependencies:
               node: ['fs']
-              exports: bundle: (parent)->
+              exports: bundle: (parent) ->
                 parent.lodash = ["_"]
                 parent.backbone = ['Backbone', 'BB']
                 parent
 
-            filez: (parentArray)-> #      [ '**/*.coffee.md', '**/*.ls']
+            filez: (parentArray) -> #      [ '**/*.coffee.md', '**/*.ls']
               parentArray.push p for p in [ '**/*.coffee.md', '**/*.ls']
               parentArray
             copy: /./
@@ -702,7 +702,7 @@ describe "blendConfigs handles all config nesting / blending / derivation, movin
                 derive:
                   resources: resources[0..1]
                   derive:
-                    copy: (pa)-> pa.push '!**/*'; pa
+                    copy: (pa) -> pa.push '!**/*'; pa
                     template:
                       name: 'combined'
                       someOption: 'someOption' # value is preserved, even if name changes.

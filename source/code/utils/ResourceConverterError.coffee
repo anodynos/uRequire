@@ -2,4 +2,4 @@
 UError = require './UError'
 module.exports =
   class ResourceConverterError extends UError
-    constructor: (@message, props)-> super
+    constructor: (@message, props) -> super

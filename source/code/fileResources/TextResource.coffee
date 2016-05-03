@@ -28,7 +28,7 @@ class TextResource extends FileResource
           @source = source
           @converted = @source
           @dstFilename = @srcFilename
-          @runResourceConverters (rc)-> rc.runAt not in _.flatten [ResourceConverter.runAt_modOnly, 'afterSave']
+          @runResourceConverters (rc) -> rc.runAt not in _.flatten [ResourceConverter.runAt_modOnly, 'afterSave']
         else
           l.debug "No changes in `source` of TextResource/#{@constructor.name} '#{@srcFilename}' " if l.deb 90
           @hasChanged = false

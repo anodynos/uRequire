@@ -15,7 +15,7 @@ class BundleFile
 
   # @todo: infer 'booleanOrFilespecs' from blendConfigs (with 'arraysConcatOrOverwrite' BlenderBehavior ?)
   for bof in ['clean', 'deleteErrored']
-    do (bof)->
+    do (bof) ->
       Object.defineProperty BundleFile::, 'is'+ _.capitalize(bof),
         get: -> isTrueOrFileMatch @bundle?.build?[bof], @dstFilename
 
@@ -24,7 +24,7 @@ class BundleFile
     * bundle this BundleFile belongs
     * srcFilename {String} bundleRelative eg 'models/PersonModel.coffee'
   ###
-  constructor: (data)->
+  constructor: (data) ->
     _.extend @, data
     @dstFilename = @srcFilename # initial dstfilename, assume no filename conversion
 
@@ -45,7 +45,7 @@ class BundleFile
     delete @hasErrors
     @dstFilename = @srcFilename
 
-  clean: ()->
+  clean: () ->
     filenames = @dstFilenamesSaved or [ @dstFilename ]
     for fname in _.map(filenames, (f)=> upath.join @dstPath, f)
       if not fs.existsSync fname
@@ -93,7 +93,7 @@ class BundleFile
 
   # Without params it copies (binary) the source file from `bundle.path`
   # to `build.dstPath`
-  copy: (srcFilename=@srcFilename, dstFilename=@dstFilename)->
+  copy: (srcFilename=@srcFilename, dstFilename=@dstFilename) ->
     BundleFile.copy upath.join(@bundle?.path or '', srcFilename),
                     upath.join(@bundle?.build?.dstPath or '', dstFilename)
 
@@ -101,7 +101,7 @@ class BundleFile
   # copyFile helper (missing from fs)
   # @return true if copy was made, false if skipped (eg. same file)
   # copyFileSync based on http://procbits.com/2011/11/15/synchronous-file-copy-in-node-js/) @todo: improve !
-  @copy: (srcFile, dstFile, overwrite='DUMMY')-> # @todo: overwrite: 'olderOrSizeDiff' (current default behavior) or 'all', 'none', 'older', 'sizeDiff'
+  @copy: (srcFile, dstFile, overwrite='DUMMY') -> # @todo: overwrite: 'olderOrSizeDiff' (current default behavior) or 'all', 'none', 'older', 'sizeDiff'
     if not fs.existsSync srcFile
       throw new UError "copy: source file missing '#{srcFile}'"
     else
@@ -140,7 +140,7 @@ class BundleFile
   @requireClean: require "require-clean"
 
   #shortcut as instance var
-  requireClean: (name=@srcRealpath)-> BundleFile.requireClean(name)
+  requireClean: (name=@srcRealpath) -> BundleFile.requireClean(name)
 
   inspect: ->
     inspectText = " #{@constructor.name} : '#{@dstFilename}' "

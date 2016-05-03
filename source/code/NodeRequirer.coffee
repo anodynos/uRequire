@@ -40,7 +40,7 @@ class NodeRequirer extends BundleBase
 
   @param {String} webRootMap where '/' is mapped when running on nodejs, as hardcoded in uRequire UMD (relative to path).
   ###
-  constructor: (@moduleNameBR, @modyle, @moduleRequire, @dirname, @webRootMap, debugLevel)->
+  constructor: (@moduleNameBR, @modyle, @moduleRequire, @dirname, @webRootMap, debugLevel) ->
     @l = new _B.Logger "uRequire/NodeRequirer `#{@moduleNameBR}`}",  debugLevel # template.debugLevel
     @path = upath.normalize (
       @dirname + '/' + (pathRelative "#{upath.dirname @moduleNameBR}", ".", assumeRoot: true) + '/'
@@ -76,7 +76,7 @@ class NodeRequirer extends BundleBase
   Object.defineProperties @::,
     nodeRequire:
       get: -> @_nodeRequire or _.bind @modyle.require, @modyle
-      set: (@_nodeRequire)->
+      set: (@_nodeRequire) ->
 
     debugInfo:
       get:->

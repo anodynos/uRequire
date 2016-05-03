@@ -30,20 +30,20 @@ toCode = require '../codeUtils/toCode'
 
 class Bundle extends BundleBase
 
-  constructor: (bundleCfg)->
+  constructor: (bundleCfg) ->
     super
     _.extend @, bundleCfg
     @files = {}  # all bundle files are in this map
 
   inspect: -> "Bundle:" + l.prettify { @target, @name, @main, @path, @filez, @files }
 
-  isCalcPropDepsVars = (p)-> _(p).endsWith 'depsVars'
-  isCalcPropFiles = (p)-> p in ['filenames', 'dstFilenames', 'fileResources', 'textResources', 'modules', 'copyFiles', 'errorFiles']
+  isCalcPropDepsVars = (p) -> _(p).endsWith 'depsVars'
+  isCalcPropFiles = (p) -> p in ['filenames', 'dstFilenames', 'fileResources', 'textResources', 'modules', 'copyFiles', 'errorFiles']
 
   # these are using _B.CalcCachedProperties functionality.
   # They are cached 1st time accessed.
   # They are cleaned with
-  #   `@cleanProps 'propName1', ((p)-> true),  'propName1'
+  #   `@cleanProps 'propName1', ((p) -> true),  'propName1'
   # or `cleanProps()` to clean all.
   @calcProperties:
 
@@ -55,7 +55,7 @@ class Bundle extends BundleBase
 
     dstFilenames:-> # dstFilenames & dstFilenamesSaved - used by `Dependency` to know if dep.isFound
       _.reduce @files,
-        (fnames, f)->
+        (fnames, f) ->
           fnames.push f.dstFilename
           if _.size(f.dstFilenamesSaved) > 1 # has many saved names
             for fn in f.dstFilenamesSaved when fn isnt f.dstFilename
@@ -72,18 +72,18 @@ class Bundle extends BundleBase
           mainMod = _.find @modules
         else # if @main is empty and we have many, try @name, 'index', 'main'
           for mainCand in [@name, 'index', 'main'] when mainCand
-            mainMod = _.find @modules, (m)-> m.path is mainCand
+            mainMod = _.find @modules, (m) -> m.path is mainCand
             break if mainMod
       mainMod
 
     # all of these hold instances of Module, TextResource etc
-    fileResources:-> _.pick @files, (f)-> f instanceof FileResource       # includes TextResource & Module
+    fileResources:-> _.pick @files, (f) -> f instanceof FileResource       # includes TextResource & Module
 
-    textResources:-> _.pick @files, (f)-> f instanceof TextResource       # includes Module
+    textResources:-> _.pick @files, (f) -> f instanceof TextResource       # includes Module
 
-    modules:-> _.pick @files, (f)-> f instanceof Module                   # just Modules
+    modules:-> _.pick @files, (f) -> f instanceof Module                   # just Modules
 
-    errorFiles: -> _.pick @files, (f)-> f.hasErrors
+    errorFiles: -> _.pick @files, (f) -> f.hasErrors
 
     ###  XXX_depsVars: format {dep1:['dep1Var1', 'dep1Var2'], dep2:[...], ...} ###
 
@@ -93,16 +93,16 @@ class Bundle extends BundleBase
       @inferEmptyDepVars @getModules_depsVars(), 'modules_depsVars', false
 
     modules_localNonNode_depsVars: ->
-      @inferEmptyDepVars (@getModules_depsVars (dep)-> dep.isLocal and not dep.isNode), 'modules_localNonNode_depsVars'
+      @inferEmptyDepVars (@getModules_depsVars (dep) -> dep.isLocal and not dep.isNode), 'modules_localNonNode_depsVars'
 
     modules_localNode_depsVars: ->
-      @inferEmptyDepVars (@getModules_depsVars (dep)-> dep.isLocal and dep.isNode), 'modules_localNode_depsVars', false
+      @inferEmptyDepVars (@getModules_depsVars (dep) -> dep.isLocal and dep.isNode), 'modules_localNode_depsVars', false
 
     modules_local_depsVars: ->
       dependenciesBindingsBlender.blend {}, @modules_localNonNode_depsVars, @modules_localNode_depsVars
 
     modules_node_depsVars:-> # also gets `nodeLocal`
-      @inferEmptyDepVars (@getModules_depsVars (dep)-> dep.isNode), 'modules_node_depsVars', false
+      @inferEmptyDepVars (@getModules_depsVars (dep) -> dep.isNode), 'modules_node_depsVars', false
 
     # from imports only
 
@@ -110,27 +110,27 @@ class Bundle extends BundleBase
       @inferEmptyDepVars @getImports_depsVars(), 'imports_depsVars'
 
     imports_nonNode_depsVars:->
-      @inferEmptyDepVars @getImports_depsVars( (d)-> not d.isNode ), 'imports_nonNode_depsVars'
+      @inferEmptyDepVars @getImports_depsVars( (d) -> not d.isNode ), 'imports_nonNode_depsVars'
 
     imports_bundle_depsVars:->  #i.e, bundle deps like 'agreement/isAgree'
-      @inferEmptyDepVars @getImports_depsVars( (d)-> d.isBundle ), 'imports_bundle_depsVars'
+      @inferEmptyDepVars @getImports_depsVars( (d) -> d.isBundle ), 'imports_bundle_depsVars'
 
     imports_local_nonNode_depsVars:->
-      @inferEmptyDepVars @getImports_depsVars( (d)-> d.isLocal and not d.isNode ), 'imports_local_nonNode_depsVars'
+      @inferEmptyDepVars @getImports_depsVars( (d) -> d.isLocal and not d.isNode ), 'imports_local_nonNode_depsVars'
 
     # from both modules & imports
 
     local_depsVars: -> #
       dependenciesBindingsBlender.blend {}, @modules_local_depsVars,
-                                            @getImports_depsVars (d)-> d.isLocal
+                                            @getImports_depsVars (d) -> d.isLocal
 
     local_nonNode_depsVars: -> # includes module & imports
       dependenciesBindingsBlender.blend {}, @modules_localNonNode_depsVars,
-                                            @getImports_depsVars (d)-> d.isLocal and not d.isNode
+                                            @getImports_depsVars (d) -> d.isLocal and not d.isNode
 
     local_node_depsVars: -> # includes module & imports
       dependenciesBindingsBlender.blend {}, @modules_localNode_depsVars,
-                                            @getImports_depsVars (d)-> d.isLocal and d.isNode
+                                            @getImports_depsVars (d) -> d.isLocal and d.isNode
 
   # special cases
     nonImports_local_depsVars: -> # imports are injected onto modules on non-combined - the real module-only declared ones
@@ -138,7 +138,7 @@ class Bundle extends BundleBase
 
     # gather from all known depVars places
     all_depsVars:->
-      depVarObjectPaths = (_.map ['depsVars', 'rootExports'], (v)-> 'dependencies.' + v) #todo: gather from @modules.flags.rootExports
+      depVarObjectPaths = (_.map ['depsVars', 'rootExports'], (v) -> 'dependencies.' + v) #todo: gather from @modules.flags.rootExports
                             .concat ['modules_depsVars', 'imports_depsVars']
 
       (allDepVarObjs = (_B.getp @, depVarsPath, {separator:'.'} for depVarsPath in depVarObjectPaths)).unshift {}
@@ -157,16 +157,16 @@ class Bundle extends BundleBase
         'models/PersonModel': ['persons', 'personsModel']
     }
   ###
-  getModules_depsVars: (depFltr=->true)->
+  getModules_depsVars: (depFltr=->true) ->
     dependenciesBindingsBlender.blend.apply null, (mod.getDepsVars(depFltr) for k, mod of @modules)
 
-  getImports_depsVars: (depFltr=->true)->
+  getImports_depsVars: (depFltr=->true) ->
     _.pick @dependencies.imports, (vars, dep)=> depFltr new Dependency(dep, _.find @modules) # _.find returns a random module - it shouldn't matter cause we should only use bundleRelative on `imports`
 
   # Attempts to infer varNames from bundle, for those deps that have empty varNames
   # @param depVars {Object} with {dep:varNames} eg {dep1:['dep1Var1', 'dep1Var2'], dep2:[...]}
   # return depVars, with missing varNames added
-  inferEmptyDepVars: (depVars = {}, whereFrom, throwOnMissing = true)->
+  inferEmptyDepVars: (depVars = {}, whereFrom, throwOnMissing = true) ->
     whyMessage = "infer empty depVars (#{if throwOnMissing then 'MANDATORY' else 'OPTIONAL'}) for `@#{whereFrom or 'UNKNOWN'}`."
     if !_.isEmpty(depVars) and l.deb(80)
       l.debug whyMessage, 'depVars = \n', depVars
@@ -176,13 +176,13 @@ class Bundle extends BundleBase
 
         l.deb 80, "inferEmptyDepVars : Dependency '#{depName}' has no corresponding parameters/variable names to bind with."
 
-        for aVar in (@getModules_depsVars((dep)->dep.name(relative:'bundle') is depName)[depName] or [])
+        for aVar in (@getModules_depsVars((dep) ->dep.name(relative:'bundle') is depName)[depName] or [])
           depVars[depName].push aVar if aVar not in depVars[depName]
 
         l.deb "inferEmptyDepVars: Dependency '#{depName}', inferred varNames from bundle's Modules: ", depVars[depName] if l.deb(80)
 
         if _.isEmpty depVars[depName] # pick from @bundle.dependencies.[depsVars, _KnownDepsVars, ... ] etc
-          for depVarsPath in _.map(['depsVars', '_knownDepsVars', 'imports', 'rootExports'], (v)-> 'dependencies.' + v)
+          for depVarsPath in _.map(['depsVars', '_knownDepsVars', 'imports', 'rootExports'], (v) -> 'dependencies.' + v)
             dependenciesDepsVars = _B.getp @, depVarsPath, {separator:'.'}
             if (not _.isEmpty dependenciesDepsVars?[depName]) and (depVars[depName] isnt dependenciesDepsVars[depName])
               l.warn "#{whyMessage}:\n", "Picking var bindings for `#{depName}` from `@#{depVarsPath}`", dependenciesDepsVars[depName]
@@ -225,7 +225,7 @@ class Bundle extends BundleBase
     l.debug 80, 'returning inferred depVars =', depVars
     depVars
 
-  getBundleFile: (filename)->
+  getBundleFile: (filename) ->
     if not bf = @files[filename] # a new filename
       # check which ResourceConverters match filename
       # and instantiate it as BundleFile | FileResource | TextResource | Module
@@ -251,7 +251,7 @@ class Bundle extends BundleBase
         throw new UError "srcMain = '#{lastSrcMain}' doesn't exist in bundle's source filenames.", quit: true
 
       # NOTE: last matching converter (that has a clazz) determines if file is a TextResource || FileResource || Module
-      lastResourcesWithClazz =  _.filter matchedConverters, (conv)-> conv.clazz
+      lastResourcesWithClazz =  _.filter matchedConverters, (conv) -> conv.clazz
       resourceClass = _.last(lastResourcesWithClazz)?.clazz or BundleFile       # default is BundleFile
 
       l.debug "New *#{resourceClass.name}*: '#{filename}'" if l.deb 80
@@ -282,15 +282,15 @@ class Bundle extends BundleBase
 
     @return null
   ###
-  loadOrRefreshResources: (filenames = @filenames)->
+  loadOrRefreshResources: (filenames = @filenames) ->
     l.debug """ \n
       #####################################################################
       loadOrRefreshResources: filenames.length = #{filenames.length}
       #####################################################################""" if l.deb 30
 
     When.iterate(
-      (i)-> i + 1
-      (i)-> !(i < filenames.length)
+      (i) -> i + 1
+      (i) -> !(i < filenames.length)
       (i)=>
         bf = @getBundleFile filename = filenames[i]
 
@@ -343,7 +343,7 @@ class Bundle extends BundleBase
     It builds / converts all resources that are passed as filenames
     It 'temporarilly' sets a @build instance, with which it 'guides' the build.
   ###
-  buildChangedResources: When.lift (@build, filenames=@filenames)->
+  buildChangedResources: When.lift (@build, filenames=@filenames) ->
     @build.newBuild()
     l.debug """ \n
       #####################################################################
@@ -425,7 +425,7 @@ class Bundle extends BundleBase
               if @dependencies.paths.bower
                 When(
                   if _.isEmpty cache.bower
-                    @getBowerPaths().then (bowerPaths)-> dirtyCache.bower = bowerPaths
+                    @getBowerPaths().then (bowerPaths) -> dirtyCache.bower = bowerPaths
                   else
                     cache.bower
                 ).then (bowerPaths)=>
@@ -453,7 +453,7 @@ class Bundle extends BundleBase
               if @dependencies.paths.npm
                 When(
                   if _.isEmpty cache.npm
-                    @getNpmPaths().then (npmPaths)-> dirtyCache.npm = npmPaths
+                    @getNpmPaths().then (npmPaths) -> dirtyCache.npm = npmPaths
                   else
                     cache.npm
                 ).then (npmPaths)=>
@@ -511,15 +511,15 @@ class Bundle extends BundleBase
     When(
       if bower
         l.verbose "Getting offline bower paths from `require('bower')` module"
-        When.promise (resolve, reject)->
+        When.promise (resolve, reject) ->
           bcl = bower.commands.list {paths: true, offline:true}
-          bcl.on 'end', (result)-> resolve result
-          bcl.on 'error', (err)-> reject err
+          bcl.on 'end', (result) -> resolve result
+          bcl.on 'error', (err) -> reject err
       else
         cmd = "bower list --paths --json --offline"
         l.verbose "Getting offline bower paths from CLI exec `#{cmd}`"
         execP(cmd).spread JSON.parse
-    ).then (bowerPaths)->
+    ).then (bowerPaths) ->
       throw new UError "Bower returned empty - run `bower install`" if _.isEmpty bowerPaths
       bowerPaths
 
@@ -541,7 +541,7 @@ class Bundle extends BundleBase
         #####################################################################""" if l.deb 30
     When.each changedFileResources, (f)=>
       f.hasChanged = false # temporarilly
-      f.runResourceConverters((rc)-> rc.runAt is 'afterSave').then ->
+      f.runResourceConverters((rc) -> rc.runAt is 'afterSave').then ->
         f.save() if f.hasChanged
         f.hasChanged = true # revert always
 
@@ -567,7 +567,7 @@ class Bundle extends BundleBase
         l.warn "Can't concat `build.template.banner` - no @mainModule - tried `bundle.main`, `bundle.name`, 'index', 'main'."
     null
 
-  saveResources: (all)->
+  saveResources: (all) ->
     resourcesToSave = (res for fn, res of @fileResources when (res.hasChanged or all) and not res.hasErrors)
     if resourcesToSave
       l.debug """ \n
@@ -593,7 +593,7 @@ class Bundle extends BundleBase
 
   # All @files (i.e bundle.filez) that ARE NOT `FileResource`s and below (i.e are plain `BundleFile`s)
   # are copied to build.dstPath.
-  copyBundleFiles: (all)->
+  copyBundleFiles: (all) ->
     # filtered for copy only # todo: allow all & then filter them
     bundleFilesToCopy = _.pick @files, (f, filename)=>
       not (f instanceof FileResource) and (umatch filename, @copy) and (f.hasChanged or all)
@@ -613,7 +613,7 @@ class Bundle extends BundleBase
 
     @build._copied = [copiedCount, skippedCount]
 
-  ensureMain: (force=true)->
+  ensureMain: (force=true) ->
     if @mainModule
       if not @main
         @main = @mainModule.path
@@ -680,7 +680,7 @@ class Bundle extends BundleBase
 
       toCode cm.AST, format:indent:base: 1
 
-  handleError: (error)-> @build.handleError error
+  handleError: (error) -> @build.handleError error
 
 module.exports = Bundle
 

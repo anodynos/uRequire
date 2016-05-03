@@ -43,7 +43,7 @@ class FileResource extends BundleFile
         false # no change in parent, why should I change ?
       else
         if @constructor is FileResource # run only for this class,
-          @runResourceConverters (rc)-> rc.runAt not in _.flatten [ResourceConverter.runAt_modOnly, 'afterSave']
+          @runResourceConverters (rc) -> rc.runAt not in _.flatten [ResourceConverter.runAt_modOnly, 'afterSave']
         else
           true # let subclasses decide whether to run ResourceConverters.
 
@@ -58,7 +58,7 @@ class FileResource extends BundleFile
 
   # go through all Resource `converters`, converting with each one
   # Note: it acts on @converted & @dstFilename, leaving them in a new state
-  runResourceConverters: (convFilter=->true)->
+  runResourceConverters: (convFilter=->true) ->
     @hasErrors = false
 
     converters = (
@@ -86,7 +86,7 @@ class FileResource extends BundleFile
                 # call wating for callback or a promise (race), but ignoring any other sync return
                 callbackPromise = (deferred = When.defer()).promise
                 fnPromise = resConv.convert @, When.node.createCallback deferred.resolver
-                When.race(_.filter [callbackPromise, fnPromise], (it)-> When.isPromiseLike it)
+                When.race(_.filter [callbackPromise, fnPromise], (it) -> When.isPromiseLike it)
               else
                 # call exepecting either a promise or any non-promise sync return
                 resConv.convert @
@@ -109,7 +109,7 @@ class FileResource extends BundleFile
     ).yield @hasChanged
 
   readOptions = 'utf-8' # compatible with node 0.8 #{encoding: 'utf-8', flag: 'r'}
-  read: (filename=@srcFilename, options=readOptions)->
+  read: (filename=@srcFilename, options=readOptions) ->
     _.defaults options, readOptions if options isnt readOptions
     filename = upath.join @bundle?.path or '', filename
     try
@@ -119,13 +119,13 @@ class FileResource extends BundleFile
       @bundle.handleError new UError "Error reading file '#{filename}'", nested:err
       undefined
 
-  save: (filename=@dstFilename, content=@converted, options)->
+  save: (filename=@dstFilename, content=@converted, options) ->
     @constructor.save.call @, upath.join(@dstPath, filename), content, options
     if filename not in (@dstFilenamesSaved or= [])
       @dstFilenamesSaved.push filename
 
   saveOptions = {encoding: 'utf-8', mode: 438, flag: 'w'}
-  @save: (filename, content, options=saveOptions)->
+  @save: (filename, content, options=saveOptions) ->
     _.defaults options, saveOptions if options isnt saveOptions
     l.debug("Saving file '#{filename}'...") if l.deb 95
     #todo: fix handleError - @bundle is undefined when statically called

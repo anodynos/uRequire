@@ -7,8 +7,8 @@ rcSpec1 = [
     /.*\.(coffee\.md|litcoffee)$/i
     '!**/*.amd.coffee'
   ]
-  (source)-> source
-  (fn)-> fn.replace '.coffee', '.js' # dummy filename converter
+  (source) -> source
+  (fn) -> fn.replace '.coffee', '.js' # dummy filename converter
   {some: "option"}
 ]
 
@@ -41,7 +41,7 @@ describe 'ResourceConverter creation, cloning & updating:', ->
   before -> initialRegistryKeys = _.keys ResourceConverter.registry
 
   for rc, rcIdx in [rc1, rc2, rc2.clone()]
-    do (rc, rcIdx)->
+    do (rc, rcIdx) ->
       describe "ResourceConverter creation & updates (for #{if rcIdx then 'clone() #'+rcIdx else 'original instance'}):", ->
 
         describe "creates correct RC instance from an rc-spec:", ->

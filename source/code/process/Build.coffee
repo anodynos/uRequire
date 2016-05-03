@@ -22,7 +22,7 @@ Module = null
 
 module.exports = class Build extends _B.CalcCachedProperties
 
-  constructor: (buildCfg, @bundle)->
+  constructor: (buildCfg, @bundle) ->
     super
     _.extend @, buildCfg
 
@@ -127,11 +127,11 @@ module.exports = class Build extends _B.CalcCachedProperties
 
   @calcProperties:
 
-    changedModules: -> _.pick @_changed, (f)-> f instanceof Module
+    changedModules: -> _.pick @_changed, (f) -> f instanceof Module
 
-    changedResources: -> _.pick @_changed, (f)-> f instanceof FileResource
+    changedResources: -> _.pick @_changed, (f) -> f instanceof FileResource
 
-    changedErrorFiles: -> _.pick @_changed, (f)-> f.hasErrors
+    changedErrorFiles: -> _.pick @_changed, (f) -> f.hasErrors
 
     changedFiles: -> @_changed
 
@@ -139,7 +139,7 @@ module.exports = class Build extends _B.CalcCachedProperties
 
     dstPathToRoot: -> upath.relative upath.join(process.cwd(), @dstPath), process.cwd()
 
-  calcRequireJsConfig: (toPath = @dstPath, blendWithCfg, strictDeps, ignoreDeps=[])->
+  calcRequireJsConfig: (toPath = @dstPath, blendWithCfg, strictDeps, ignoreDeps=[]) ->
 
     depPaths = dependenciesBindingsBlender.blend.apply null, [ # {dep1: [paths1...], dep2: [paths2...]}
       @bundle.dependencies.paths.override
@@ -153,12 +153,12 @@ module.exports = class Build extends _B.CalcCachedProperties
     if strictDeps # filter & return only needed ones, ie local non-node ones, blended & strictDeps
       strictDeps = [] if strictDeps is true
 
-      localNonNodeDepFilter = (d)-> d.isLocal and !d.isNode
+      localNonNodeDepFilter = (d) -> d.isLocal and !d.isNode
       neededDeps = _.keys(dependenciesBindingsBlender.blend {},
         @bundle.getImports_depsVars(localNonNodeDepFilter),
         @bundle.getModules_depsVars(localNonNodeDepFilter),
         blendWithCfg?.paths
-      ).concat(strictDeps).map (dep)-> dep.split('/')[0] #cater for locals like 'when/callbacks'
+      ).concat(strictDeps).map (dep) -> dep.split('/')[0] #cater for locals like 'when/callbacks'
 
       for dep in neededDeps
         if _.isEmpty(depPaths[dep]) and (dep not in ignoreDeps)
@@ -178,13 +178,13 @@ module.exports = class Build extends _B.CalcCachedProperties
              All discovered paths (before duplicates removal) are:
             \n""" + l.prettify depPaths
 
-    depPaths = _.pick depPaths, (p, dep)->
+    depPaths = _.pick depPaths, (p, dep) ->
       (not neededDeps or (dep in neededDeps)) and (dep not in ignoreDeps)
 
     pathToRoot = upath.relative upath.join(process.cwd(), toPath), process.cwd()
     depPaths =
-      _.mapValues depPaths, (paths)->
-        _.uniq _.map paths, (path)->
+      _.mapValues depPaths, (paths) ->
+        _.uniq _.map paths, (path) ->
           if not url.parse(path).protocol
             path = upath.join pathToRoot, path
           upath.removeExt path, '.js'
@@ -192,7 +192,7 @@ module.exports = class Build extends _B.CalcCachedProperties
     l.warn "calcRequireJsConfig: `@bundle.dependencies.shim` is not enabled - shim info will be incomplete." if not @bundle.dependencies.shim
     nonEmptyShims = _.pick(
       shimBlender.blend.apply(null, [{}, blendWithCfg?.shim, @rjs?.shim, @bundle.dependencies.shim].reverse()), # left ones have precedence
-      (sh)-> (not _.isEmpty sh.deps) or (not _.isEmpty sh.exports)
+      (sh) -> (not _.isEmpty sh.deps) or (not _.isEmpty sh.exports)
     )
 
     rjsCfg = {
@@ -209,8 +209,8 @@ module.exports = class Build extends _B.CalcCachedProperties
 
   # Yeah, we DO need bubblesort for sort deps bu shim,
   # cause deps compare two-ways and it's the simplest n^2 way
-  sortDepsByShim = (arr, shim)->
-    swap = (a, b)->
+  sortDepsByShim = (arr, shim) ->
+    swap = (a, b) ->
       temp = arr[a]
       arr[a] = arr[b]
       arr[b] = temp
@@ -236,7 +236,7 @@ module.exports = class Build extends _B.CalcCachedProperties
     @report()
 
   # @todo: store all changed info in build (instead of bundle), to allow multiple builds with the same bundle!
-  addChangedBundleFile: (filename, bundleFile)->
+  addChangedBundleFile: (filename, bundleFile) ->
     @_changed[filename] = bundleFile
 
   doClean: ->
@@ -312,7 +312,7 @@ module.exports = class Build extends _B.CalcCachedProperties
    @todo: should copy dep.plugin & dep.resourceName separatelly
   ###
   copyWebMapDeps: ->
-    webRootDeps = _.keys @bundle.getModules_depsVars (dep)->dep.isWebRootMap
+    webRootDeps = _.keys @bundle.getModules_depsVars (dep) ->dep.isWebRootMap
     if not _.isEmpty webRootDeps
       l.verbose "Copying webRoot deps :\n", webRootDeps
       for depName in webRootDeps
@@ -405,7 +405,7 @@ module.exports = class Build extends _B.CalcCachedProperties
 
       @requirejs.optimize rjsConfig,
         (buildResponse)=>
-          l.debug 'requirejs.optimize rjsConfig, (buildResponse)-> = ', buildResponse if l.deb 40
+          l.debug 'requirejs.optimize rjsConfig, (buildResponse) -> = ', buildResponse if l.deb 40
           if fs.existsSync @template.combinedFile
             l.ok "Combined file '#{@template.combinedFile}' written successfully for build ##{@count}, rjs.optimize took #{(new Date() - rjsStartDate) / 1000 }secs ."
 
@@ -461,7 +461,7 @@ module.exports = class Build extends _B.CalcCachedProperties
     else
       l.verbose "Build ##{@count} finished succesfully in #{(new Date() - @startDate) / 1000 }secs."
 
-  printError: (error, nesting=0)->
+  printError: (error, nesting=0) ->
     if not error
       l.er "printError: NO ERROR (#{error})"
     else
@@ -480,7 +480,7 @@ module.exports = class Build extends _B.CalcCachedProperties
         if nested
           @printError nested, nesting + 1
 
-  handleError: (error)->
+  handleError: (error) ->
     @printError error
     error or= new UError "Undefined or null error!"
     @errors.push error if error not in @errors

@@ -31,11 +31,11 @@ class BundleBase extends _B.CalcCachedProperties
 
   @return {Array<String>} The resolved paths of the Dependency
   ###
-  resolvePaths: (dep, relativeTo = @dirname)->
+  resolvePaths: (dep, relativeTo = @dirname) ->
     depName = dep.name plugin:no, ext:yes
 
     resPaths = []
-    addit = (path)-> resPaths.push upath.normalize path
+    addit = (path) -> resPaths.push upath.normalize path
 
     if depName[0] is '.' #relative to requiring file's dir
       addit relativeTo + '/' + depName

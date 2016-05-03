@@ -33,7 +33,7 @@ describe "urequire.BundleBuilder:", ->
 
   before "Finding or `git clone` `#{exampleDir}`", ->
     if forceRefreshTemp or not fs.existsSync exampleTemp
-      (fs.existsP(exampleDir).then (isExists)->
+      (fs.existsP(exampleDir).then (isExists) ->
         if isExists
           l.ok "Example repo exists in `#{exampleDir}`"
           When()
@@ -45,7 +45,7 @@ describe "urequire.BundleBuilder:", ->
         l.deb "Deleting 'temp'"
         rimraf.sync 'temp'
         l.deb "Copying source files from '#{ exampleDir }' to '#{exampleTemp}':"
-        copyFiles = globExpand({cwd: exampleDir + '/source', filter: 'isFile'}, ['**/*']).map((f)->'source/'+f)
+        copyFiles = globExpand({cwd: exampleDir + '/source', filter: 'isFile'}, ['**/*']).map((f) ->'source/'+f)
                       .concat(_.filter globExpand({cwd: exampleDir, filter: 'isFile'}, ['*']))
 
         for file in copyFiles
@@ -71,7 +71,7 @@ describe "urequire.BundleBuilder:", ->
 
     resources: [
       # disable `coffee-script` RC & replace with `coffee-script-exec`
-      (lookup)->
+      (lookup) ->
         (cf = lookup 'coffee-script').enabled = false
 
         _.extend lookup('exec').clone(), {
@@ -83,24 +83,24 @@ describe "urequire.BundleBuilder:", ->
 
       # instead of 'inject-version', test a promise returning injectVERSION
       [ '+injectVERSIONPromises', 'An injectVERSION that returns a promise instead of sync', ["#{main}.js"],
-        (m)-> When().delay(0).then -> m.beforeBody = "var VERSION = '#{VERSION }';" ]
+        (m) -> When().delay(0).then -> m.beforeBody = "var VERSION = '#{VERSION }';" ]
 
       [ '!injectTestAsync', 'An inject test that runs async with callback', ["#{main}.js"],
-        (m, cb)-> setTimeout => cb null, m.converted + ";'#{@name}';" ]
+        (m, cb) -> setTimeout => cb null, m.converted + ";'#{@name}';" ]
 
       [ '!injectTestSync', 'An inject test that runs synchronously', ["#{main}.js"],
-        (m)-> m.converted + "'#{@name}';" ]
+        (m) -> m.converted + "'#{@name}';" ]
 
       [ '!injectTestPromise', 'An inject test that returns a promise', ["#{main}.js"],
-        (m)-> When().delay(0).then => m.converted + "'#{@name}';"]
+        (m) -> When().delay(0).then => m.converted + "'#{@name}';"]
       
       [ '!injectTestAsyncRacePromise', 'An inject test with callback signature, returning promise instead', ["#{main}.js"],
-        (m, cb)-> When().delay(0).then => m.converted + "'#{@name}';"]
+        (m, cb) -> When().delay(0).then => m.converted + "'#{@name}';"]
     ]
 
     afterBuild: [
-      (doneVal)-> buildBundleResults.push 'afterBuild0': doneVal
-      (donePromise)->
+      (doneVal) -> buildBundleResults.push 'afterBuild0': doneVal
+      (donePromise) ->
         When().delay(1).then ->
           buildBundleResults.push 'afterBuild1': donePromise
     ]
@@ -136,7 +136,7 @@ describe "urequire.BundleBuilder:", ->
 #    debugLevel: 100
 
     afterBuild: [
-      (err, bb)->
+      (err, bb) ->
         When().delay(1).then ->
           buildBundleResults.push 'afterBuild2' : [err, bb]
 
@@ -150,7 +150,7 @@ describe "urequire.BundleBuilder:", ->
           buildBundleResults.push 'afterBuild4' : [err, bb]
           throw new UError "afterBuild4 throws if err" if err
 
-      (err, bb)-> #just sync, throw if err
+      (err, bb) -> #just sync, throw if err
         buildBundleResults.push 'afterBuild5' : [err, bb]
         throw new UError "afterBuild5 throws if err" if err
     ]
@@ -185,7 +185,7 @@ describe "urequire.BundleBuilder:", ->
 
     describe "builds all files in `#{exampleTemp}/source/code` :", ->
       for test in tests
-        do (test, cfg = test.cfg, mylib = test.mylib)->
+        do (test, cfg = test.cfg, mylib = test.mylib) ->
 
           describe "with `#{cfg.template}` template:", ->
 
@@ -196,24 +196,24 @@ describe "urequire.BundleBuilder:", ->
               buildResult = null
               bbP = bb.buildBundle()
 
-              bbP.then (res)->
+              bbP.then (res) ->
                 buildResult = res
                 buildBundleResults.push "then1": res
                 global.urequireExample = global_urequireExample
                 global.uEx = global_uEx
                 buildLib = require '../../../' + mylib
 
-              bbP.then (res)-> buildBundleResults.push "then2": res
+              bbP.then (res) -> buildBundleResults.push "then2": res
 
             it "initialized correctly from parentConfigs", ->
               tru _B.isHash bb.bundle #todo: test more
               tru _B.isHash bb.build
               equal bb.build.template.name, cfg.template
 
-            it "bb.buildBundle().then (res)-> res is bundleBuilder", ->
+            it "bb.buildBundle().then (res) -> res is bundleBuilder", ->
               equal buildResult, bb
 
-            it "bb.buildBundle().then (res)-> res instanceof bundleBuilder", ->
+            it "bb.buildBundle().then (res) -> res instanceof bundleBuilder", ->
               tru buildResult instanceof urequire.BundleBuilder
 
             describe "bundleBuilders build history", ->
@@ -241,7 +241,7 @@ describe "urequire.BundleBuilder:", ->
                   equal buildResult.urequire.findBBCreated(buildResult.build.target), buildResult
 
             describe "bundleBuilder.bundle has the correct xxx_depVars:", ->
-              removeInjectedIfCombined = (expectedDepVars)->
+              removeInjectedIfCombined = (expectedDepVars) ->
                 if buildResult.build.template.name is 'combined'
                   for injected in [ 'lodash', 'when/node', 'when/callbacks']
                     delete expectedDepVars[injected]
@@ -369,8 +369,8 @@ describe "urequire.BundleBuilder:", ->
 
                 it "relative to `dstPath` by default:", ->
                   deepEqual buildResult.build.calcRequireJsConfig().paths,
-                    _.mapValues depPaths, (paths)->
-                      paths.map (path)->
+                    _.mapValues depPaths, (paths) ->
+                      paths.map (path) ->
                         upath.join upath.relative(bb.build.dstPath, '.'), path
 
                 it "absolute to project's root ( paths as defined / found ):", ->
@@ -380,8 +380,8 @@ describe "urequire.BundleBuilder:", ->
                   somePath = 'another/long/path/from/root'
                   pathToRoot = upath.relative somePath, '.'
                   deepEqual buildResult.build.calcRequireJsConfig(somePath).paths,
-                    _.mapValues depPaths, (paths)->
-                      paths.map (path)->
+                    _.mapValues depPaths, (paths) ->
+                      paths.map (path) ->
                         upath.join pathToRoot, path
 
               describe "blends with another requirejs config and ignores protocol (http://, git:// etc) paths:", ->
@@ -431,7 +431,7 @@ describe "urequire.BundleBuilder:", ->
 
               it "injection as async & sync RC work in the right order", ->
                 if cfg.template isnt 'combined'
-                  fs.readFileP(mylib, 'utf8').then (text)->
+                  fs.readFileP(mylib, 'utf8').then (text) ->
                     tru _.endsWith text, mainTextEndsWithRcInjections
 
               describe "'less' RC compiles to css:", ->
@@ -485,7 +485,7 @@ describe "urequire.BundleBuilder:", ->
     buildResult = null
     buildErrors = null
 
-    filesWithError = [ "Person.ls", "Animal.co"].map (f)-> "#{exampleTemp}/source/code/models/" + f
+    filesWithError = [ "Person.ls", "Animal.co"].map (f) -> "#{exampleTemp}/source/code/models/" + f
 
     errorsToInject = [
       'DANGLING\n   TEXT'
@@ -508,14 +508,14 @@ describe "urequire.BundleBuilder:", ->
       bb = new urequire.BundleBuilder [failingConfig, parentConfig, grandParentConfig]
       bbP = bb.buildBundle()
 
-      bbP.then (res)->
+      bbP.then (res) ->
         buildResult = res
         buildBundleResults.push "then1": res
 
-      bbP.then (res)-> buildBundleResults.push "then2": res
+      bbP.then (res) -> buildBundleResults.push "then2": res
 
-      bbP.catch (err)-> buildBundleResults.push "catch1": buildErrors = err
-      bbP.catch (err)-> buildBundleResults.push "catch2": buildErrors = err
+      bbP.catch (err) -> buildBundleResults.push "catch1": buildErrors = err
+      bbP.catch (err) -> buildBundleResults.push "catch2": buildErrors = err
 
     it "bb.buildBundle().then never called", ->
       equal buildResult, null

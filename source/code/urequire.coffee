@@ -28,7 +28,7 @@ Object.defineProperties exports, # lazily export
   BBCreated: get:-> BBCreated
 
 
-_.each ['CodeMerger', 'isEqualCode', 'isLikeCode', 'replaceCode', 'toAST', 'toCode'], (codeUtil)->
+_.each ['CodeMerger', 'isEqualCode', 'isLikeCode', 'replaceCode', 'toAST', 'toCode'], (codeUtil) ->
   Object.defineProperty exports, codeUtil, get: -> require './codeUtils/' + codeUtil
 
 BBExecuted = []
@@ -36,33 +36,33 @@ BBCreated = []
 
 _.extend exports,
 
-  addBBCreated: (bb)->
+  addBBCreated: (bb) ->
     if bb.build.target and exports.findBBCreated(bb.build.target)
       throw new UError "Can't have two BundleBuilders with the same `target` '#{bb.build.target}'"
     BBCreated.push bb
 
-  findBBCreated: (target)->
-    _.find BBCreated, (bb)-> bb.build.target is target
+  findBBCreated: (target) ->
+    _.find BBCreated, (bb) -> bb.build.target is target
 
-  addBBExecuted:  (bb)->
+  addBBExecuted:  (bb) ->
     _.pull BBExecuted, bb # mutate existing array
     BBExecuted.push bb
 
-  findBBExecutedLast: (target)->
+  findBBExecutedLast: (target) ->
     if _.isUndefined(target) or _.isNull(target)
       _.last BBExecuted
     else
       if _.isString target
-        _.findLast BBExecuted, (bb)-> bb.build.target is target
+        _.findLast BBExecuted, (bb) -> bb.build.target is target
       else
         throw new Error "urequire: findBBExecutedLast() unknown parameter type `#{_B.type target}`, target argument = #{target}"
 
-  findBBExecutedBefore: (bbOrTarget)->
+  findBBExecutedBefore: (bbOrTarget) ->
     if _.isUndefined(bbOrTarget) or _.isNull(bbOrTarget)
       _.last BBExecuted
     else
       if _.isString bbOrTarget
-        li = _.findLastIndex BBExecuted, (bb)-> bb.build.target is bbOrTarget
+        li = _.findLastIndex BBExecuted, (bb) -> bb.build.target is bbOrTarget
       else
         if bbOrTarget instanceof require("./process/BundleBuilder")
           li = _.lastIndexOf BBExecuted, bbOrTarget

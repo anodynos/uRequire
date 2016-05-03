@@ -23,8 +23,8 @@ moveKeysBlender = new _B.Blender [
       do (partsKeys = {
         bundle: _.keys MasterDefaultsConfig.bundle # eg ['path', 'dependencies', ...]
         build: _.keys MasterDefaultsConfig.build   # eg ['dstPath', 'template', ...]
-      })->
-        (prop, src, dst)->
+      }) ->
+        (prop, src, dst) ->
           for confPart in _.keys partsKeys # partKeys = ['bundle', 'build']
             if prop in partsKeys[confPart]
               _B.setp @dstRoot, "/#{confPart}/#{prop}", src[prop], overwrite:true
@@ -66,7 +66,7 @@ _.extend renameKeys.$, renameKeys.$.build # copy $.build.* to $.*
 
 depracatedKeysBlender = new _B.DeepDefaultsBlender [
   order:['src']
-  '*': (prop, src, dst)->
+  '*': (prop, src, dst) ->
     renameTo = _B.getp renameKeys, @path
     if  _.isString renameTo
       renameToPath = upath.normalizeSafe upath.join @path.slice(1,-1).join('/'), renameTo
@@ -78,7 +78,7 @@ depracatedKeysBlender = new _B.DeepDefaultsBlender [
     @NEXT
 ]
 
-addIgnoreToFilezAsExclude = (cfg)->
+addIgnoreToFilezAsExclude = (cfg) ->
   ignore = _B.arrayize(cfg.bundle?.ignore || cfg.ignore)
 
   if not _.isEmpty ignore
@@ -103,13 +103,13 @@ bundleBuildBlender = new _B.DeepCloneBlender [
   {
     order: ['path', 'src', 'dst']
 
-    arrayizeConcat: (prop, src, dst)->
+    arrayizeConcat: (prop, src, dst) ->
       if _.isFunction src[prop]
         src[prop] _.clone(_B.arrayize dst[prop]), dst, prop  #todo: move -> functionality to arrayizeBlender
       else
         arrayizeBlender.blend dst[prop], _.clone(src[prop])
 
-    arraysConcatOrOverwrite: (prop, src, dst)->
+    arraysConcatOrOverwrite: (prop, src, dst) ->
       if _.isFunction src[prop]
         src[prop] _.clone(_B.arrayize dst[prop]), dst, prop
       else
@@ -118,7 +118,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         else
           src[prop] # just copy src[prop] over to dst[prop]
 
-    dependenciesBindings: (prop, src, dst)->
+    dependenciesBindings: (prop, src, dst) ->
       dependenciesBindingsBlender.blend dst[prop], src[prop]
 
     bundle:
@@ -148,7 +148,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         paths: override: '|': '*': 'dependenciesBindings'
 
         # @todo: throw on unknown keys eg:
-        #"*": "|" : '*': (prop, src, dst)->
+        #"*": "|" : '*': (prop, src, dst) ->
         #   throw new Error "unknown key #{prop} in #{@path.join('/')}"
         # needs to
         # a) delete old/empty parents in `depracatedKeysBlender`
@@ -174,13 +174,13 @@ bundleBuildBlender = new _B.DeepCloneBlender [
         ignore: '|': 'arraysConcatOrOverwrite'      # renamed from `noRootExports`
         noConflict: '|': 'arraysConcatOrOverwrite'
 
-      watch: '|': (prop, src, dst)->
+      watch: '|': (prop, src, dst) ->
         watchBlender.blend dst[prop], src[prop]
 
-      template: '|': '*': (prop, src, dst)->
+      template: '|': '*': (prop, src, dst) ->
         templateBlender.blend dst[prop], src[prop]
 
-      debugLevel: '|': '*': (prop, src)->
+      debugLevel: '|': '*': (prop, src) ->
         dl = src[prop] * 1
         if _.isNumber(dl) and not _.isNaN(dl)
           dl
@@ -188,33 +188,33 @@ bundleBuildBlender = new _B.DeepCloneBlender [
           l.warn 'Not a Number debugLevel: ', src[prop], ' - defaulting to 1.'
           1
 
-      afterBuild: '|': (prop, src, dst)->
+      afterBuild: '|': (prop, src, dst) ->
         arrayizeBlender.blend dst[prop], src[prop] # no function array blending, cause we deal with functions
 
       # cant seperate cause it writes on dst
       optimize: '|':
         # enable 'uglify2' for true
-        Boolean: (prop, src, dst)-> _optimizers[0] if src[prop]
+        Boolean: (prop, src, dst) -> _optimizers[0] if src[prop]
 
         # find if proper optimizer, default 'ulgify2''
-        String: (prop, src, dst)->
-          if not optimizer = (_.find _optimizers, (v)-> v is src[prop])
+        String: (prop, src, dst) ->
+          if not optimizer = (_.find _optimizers, (v) -> v is src[prop])
             l.er "Unknown optimize '#{src[prop]}' - using 'uglify2' as default"
             _optimizers[0]
           else
             optimizer
 
         # eg optimize: { uglify2: {...uglify2 options...}}
-        '{}': (prop, src, dst)->
+        '{}': (prop, src, dst) ->
           # find a key that's an optimizer, eg 'uglify2'
-          if not optimizer = (_.find _optimizers, (v)-> v in _.keys src[prop])
+          if not optimizer = (_.find _optimizers, (v) -> v in _.keys src[prop])
             l.warn "Unknown optimize object", src[prop], " - using 'uglify2' as default"
             _optimizers[0]
           else
             dst[optimizer] = src[prop][optimizer] # if optimizer is 'uglify2', copy { uglify2: {...uglify2 options...}} to dst ('ie build')
             optimizer
 
-      rjs: shim: '|': (prop, src, dst)->
+      rjs: shim: '|': (prop, src, dst) ->
         shimBlender.blend dst[prop], src[prop]
   }
 ]
@@ -226,7 +226,7 @@ bundleBuildBlender = new _B.DeepCloneBlender [
 shimBlender = new _B.DeepCloneBlender [
   order: ['src']
 
-  '{}': (prop, src, dst)->
+  '{}': (prop, src, dst) ->
     dst[prop] = {} if !_B.isHash dst[prop]
     for mod, modShim of src[prop]
       depsArray = if _.isArray modShim then modShim else modShim.deps
@@ -245,7 +245,7 @@ shimBlender = new _B.DeepCloneBlender [
 
   'Undefined': -> @SKIP
   'Boolean': -> @SKIP
-  '*': (prop, src)->
+  '*': (prop, src) ->
     throw new UError "Unknown shim: `#{l.prettify src[prop]}`."
     # todo: throw FatalError - shouldn't continue when config has errors
 ]
@@ -254,10 +254,10 @@ watchBlender = new _B.DeepCloneBlender [
 
     order: ['path', 'src']
 
-    arrayizeUniquePusherSplitStrings: (prop, src, dst)->
+    arrayizeUniquePusherSplitStrings: (prop, src, dst) ->
       srcVal =
         if _.isString src[prop]
-          src[prop].split(/\s/).filter((t)->!!t)
+          src[prop].split(/\s/).filter((t) ->!!t)
         else
           src[prop]
 
@@ -265,11 +265,11 @@ watchBlender = new _B.DeepCloneBlender [
 
     after: '|': '*': 'arrayizeUniquePusherSplitStrings'
     before: '|': '*': 'arrayizeUniquePusherSplitStrings'
-    files: '|': '*': (prop, src, dst)->
+    files: '|': '*': (prop, src, dst) ->
       arrayizeUniquePusher.blend dst[prop], src[prop]
 
     '|':
-      String: (prop, src, dst)->
+      String: (prop, src, dst) ->
         num = parseInt src[prop]
         w = if not _.isNaN num # cast to number, store as `debounceDelay`
               debounceDelay: num
@@ -280,13 +280,13 @@ watchBlender = new _B.DeepCloneBlender [
 
         deepCloneBlender.blend dst[prop], w
 
-      Number: (prop, src, dst)-> deepCloneBlender.blend dst[prop], {enabled: true, debounceDelay: src[prop]}
+      Number: (prop, src, dst) -> deepCloneBlender.blend dst[prop], {enabled: true, debounceDelay: src[prop]}
 
-      Boolean: (prop, src, dst)-> deepCloneBlender.blend dst[prop], enabled: src[prop]
+      Boolean: (prop, src, dst) -> deepCloneBlender.blend dst[prop], enabled: src[prop]
 
-      '{}': (prop, src, dst)-> watchBlender.blend {}, dst[prop], enabled: true, src[prop]
+      '{}': (prop, src, dst) -> watchBlender.blend {}, dst[prop], enabled: true, src[prop]
 
-      '*': (prop, src)-> throw new UError "Invalid watch value #{l.prettify src[prop]}"
+      '*': (prop, src) -> throw new UError "Invalid watch value #{l.prettify src[prop]}"
 
       'Undefined': -> @SKIP
 
@@ -311,12 +311,12 @@ to the existing? corresponding array on the destination
 dependenciesBindingsBlender = new _B.DeepCloneBlender [
   order: ['src']                                                     # our src[prop] (i.e. depsVars eg imports) is either a:
 
-  'String': (prop, src, dst)->                                       # String eg  'lodash', convert to {'lodash':[]}
+  'String': (prop, src, dst) ->                                       # String eg  'lodash', convert to {'lodash':[]}
     dst[prop] or= {}
     dst[prop][src[prop]] or= []                                      # set a 'lodash' key with `[]` as value on our dst
     dst[prop]
 
-  '[]': (prop, src, dst)->                                        # Array, eg  `['lodash', 'jquery']`, convert to `{lodash:[], jquery:[]}`
+  '[]': (prop, src, dst) ->                                        # Array, eg  `['lodash', 'jquery']`, convert to `{lodash:[], jquery:[]}`
     if not _B.isHash dst[prop]
       dst[prop] = {}
     else
@@ -327,7 +327,7 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
 
     dst[prop]
 
-  '{}': (prop, src, dst)->                                       # * Object eg {'lodash': '???', ...}, convert to    `{lodash:['???'], ...}`
+  '{}': (prop, src, dst) ->                                       # * Object eg {'lodash': '???', ...}, convert to    `{lodash:['???'], ...}`
     if not _B.isHash dst[prop]
       dst[prop] = {}
     else
@@ -338,7 +338,7 @@ dependenciesBindingsBlender = new _B.DeepCloneBlender [
 
     dst[prop]
 
-  '->': (prop, src, dst)->
+  '->': (prop, src, dst) ->
     if not _B.isHash dst[prop]
       dst[prop] = {}
     else
@@ -356,18 +356,18 @@ templateBlender = new _B.DeepCloneBlender [
 
   # our src[prop] template is a String eg 'UMD'.
   # blend as {name:'UMD'}
-  'String': (prop, src, dst)->
+  'String': (prop, src, dst) ->
     #dst[prop] = {} if src[prop] isnt dst[prop]?.name # REMOVED
     deepCloneBlender.blend dst[prop], {name: src[prop]}
 
   # our src[prop] template is an Object - should be {name: 'UMD', '...': '...'}
-  '{}': (prop, src, dst)->
+  '{}': (prop, src, dst) ->
     # blend as is but reset dst object if template has changed! REMOVED
     #dst[prop] = {} if (src[prop].name isnt dst[prop]?.name) and not _.isUndefined(src[prop].name)
     deepCloneBlender.blend dst[prop], src[prop]
 ]
 
-defaultDeriveLoader = (derive)->
+defaultDeriveLoader = (derive) ->
   if _.isString derive
     l.debug 5, "Loading config file: '#{derive}'"
     try
@@ -386,7 +386,7 @@ defaultDeriveLoader = (derive)->
 # as in diamond style multiple inheritance
 addedCfgs = null
 
-inArrayWithEquals = (item, array)->
+inArrayWithEquals = (item, array) ->
   for arItem in array
     if _.isEqual item, arItem
       return true
@@ -394,7 +394,7 @@ inArrayWithEquals = (item, array)->
 
 # create a finalCfg object & a default deriveLoader
 # and call the recursive _blendDerivedConfigs
-blendConfigs = (configsArray, deriveLoader, withMaster = false)->
+blendConfigs = (configsArray, deriveLoader, withMaster = false) ->
   configsArray.push MasterDefaultsConfig if withMaster
   deriveLoader = defaultDeriveLoader if not _.isFunction deriveLoader
   addedCfgs = []
@@ -410,7 +410,7 @@ blendConfigs = (configsArray, deriveLoader, withMaster = false)->
   finalCfg
 
 # the recursive fn that also considers cfg.derive
-_blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader)->
+_blendDerivedConfigs = (cfgDest, cfgsArray, deriveLoader) ->
   # We always blend in reverse order: start copying all items in the most base config
   # (usually 'MasterDefaultsConfig') and continue overwritting/blending backwards
   # from most general to the more specific. Hence the 1st item in configsArray is blended last.

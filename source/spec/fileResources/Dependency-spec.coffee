@@ -2,7 +2,7 @@ MasterDefaultsConfig = require '../../code/config/MasterDefaultsConfig'
 Dependency = require "../../code/fileResources/Dependency"
 
 # replace depStrings @ indexes with a String() having 'untrusted:true` property
-untrust = (indexes, depsStrings)->
+untrust = (indexes, depsStrings) ->
   for idx in indexes
     depsStrings[idx] = new String depsStrings[idx]
     depsStrings[idx].untrusted = true
@@ -189,13 +189,13 @@ describe "Dependency:", ->
 
         describe "with .js extensions", ->
           it "matches alike", ->
-            [dep1, dep2, dep3].forEach (dep)->
+            [dep1, dep2, dep3].forEach (dep) ->
               tru dep.isEqual 'rootdir/dep.js'
 
         describe "plugins still matter:", ->
 
           it "they make a difference", ->
-            [dep1, dep2, dep3].forEach (dep)->
+            [dep1, dep2, dep3].forEach (dep) ->
               fals dep.isEqual 'somePlugin!rootdir/dep.js'
 
           it "they only match same plugin name:", ->
@@ -204,12 +204,12 @@ describe "Dependency:", ->
 
         describe "without extensions:", ->
           it "matches alike", ->
-            [dep1, dep2, dep3].forEach (dep)->
+            [dep1, dep2, dep3].forEach (dep) ->
               tru dep.isEqual 'rootdir/dep'
             
           describe "plugins still matter:", ->
             it "they make a difference", ->
-              [dep1, dep2, dep3].forEach (dep)->
+              [dep1, dep2, dep3].forEach (dep) ->
                 fals dep1.isEqual 'somePlugin!rootdir/dep'
 
             it "they only match same plugin name:", ->
@@ -253,7 +253,7 @@ describe "Dependency:", ->
 
       it "looking for one in an array", ->
         dependencies = [dep1, dep2, depPlugin]
-        tru (_.any dependencies, (dep)-> dep.isEqual 'rootdir/dep.js')
+        tru (_.any dependencies, (dep) -> dep.isEqual 'rootdir/dep.js')
 
   describe "resolving all types bundle/file relative, external, local, notFound, webRootMap:", ->
     mod =

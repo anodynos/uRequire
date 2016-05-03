@@ -6,7 +6,7 @@ When = require 'when'
 
 module.exports = class BundleBuilder
 
-  constructor: (configs, deriveLoader)->
+  constructor: (configs, deriveLoader) ->
     @configs = configs = _B.arrayize configs
 
     # provide to outsiders
@@ -43,7 +43,7 @@ module.exports = class BundleBuilder
   inspect: -> "BundleBuilder:\n" + l.prettify(@bundle) + '\n' + l.prettify(@build)
 
   # experimental, not really refreshing the whole @bundle & @build
-#  addConfigs: (configs, deriveLoader)->
+#  addConfigs: (configs, deriveLoader) ->
 #    configs = _B.arrayize configs
 #    configs.unshift @config
 #    @blendConfigs configs, deriveLoader
@@ -62,7 +62,7 @@ module.exports = class BundleBuilder
       else
         _B.Logger::verbose = -> #todo: travesty! 'verbose' should be like _B.Logger's debugLevel ?
 
-  buildBundle: When.lift (filenames)->
+  buildBundle: When.lift (filenames) ->
     if @build and @bundle
 
       if urequire.targets # throw if old grunt-urequire
@@ -98,7 +98,7 @@ module.exports = class BundleBuilder
         if task.length is 3 # nodejs style callback is 3rd arg, but also retrieves promise (When.race)
           callbackPromise = (deferred = When.defer()).promise
           fnPromise = task errors, @, When.node.createCallback deferred.resolver # also deals with promises, which ever resolves 1st!
-          When.race(_.filter [callbackPromise, fnPromise], (it)-> When.isPromiseLike it)
+          When.race(_.filter [callbackPromise, fnPromise], (it) -> When.isPromiseLike it)
         else
           if task.length is 2 # sync OR promise
             task errors, @

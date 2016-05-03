@@ -3,21 +3,21 @@
 
 #A STRICT comparison assertion, like qunits strictEqual.
 
-equal = (a, b)-> expect(a).to.equal(b)
-notEqual = (a, b)-> expect(a).to.not.equal(b)
+equal = (a, b) -> expect(a).to.equal(b)
+notEqual = (a, b) -> expect(a).to.not.equal(b)
 
 #A boolean assertion, equivalent to CommonJS’s assert.ok() and JUnit’s assertTrue(). Passes if the first argument is truthy.
-ok = (a)-> expect(a).to.be.ok
-notOk = (a)-> expect(a).to.be.not.ok
+ok = (a) -> expect(a).to.be.ok
+notOk = (a) -> expect(a).to.be.not.ok
 
-tru = (a)-> expect(a).to.be.true
-fals = (a)-> expect(a).to.be.false
+tru = (a) -> expect(a).to.be.true
+fals = (a) -> expect(a).to.be.false
 
 ### using _B.isXXX to construct some helpers ###
 
 # helper _B.isEqual & _B.isLike that prints the path where discrepancy was found
-are = (name, asEqual=true)->
-  (a, b)->
+are = (name, asEqual=true) ->
+  (a, b) ->
     isEq = _B[name] a, b, {path:(path=[]), allProps:true, exclude:['inspect']}
 
     if asEqual
@@ -31,8 +31,8 @@ are = (name, asEqual=true)->
         l.warn "Discrepancy, expected `false` from _B.#{name}, but its `true`."
       expect(isEq).to.be.false
 
-createEqualSet = (asEqual)->
-  (result, expected)->
+createEqualSet = (asEqual) ->
+  (result, expected) ->
     isEq = _B.isEqualArraySet result, expected
 
     if asEqual
@@ -65,8 +65,8 @@ notIxact = are 'isIxact', false
 like = are 'isLike'
 notLike = are 'isLike', false
 
-likeBA = (a,b)-> like(b,a) # reverse a,b
-notLikeBA = (a,b)-> notLike(b,a) # reverse a,b
+likeBA = (a,b) -> like(b,a) # reverse a,b
+notLikeBA = (a,b) -> notLike(b,a) # reverse a,b
 
 module.exports = {
   equal, notEqual # strictEqual, ===

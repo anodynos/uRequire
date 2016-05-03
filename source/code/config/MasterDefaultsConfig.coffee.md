@@ -388,7 +388,7 @@ ____
 
 An Array of [**ResourceConverters (RC)**](ResourceConverters.coffee) (eg compilers, transpilers etc), that perform a conversion from one resource format (eg coffeescript, teacup) to another **converted** format (eg javascript, HTML).
 
-**ResourceConverters** is a generic and extendible in-memory conversions workflow, that is trivial to use and extend with your own, perhaps one-liner, converters (eg `['$coco', [ '**/*.co'], ((r)-> (require 'coco').compile r.converted), '.js']` is an RC).
+**ResourceConverters** is a generic and extendible in-memory conversions workflow, that is trivial to use and extend with your own, perhaps one-liner, converters (eg `['$coco', [ '**/*.co'], ((r) -> (require 'coco').compile r.converted), '.js']` is an RC).
 
 The workflow unobtrusively uses `bundle` & `build` info like paths and is a highly *in-memory-pipeline* and *read-convert-and-save only-when-needed* workflow, with an integrated [`build.watch`](MasterDefaultsConfig.coffee#build.watch) capability (grunt or standalone).
 
@@ -465,14 +465,14 @@ resources: [
  -> tc = @('someRC').clone(); tc.filez.push('**/*.someExt'); tc
 
  # define a new RC, with the fancy [] RC-spec
- ['$koko', ['**/*.ko'], ((m)-> require('koko').compile m.converted), '.js']
+ ['$koko', ['**/*.ko'], ((m) -> require('koko').compile m.converted), '.js']
 
  # define a new RC, with the grandaddy {} RC-spec
  {
    name: 'kookoo'
    type: 'module'
    filez: [ '**/*.koo']
-   convert: (m)-> require('kookoo').compile m.source
+   convert: (m) -> require('kookoo').compile m.source
    convFilename: '.js'
  }
 
@@ -1015,7 +1015,7 @@ If `clean: 'true'`,
 
   * on combined template, only the `combined.js` file (and possible leftover temp directory) is deleted (cause your directory might contain other files).
 
-If `clean` is a [filesspec type](types-and-derive#filespecs) (eg `clean: ['some/**/file.someext', '!', (f)-> f is 'dontDeleteMe.txt']), only files passing the filespecs filter are deleted in any case (along with any possible leftover combinedFile temp directory).
+If `clean` is a [filesspec type](types-and-derive#filespecs) (eg `clean: ['some/**/file.someext', '!', (f) -> f is 'dontDeleteMe.txt']), only files passing the filespecs filter are deleted in any case (along with any possible leftover combinedFile temp directory).
 
 On subsequent partial builds, **no files are deleted**.
 
@@ -1089,7 +1089,7 @@ uberscore:                    # serves as 'name' & consequently 'main'
   resources: [                # simple manipulative concat
     [ '+inject:VERSION',      # isBeforeTemplate: true, i.e AST is parsed & a module is there!
       ['uberscore.js'],       # only on this module, inject the following
-      (m)-> m.beforeBody = "var VERSION = '0.0.15';"]
+      (m) -> m.beforeBody = "var VERSION = '0.0.15';"]
   ]
   template: banner: "// uBerscore v0.0.15"
   clean: true
@@ -1148,7 +1148,7 @@ min:
   resources: [
   [
      '+remove:debug/deb & deepExtend', [/./]
-     (m)->
+     (m) ->
        # match each of these code *skeletons*
        for code in [ 'if (l.deb()){}', 'if (this.l.deb()){}',
                      'l.debug()', 'this.l.debug()']

@@ -35,7 +35,7 @@ describe 'replaceCode:', ->
   describe "replaces matched code, with param replCode as:", ->
 
 
-    for replType in ['AST', 'String'] then do (replType)->
+    for replType in ['AST', 'String'] then do (replType) ->
 
       replCode = "if (l.deb(300)) { changed = 50; }"
       replCode = toAST replCode if replType is 'AST'
@@ -66,7 +66,7 @@ describe 'replaceCode:', ->
 
       it "function callback that returns #{replType}", ->
 
-        replaceCode astCode, 'if (l.deb()){}', (matchedAST)->
+        replaceCode astCode, 'if (l.deb()){}', (matchedAST) ->
           matchedAST.test.arguments[0].value++; # change the AST
           if replType is 'AST'
             matchedAST        # return changed AST

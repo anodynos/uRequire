@@ -7,7 +7,7 @@ Dependency = require './../fileResources/Dependency'
 # TODO: refactor it to more generic. Make specs
 class DependenciesReporter
 
-  constructor: ()->
+  constructor: () ->
     @reportData = {}
 
   dependencyTypesMessages =
@@ -67,8 +67,8 @@ class DependenciesReporter
       header: "Web root dependencies '/' (not checked in this version):"
       footer: "They are added as-is."
 
-  reportTemplate: (texts, depsFound)->
-    maxDepLength = _.max _.map depsFound, (v, k)-> k.length
+  reportTemplate: (texts, depsFound) ->
+    maxDepLength = _.max _.map depsFound, (v, k) -> k.length
 
     '\n   ' + texts.color + texts.header + '\u001B[37;1m\n' +
 
@@ -91,7 +91,7 @@ class DependenciesReporter
   #     notFoundInBundle: [ '../lame/dir', 'another/lame/lib']
   #
   # @param {String} modyle The module name, eg 'isAgree.js'
-  addReportData: (resolvedDeps, modyle)->
+  addReportData: (resolvedDeps, modyle) ->
     for depType, resDeps of resolvedDeps when (not _.isEmpty resDeps)
       @reportData[depType] or= {}
       for resDep in _B.arrayize resDeps
@@ -99,7 +99,7 @@ class DependenciesReporter
         foundModules.push modyle if modyle not in foundModules
     null
 
-  getReport: (interestingDepTypes = _.keys dependencyTypesMessages)->
+  getReport: (interestingDepTypes = _.keys dependencyTypesMessages) ->
     l.debug 95, 'Getting report only for types :', interestingDepTypes
     report = ""
     for depType, depTypesMsgs of dependencyTypesMessages when depType in interestingDepTypes

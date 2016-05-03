@@ -37,7 +37,7 @@ describe "NodeRequirer:", ->
 
     it "nodejs require-mock called with correct module path", ->
       path = ''
-      nr.nodeRequire = (m)-> path = m
+      nr.nodeRequire = (m) -> path = m
       nr.require 'path/fromBundleRoot/to/anotherModule'
 
       equal path, upath.normalize "#{__dirname}/path/fromBundleRoot/to/anotherModule"

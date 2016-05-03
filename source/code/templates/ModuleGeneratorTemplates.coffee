@@ -46,7 +46,7 @@ class ModuleGeneratorTemplates extends Template
 
   scope: 'module'
 
-  constructor: (@module)-> super
+  constructor: (@module) -> super
 
   Object.defineProperties @::,
     bundle: get: -> @module.bundle
@@ -84,7 +84,7 @@ class ModuleGeneratorTemplates extends Template
       # even if defineArrayDeps is empty
       allowEmptyDefineDepsArray =
         _.isEmpty(@module.defineArrayDeps) and @isScanAllow and
-          (not _.any @module.ext_requireDeps, (d)-> d.isNode)
+          (not _.any @module.ext_requireDeps, (d) -> d.isNode)
 
       ( if allowEmptyDefineDepsArray
           ""
@@ -136,7 +136,7 @@ class ModuleGeneratorTemplates extends Template
       checks.join ' && '
 
   ### private ###
-  _rootExportsNoConflict: (rootName='root', returnModule=true)->
+  _rootExportsNoConflict: (rootName='root', returnModule=true) ->
       @deb(10, "*** START *** rootExports & noConflict() : exporting module '#{@module.path}' to root='#{rootName}' & attaching `noConflict()`.") +
 
       ( if @module.flags.noConflict
@@ -179,7 +179,7 @@ class ModuleGeneratorTemplates extends Template
     _moduleExports_ModuleFactoryBody: get: ->
       "module.exports = #{@__functionIIFE @module.factoryBody};"
 
-  factoryBodyAll: (toKind = do-> throw new Error "factoryBodyAll requires `toKind` in ['AMD', 'nodejs']" )->
+  factoryBodyAll: (toKind = do-> throw new Error "factoryBodyAll requires `toKind` in ['AMD', 'nodejs']" ) ->
     @sp(
        'useStrictModule',
        ('bundle.commonCode' if not @isCombined),
@@ -202,7 +202,7 @@ class ModuleGeneratorTemplates extends Template
       else ''
     )
 
-  _genFullBody: (fullBody)->
+  _genFullBody: (fullBody) ->
     fullBody = @sp(
       'runtimeInfo'
       [ 'module.preDefineIIFEBody',
@@ -295,9 +295,9 @@ class ModuleGeneratorTemplates extends Template
   UMDplain: -> @UMD false
 
   # todo: revise this
-  UMD: (isNodeRequirer=true)->
+  UMD: (isNodeRequirer=true) ->
 
-    replaceParamsPrint = (paramsPrint)->
+    replaceParamsPrint = (paramsPrint) ->
       paramsPrint.
         replace('require', '_require').
         replace('exports', '_exports').
@@ -350,9 +350,9 @@ class ModuleGeneratorTemplates extends Template
             " else {\n" +
             (
               if not _.isEmpty badDeps = _.filter(@module.defineArrayDeps,
-                (dep)-> dep.type in ['bundle', 'external', 'notFoundInBundle', 'nodeLocal']) # ok types [ 'untrusted', 'system', 'local' ]
+                (dep) -> dep.type in ['bundle', 'external', 'notFoundInBundle', 'nodeLocal']) # ok types [ 'untrusted', 'system', 'local' ]
                 'throw new Error("UMD with bundle or external deps runs only with an AMD or CommonJS loader.\\n' +
-                "Can`t load these deps: " + _.map(badDeps, (d)-> "'#{d.name()}' (#{d.type})" ).join("', '") + "\");"
+                "Can`t load these deps: " + _.map(badDeps, (d) -> "'#{d.name()}' (#{d.type})" ).join("', '") + "\");"
               else
                 (
                   if not _.isEmpty @module.defineArrayDeps

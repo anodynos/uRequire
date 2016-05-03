@@ -38,7 +38,7 @@ class Module extends TextResource
               'allNodeRequires', 'dummyParams'
               'scanAllow', 'injectExportsModule',
               'noLoaderUMD', 'warnNoLoaderUMD']
-    do (bof)->
+    do (bof) ->
       Object.defineProperty Module::, 'is'+ _.capitalize(bof),
         get: ->
           value = _B.getp @bundle?.build, bof, separator: '_'
@@ -130,7 +130,7 @@ class Module extends TextResource
     info
 
   # Read the AST of defineArrayDeps & factory params and add them to the corresponding arrays
-  readArrayDepsAndVars: (arrayAst, arrayDeps, paramsAst, factoryParams)->
+  readArrayDepsAndVars: (arrayAst, arrayDeps, paramsAst, factoryParams) ->
     for astArrayDep, idx in arrayAst.elements
       param = paramsAst[idx]?.name
 
@@ -270,7 +270,16 @@ class Module extends TextResource
           if this.AST_top.body[0].expression.callee.params[i].name is factoryParamName
             factory = this.AST_top.body[0].expression.arguments[i]
       else
-        AMDSignature = ['Literal', 'ArrayExpression', 'FunctionExpression']
+        AMDSignature = ['Literal', 'ArrayExpression'
+          if args[args.length-1].type is 'FunctionExpression'
+            'FunctionExpression'
+          else
+            if args[args.length-1].type is 'ArrowFunctionExpression'
+              'ArrowFunctionExpression'
+            else
+              throw new UError "Invalid AMD define() signature" + _.pluck(args, 'type').join ', '
+        ]
+
         for i in [0..args.length-1]
           if args[i].type isnt AMDSignature[i+(3-args.length)]
             throw new UError "Invalid AMD define() signature with #{args.length} args: got a '#{args[i].type}' as arg #{i}, expected a '#{AMDSignature[i+(3-args.length)]}'."
@@ -351,7 +360,7 @@ class Module extends TextResource
   - add @ext_requireDeps to @defineArrayDeps
   @todo: decouple from build, use calculated (cached) properties, populated at convertWithTemplate(@build) step
   ###
-  adjust: (@build)->
+  adjust: (@build) ->
     l.debug "@adjust for '#{@srcFilename}'" if l.deb 70
 
     if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
@@ -374,7 +383,7 @@ class Module extends TextResource
     #  We dont add them only if _.isEmpty and `--scanAllow` and we dont have a `rootExports`
     addToArrayDependencies = (reqDep)=>
       if (not reqDep.isNode )
-        foundDeps = _.filter @defineArrayDeps, (dep)->dep.isEqual reqDep
+        foundDeps = _.filter @defineArrayDeps, (dep) ->dep.isEqual reqDep
         if _.isEmpty foundDeps # if not already there
           #reqDep = reqDep.clone() # clone, to keep ext_XXX intact #lo longer needed
           @defineArrayDeps.push reqDep
@@ -404,7 +413,7 @@ class Module extends TextResource
 
   # inject [depVars] Dependencies to defineArrayDeps
   # and their corresponding parameters (infered if not found)
-  injectDeps: (depVars)->
+  injectDeps: (depVars) ->
     if l.deb(40)
       if not _.isEmpty depVars
         l.debug("#{@path}: injecting dependencies: ", depVars)
@@ -462,7 +471,7 @@ class Module extends TextResource
 
     relative: @todo: explain
   ###
-  replaceDep: (matchDep, newDep, options = {})->
+  replaceDep: (matchDep, newDep, options = {}) ->
 
     l.deb debugHead = """
         Module.replaceDep #{ if newDep then 'REPLACING' else ' DELETING'}: #{
@@ -539,7 +548,7 @@ class Module extends TextResource
         'models/person': ['pm']
       }
   ###
-  getDepsVars: (depFltr=->true)->
+  getDepsVars: (depFltr=->true) ->
     depVars = {}
     depVarArrays = # use the Array<Dependency> ones, cause they talk 'bundleRelative'
       'defineArrayDeps'        : 'parameters'
@@ -555,14 +564,14 @@ class Module extends TextResource
           dv.push @[varsArrayName][idx] # if there is a var, add once
     depVars
 
-  replaceCode: (matchCode, replCode)->
+  replaceCode: (matchCode, replCode) ->
     replaceCode @AST_factoryBody, matchCode, replCode
 
   # add report data after all deps manipulations are done (adjust, & beforeTemplate RCs)
   addReportData:->
     for dep in _.flatten [ @defineArrayDeps
                            @ext_asyncRequireDeps
-                           _.filter(@ext_requireDeps, (dep)-> dep.isNode) ]
+                           _.filter(@ext_requireDeps, (dep) -> dep.isNode) ]
       if dep.type not in ['bundle', 'system'] # ignore 'normal' ones
         @bundle?.reporter.addReportData _B.okv(dep.type, dep.name()), @path # build a `{'local':['lodash']}`
 
@@ -576,7 +585,7 @@ class Module extends TextResource
         @adjust @build
       =>
         l.deb 70, step = "\n ResourceConverters runAt: 'beforeTemplate' for '#{@path}'."
-        @runResourceConverters (rc)-> rc.runAt is 'beforeTemplate'
+        @runResourceConverters (rc) -> rc.runAt is 'beforeTemplate'
       =>
         l.verbose step = "Converting with template '#{@build.template.name}' for module '#{@path}'."
         l.deb("'#{@path}' adjusted module.info() = \n",
@@ -585,13 +594,13 @@ class Module extends TextResource
         @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
       =>
         l.deb 70, step = "\n ResourceConverters runAt: 'afterTemplate' for '#{@path}'."
-        @runResourceConverters (rc)-> rc.runAt is 'afterTemplate'
+        @runResourceConverters (rc) -> rc.runAt is 'afterTemplate'
       =>
         l.deb 70, step = "\nRunning optimize for '#{@path}'."
         @optimize @build
       =>
         l.deb 70, step = "\n ResourceConverters runAt: 'afterOptimize' for '#{@path}'."
-        @runResourceConverters (rc)-> rc.runAt is 'afterOptimize'
+        @runResourceConverters (rc) -> rc.runAt is 'afterOptimize'
       =>
         l.deb 70, step = "\n addReportData '#{@path}'."
         @addReportData()
@@ -601,7 +610,7 @@ class Module extends TextResource
       @bundle.handleError new UError "Error at `module.convert()`: step = `#{step}`", nested:err
 
     # apply `optimize` (i.e minification) - uglify2 only
-  optimize: (@build)->
+  optimize: (@build) ->
     if @build.template.name isnt 'combined'
       if @build.optimize
         if @build.optimize is 'uglify2'
@@ -628,7 +637,7 @@ class Module extends TextResource
         # plus those without params AND not present as require('depX') #todo: simplify in @adjust
         if @defineArrayDeps
           for remainingDep in @defineArrayDeps[@parameters?.length..@defineArrayDeps.length-1]
-            if not _.any((@ext_requireDeps or []), (rdep)-> rdep.isEqual remainingDep)
+            if not _.any((@ext_requireDeps or []), (rdep) -> rdep.isEqual remainingDep)
               nds.push remainingDep
         nds
 
@@ -645,7 +654,7 @@ class Module extends TextResource
       @updateRequireLiteralASTs() #ensure our AST is up to date with deps
       @toCode @AST_preDefineIIFENodes if @AST_preDefineIIFENodes
 
-  toCode: (astCode=@AST_body, codegenOptions = @codegenOptions)->
+  toCode: (astCode=@AST_body, codegenOptions = @codegenOptions) ->
     @updateRequireLiteralASTs() #ensure our AST is up to date with deps
     toCode astCode, codegenOptions
 

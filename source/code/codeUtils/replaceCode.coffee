@@ -3,14 +3,14 @@ toAST = require   "./toAST"
 isLikeCode = require  "./isLikeCode"
 isEqualCode = require "./isEqualCode"
 
-replaceCode = (AST, matchCode, replCode)->
+replaceCode = (AST, matchCode, replCode) ->
 
     matchCode = toAST(matchCode, 'Program')?.body?[0]
     replCode = toAST(replCode, 'Program')?.body?[0]
     
     deletions = []
 
-    replCodeAction = (prop, src)->
+    replCodeAction = (prop, src) ->
       if _B.isLike matchCode, src[prop]
         _replCode =
           if _.isFunction replCode

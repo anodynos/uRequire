@@ -7,7 +7,7 @@ toAST = require './toAST'
 # returns the AST of the 1st statement/expression if its a String, as-is otherwise
 # @todo: return whole body / all statements
 #todo: split/configure to 'strict mode', no undefined, no string etc
-module.exports = toCode = (astCode, options=toCode.options)->
+module.exports = toCode = (astCode, options=toCode.options) ->
   return '' if _.isEmpty astCode
 
   if options isnt toCode.options
