@@ -81,6 +81,8 @@ describe "urequire.BundleBuilder:", ->
           convFilename: '.js'
         }
 
+      'babeljs'
+
       # instead of 'inject-version', test a promise returning injectVERSION
       [ '+injectVERSIONPromises', 'An injectVERSION that returns a promise instead of sync', ["#{main}.js"],
         (m) -> When().delay(0).then -> m.beforeBody = "var VERSION = '#{VERSION }';" ]
@@ -93,7 +95,7 @@ describe "urequire.BundleBuilder:", ->
 
       [ '!injectTestPromise', 'An inject test that returns a promise', ["#{main}.js"],
         (m) -> When().delay(0).then => m.converted + "'#{@name}';"]
-      
+
       [ '!injectTestAsyncRacePromise', 'An inject test with callback signature, returning promise instead', ["#{main}.js"],
         (m, cb) -> When().delay(0).then => m.converted + "'#{@name}';"]
     ]
@@ -111,12 +113,12 @@ describe "urequire.BundleBuilder:", ->
     dependencies:
       imports:
         'when/callbacks': ['whenCallbacks']
-      locals: 
-        when: 'bower_components/when'        
+      locals:
+        when: 'bower_components/when'
       node: [
         'when/node**', 'nodeOnly/*'
       ]
-      paths: 
+      paths:
         override: lodash: "user/defined/lodash/path"
 
     rjs: paths:

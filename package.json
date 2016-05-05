@@ -68,6 +68,7 @@
     "uglify-js": "^2.6.2",
     "underscore.string": "3.x.x",
     "urequire-rc-coco": "^0.1.2",
+    "urequire-rc-babeljs": "^0.1.0",
     "urequire-rc-coffee-script": "^0.1.4",
     "urequire-rc-livescript": "^0.1.0",
     "when": "^3.7.5"
