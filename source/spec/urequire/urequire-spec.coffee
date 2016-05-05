@@ -40,7 +40,7 @@ describe "urequire.BundleBuilder:", ->
         else
           l.warn "Cloning repo anodynos/#{example} in `../`"
           logExecP("git clone https://github.com/anodynos/#{example}", cwd: '../').then ->
-            logExecP("git checkout c5761d1", cwd: exampleDir)
+            logExecP("git checkout 02784cdeb89f125e9f9fad7f73fa392b1852b6e3", cwd: exampleDir)
       ).then ->
         l.deb "Deleting 'temp'"
         rimraf.sync 'temp'
