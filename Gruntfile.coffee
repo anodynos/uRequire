@@ -52,8 +52,6 @@ module.exports = gruntFunction = (grunt) ->
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
     default: 'clean lib spec'
     develop: 'clean lib specWatch'
-    "alt-c": "copy" # IDE shortcuts
-    "alt-b": "lib"
   }
-  grunt.loadNpmTasks task for task of grunt.file.readJSON('package.json').devDependencies when task.lastIndexOf('grunt-', 0) is 0
+  require('load-grunt-tasks')(grunt)
   grunt.initConfig gruntConfig
