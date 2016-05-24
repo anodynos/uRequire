@@ -5,6 +5,10 @@ fs = require 'fsp'
 
 _.mixin require('underscore.string').exports()
 
+if not _.startsWith _.VERSION, '3'
+  l.warn """uRequire v#{exports.VERSION} should load lodash@3.x as its specified in its `dependencies`, but instead it seems to be** using #{_.VERSION}.
+            Blame npm@3 & how it treats node_modules. Drop me a message if you know to fix this."""
+
 require 'coffee-script/register'
 
 Object.defineProperties exports, # lazily export

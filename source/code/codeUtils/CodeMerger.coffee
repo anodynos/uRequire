@@ -24,7 +24,7 @@ class CodeMerger
   addbodyNode: (node) ->
     if node.type is 'VariableDeclaration'
       for decl in node.declarations
-        if not _.any(@declarations, (fd) -> _.isEqual decl, fd)
+        if not _.some(@declarations, (fd) -> _.isEqual decl, fd)
           if dublicateDecl = _.find(@declarations, (fd) -> isLikeCode {type:decl.type, id:decl.id}, fd)
             if @options.uniqueDeclarations
               throw new UError """
@@ -40,7 +40,7 @@ class CodeMerger
             l.debug 90, "Adding declaration of '#{decl.id.name}'"
             @declarations.push decl
     else
-      if not _.any(@statements, (fd) -> _.isEqual node, fd)
+      if not _.some(@statements, (fd) -> _.isEqual node, fd)
         @statements.push node
 
     null

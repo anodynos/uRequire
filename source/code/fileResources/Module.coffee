@@ -637,7 +637,7 @@ class Module extends TextResource
         # plus those without params AND not present as require('depX') #todo: simplify in @adjust
         if @defineArrayDeps
           for remainingDep in @defineArrayDeps[@parameters?.length..@defineArrayDeps.length-1]
-            if not _.any((@ext_requireDeps or []), (rdep) -> rdep.isEqual remainingDep)
+            if not _.some((@ext_requireDeps or []), (rdep) -> rdep.isEqual remainingDep)
               nds.push remainingDep
         nds
 

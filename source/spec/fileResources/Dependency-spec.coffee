@@ -10,7 +10,7 @@ untrust = (indexes, depsStrings) ->
   depsStrings
 
 describe "Dependency:", ->
-  
+
   describe "init & and extracting data:", ->
 
     it "split plugin, extension, resourceName & recostruct as String", ->
@@ -206,7 +206,7 @@ describe "Dependency:", ->
           it "matches alike", ->
             [dep1, dep2, dep3].forEach (dep) ->
               tru dep.isEqual 'rootdir/dep'
-            
+
           describe "plugins still matter:", ->
             it "they make a difference", ->
               [dep1, dep2, dep3].forEach (dep) ->
@@ -253,7 +253,7 @@ describe "Dependency:", ->
 
       it "looking for one in an array", ->
         dependencies = [dep1, dep2, depPlugin]
-        tru (_.any dependencies, (dep) -> dep.isEqual 'rootdir/dep.js')
+        tru (_.some dependencies, (dep) -> dep.isEqual 'rootdir/dep.js')
 
   describe "resolving all types bundle/file relative, external, local, notFound, webRootMap:", ->
     mod =

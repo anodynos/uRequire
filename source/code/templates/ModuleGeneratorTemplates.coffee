@@ -84,7 +84,7 @@ class ModuleGeneratorTemplates extends Template
       # even if defineArrayDeps is empty
       allowEmptyDefineDepsArray =
         _.isEmpty(@module.defineArrayDeps) and @isScanAllow and
-          (not _.any @module.ext_requireDeps, (d) -> d.isNode)
+          (not _.some @module.ext_requireDeps, (d) -> d.isNode)
 
       ( if allowEmptyDefineDepsArray
           ""
@@ -262,7 +262,7 @@ class ModuleGeneratorTemplates extends Template
     @_genFullBody( # load AMD deps 1st, before kicking off common dynamic code
 
       # deps with a variable (parameter in AMD)
-      ( if _.any(nodeDeps,
+      ( if _.some(nodeDeps,
           (dep, depIdx)=> (not dep.isSystem) and (@module?.parameters or [])[depIdx]) # has a dep with param
           "\nvar "
         else

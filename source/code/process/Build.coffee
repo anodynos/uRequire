@@ -79,7 +79,7 @@ module.exports = class Build extends _B.CalcCachedProperties
           *
           * #{ pkg?.description }
           * Version #{ pkg?.version } - Compiled on #{ moment().format("YYYY-MM-DD HH:mm:ss") }
-          * Repository #{ pkg?.repository?.url }
+          * Repository #{ pkg?.repository?.url or pkg?.repository }
           * Copyright(c) #{ moment().format("YYYY") } #{
               if _.isString pkg.author
                 pkg.author
