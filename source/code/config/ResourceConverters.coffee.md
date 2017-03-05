@@ -660,11 +660,41 @@ or
 
 that [infers binding idenifiers](masterdefaultsconfig.coffee#inferred-binding-idenifiers).
 
-The deps are are always given in [bundleRelative](Flexible-Path-Conventions#bundlerelative-vs-filerelative-paths) format. In general it makes sure that :
+The deps are are always given in [bundleRelative](Flexible-Path-Conventions#bundlerelative-vs-filerelative-paths) format. It makes sure that :
 
 * not two same-named parameters are injected - the 'late arrivals' bindings are simply ignored (with a warning). So if a Module already has a parameter `'_'` and you try to inject `'lodash':'_'`, it wont be injected at all.
 
 * Not injecting a self-dependency. If you are at module `'agreements/isAgree'`, trying to inject dependency `'agreements/isAgree'` will be ignored (without a warning, only a debug message).
+   
+*Circular dependencies*:  
+
+Dependencies are also NOT injected in these two cases that would create Circular dependencies: 
+
+* In all other injected dependencies of `depVars` in this `modyle.injectDeps(depVars)` call. This makes sure that in
+```
+  modyle.injectDeps({
+    'utils/MyError': 'MyError',
+    'utils/functionalUtils': 'functionalUtils'
+  });
+```
+both `utils/MyError` & `utils/functionalUtils` will NOT be injected in each other. 
+
+* when the module A that is the dependency to be injected in module B, already a dependency to B. So consider a call to 
+ 
+``` 
+  modyle.injectDeps({'config': 'config' });
+```
+where `config.js` module is 
+``` 
+  var defaultConfig = require('common/defaultConfig');
+   
+  module.exports = helpers.deepMerge(defaultConfig, {foo: {bar: ''}});
+```
+and we are about to inject `config.js` as a dependency into `common/defaultConfig`. In this case, we would create a circular dependency which is not what we intended, so urequire will make the decision NOT to inject.
+                
+In these two case, you have to do it explicitly `var a = require('some/other/injected/mod')` and know what you're doing. Also you can `modyle.injectDeps({'config': 'config' }, true);` to force circular deps to be injected.
+ 
+See https://github.com/anodynos/uRequire/issues/65 and https://github.com/anodynos/urequire-imports-dependencies for more details. 
 
 @note: uRequire doesn't enforce that the injected dependency is valid, for example whether it exists in the bundle - but you 'll get an error report in the end.
 

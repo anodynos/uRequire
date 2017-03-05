@@ -361,7 +361,6 @@ class Module extends TextResource
   @todo: decouple from build, use calculated (cached) properties, populated at convertWithTemplate(@build) step
   ###
   adjust: (@build) ->
-    l.debug "@adjust for '#{@srcFilename}'" if l.deb 70
 
     if @build?.template?.name isnt 'combined' # 'combined doesn't need them - they are added to the define that calls the factory
       @injectDeps @bundle?.dependencies?.imports
@@ -411,9 +410,42 @@ class Module extends TextResource
       if dep and not dep.untrusted
         dep.updateAST()
 
-  # inject [depVars] Dependencies to defineArrayDeps
-  # and their corresponding parameters (infered if not found)
-  injectDeps: (depVars) ->
+  ###
+   inject [depVars] dependencies and their corresponding parameters (inferred if not found) to the whole bundle (i.e defineArrayDeps)
+
+   It makes sure that :
+    * not two same-named parameters are injected - the 'late arrivals' bindings are simply ignored (with a warning). So if a Module already has a parameter `'_'` and you try to inject `'lodash':'_'`, it wont be injected at all.
+
+    * Not injecting a self-dependency. If you are at module `'agreements/isAgree'`, trying to inject dependency `'agreements/isAgree'` will be ignored (without a warning, only a debug message).
+
+    *Circular dependencies*:
+
+    Dependencies are also NOT injected in these two cases that would create Circular dependencies:
+
+    * In all other injected dependencies of `depVars` in this `modyle.injectDeps(depVars)` call. This makes sure that in
+
+
+          modyle.injectDeps({
+            'utils/MyError': 'MyError',
+            'utils/functionalUtils': 'functionalUtils'
+          });
+
+    both `utils/MyError` & `utils/functionalUtils` will NOT be injected in each other.
+
+    * when the module A that is the dependency to be injected in module B, already a dependency to B. So consider a call to
+
+
+          modyle.injectDeps({'config': 'config' });
+
+    where `config.js` module is
+
+          var defaultConfig = require('common/defaultConfig');
+
+    module.exports = helpers.deepMerge(defaultConfig, {foo: {bar: ''}});
+
+    and we are about to inject `config.js` as a dependency into `common/defaultConfig`. In this case, we would create a circular dependency which is not what we intended, so urequire will make the decision NOT to inject.
+  ###
+  injectDeps: (depVars, forceCircular = false) ->
     if l.deb(40)
       if not _.isEmpty depVars
         l.debug("#{@path}: injecting dependencies: ", depVars)
@@ -425,18 +457,38 @@ class Module extends TextResource
     return if _.isEmpty depVars = dependenciesBindingsBlender.blend depVars
 
     @bundle?.inferEmptyDepVars? depVars, "Infering empty depVars from injectDeps for '#{@path}'"
+
     for depName, varNames of depVars
       dep = new Dependency depName, @
-      if not dep.isEqual @path
-        for varName in varNames # add for all corresponding vars, BEFORE the deps not corresponding to params!
-          if not (varName in @parameters)
-            @defineArrayDeps.splice @parameters.length, 0, dep
-            @parameters.push varName
-            l.debug("#{@path}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 70
-          else
-            l.warn("#{@path}: NOT injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") #if l.deb 90
+
+      l.deb 80, "Check if we should inject `#{depName}` into `#{@path}`"
+      if dep.isEqual @path
+        l.debug "#{@path}: NOT injecting dependency '#{depName}' on it's self'" if l.deb 50
+        continue
       else
-        l.debug("#{@path}: NOT injecting dependency '#{depName}' on self'") if l.deb 50
+        if not forceCircular
+          # check the this module is it self an injected dep
+          if (_.any depVars, (dv, depName) => (new Dependency depName, @).isEqual @path)
+
+            l.debug("#{@path}: NOT injecting dependency '#{depName}' on another `injectDeps()` module `#{@path}`'") if l.deb 50
+            continue
+          else
+            # find module to be injected as a dependency, to check its dependencies...
+            # If this module's @path exist in it's dependencies,
+            #   dont inject it as a dependency (avoid circular dep)
+            if modToBeInjected = _.find(@bundle?.modules, (m)=> m.path is depName)
+              if modToBeInjected.getDepsVars()[@path]
+                l.debug("#{@path}: NOT injecting dependency '#{depName}' on `#{@path}`' because module '#{depName}' has `#{@path}`' as a dependency.") if l.deb 50
+                continue
+
+      # actually inject, if varName not already a param
+      for varName in varNames # add for all corresponding vars, BEFORE the deps not corresponding to params!
+        if (varName in @parameters)
+          l.warn("#{@path}: NOT injecting dependency '#{depName}' as parameter '#{varName}' cause it already exists.") #if l.deb 90
+        else
+          @defineArrayDeps.splice @parameters.length, 0, dep
+          @parameters.push varName
+          l.debug("#{@path}: injected dependency '#{depName}' as parameter '#{varName}'") if l.deb 70
 
     null
 
@@ -581,10 +633,10 @@ class Module extends TextResource
     step = null
     When.sequence([
       =>
-        l.deb 90, step = "\nRunning @adjust for '#{@path}'."
+        l.deb 50, step = "\nRunning @adjust for '#{@path}'."
         @adjust @build
       =>
-        l.deb 70, step = "\n ResourceConverters runAt: 'beforeTemplate' for '#{@path}'."
+        l.deb 50, step = "\n ResourceConverters runAt: 'beforeTemplate' for '#{@path}'."
         @runResourceConverters (rc) -> rc.runAt is 'beforeTemplate'
       =>
         l.verbose step = "Converting with template '#{@build.template.name}' for module '#{@path}'."
@@ -593,13 +645,13 @@ class Module extends TextResource
         @moduleTemplate or= new ModuleGeneratorTemplates @
         @converted = @moduleTemplate[@build.template.name]() # @todo: (3 3 3) pass template, not its name
       =>
-        l.deb 70, step = "\n ResourceConverters runAt: 'afterTemplate' for '#{@path}'."
+        l.deb 50, step = "\n ResourceConverters runAt: 'afterTemplate' for '#{@path}'."
         @runResourceConverters (rc) -> rc.runAt is 'afterTemplate'
       =>
-        l.deb 70, step = "\nRunning optimize for '#{@path}'."
+        l.deb 50, step = "\nRunning optimize for '#{@path}'."
         @optimize @build
       =>
-        l.deb 70, step = "\n ResourceConverters runAt: 'afterOptimize' for '#{@path}'."
+        l.deb 50, step = "\n ResourceConverters runAt: 'afterOptimize' for '#{@path}'."
         @runResourceConverters (rc) -> rc.runAt is 'afterOptimize'
       =>
         l.deb 70, step = "\n addReportData '#{@path}'."
