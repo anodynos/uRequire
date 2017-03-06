@@ -160,35 +160,42 @@ All information related to dependencies handling is listed here.
 
 #### bundle.dependencies.imports
 
-Allows you to *export* or [*inject*](resourceconverters.coffee#inject-replace-dependencies) (i.e have available) specific dependencies (other modules) throughout the *whole bundle*, under the given variable name(s).
+Allows you to *import* or better *inject* via [`Module.injectdeps()`](resourceconverters.coffee#injectdeps) specific dependencies (i.e other modules) throughout the *whole bundle*, under the given variable name(s).
 
-Eg you want to access `'underscore'` from  `_`, `'backbone'` from `Backbone` etc, from all modules, without having to declare it in each module.
+The use case is when you want to access `lodash` from  as `_`, `backbone` as `Backbone` and even `myUtils/foobar` as `foobar` in all your other modules, without having to declare a boring `var _ = require('lodash')` in each and every module.
 
-Effectively this means that each module will have an *injection* of all `dependencies.imports`, so you don't have to list them in each module.
+Each module receives an *injection* of all the `dependencies.imports`, so you don't have to list them in each module.
 
 @example
 
 ```
-{ 'underscore': '_',
- 'jquery': ["$", "jQuery"],
- 'models/PersonModel': ['persons', 'personsModel'] }
+dependencies: { 
+  imports: { 
+   'lodash': '_',
+   'jquery': ["$", "jQuery"],
+   'myUtils/foobar': ['foobar', 'utilsFoobar'], 
+   'common/config': 'config'
+}}
 ```
 
 will give you :
 
-* Injection of Modules / dependencies `'underscore'`, `'jquery'`, and `'models/PersonModel'` to each module in the bundle.
+* Injection of Modules / dependencies `'lodash'`, `'jquery'`, `'myUtils/foobar'` and `'common/config'` to each module in the bundle, BUT avoiding circular references, so your *bundle's modules* listed in `dependencies.imports` (like `'myUtils/foobar'` and `'common/config'`) will not be injected in each other at all, but will receive all the local deps like `'lodash'`. See more details on this and how injection works in [`Module.injectdeps()`](resourceconverters.coffee#injectdeps).    
 
-* Access of `_`, `$`, `jQuery`, `persons` & `personsModel` variables everywhere, without listing them once on any module's code.
+* Accessing of `_`, `$`, `jQuery` and `'foobar'` and `'common'` variables everywhere.
 
 * Working the same way on all templates, on any environment (AMD, nodejs, Web/Script).
 
-* Saving space: on ['combined' template](combined-template), they are listed & loaded only once, made available only within bundle's 'combined' closure.
+* Saving space: on ['combined' template](combined-template), all `dependencies.imports` are required (& loaded) only once, made available from within the bundle's 'combined' closure.
 
 @type [depsVars](types-and-derive#depsVars)
 
 @derive [dependenciesbindings](types-and-derive#dependenciesbindings)
 
 @note the [shortcut depsvars format](Types-and-derive#shortcut-depsvars-types), can also be used (eg `['underscore', 'jquery', 'models/PersonModel']`), in which case the [vars are inferred]](types-and-derive#inferred-binding-idenifiers).
+
+@see [`Module.injectdeps()`](resourceconverters.coffee#injectdeps) which powers `dependencies.imports` - use it to customize even more the dependency injection behavior.      
+
 
 @alias `bundleExports`, `exports.bundle` both DEPRECATED
 

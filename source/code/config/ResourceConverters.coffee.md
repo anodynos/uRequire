@@ -670,16 +670,17 @@ The deps are are always given in [bundleRelative](Flexible-Path-Conventions#bund
 
 Dependencies are also NOT injected in these two cases that would create Circular dependencies: 
 
-* In all other injected dependencies of `depVars` in this `modyle.injectDeps(depVars)` call. This makes sure that in
+* In other injected bundle dependencies of `depVars` in this `modyle.injectDeps(depVars)` call. This makes sure that in
 ```
   modyle.injectDeps({
+    'lodash': '_',
     'utils/MyError': 'MyError',
     'utils/functionalUtils': 'functionalUtils'
   });
 ```
-both `utils/MyError` & `utils/functionalUtils` will NOT be injected in each other. 
+both `utils/MyError` & `utils/functionalUtils` will NOT be injected in each other, BUT `'lodash'` will be (cause its a `local` and not part of your bundles modules) . 
 
-* when the module A that is the dependency to be injected in module B, already a dependency to B. So consider a call to 
+* when the module A that is the dependency to be injected in module B, is already a dependency to B. So consider a call to 
  
 ``` 
   modyle.injectDeps({'config': 'config' });
@@ -690,7 +691,7 @@ where `config.js` module is
    
   module.exports = helpers.deepMerge(defaultConfig, {foo: {bar: ''}});
 ```
-and we are about to inject `config.js` as a dependency into `common/defaultConfig`. In this case, we would create a circular dependency which is not what we intended, so urequire will make the decision NOT to inject.
+and we are about to inject `config.js` as a dependency into `common/defaultConfig`. In this case, if we injected we would have created a circular dependency which is not what we intended, so urequire will make the decision NOT to inject.
                 
 In these two case, you have to do it explicitly `var a = require('some/other/injected/mod')` and know what you're doing. Also you can `modyle.injectDeps({'config': 'config' }, true);` to force circular deps to be injected.
  

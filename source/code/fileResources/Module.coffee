@@ -461,16 +461,17 @@ class Module extends TextResource
     for depName, varNames of depVars
       dep = new Dependency depName, @
 
-      l.deb 80, "Check if we should inject `#{depName}` into `#{@path}`"
+      l.deb 70, "Check if we should inject '#{dep.type}' dependency `#{depName}` into `#{@path}`"
       if dep.isEqual @path
-        l.debug "#{@path}: NOT injecting dependency '#{depName}' on it's self'" if l.deb 50
+        l.debug "#{@path}: NOT injecting '#{dep.type}' dependency '#{depName}' on it's self'" if l.deb 50
         continue
       else
-        if not forceCircular
-          # check the this module is it self an injected dep
-          if (_.any depVars, (dv, depName) => (new Dependency depName, @).isEqual @path)
+        if not forceCircular and dep.isBundle # local modules like 'ramda' as well as system, external etc are always injected
+          l.deb 90, "Circular dependencies check: should '#{dep.type}' dependency `#{depName}` be injected into `#{@path}`?"
 
-            l.debug("#{@path}: NOT injecting dependency '#{depName}' on another `injectDeps()` module `#{@path}`'") if l.deb 50
+          # check the this module is it self an injected dep
+          if (_.any depVars, (dv, dvDepName) => (new Dependency dvDepName, @).isEqual @path)
+            l.debug("#{@path}: NOT injecting '#{dep.type}' dependency '#{depName}' on another `injectDeps()` module `#{@path}`'") if l.deb 50
             continue
           else
             # find module to be injected as a dependency, to check its dependencies...
@@ -478,7 +479,7 @@ class Module extends TextResource
             #   dont inject it as a dependency (avoid circular dep)
             if modToBeInjected = _.find(@bundle?.modules, (m)=> m.path is depName)
               if modToBeInjected.getDepsVars()[@path]
-                l.debug("#{@path}: NOT injecting dependency '#{depName}' on `#{@path}`' because module '#{depName}' has `#{@path}`' as a dependency.") if l.deb 50
+                l.debug("#{@path}: NOT injecting '#{dep.type}' dependency '#{depName}' on `#{@path}`' because module '#{depName}' has `#{@path}`' as a dependency.") if l.deb 50
                 continue
 
       # actually inject, if varName not already a param
