@@ -73,11 +73,15 @@ module.exports = class BundleBuilder
 
       filenames = _.filter filenames, (filename) =>
         filename = upath.join @bundle?.path or '', filename
-        if fs.statSync(filename).isFile()
-          true
-        else
-          l.verbose "Eliminating non-file #{filename}"
-          false
+
+        try
+          isFile = fs.statSync(filename).isFile()
+        catch err
+
+        if not isFile
+          l.verbose "Eliminating non-file `#{filename}` #{if err then 'err = ' + err.message else ''}"
+
+        isFile
 
       bcr = @bundle.buildChangedResources(@build, filenames)
         .catch (err)=>
