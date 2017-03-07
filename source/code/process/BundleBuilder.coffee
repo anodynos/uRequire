@@ -71,6 +71,18 @@ module.exports = class BundleBuilder
       @setDebugVerbose()
       urequire.addBBExecuted @
 
+      filenames = _.filter filenames, (filename) =>
+        filename = upath.join @bundle?.path or '', filename
+
+        try
+          isFile = fs.statSync(filename).isFile()
+        catch err
+
+        if not isFile
+          l.verbose "Eliminating non-file `#{filename}` #{if err then 'err = ' + err.message else ''}"
+
+        isFile
+
       bcr = @bundle.buildChangedResources(@build, filenames)
         .catch (err)=>
             @build.handleError err #log and add to `build.errors`
@@ -128,19 +140,17 @@ module.exports = class BundleBuilder
 
     watchFiles = []
     chokidar = require 'chokidar'
-    path = require 'path'
-    fs = require 'fs'
 
     chokidar.watch(bundleBuilder.bundle.path + '/**/*', alwaysStat: true)
       .on 'all', (event, filepath, filepathStat) ->
-        filepath = path.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
+        filepath = upath.relative process.cwd(), filepath # i.e 'mybundle/myfile.js'
 
         if filepathStat?.isDirectory()
           # ? It is supported.
           l.warn "Adding '#{filepath}' as new watch directory is NOT SUPPORTED."
         else
           l.verbose "Watched file '#{filepath}' has '#{event}'. \u001b[33m (waiting watch events for #{options.debounceDelay}ms)"
-          watchFiles.push path.relative bundleBuilder.bundle.path, filepath
+          watchFiles.push upath.relative bundleBuilder.bundle.path, filepath
 
           runBuildBundleDebounced()
 
@@ -189,6 +199,6 @@ module.exports = class BundleBuilder
 
         if @config.build.dstPath and upath.normalize(@config.build.dstPath) is upath.normalize(@config.bundle.path)
           throw new UError """
-            Quitting build, dstPath === path.
+            Quitting build, dstPath === path
             Use -f *with caution* to overwrite sources (no need to specify & ignored `--dstPath` / `build.dstPath`).
             """
