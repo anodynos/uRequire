@@ -12,6 +12,7 @@ module.exports = gruntFunction = (grunt) ->
         runtimeInfo: false
         bare: true
         template: name: 'nodejs'
+        verbose: true
         debugLevel: 0
 
       lib:
