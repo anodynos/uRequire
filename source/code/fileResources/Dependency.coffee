@@ -143,11 +143,11 @@ class Dependency
       deps = @module.bundle.dependencies
       pkg = @module.bundle.package
       depPlaces = [
-        deps.locals
+        deps?.locals
         MasterDefaultsConfig.bundle.dependencies.locals
-        deps.paths.bower
-        pkg.dependencies
-        pkg.devDependencies
+        deps?.paths.bower
+        pkg?.dependencies
+        pkg?.devDependencies
       ]
       for depPlace in depPlaces when depPlace
         return true if depPlace[firstPart]
@@ -357,7 +357,7 @@ class Dependency
         newDepString = newDep.pluginName + '!' + newDepString
 
     l.deb """Dependency.update replacing @depString '#{@depString}' with '#{newDepString}'.""" if l.deb(90)
-    @depString = newDepString # also sets ASTs    
+    @depString = newDepString # also sets ASTs
 
 module.exports = Dependency
 

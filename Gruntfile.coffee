@@ -50,7 +50,7 @@ module.exports = gruntFunction = (grunt) ->
   splitTasks = (tasks)-> if (tasks instanceof Array) then tasks else tasks.split(/\s/).filter((f)->!!f)
   grunt.registerTask shortCut, "urequire:#{shortCut}" for shortCut of gruntConfig.urequire
   grunt.registerTask shortCut, splitTasks tasks for shortCut, tasks of {
-    default: 'clean lib spec'
+    default: 'clean lib spec copy'
     develop: 'clean lib specWatch'
   }
   require('load-grunt-tasks')(grunt)
