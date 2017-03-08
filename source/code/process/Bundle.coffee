@@ -317,10 +317,11 @@ class Bundle extends BundleBase
         ).catch (err)=>
             l.debug "Error while refreshing #{bf.constructor.name}: '#{filename}'", err if l.deb 30
             @build.addChangedBundleFile filename, bf # add it as changed file in error / deleted
+
             if bf.srcExists
-              bf.clean() if bf.isDeleteErrored
               bf.reset()
               bf.hasErrors = true
+
               if err instanceof UError
                 @handleError err # improve error handling
               else

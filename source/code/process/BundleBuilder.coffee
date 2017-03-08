@@ -71,21 +71,20 @@ module.exports = class BundleBuilder
       @setDebugVerbose()
       urequire.addBBExecuted @
 
-      filenames = _.filter filenames, (filename) =>
+      # a filename might be actually directory - eliminate them!
+      realfilenames = _.filter filenames, (filename) =>
         filename = upath.join @bundle?.path or '', filename
-
         try
-          isFile = fs.statSync(filename).isFile()
+          isDirectory = fs.statSync(filename).isDirectory()
         catch err
 
-        if not isFile
-          l.verbose "Eliminating non-file `#{filename}` #{if err then 'err = ' + err.message else ''}"
+        l.debug 80, "Eliminating *Directory* `#{filename}`}" if isDirectory
 
-        isFile
+        !isDirectory
 
-      bcr = @bundle.buildChangedResources(@build, filenames)
+      bcr = @bundle.buildChangedResources(@build, realfilenames)
         .catch (err)=>
-            @build.handleError err #log and add to `build.errors`
+          @build.handleError err #log and add to `build.errors`
         .finally =>
           @runAfterBuildTasks() # never throws, each one handled while loopo
 
