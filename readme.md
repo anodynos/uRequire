@@ -1,5 +1,19 @@
 # uRequire v0.7.0-beta.33
 
+## THIS PROJECT IS NO LONGER MAINTAINED 
+
+It had awesome ideas, but it was for a different JavaScript era. 
+
+Back then in 2013, it was all about Grunt, CommonJS & AMD modules. 
+
+Now we have ES6, TypeScript, webpack, rollup anmd a different landscape.
+
+Many of uRequire's ideas & features are still missing from mainstream build tools I use everyday (eg manipulate code while you're building, or inject modules at build time). I just work around them. Maybe someday, someone will revive those great ideas in the new world - if so, drop me a line!  
+
+The LATEST VERSION is v0.7.0-beta.33 and should work without problems.
+ 
+Docs are mostly up to date, but not fully :-)        
+
 ## Beta release note
 
 [_Docs / wiki](http://anodynos.github.io/uRequire) mainly are **Work In Progress** (in transition from v0.6.x) - but everything should work except you'll need `npm install urequire-cli -g` & `npm install urequire` locally (if you are using the CLI urequire instead of the the recommended [grunt-urequire](https://github.com/aearly/grunt-urequire)). Check **uRequire's [master config / docs](https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md)** for up to date usage._
