@@ -18,7 +18,7 @@
 </li>
 <li><p><strong>execution environment</strong> (AMD <em>only</em> for Web, CommonJs <em>only</em> for nodejs)</p>
 </li>
-<li><p><strong>capabilities, <a href="/flexible-path-conventions">dependency/path resolutions</a>, <a href="/requirejs-loader-plugins">plugins</a>, <a href="/synchronous-require">semantics</a></strong> etc are a mess</p>
+<li><p><strong>capabilities, <a href="//uRequire/docs/flexible-path-conventions">dependency/path resolutions</a>, <a href="/requirejs-loader-plugins">plugins</a>, <a href="/synchronous-require">semantics</a></strong> etc are a mess</p>
 </li>
 <li><p><a href="https://github.com/umdjs/umd/">UMD</a> is a <strong>semi-standard boilerplate</strong>, far from usable.</p>
 <h5><a class="anchor" href="#u-need-a-bridge-to-enjoy-the-richness-of-modules." id="u-need-a-bridge-to-enjoy-the-richness-of-modules."></a>U need a bridge to enjoy the richness of modules.</h5>
@@ -30,23 +30,23 @@
 <ul>
 <li><p>from <strong>AMD</strong> and <strong>CommonJS</strong></p>
 </li>
-<li><p>to <a href="/amd-template">AMD</a>, <a href="/nodejs-template">CommonJS</a>, <a href="/amd-template">UMD</a>, <a href="/combined-template">Combined for nodejs-Web/AMD-Web/Script</a></p>
+<li><p>to <a href="//uRequire/docs/amd-template">AMD</a>, <a href="//uRequire/docs/nodejs-template">CommonJS</a>, <a href="//uRequire/docs/umd-template">UMD</a>, <a href="//uRequire/docs/combined-template">Combined for nodejs-Web/AMD-Web/Script</a></p>
 </li>
 <li><p><del>ES6/Harmony</del> <em>when standard/parsers mature</em></p>
 </li>
 </ul>
 </li>
-<li><p>Forget <a href="/synchronous-require#never-miss-a-dependency">the woes</a> or Module formats incompatibilities</p>
+<li><p>Forget <a href="//uRequire/docs/synchronous-require#never-miss-a-dependency">the woes</a> or Module formats incompatibilities</p>
 </li>
-<li><p>Eliminate boilerplate &amp; <em>write modular Javascript code once, run everywhere</em> : <a href="/deployment"><strong>Web/Script</strong>, <strong>Web/AMD</strong>, <strong>nodejs</strong></a></p>
+<li><p>Eliminate boilerplate &amp; <em>write modular Javascript code once, run everywhere</em> : <a href="//uRequire/docs/deployment"><strong>Web/Script</strong>, <strong>Web/AMD</strong>, <strong>nodejs</strong></a></p>
 </li>
-<li><p>A <a href="/universal-module-format">Universal Module Format</a> with the <strong>power, goodies &amp; standards</strong> from all.</p>
+<li><p>A <a href="//uRequire/docs/universal-module-format">Universal Module Format</a> with the <strong>power, goodies &amp; standards</strong> from all.</p>
 </li>
-<li><p>Convert to a single <code>combined.js</code>, that <a href="/combined-template">runs everywhere &amp; is super optimized</a></p>
+<li><p>Convert to a single <code>combined.js</code>, that <a href="//uRequire/docs/combined-template">runs everywhere &amp; is super optimized</a></p>
 </li>
 </ul>
 <h5><a class="anchor" href="#if-u-require-d-it-or-define-d-it-urequire-will-find-it-." id="if-u-require-d-it-or-define-d-it-urequire-will-find-it-."></a>If U <code>require</code>d it or <code>define</code>d it, <strong>uRequire will find it</strong>.</h5>
-</div><div class="why right"><p>Simplest <a href="/features#module-authoring">Module Authoring</a></p>
+</div><div class="why right"><p>Simplest <a href="//uRequire/docs/features#module-authoring">Module Authoring</a></p>
 <pre><code class="lang-js"><span class="keyword">var</span> dep1 = require(<span class="string">'./rel/path/dep1'</span>),
     dep2 = require(<span class="string">'abs/path/dep2'</span>);
 <span class="comment">// do stuff with dep1, dep2</span>
@@ -71,28 +71,28 @@ define([<span class="string">'some/dirName'</span>,<span class="string">'dep2'</
 define([<span class="string">'my/dep1'</span>], <span class="keyword">function</span>(dep1) {
     exports.prop = dep1 + require(<span class="string">'./your/dep3'</span>);
 });</code></pre>
-</div><div class="whyclear"><pre class="code separator">dependencies: imports: bundle: { 'lodash': '_', 'backbone': 'Backbone'}</pre></div><!--.why--><h2><a class="anchor" href="#a-modules-dependencies-aware-masterdefaultsconfig.coffee-bundle.dependencies-builder." id="a-modules-dependencies-aware-masterdefaultsconfig.coffee-bundle.dependencies-builder."></a>A <a href="/masterdefaultsconfig.coffee#bundle.dependencies">Modules &amp; Dependencies aware</a> builder.</h2>
-<p><a href="/exporting-modules">Exporting modules</a> to <code>window</code>/<code>global</code> variables (like <code>window._</code>, <code>window.$</code> etc), demystified and with no boilerplate.</p>
-<p>Want <a href="/generated-noconflict-functionality"><code>noConflict()</code></a>, baked in? Its a simple declaration away.</p>
+</div><div class="whyclear"><pre class="code separator">dependencies: imports: bundle: { 'lodash': '_', 'backbone': 'Backbone'}</pre></div><!--.why--><h2><a class="anchor" href="#a-modules-dependencies-aware-urequire-docs-masterdefaultsconfig.coffee-bundle.dependencies-builder." id="a-modules-dependencies-aware-urequire-docs-masterdefaultsconfig.coffee-bundle.dependencies-builder."></a>A <a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.dependencies">Modules &amp; Dependencies aware</a> builder.</h2>
+<p><a href="//uRequire/docs/exporting-modules">Exporting modules</a> to <code>window</code>/<code>global</code> variables (like <code>window._</code>, <code>window.$</code> etc), demystified and with no boilerplate.</p>
+<p>Want <a href="//uRequire/docs/generated-noconflict-functionality"><code>noConflict()</code></a>, baked in? Its a simple declaration away.</p>
 <pre><code class="lang-js"><span class="comment">// file `uberscore.js` - export it to root (`window`) as `_B`</span>
 ({ urequire: { rootExports: <span class="string">'_B'</span>, noConflict: <span class="literal">true</span> }});
 module.exports = {...}</code></pre>
-<p>The <a href="/masterdefaultsconfig.coffee#bundle.dependencies.rootExports">same in a config</a> is</p>
+<p>The <a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.dependencies.rootExports">same in a config</a> is</p>
 <pre><code class="lang-js">dependencies: { imports: { root: { <span class="string">'uberscore'</span>: <span class="string">'_B'</span> }}}</code></pre>
 <p>How about <a href="/masterdefaultsconfig.coffee#bundle.dependencies.imports.bundle">exporting to your bundle</a> only?</p>
 <pre><code class="lang-js"><span class="comment">// inject `lodash` as `_` in (all) bundle's modules</span>
 dependencies: { imports: { <span class="string">'lodash'</span>: <span class="string">'_'</span> }}</code></pre>
 <p>Want to replace <strong>deps with mocks</strong> or <strong>alternative versions</strong> ?</p>
-<p><a href="/masterdefaultsconfig.coffee#bundle.dependencies.imports.bundle">Inject</a>, <a href="/MasterDefaultsConfig.coffee#bundle.dependencies.replace">replace</a> or even <a href="/resourceconverters.coffee#inject-replace-dependencies">delete</a> dependencies with a simple declaration or a callback:</p>
+<p><a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.dependencies.imports.bundle">Inject</a>, <a href="//uRequire/docs/MasterDefaultsConfig.coffee#bundle.dependencies.replace">replace</a> or even <a href="//uRequire/docs/resourceconverters.coffee#inject-replace-dependencies">delete</a> dependencies with a simple declaration or a callback:</p>
 <pre><code class="lang-js"><span class="comment">// underscore is dead, long live _</span>
 dependencies: { replace: { lodash: <span class="string">'underscore'</span>}}
 
 <span class="comment">// with code</span>
 <span class="keyword">function</span>(modyle){ modyle.replaceDeps(<span class="string">'models/PersonModel'</span>, <span class="string">'mock/models/PersonModelMock'</span>); }</code></pre>
-<div class="whyclear"><pre class="code separator">[ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']</pre></div><h2><a class="anchor" href="#a-versatile-in-memory-resource-conversion-resourceconverters.coffee-resourceconverter-workflow-principles" id="a-versatile-in-memory-resource-conversion-resourceconverters.coffee-resourceconverter-workflow-principles"></a>A versatile <a href="/resourceconverters.coffee#resourceconverter-workflow-principles">in-memory Resource Conversion</a></h2>
-<p><a href="/resourceconverters.coffee#manipulating-modules">Manipulate Module code</a> while building:</p>
+<div class="whyclear"><pre class="code separator">[ '$coco', [ '**/*.co'], ((r)-> require('coco').compile r.converted), '.js']</pre></div><h2><a class="anchor" href="#a-versatile-in-memory-resource-conversion-urequire-docs-resourceconverters.coffee-resourceconverter-workflow-principles" id="a-versatile-in-memory-resource-conversion-urequire-docs-resourceconverters.coffee-resourceconverter-workflow-principles"></a>A versatile <a href="//uRequire/docs/resourceconverters.coffee#resourceconverter-workflow-principles">in-memory Resource Conversion</a></h2>
+<p><a href="//uRequire/docs/resourceconverters.coffee#manipulating-modules">Manipulate Module code</a> while building:</p>
 <ul>
-<li><p><strong>inject, replace or delete</strong> <a href="/resourceconverters.coffee#manipulate-replace-ast-code">code fragments or AST nodes</a> or dependencies with one liners.</p>
+<li><p><strong>inject, replace or delete</strong> <a href="//uRequire/docs/resourceconverters.coffee#manipulate-replace-ast-code">code fragments or AST nodes</a> or dependencies with one liners.</p>
 <pre><code><span class="comment">// delete matching code of code skeleton</span>
 <span class="keyword">function</span>(m){ m.replaceCode(<span class="string">'if (debug){}'</span>) }
 
@@ -102,43 +102,43 @@ dependencies: { replace: { lodash: <span class="string">'underscore'</span>}}
 </ul>
 <p>Perform <strong>any code manipulation</strong> - eg remove debug code, inject initializations etc</p>
 <ul>
-<li><p><a href="/resourceconverters.coffee#beforebody">Inject code before (or after) each module&#39;s body</a> eg. to initialize custom module code, for common module tasks:</p>
+<li><p><a href="//uRequire/docs/resourceconverters.coffee#beforebody">Inject code before (or after) each module&#39;s body</a> eg. to initialize custom module code, for common module tasks:</p>
 <pre><code><span class="keyword">function</span>(m) { m.beforeBody = <span class="string">"var l = new _B.Logger('"</span> + m.dstFilename + <span class="string">"');"</span>; }</code></pre>
 </li>
-<li><p>Inject <a href="/MasterDefaultsConfig.coffee#bundle.commoncode">common</a> or <a href="/resourceconverters.coffee#mergedcode">merged</a> repeating statements: keep DRY, save space &amp; speed when <a href="/combined-template"><code>combined</code></a> in a single <code>.js</code></p>
+<li><p>Inject <a href="/MasterDefaultsConfig.coffee#bundle.commoncode">common</a> or <a href="//uRequire/docs/resourceconverters.coffee#mergedcode">merged</a> repeating statements: keep DRY, save space &amp; speed when <a href="//uRequire/docs/combined-template"><code>combined</code></a> in a single <code>.js</code></p>
 <pre><code><span class="comment">// each module will have before its main body, in all templates</span>
 bundle: commonCode: <span class="string">'var expect = chai.expect;'</span>
 
 <span class="comment">// added before beforeBody for all templates except 'combined', where its merged</span>
 <span class="keyword">function</span>(m) { m.mergedCode = <span class="string">'"var p1 = myModule.p1, p2 = myModule.p2, ..., pN = myModule.pN;"'</span> }</code></pre>
-<p>Who needs bloated plugins ?  Here&#39;s a <a href="/resourceconverters.coffee#what-is-a-resourceconverter">ResourceConverter</a> for our <a href="https://github.com/satyr/coco">coco</a> files (included along with <a href="http://coffeescript.org">coffeescript</a>, <a href="http://livescript.net">LiveScript</a>, <a href="http://maxtaco.github.io/coffee-script">iced-coffee-script</a>.</p>
+<p>Who needs bloated plugins ?  Here&#39;s a <a href="//uRequire/docs/resourceconverters.coffee#what-is-a-resourceconverter">ResourceConverter</a> for our <a href="https://github.com/satyr/coco">coco</a> files (included along with <a href="http://coffeescript.org">coffeescript</a>, <a href="http://livescript.net">LiveScript</a>, <a href="http://maxtaco.github.io/coffee-script">iced-coffee-script</a>.</p>
 <pre><code class="lang-coffee">[ <span class="string">'$coco'</span>, [ <span class="string">'**/*.co'</span>], ((r)-&gt; require(<span class="string">'coco'</span>).compile r.converted), <span class="string">'.js'</span>]</code></pre>
 </li>
 </ul>
 <div class="whyclear"><pre class="code separator">['+inject:VERSION', ['uberscore.js'], (m)-> m.beforeBody = "var VERSION = '0.0.15';"]</pre></div><div class="why left"><h2><a class="anchor" href="#a-spartan-module-builder-config" id="a-spartan-module-builder-config"></a>A spartan Module builder &amp; config</h2>
 <p>This <code>&#39;uberscore&#39;</code> config (coffeescript) will:</p>
 <ul>
-<li><p><a href="/masterdefaultsconfig.coffee#bundle.path">read files from <code>source</code></a>, <a href="/(masterdefaultsconfig.coffee#build.dstPath">write to <code>build</code></a></p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.path">read files from <code>source</code></a>, <a href="/(masterdefaultsconfig.coffee#build.dstPath">write to <code>build</code></a></p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#bundle.filez">filter some <code>filez</code></a></p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.filez">filter some <code>filez</code></a></p>
 </li>
-<li><p>convert each module in <code>path</code> to <a href="/UMD-template">UMD (default)</a></p>
+<li><p>convert each module in <code>path</code> to <a href="//uRequire/docs/UMD-template">UMD (default)</a></p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#bundle.copy">copy</a> all other files there</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.copy">copy</a> all other files there</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.runtimeInfo">Allow <code>runtimeInfo</code></a> (eg <code>__isNode</code>, <code>__isAMD</code>) selectively</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.runtimeInfo">Allow <code>runtimeInfo</code></a> (eg <code>__isNode</code>, <code>__isAMD</code>) selectively</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#bundle.dependencies.imports.bundle">inject</a> <code>lodash</code> dep in each module as <code>_</code></p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.dependencies.imports.bundle">inject</a> <code>lodash</code> dep in each module as <code>_</code></p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#bundle.dependencies.rootExports">export a global</a> <code>window._B</code> with a <code>noConflict()</code></p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#bundle.dependencies.rootExports">export a global</a> <code>window._B</code> with a <code>noConflict()</code></p>
 </li>
-<li><p><a href="/resourceconverters.coffee#inject-any-string-before-after-body">inject</a> <code>&#39;var VERSION =...&#39;</code> before body of <code>uberscore.js</code></p>
+<li><p><a href="//uRequire/docs/resourceconverters.coffee#inject-any-string-before-after-body">inject</a> <code>&#39;var VERSION =...&#39;</code> before body of <code>uberscore.js</code></p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.optimize">minify</a> each module with UglifyJs2&#39;s defaults</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.optimize">minify</a> each module with UglifyJs2&#39;s defaults</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.template">add a banner</a> (after UMD template &amp; minification)</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.template">add a banner</a> (after UMD template &amp; minification)</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.watch">watch for changes</a>, convert only <a href="/resourceconverters.coffee#watching-module-changes">what&#39;s really changed</a></p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.watch">watch for changes</a>, convert only <a href="/resourceconverters.coffee#watching-module-changes">what&#39;s really changed</a></p>
 </li>
 </ul>
 </div><div class="why right"><pre><code class="lang-coffee"><span class="comment">// Config as a `Gruntfile.coffee` task</span>
@@ -159,21 +159,21 @@ uberscore:
   template: banner: <span class="string">"// uBerscore v0.0.15"</span>
   optimize: <span class="string">'uglify2'</span>
   watch: <span class="literal">true</span></code></pre>
-</div><div class="whyclear"><pre class="code separator">{ derive: ['uberscore'], filez: [ /.*\.(coffee\.md|litcoffee|coffee)$/ ] }</pre></div><div class="why right"><h2><a class="anchor" href="#parent-configs-lets-derive-types-and-derive-deriving-behaviors" id="parent-configs-lets-derive-types-and-derive-deriving-behaviors"></a>Parent configs ? <a href="/types-and-derive#deriving-behaviors">Lets derive!</a></h2>
+</div><div class="whyclear"><pre class="code separator">{ derive: ['uberscore'], filez: [ /.*\.(coffee\.md|litcoffee|coffee)$/ ] }</pre></div><div class="why right"><h2><a class="anchor" href="#parent-configs-lets-derive-urequire-docs-types-and-derive-deriving-behaviors" id="parent-configs-lets-derive-urequire-docs-types-and-derive-deriving-behaviors"></a>Parent configs ? <a href="//uRequire/docs/types-and-derive#deriving-behaviors">Lets derive!</a></h2>
 <p>The <code>&#39;distribute&#39;</code> config will:</p>
 <ul>
-<li><p>derive (i.e <a href="/types-and-derive#deeper-behavior">deep inherit &amp; modify</a>) the above</p>
+<li><p>derive (i.e <a href="//uRequire/docs/types-and-derive#deeper-behavior">deep inherit &amp; modify</a>) the above</p>
 </li>
-<li><p>filter some <a href="/types-and-derive#arrayizeconcat">more filez</a></p>
+<li><p>filter some <a href="//uRequire/docs/types-and-derive#arrayizeconcat">more filez</a></p>
 </li>
-<li><p>change template to <a href="/combined-template">&#39;combined&#39;</a></p>
+<li><p>change template to <a href="//uRequire/docs/combined-template">&#39;combined&#39;</a></p>
 </li>
 <li><p>output to a different filename</p>
 </li>
-<li><p>pass <a href="/masterdefaultsconfig.coffee#build.optimize">more options to uglify2 / r.js</a></p>
+<li><p>pass <a href="//uRequire/docs/masterdefaultsconfig.coffee#build.optimize">more options to uglify2 / r.js</a></p>
 </li>
 </ul>
-<p>See <a href="/masterdefaultsconfig.coffee#examples">more simple examples</a> and a <a href="https://github.com/anodynos/uBerscore/blob/master/Gruntfile.coffee">detailed real project</a></p>
+<p>See <a href="//uRequire/docs/masterdefaultsconfig.coffee#examples">more simple examples</a> and a <a href="https://github.com/anodynos/uBerscore/blob/master/Gruntfile.coffee">detailed real project</a></p>
 </div><div class="why left"><p>Lets derive some children</p>
 <pre><code class="lang-coffee">distribute:
   derive: [<span class="string">'uberscore'</span>]
@@ -183,13 +183,13 @@ uberscore:
   optimize: uglify2: {more: uglify2: options}</code></pre>
 </div><div class="whyclear"><pre class="code separator">`_.extend(window.libraryExported, exports)`</pre></div><div class="why left"><h2><a class="anchor" href="#how-about-declarative-either-per-module-or-whole-bundle-:" id="how-about-declarative-either-per-module-or-whole-bundle-:"></a>How about <em>declarative</em>, either <strong>per module</strong> or <strong>whole bundle</strong>:</h2>
 <ul>
-<li><p><a href="/masterdefaultsconfig.coffee#build.globalwindow">have <code>window === global</code></a>, either in Browser or nodejs, at all times</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.globalwindow">have <code>window === global</code></a>, either in Browser or nodejs, at all times</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.runtimeinfo">runtimeInfo</a> have <code>__isWeb</code>, <code>__isNode</code> &amp; <code>__isAMD</code> always available</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.runtimeinfo">runtimeInfo</a> have <code>__isWeb</code>, <code>__isNode</code> &amp; <code>__isAMD</code> always available</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.usestrict">inject <code>&#39;use strict;&#39;</code></a> on all/filtered modules or combined bundle&#39;s closure</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.usestrict">inject <code>&#39;use strict;&#39;</code></a> on all/filtered modules or combined bundle&#39;s closure</p>
 </li>
-<li><p><a href="/masterdefaultsconfig.coffee#build.injectexportsmodule">inject <code>imports</code> &amp; <code>module</code></a> (along with <code>require</code>), so you never miss &#39;em &amp; solve any <a href="http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd">circular dependencies</a> problems <a href="http://requirejs.org/docs/api.html#circular">with AMD</a>.</p>
+<li><p><a href="//uRequire/docs/masterdefaultsconfig.coffee#build.injectexportsmodule">inject <code>imports</code> &amp; <code>module</code></a> (along with <code>require</code>), so you never miss &#39;em &amp; solve any <a href="http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd">circular dependencies</a> problems <a href="http://requirejs.org/docs/api.html#circular">with AMD</a>.</p>
 </li>
 <li><p>and more :-)</p>
 </li>
