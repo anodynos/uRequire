@@ -1,0 +1,611 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>ResourceConverters.coffee - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container resourceconverters.coffee"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>ResourceConverters.coffee</h1><p><strong>Resource Converters</strong> provide a powerful, generic and extendible <strong>in-memory conversions workflow</strong> / <strong>assets pipeline</strong>, that is expressive and flexible to cater for all common conversions needs (eg coffeescript, Livescript, coffeecup, less, jade etc).</p>
+<p><em>note: This file is written in <a href="http://ashkenas.com/literate-coffeescript">Literate Coffeescript</a>: it serves both as </em>markdown documentation<em> AND the </em>actual code<em>, just like <a href="masterdefaultsconfig.coffee#literate-coffeescript">MasterDefaultsConfig</a>. This file primary location is <a href="https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverters.coffee.md">https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverters.coffee.md</a> &amp; copied over to the urequire.wiki - DONT edit it separatelly in the wiki.</em></p>
+<h2><a class="anchor" href="#what-is-a-resourceconverter" id="what-is-a-resourceconverter"></a>What is a ResourceConverter ?</h2>
+<p>A <strong>ResourceConverter (RC)</strong> is the <em>buidling block</em> of uRequire&#39;s <em>conversions workflow</em> system. An RC is a simplistic declaration and callback wrapping of a compiler/transpiler or any other converter/conversion.</p>
+<p>Each RC instance performs a conversion from one resource format (eg <em>coffeescript</em>, <em>teacup</em>) to another <strong>converted</strong> format (eg <em>javascript</em>, <em>html</em>), for all <a href="masterdefaultsconfig.coffee#bundle.filez">bundle.filez</a> that also match its own <a href="#inside-a-resource-converter"><code>ResourceConverter.filez</code></a>.</p>
+<p>RCs work in a serial chain: one RC&#39;s <a href="#converted"><code>converted</code></a> result, is the next RCs <a href="#source"><code>source</code></a>.</p>
+<h2><a class="anchor" href="#resourceconverter-workflow-principles" id="resourceconverter-workflow-principles"></a><strong>ResourceConverter workflow</strong> principles</h2>
+<h3><a class="anchor" href="#simple-authoring-..." id="simple-authoring-..."></a><strong>Simple authoring</strong>...</h3>
+<p>...as a callback API that enables any kind of conversion, even with <em>one-liners</em>. This is an actual ResourceConverter :</p>
+<p>   <code>[ &#39;$coco&#39;, [ &#39;**/*.co&#39;], (r) =&gt; require(&#39;coco&#39;).compile(r.convert), &#39;.js&#39;]</code></p>
+<p>  Authoring an RC is very simple and has a <a href="#inside-a-resource-converter">formal spec</a> and <a href="#the-alternative-even-shorter-way">space saving shortcuts</a>. </p>
+<h3><a class="anchor" href="#blazing-fast-..." id="blazing-fast-..."></a><strong>Blazing fast</strong>...</h3>
+<p>...with focus to an <strong>in-memory conversions workflow</strong>, with an <strong>only-when-needed</strong> asset processing pipeline, where each file is processed/converted/saved/copied <em>only when it really needs to</em> (very useful when used with <a href="masterdefaultsconfig.coffee#build.watch">build.watch</a> or grunt&#39;s watch).</p>
+<h3><a class="anchor" href="#dry-dont-repeat-yourself-..." id="dry-dont-repeat-yourself-..."></a><strong>DRY (Dont Repeat Yourself)</strong>...</h3>
+<p>...via the <em>seamlessly integrated</em> <a href="masterdefaultsconfig.coffee">uRequire&#39;s configuration</a> settings shared among all your conversion pipelines such as <a href="masterdefaultsconfig.coffee#bundle.filez">bundle.filez</a>, <a href="masterdefaultsconfig.coffee#bundle.path">bundle.path</a>, <a href="masterdefaultsconfig.coffee#build.dstpath">build.dstPath</a> etc, unobtrusively loading &amp; saving with the leanest possible configuration. Check <a href="masterdefaultsconfig.coffee#examples">an example</a>.</p>
+<h3><a class="anchor" href="#dependencies-matter-..." id="dependencies-matter-..."></a><strong>Dependencies Matter</strong>...</h3>
+<p>...uRequire provides the first <strong>module &amp; dependencies aware build system</strong>, with advanced <a href="#manipulating-modules">module manipulation features</a> such as injecting or replacing dependencies, matching and replacing/removing AST/String code fragments and more coming.</p>
+<h3><a class="anchor" href="#transparent-power-..." id="transparent-power-..."></a><strong>Transparent Power</strong>...</h3>
+<p>...RCs empower any conversion (and most common ones that would otherwise require their own &#39;plugin&#39;). In uRequire, many common tasks like <strong>compilation</strong> (currently Coffeescript, Livescript, coco, IcedCoffeeScript), <strong>concatenation and banners</strong> (i.e concat) or even <strong>injections</strong> of text/code fragments, minification (such as uglify), <strong>copying</strong> of resources, or <em>passing</em> them through arbitrary callbacks are all integrated <a href="masterdefaultsconfig.coffee#examples">in one neat DRY configuration</a>.</p>
+<h2><a class="anchor" href="#how-do-resource-coverters-work" id="how-do-resource-coverters-work"></a>How do Resource Coverters work ?</h2>
+<p>Each file in <a href="masterdefaultsconfig.coffee#bundle.filez"><code>bundle.filez</code></a> is matched against each ResourceConverter <a href="#inside-a-resource-converter"><code>filez</code></a> in the order defined in your <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> of your config. Each RC that matches a file, marks it as a <code>resource</code> that needs conversion with it, in the order defined in <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a>. <em>Files that are not matched by any RC are still useful for declarative binary copy</em>.</p>
+<p>When a file (<code>resource</code>) changes, it goes through each matched ResourceConverter instance (<code>rc</code>) - always in the order defined in <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> - effectively <code>rc.convert()</code>-ing  <code>resource.source</code> to <code>resource.converted</code> at each subsequent step. </p>
+<p>The result of each <code>rc.convert()</code> (i.e <code>resource.converted</code>) is the input to the next matched RC&#39;s <code>rc.convert()</code>. The whole process is usually <strong>in memory only</strong>, with only the 1st <a href="resourceconverters.coffee#fileresource-methods"><code>read()</code></a> and last <a href="resourceconverters.coffee#fileresource-methods"><code>save()</code></a> being on the file system.</p>
+<h2><a class="anchor" href="#defining-in-bundle.resources" id="defining-in-bundle.resources"></a>Defining in <code>bundle.resources</code></h2>
+<p>A <em>Resource Converter</em> (RC) instance is user-defined inside the <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> Array either as:</p>
+<ul>
+<li><p>an Object {}, <a href="#inside-a-resource-converter">as described bellow</a>.</p>
+</li>
+<li><p>an Array [], (a shortcut spec) omitting property names that are inferred by position - see <a href="#the-alternative-even-shorter-way">alternative array way</a> and <a href="#the-shortest-way-ever-a-one-liner-converter">The shortest one-liner-converter</a>.</p>
+</li>
+<li><p>by searching/retrieving an already registered RC, either by :</p>
+<p>a) a String &#39;name&#39;, used to retrieve an RC.</p>
+<p>b) by a function, whose context (<code>this</code>) is a search-by-name function that returns the proper RC instance. It can then be changed, cloned etc and return the RC to be added to <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a>.</p>
+</li>
+</ul>
+<p>Example :</p>
+<pre><code>bundle: resources : [
+
+  {name:<span class="string">"RCname1"</span>, descr:<span class="string">"RCname1 description"</span>....}
+
+  [<span class="string">"RCname2"</span>, <span class="string">"RCname2 description"</span>, ....]
+
+  <span class="string">"RCname3"</span>
+
+  <span class="reserved">function</span>(){
+    rc = <span class="keyword">this</span>(<span class="string">"RCname4"</span>).clone();
+    rc.filez.push <span class="string">'!**/DRAFT*.*'</span>;
+    <span class="keyword">return</span> rc;
+  }
+]</code></pre>
+<p>Also see <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> and the real <a href="#default-resource-converters">Default Resource Converters</a>.</p>
+<h2><a class="anchor" href="#inside-a-resource-converter" id="inside-a-resource-converter"></a>Inside a Resource Converter</h2>
+<p>Ultimately, a <strong>ResourceConverter</strong> instance has these fields:</p>
+<h3><a class="anchor" href="#name" id="name"></a><code>name</code></h3>
+<p>A simple name eg. <code>&#39;coffee-script&#39;</code>, but can also have various flags at the start of its initial name - see below - that are applied &amp; stripped each time name is set.</p>
+<p>A <code>name</code> should be unique to each RC; otherwise it updates the registered RC by that name (registry is simply used to lookup named RCs).</p>
+<h3><a class="anchor" href="#descr" id="descr"></a><code>descr</code></h3>
+<p>Any optional details (i.e String) to keep the name tidy - it plays no other role.</p>
+<h3><a class="anchor" href="#filez" id="filez"></a><code>filez</code></h3>
+<p>A <a href="types-and-derive#filespecs">filespecs</a> (i.e an <code>[]</code> of minimatch, RegExp or fns) that matches the files this ResourceConverter deals with, always within the boundaries of <a href="masterdefaultsconfig.coffee#bundle.filez"><code>bundle.filez</code></a>.</p>
+<h3><a class="anchor" href="#convert" id="convert"></a><code>convert()</code></h3>
+<p>The actual conversion callback <code>function(resource){return &#39;convertedText&#39;}</code> that converts some resource&#39;s data (eg <code>source</code>, <code>converted</code> etc) and returns it. The only argument passed is a <code>resource</code> (the representation of a file under processing, which might also be a Module).</p>
+<p>   <strong>NOTE: The context (value of <code>this</code>) is set to <code>this</code> ResourceConverter (uRequire &gt;=0.6)</strong>.</p>
+<p>   The return value of <code>convert()</code> is stored as <code>resource.converted</code> and its possibly converted again by a subsequent converter (that has also matched the file), leading to an in memory <em>conversion pipeline</em>.</p>
+<p> Finally, after all conversions are done (for current build), <strong>if <code>resource.converted</code> is a non-empty String</strong>, its saved automatically at <code>resource.dstFilepath</code> (which uses <a href="masterdefaultsconfig.coffee#build.dstpath"><code>build.dstPath</code></a>) &amp; <code>convFilename</code> below.</p>
+<h3><a class="anchor" href="#convfilename" id="convfilename"></a><code>convFilename</code></h3>
+<p>How to convert th resource&#39;s filename. It can be :</p>
+<ul>
+<li><p>a <code>function (dstFilename, srcFilename) { return &quot;someConvertedDstFilename.someext&quot;) }</code> that converts the current <code>dstFilename</code> (or the <code>srcFilename</code>) to its new <em>destination</em> <code>dstFilename</code>, eg <code>&quot;file.coffee&quot;</code> to <code>&quot;file.js&quot;</code>.</p>
+</li>
+<li><p>a <code>String</code> which can be either:</p>
+<ul>
+<li><p>starting with &quot;.&quot; (eg &quot;.js&quot;), where its considered an extension replacement. By default it replaces the extension of <code>dstFilename</code>, but with the &quot;~&quot; flag it performs the extension replacement on <code>srcFilename</code> (eg <code>&quot;~.coffee.md&quot;</code>).</p>
+</li>
+<li><p>a plain String, returned as is (<em>note: duplicate <code>dstFilename</code> currently causes a build error</em>).</p>
+</li>
+</ul>
+</li>
+</ul>
+<h3><a class="anchor" href="#type" id="type"></a><code>type</code></h3>
+<p>The <code>type</code> is one of [&#39;bundle&#39;, &#39;file&#39;, &#39;text&#39;, &#39;module&#39;] and the <strong>default is undefined</strong>. For simplicity it can be set by a <em>name flag</em> :</p>
+<table>
+<thead>
+<tr>
+<th align="center">[ name flag]</th>
+<th align="center">[ type ]</th>
+<th align="center">[ clazz (used internally) ]</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">&#39;&amp;&#39;</td>
+<td align="center">&#39;bundle&#39;</td>
+<td align="center">BundleFile</td>
+</tr>
+<tr>
+<td align="center">&#39;@&#39;</td>
+<td align="center">&#39;file&#39;</td>
+<td align="center">FileResource</td>
+</tr>
+<tr>
+<td align="center">&#39;#&#39;</td>
+<td align="center">&#39;text&#39;</td>
+<td align="center">TextResource</td>
+</tr>
+<tr>
+<td align="center">&#39;$&#39;</td>
+<td align="center">&#39;module</td>
+<td align="center">Module</td>
+</tr>
+</tbody>
+</table>
+<p>Each RC in <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> is <em>attached</em> to each matching resource (i.e each file that passed through both <a href="masterdefaultsconfig.coffee#bundle.filez"><code>bundle.filez</code></a> and <a href="#filez"><code>filez</code></a>) and its <code>type</code> (<code>clazz</code> internally) <strong> <em>marks</em> the resource&#39;s class (to be instantiated)</strong> either as <a href="#bundlefile"><code>BundleFile</code></a>, <a href="#fileresource-extends-bundlefile"><code>FileResource</code></a>, <a href="#textresource-extends-fileresource"><code>TextResource</code></a> or <a href="#module-extends-textresource"><code>Module</code></a> - all <a href="#resource-classes">explained here</a>.</p>
+<p><strong>IMPORTANT</strong>: Resource Converters order inside <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> does matter, since <strong>only the last matching RC (with a <code>type</code>) determines (marks) the actual class</strong> of the created resource.</p>
+<hr>
+<h5><a class="anchor" href="#flags-an-nameflags" id="flags-an-nameflags"></a>Flags an Nameflags</h5>
+<p>The following RC instance fields can be set either by :</p>
+<ul>
+<li><p>setting the key on the object notation, eg <code>isMatchSrcFilename: true</code></p>
+</li>
+<li><p>conveniently, by prefixing <a href="#name"><code>name</code></a> with the <strong>name flag</strong> , eg <code>name: &#39;~myMatchSrcFilename_RC_name&#39;</code>. or <code>[&#39;~myMatchSrcFilename_RC_name&#39;, ..rest of rc.. ]</code></p>
+</li>
+</ul>
+<p>When you change <code>name</code>, <code>type</code> and <code>convFilename</code> of an RC, the properties are correctly updated and flags are always set and then stripped.</p>
+<p>The <em>name searching can also carry flags</em>, which are applied on the found RC, for example having <code>&quot;#coco&quot;</code> on <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> will both find &#39;coco&#39; RC and also apply the <code>&#39;#&#39;</code> flag to it (<code>type:&quot;TextResource&quot;</code>), before stripping it and leaving &#39;coco&#39; as the name of the RC.</p>
+<p>The name flag follows the key name, eg as in :</p>
+<h3><a class="anchor" href="#ismatchsrcfilename" id="ismatchsrcfilename"></a><code>isMatchSrcFilename</code> - <code>&quot;~&quot;</code></h3>
+<p>By default (<code>isMatchSrcFilename: false</code>) filename matching of <code>ResourceConverter.filez</code> uses the file&#39;s resource instacnce <code>dstFilename</code>, which is set by the last <code>convFilename()</code> that run on the instance (with initial value that of <code>srcFilename</code>).</p>
+<p>Use the <code>&#39;~&#39;</code> name flag or (<code>isMatchSrcFilename:true</code>) if you want to match <code>filez</code> against the original source filename (eg. <code>&#39;**/myfile.coffee&#39;</code> instead of <code>&#39;**/myfile.js&#39;</code>).</p>
+<h4><a class="anchor" href="#why" id="why"></a>Why ?</h4>
+<p>The sane default allows the creation of reusable RCs, that are agnostic of how the input resource came about.
+RCs should be as gneric as possible. Whether its <code>filez</code> actual matchedes &#39;.js&#39; file on disk, or became a &#39;.js&#39; from a &#39;.coffee&#39; as part of an in-memory conversion pipeline.</p>
+<hr>
+<h3><a class="anchor" href="#isterminal" id="isterminal"></a><code>isTerminal</code> - <code>&quot;|&quot;</code></h3>
+<p>If an <code>isTerminal:true</code> converter is encountered while processing a file, the conversion process (for that current file/resource) terminates after this RC is done.</p>
+<p>You can denote an RC as <code>isTerminal:true</code> in the {} format or with <em>name flag</em> <code>&#39;|&#39;</code>. THe default is ofcourse <code>isTerminal: false</code>.</p>
+<hr>
+<h3><a class="anchor" href="#isbeforetemplate" id="isbeforetemplate"></a><code>isBeforeTemplate</code> - <code>&quot;+&quot;</code></h3>
+<p>A converter with <code>isBeforeTemplate: true</code> is a special case:</p>
+<p>It refers only to <a href="#module-extends-textresource">Module</a> instances and will run just BEFORE the module is converted through <a href="masterdefaultsconfig.coffee#build.template"><code>build.template</code></a>.</p>
+<p>The <code>convert(module)</code> function of <code>isBeforeTemplate</code> RCs will always receive a Module instance (<a href="#module-extends-textresource">Module is a subclass of BundleFile/Resource</a>), that has :</p>
+<ul>
+<li><p>parsed javascript in <a href="https://developer.mozilla.org/en/SpiderMonkey/Parser_API">Mozzila Parser AST</a> format. </p>
+</li>
+<li><p>extracted/adjusted dependencies data, allowing an <a href="#inject-replace-dependencies">advanced manipulation of module&#39;s dependencies</a></p>
+</li>
+<li><p>Methods &amp; members to <a href="#manipulating-modules">manipulate the module instance, including code</a> in amazing ways.</p>
+</li>
+<li><p>Note: for <code>isBeforeTemplate</code> RCs only the <strong>return value of <code>convert(module)</code> is ignored</strong> - the template uses only AST code and its dependencies arrays to produce its <code>@converted</code> string at the next step (the template rendering).* You can affect the produced code (template rendering) only through <a href="#manipulating-modules">manipulating the Module</a>.</p>
+</li>
+</ul>
+<hr>
+<h3><a class="anchor" href="#isaftertemplate" id="isaftertemplate"></a><code>isAfterTemplate</code> - <code>&quot;!&quot;</code></h3>
+<p>A converter with <code>isAfterTemplate:true</code> refers only to [Module](#module-extends-textresource instances and will run right AFTER the module is converted through <a href="masterdefaultsconfig.coffee#build.template"><code>build.template</code></a>.</p>
+<p>By default <code>isAfterTemplate:false</code>. Use the <code>&#39;!&#39;</code> name flag to denote <code>isAfterTemplate: true</code>.</p>
+<p>Following the norm, the return value of <a href="#convert"><code>convert(module)</code></a> is assigned to <a href="#converted"><code>converted</code></a> and (assuming its the last RC) it is the value to be saved as <a href="#dstfilename"><code>dstFilename</code></a> (assuming its a non-empty String).</p>
+<p>This is the right place to add banners, custom code injections etc, <em>outside</em> of the UMD/AMD/nodejs template and its enclosures.</p>
+<p>@see <a href="masterdefaultsconfig.coffee#build.template.banner">build.template.banner</a></p>
+<p>@note <a href="#manipulating-modules">Module Manipulation</a> <strong>will make no effect in <code>isAfterTemplate: true</code> RCs</strong>, only the return of <code>convert()</code> matters like in all normal RCs!</p>
+<h3><a class="anchor" href="#isafteroptimize" id="isafteroptimize"></a><code>isAfterOptimize</code> - <code>&quot;%&quot;</code></h3>
+<p>Just like <a href="#isaftertemplate"><code>isAfterTemplate</code></a>, but runs after <a href="masterdefaultsconfig.coffee#build.optimize"><code>build.optimize</code></a> is run (if any, or after <code>isAfterTemplate</code> otherwise).</p>
+<h1><a class="anchor" href="#resource-classes" id="resource-classes"></a>Resource classes</h1>
+<p>Each file that passes through <a href="masterdefaultsconfig.coffee#bundle.filez"><code>bundle.filez</code></a> will be instantiated as one of 4 classes (each extending the previous one):</p>
+<p><strong>BundleFile</strong> &lt;-- <strong>FileResource</strong> &lt;-- <strong>TextResource</strong> &lt;-- <strong>Module</strong></p>
+<hr>
+<h2><a class="anchor" href="#bundlefile" id="bundlefile"></a>BundleFile</h2>
+<p>Represents a generic file inside the bundle. It also stands as the <strong>base class of all file/text resources/modules</strong>.</p>
+<p>All <a href="masterdefaultsconfig.coffee#bundle.filez"><code>bundle.filez</code></a> that :</p>
+<ul>
+<li><p>are NOT matched by any RC at all</p>
+</li>
+<li><p>are not matched by any RC that has some specific <a href="#type"><code>type</code>/<code>clazz</code></a>,</p>
+</li>
+<li><p>or last matched by an RC with an explicit <code>type: &#39;bundle&#39;</code> (or name-flagged with <code>&#39;&amp;&#39;</code>)</p>
+</li>
+</ul>
+<p>are instantiated as a <code>BundleFile</code>. BundleFile <em>instances</em> :</p>
+<ul>
+<li><p>are NOT converted at all - they are never passed to <code>convert()</code>. Consequently they have no <a href="#converted"><code>converted</code></a> content.</p>
+</li>
+<li><p>their contents / (<a href="#source"><code>source</code></a>) are completely unknown / irrelevant. They might be binary files or non-urequire converted files.</p>
+</li>
+<li><p>their sole puropse is they be easily (binary) copied if they match with a simple <a href="masterdefaultsconfig.coffee#bundle.copy"><code>bundle.copy</code></a> filespec.</p>
+</li>
+</ul>
+<h3><a class="anchor" href="#watching-bundlefile-changes" id="watching-bundlefile-changes"></a>Watching BundleFile changes</h3>
+<p>When watching, a BundleFile instance is considered as changed, only when fs.stats <code>size</code> or <code>mtime</code> have changed since the last refresh (i.e a partial/full build noting this file).</p>
+<h3><a class="anchor" href="#bundlefile-properties" id="bundlefile-properties"></a>BundleFile Properties</h3>
+<p>BundleFile class serves as a base for all resource types  - its the parent (and grand* parent) class of the others. Each BF instance (and consequently each resource/module instance passed to <code>convert()</code>) has the following properties :</p>
+<h4><a class="anchor" href="#filename-related" id="filename-related"></a>Filename related</h4>
+<h4><a class="anchor" href="#srcfilename" id="srcfilename"></a><code>srcFilename</code></h4>
+<p>The source filename, within the bundle, Eg <code>&#39;models/initialValues.json&#39;</code> or <code>&#39;models/Person.coffee&#39;</code></p>
+<h4><a class="anchor" href="#srcfilepath" id="srcfilepath"></a><code>srcFilepath</code></h4>
+<p>Calculated to include <a href="masterdefaultsconfig.coffee#bundle.path"><code>bundle.path</code></a>, eg <code>&#39;source/code/models/initialValues.json&#39;</code></p>
+<h4><a class="anchor" href="#srcrealpath" id="srcrealpath"></a><code>srcRealpath</code></h4>
+<p>The full OS path, eg <code>&#39;mnt/myproject/source/code/models/initialValues.json</code> - useful for <code>require</code>ing modules without worrying about relative paths.</p>
+<h4><a class="anchor" href="#dstfilename" id="dstfilename"></a><code>dstFilename</code></h4>
+<p>The destination name of the BundleFile, as it is returned by the last executed <a href="#convfilename"><code>convFilename</code></a> on the file.</p>
+<p>Its initial value is <a href="#srcfilename"><code>srcFilename</code></a>. Eg <code>&#39;models/initialValues.json&#39;</code> or <code>&#39;models/Person.js&#39;</code>.</p>
+<p>@note <code>dstXXX</code> : <strong>When two ore more files end up with the same <code>dstFilename</code></strong>, build halts (unless <a href="#srcmain"><code>srcMain</code></a> is used). <em>@todo: This should change in the future: when the same <code>dstFilename</code> is encountered in two or more resources/modules, it could mean Pre- or Post- conversion concatenation. Pre- means all sources are concatenated &amp; then passed once to <code>convert</code>, or Post- where each resource is <code>convert</code>ed alone &amp; but their outputs are concatenated onto that same <code>dstFilename</code></em>.</p>
+<h4><a class="anchor" href="#dstfilepath" id="dstfilepath"></a><code>dstFilepath</code></h4>
+<p>Calculated to include <a href="masterdefaultsconfig.coffee#build.dstpath"><code>build.dstPath</code></a>, eg <code>&#39;build/code/models/Person.js&#39;</code></p>
+<h4><a class="anchor" href="#dstrealpath" id="dstrealpath"></a><code>dstRealpath</code></h4>
+<p>The full OS destination path, eg <code>&#39;mnt/myproject/build/code/models/Person.js</code></p>
+<h4><a class="anchor" href="#various-info-properties" id="various-info-properties"></a>Various info properties</h4>
+<h4><a class="anchor" href="#filestats" id="filestats"></a><code>fileStats</code></h4>
+<p>Auxiliary, it stores [&#39;mtime&#39;, &#39;size&#39;] from nodejs&#39;s <code>fs.statSync</code>, needed internally to decide whether the file has changed at all (at watch events that note it).</p>
+<h4><a class="anchor" href="#sourcemapinfo" id="sourcemapinfo"></a><code>sourceMapInfo</code></h4>
+<p>Calculates basic sourceMap info (reserved for the future) - eg with</p>
+<p>  <code>{srcFilepath: &#39;source/code/glink.coffee&#39;, dstFilepath: &#39;build/code/glink.js&#39;}</code></p>
+<p>  <code>sourceMapInfo</code> will become:</p>
+<pre><code>  sourceMapInfo: {
+    file: <span class="string">"file.js"</span>,
+    sourceRoot: <span class="string">"../../source/code"</span>
+    sources: [<span class="string">"file.coffee"</span>]
+    sourceMappingURL=<span class="string">"
+        /*
+        //@ sourceMappingURL=file.js.map
+        */"</span>
+  }</code></pre>
+<p>  Note: As of uRequire 0.6.8, generating SourceMaps while converting Modules with Template (UMD / AMD / nodejs / combined) <a href="https://github.com/anodynos/uRequire/issues/24"><strong>is not implemented</strong></a>. Its only useful for compiling coffee to .js with an <a href="https://github.com/anodynos/uRequire/issues/24">RC like this</a>.</p>
+<h4><a class="anchor" href="#utility-methods" id="utility-methods"></a>Utility methods</h4>
+<h4><a class="anchor" href="#copy" id="copy"></a><code>copy()</code></h4>
+<p>Each BundleFile (or subclasses) instance is equiped with a <code>copy(srcFilename, dstFilename)</code> function, that binary copies a file (synchronously) from its source (<code>bundle.path</code> + <code>srcFilename</code>) to its destination (<code>build.dstPath</code> + <code>dstFilename</code>).</p>
+<p>It can be used without any or both arguments, where the 1st defaults to <a href="#srcfilename"><code>srcFilename</code></a> and 2nd to <a href="dstfilename"><code>dstFilename</code></a>.</p>
+<p>Both filenames passed as arguments are appended respectively to <a href="masterdefaultsconfig.coffee#bundle.path"><code>bundle.path</code></a> &amp; <a href="masterdefaultsconfig.coffee#build.dstpath"><code>build.dstPath</code></a>, so they are <em>always read and written</em> within your bundle&#39;s boundaries.</p>
+<p>@note: to avoid the appending to <code>bundle.path</code> &amp; <code>build.dstPath</code>, use the static <code>resource.constructor.copy()</code> that has no default arguments or appending.</p>
+<h5><a class="anchor" href="#no-redundancies" id="no-redundancies"></a>No redundancies</h5>
+<p><code>copy()</code> always makes sure that <strong>no redundant copies are made</strong>: when the destination file exists, it checks nodejs&#39;s <code>fs.stat</code> <code>&#39;mtime&#39;</code>, <code>&#39;size&#39;</code> and copies over only if either is changed, and skips if they are the same. It returns <code>true</code> if a copy was made, <code>false</code> if it was skipped.</p>
+<p>@example</p>
+<p>With <code>copy()</code> you can have a converter that simply copies each file in <code>RC.filez</code>, eg:</p>
+<p><code>[&#39;@copyVendorJs&#39;, [&#39;vendorJs/**/*.js&#39;], (r) -&gt; r.copy()]</code></p>
+<p>or copies them renamed, from <code>bundle.path</code> to <code>build.dstPath</code> eg</p>
+<p><code>[&#39;@copyRenamedVendorJs&#39;, [&#39;vendorJs/**/*.js&#39;], (r) -&gt; r.copy(undefined, &#39;renamed_&#39; + e.dstFilename)]</code></p>
+<h4><a class="anchor" href="#requireclean" id="requireclean"></a><code>requireClean()</code></h4>
+<p>A utility <code>function(moduleName)</code> that is a wrapper to nodejs&#39;s <code>require(moduleName)</code>, that makes sure the cached module (and its dependencies) is cleared before loading it.</p>
+<p>Its useful if you want to load a file (that changed on disk&#39;s <a href="masterdefaultsconfig.coffee#build.dstpath"><code>bundle.path</code></a>) as a nodejs module. The problem with plain <code>require</code> is that nodejs modules are cached and don&#39;t reload when file on disk changes.</p>
+<p>The instance method is a wrapper to the <code>BundleFile.requireClean()</code> static method, added as instance method for convenience <strong>with <code>resource.srcRealpath</code> as the default value</strong> of the <code>name</code> argument.</p>
+<p>Example: see <code>&#39;teacup&#39;</code> at <a href="#extra-resource-converters">Extra Resource Converters</a></p>
+<h4><a class="anchor" href="#can-t-touch-these" id="can-t-touch-these"></a>Can&#39;t touch these</h4>
+<p>There are also some other BundleFIle methods that are used <em>internally only</em>, like <code>refresh()</code> &amp; <code>reset()</code> - you shouldn&#39;t use them!</p>
+<hr>
+<h3><a class="anchor" href="#fileresource-extends-bundlefile" id="fileresource-extends-bundlefile"></a>FileResource extends BundleFile</h3>
+<p>ResourceConverters that mark files as <code>FileResource</code> have a name flag &#39;@&#39;  or <code>type: &#39;file&#39;</code></p>
+<p>A <code>FileResource</code> represents an external file, whose <code>source</code> contents we know nothing of: we dont read it upon refresh() or base our &#39;hasChanged&#39; decision on its source.</p>
+<p><code>FileResource</code> instances are useful when their corresponding file <code>source</code> contents are not useful (eg binary files), or we simply want to save time from double-reading them. For instance we might want to :</p>
+<ul>
+<li><p>read their contents our selves</p>
+</li>
+<li><p>require them as modules (perhaps with <a href="#requireclean"><code>requireClean()</code></a>) and execute their code to get some result.</p>
+</li>
+<li><p>spawn external programs to convert them, copy &#39;em, etc</p>
+</li>
+</ul>
+<p>In all cases the call is synchronous.</p>
+<p>Example: consider &#39;teacup&#39; in <a href="#extra-resource-converters">Extra Resource Converters</a>: each time the underlying FileResource changes, it loads it as a nodejs module (which returns a teacup function/template) and them renders it to HTML via the &#39;teacup&#39; module.</p>
+<p>If <code>convert()</code> returns a String, it is stored as <code>converted</code> on the instance and it is saved at <code>dstFilename</code> at each build cycle.</p>
+<h4><a class="anchor" href="#watching-fileresource-changes" id="watching-fileresource-changes"></a>Watching FileResource changes</h4>
+<p>When watching suggests the underlying file has changed, a <code>FileResource</code> instance is considered as changed, only when <code>fs.stats</code>&#39;s <code>size</code> &amp; <code>mtime</code> have changed, functionality inherited by <code>BundleFile</code>. The contents are NOT checked on each refresh(). </p>
+<h4><a class="anchor" href="#fileresource-methods" id="fileresource-methods"></a>FileResource Methods</h4>
+<p>Paradoxically, a <em>FileResource</em> instance has instance methods to <code>read()</code> and <code>save()</code> (all synchronous):</p>
+<h4><a class="anchor" href="#read" id="read"></a><code>read()</code></h4>
+<p>A <code>function(filename, options)</code> that reads and returns contents of the source file. It takes two <strong>optional arguments</strong>:</p>
+<ul>
+<li><p><code>filename</code>, which is appended to <code>bundle.path</code>. It defaults to <code>resource.srcFilename</code>.
+@note: Use the static <code>resource.constructor.read()</code> method to skip <code>bundle.path</code> appended to <code>filename</code></p>
+</li>
+<li><p><code>options</code> hash, passed as is to <a href="http://nodejs.org/api/fs.html#fs_fs_readfilesync_filename_options"><code>fs.readFileSync</code></a>, with <code>utf8</code> as the default <code>encoding</code>.</p>
+<p>You can use <code>read()</code> on demand from within <code>convert()</code>, for example:  </p>
+<pre><code>convert: <span class="reserved">function</span>(fileResource){ <span class="keyword">return</span> <span class="string">'someContent'</span> + fileResource.read() }</code></pre>
+</li>
+</ul>
+<h4><a class="anchor" href="#save" id="save"></a><code>save()</code></h4>
+<p>A <code>function(filename, content, options)</code> that saves the contents to the destination file. It takes <strong>three optional arguments</strong>:</p>
+<ul>
+<li><p><code>filename</code>, appended to <code>build.dstPath</code> and defaults to <code>resource.dstFilename</code>
+@note: Use the static <code>resource.constructor.save()</code> that has no <code>dstPath</code> appending and default values (only &#39;utf8&#39; is default)</p>
+</li>
+<li><p><code>content</code>, the (String) contents to be saved, defaults to <code>resource.converted</code></p>
+</li>
+<li><p><code>options</code> hash which is passed to <a href="http://nodejs.org/api/fs.html#fs_fs_writefilesync_filename_data_options"><code>fs.writeFileSync</code></a> with &#39;utf8&#39; as default encoding.</p>
+</li>
+</ul>
+<h4><a class="anchor" href="#srcmain" id="srcmain"></a><code>srcMain</code></h4>
+<p>If a ResourceConverter has an <code>srcMain</code>, then its <em>only</em> the <code>srcMain</code> that really needs processing (eg <code>main.less</code>).
+The <code>srcMain</code> is copied to each <code>FileResource</code> matched and its role can be seen as to group all matching <code>ResourceConverter.filez</code> together and be converted as one main destination file, whenever each source file in the gorup changes. Resources with an <code>srcMain</code> can have the same <code>dstFilename</code> and are best to be kept as FileResource (and not for instance TextResource that reads the text content), since all <code>import &#39;otherstyle.less&#39;</code> happens outside the control of uRequire and it would be pointless.</p>
+<p>Since uRequire 0.7.0 ResourceConverter authors don&#39;t need to add any special <code>srcMain</code> sauce, it works out of the box.</p>
+<hr>
+<h3><a class="anchor" href="#textresource-extends-fileresource" id="textresource-extends-fileresource"></a>TextResource extends FileResource</h3>
+<p>A subclass of <a href="#fileresource-extends-bundlefile">FileResource</a>, it represents any <em>textual/utf-8</em> <strong>Resource</strong>, (eg a <code>.coffee</code> file).</p>
+<p>The only difference to its parent is that it calls <code>read()</code> each time it refreshes and stores it as <code>resource.source</code> (and the initial value of <code>resource.converted</code>) and then it takes <code>resource.source</code> into account for watching.</p>
+<h4><a class="anchor" href="#watching-textresource-changes" id="watching-textresource-changes"></a>Watching TextResource changes</h4>
+<p>A <code>TextResource</code> instance is considered as changed, <a href="#watching-fileresource-changes">if parents say so (<code>fs.stats</code>&#39;s <code>size</code> &amp; <code>mtime</code>)</a> and if they do, it checks if [<code>read()]</code>-ing(#read) the <a href="#source"><code>source</code></a> has changed.</p>
+<p>This is to <strong>prevent a lengthy processing/converting of files</strong> that the editor has saved/changed/touched, but no real content change has occurred.</p>
+<h4><a class="anchor" href="#textresource-properties" id="textresource-properties"></a>TextResource Properties</h4>
+<p>Along with from those inherited from <a href="#fileresource-extends-bundlefile">FileResource</a>/ <a href="#bundlefile">BundleFile</a>, each TextResource has</p>
+<h4><a class="anchor" href="#converted" id="converted"></a><code>converted</code></h4>
+<p>This represents the current converted contents of the file, as it was after the last <a href="#convert"><code>ResourceConverter.convert</code></a>.</p>
+<p>At each refresh, <strong><code>converted</code> is initialized to <code>source</code></strong>, so your first <a href="#convert"><code>ResourceConverter.convert</code></a> in chain will receive a <code>converted</code> that equals <code>source</code>.</p>
+<p>Its best to use <code>converted</code> (instead of <code>source</code>) to read the contents of the last conversion, so that RCs are reusable and chainable.</p>
+<h4><a class="anchor" href="#source" id="source"></a><code>source</code></h4>
+<p>This always represents the original contents of the file, as it was last read (automatically) when the file (changed &amp;) refreshed. Keep in mind that:</p>
+<ul>
+<li><p>You <strong>never need to set</strong> this your self on a TextResource - its automatically set when needed.</p>
+</li>
+<li><p>Paradoxically you should <strong>rarely need to read</strong> <code>source</code> within your <a href="#convert"><code>convert()</code></a>, when you define a ResourceConverter.
+Because RCs work best in chain, your RCs should read <code>converted</code> instead, which is the result of the previous ResourceConvert <code>convert</code>, and take it from there on.</p>
+</li>
+</ul>
+<p>That of course is unless you really want the orginal contents of the file, eg you might want to discard their <code>converted</code> so far and start afresh.</p>
+<p>Note that even if you know there are no previous RCs run agaisnt your file (eg you are creating a new <em>HotCofreeScript</em> RC), you can still read <code>converted</code> instead of <code>source</code>, since <code>converted</code> is initialized to <code>source</code> each time a TextResource refreshes.</p>
+<hr>
+<h3><a class="anchor" href="#module-extends-textresource" id="module-extends-textresource"></a>Module extends TextResource</h3>
+<p>A <strong>Module</strong> is <strong>javascript code</strong>, usually with node/commonjs <code>require() / module.exports</code> or AMD style <code>define()</code> dependencies.</p>
+<p>Each Module instance is refreshed/converted just like a <a href="#textresource-extends-fileresource">TextResource</a>, but its javascript source and dependencies come into play:</p>
+<ul>
+<li><p>Its javascript source is parsed to [Mozilla Parser AST] (<a href="https://developer.mozilla.org/en/SpiderMonkey/Parser_API">https://developer.mozilla.org/en/SpiderMonkey/Parser_API</a>) via the excellent <a href="http://esprima.org/">esprima parser</a>.</p>
+</li>
+<li><p>Its <strong>module/dependencies info is extracted &amp; adjusted</strong> at each refresh (<a href="#watching-module-changes">when real javascript source changed</a>). Ultimately its dependencies are analysed &amp; adjusted and its factory body extracted as AST nodes</p>
+</li>
+</ul>
+<p>and finally</p>
+<ul>
+<li>The Module gets its <code>@converted</code> string through the chosen <a href="masterdefaultsconfig.coffee#build.template"><code>build.template</code></a>. It essentially regenerates the AST factoryBody surrounded by the template&#39;s data, dependency injections etc.</li>
+</ul>
+<h4><a class="anchor" href="#watching-module-changes" id="watching-module-changes"></a>Watching Module changes</h4>
+<p>A <code>Module</code> instance is considered as changed (hence its module info adjusting), if <a href="#watching-textresource-changes">parent says so(<code>fs.stats</code> &amp; @source)</a>, but also if the resulting <em>Javascript source</em> has changed. This is for example to prevent processing a module whose coffeescript/livescript/coco etc source has changed, but its javascript compiled code remained the same (eg you changed coffeescript&#39;s whitespaces).</p>
+<h2><a class="anchor" href="#manipulating-modules" id="manipulating-modules"></a>Manipulating Modules</h2>
+<p>The special <a href="#isbeforetemplate"><code>isBeforeTemplate</code> flag of ResourceConverters</a> allows advanced manipulation of Modules: when this flag is true on an RC, <strong>the ResourceConverter runs (only) just before the template is applied</strong>, but after having AST parsed the javascript code and extracted/adjusted the module&#39;s dependencies.</p>
+<p>Hence, the <code>convert()</code> RC method is passed a Module instance with <strong>fully extracted &amp; adjusted dependencies, with a parsed AST tree and with facilities to manipulate it at a very high level</strong>, far more flexible than simple textual manipulation/conversion.</p>
+<p><em>Note: for <a href="#isbeforetemplate"><code>isBeforeTemplate</code> RCs</a>, the <strong>return value of <code>convert()</code> is ignored</strong> - the template uses only AST, dependencies &amp; templates to produce its <a href="#converted"><code>converted</code></a> at the next step (template rendering). Use the <a href="#module-members">Module Members</a> to affect the resulted <code>converted</code>.</em></p>
+<h3><a class="anchor" href="#module-members" id="module-members"></a>Module Members</h3>
+<p>The following member properties/methods manipulate a Module instance:</p>
+<h4><a class="anchor" href="#inject-any-string-before-after-body" id="inject-any-string-before-after-body"></a>Inject any string before &amp; after body</h4>
+<h4><a class="anchor" href="#beforebody" id="beforebody"></a><code>beforeBody</code></h4>
+<p>Any String that is concatenated just before the original &#39;body&#39; on the template rendering, for example:</p>
+<pre><code>[ <span class="string">'+inject:VERSION'</span>, [<span class="string">'uberscore.js'</span>], 
+  <span class="reserved">function</span>(modyle){modyle.beforeBody = <span class="string">"var VERSION='"</span> + version + <span class="string">"';"</span>}]</code></pre>
+<p>Module &#39;uberscore.js&#39; will <em>always</em> get this string injected before its main body, <strong>inside the module</strong>, in all templates.</p>
+<h4><a class="anchor" href="#afterbody" id="afterbody"></a><code>afterBody</code></h4>
+<p>A String concatenated after the original body, just like <code>beforeBody</code>.</p>
+<h4><a class="anchor" href="#mergedcode" id="mergedcode"></a><code>mergedCode</code></h4>
+<p>This is code (as String) that is considered common amongst <em>most</em> modules. Examples are initializations, exporting/importing variables etc.</p>
+<p>It is added just before <a href="#beforebody">beforeBody</a> for all templates <strong>except <a href="combined-template">&#39;combined&#39; template</a></strong>.</p>
+<p>Instead in <a href="combined-template">&#39;combined&#39; template</a>, the <code>mergedCode</code> code from all modules <strong>is merged into one section</strong> and its added to the closure only once. Thus its declarations are available to all modules, but it saves space &amp; speed.</p>
+<h5><a class="anchor" href="#when-to-use-mergedcode" id="when-to-use-mergedcode"></a>When to use <code>mergedCode</code></h5>
+<p>It stands between <a href="#beforebody"><code>beforeBody</code></a> and <a href="masterdefaultsconfig.coffee#bundle.commoncode"><code>bundle.commonCode</code></a>. The rationale for using it instead, is:</p>
+<ul>
+<li><p>having common code to most/many modules</p>
+</li>
+<li><p>but wanting to exclude one or more Modules from having it.</p>
+</li>
+</ul>
+<p>Thus using</p>
+<ul>
+<li><p><a href="#beforebody"><code>beforeBody</code></a> would waste space, since the same code would always be repeated in all modules, even on <a href="combined-template">&#39;combined&#39; template</a>.</p>
+</li>
+<li><p><a href="masterdefaultsconfig.coffee#bundle.commoncode"><code>bundle.commonCode</code></a> would have it included in <em>all</em> modules in non-combined templates, even those we don&#39;t want to.</p>
+</li>
+</ul>
+<p>@example: Consider this problem :</p>
+<ul>
+<li><p>having a module <code>&#39;stuff/myModule.js&#39;</code> that exports an <code>{}</code> with an awful lot of properties <code>p1</code>, <code>p2</code>, ...<code>pN</code>.</p>
+</li>
+<li><p>You want to <strong>import</strong> all of these properties (i.e have them available as normal variables <code>p1</code>, <code>p2</code> etc) in <strong>all other modules</strong>.</p>
+</li>
+</ul>
+<p>What you can do is:</p>
+<ul>
+<li>define the importing code as <code>mergedCode</code> in all modules <em>but excluding the exporting one</em>, ie.<pre><code>[ <span class="string">'+importMyModuleVars'</span>, [<span class="string">'**/*.js'</span>, <span class="string">'!stuff/myModule.js'</span>],
+<span class="reserved">function</span>(m){
+  m.mergedCode = <span class="string">"var p1 = myModule.p1, p2 = myModule.p2, ..., pN = myModule.pN;"</span>
+}
+]</code></pre>
+</li>
+<li>make <code>stuff/myModule</code> available as an <a href="masterdefaultsconfig.coffee#bundle.dependencies.imports"><code>bundle.dependencies.imports</code></a>, with the <code>myModule</code> identifier.</li>
+</ul>
+<pre><code> dependencies: imports: { <span class="string">'stuff/myModule'</span>: <span class="string">'myModule'</span> }</code></pre>
+<p>That&#39;s it!</p>
+<h4><a class="anchor" href="#manipulate-replace-ast-code" id="manipulate-replace-ast-code"></a>Manipulate/replace AST code</h4>
+<h4><a class="anchor" href="#replacecode" id="replacecode"></a><code>replaceCode()</code></h4>
+<p>A method <code>replaceCode(matchCode, replCode)</code> that replaces (or removes) a code statement/expression that matches a code &#39;skeleton&#39;. It takes two arguments:</p>
+<ul>
+<li><p><code>matchCode</code> : (mandatory) the statement/expression to match in the AST body - it can be either: </p>
+<ul>
+<li>a <strong>String</strong>, which MUST BE a <strong>single parseable Javascript statement/expression</strong> (it gets converted to AST, getting the first only body[] node). For example:<pre><code><span class="string">'if (l.deb()){}'</span> <span class="regexp">//</span> an <span class="keyword">if</span> skeleton without <span class="keyword">else</span> part</code></pre>
+</li>
+</ul>
+<p>will match all code like :</p>
+<pre><code><span class="keyword">if</span> (l.deb(someParam, anotherParam)){
+statement1;
+statement2;
+ ...
+} <span class="regexp">//</span> <span class="literal">no</span> <span class="keyword">else</span> <span class="keyword">or</span> it wont match</code></pre>
+<ul>
+<li>or a more flexible <strong>AST &#39;skeleton&#39;</strong> object (in <a href="https://developer.mozilla.org/en/SpiderMonkey/Parser_API">Mozzila Parser AST</a>) like:</li>
+</ul>
+<pre><code class="lang-coffee">{
+ type: <span class="string">'IfStatement'</span>
+ test: 
+     type: <span class="string">'CallExpression'</span>
+     callee:
+         type: <span class="string">'MemberExpression'</span>
+         object: type: <span class="string">'Identifier'</span>, name: <span class="string">'l'</span>
+         property: type: <span class="string">'Identifier'</span>, name: <span class="string">'deb'</span> 
+}</code></pre>
+<p>that matches an <code>if (l.deb())...</code> with or without an else part.</p>
+</li>
+</ul>
+<p>In both cases, the resulting AST &#39;skeleton&#39; node will be compared against each traversed AST node in module&#39;s body, <strong>matching only its existing object keys / array items and their values with the traversed node</strong> - for example <code>{type: &#39;IfStatement&#39;}</code> matches all nodes that have this key/value irrespective of all others.</p>
+<ul>
+<li><p><code>replCode</code>: (optional) the replacement code, taking the place of each node that matched <code>matchCode</code>. It can be either:</p>
+<ul>
+<li><p><strong>undefined</strong>, in which case each matched code node is removed from the AST tree (or replaced with an <code>EmptyStatement</code> if its not in a block).</p>
+</li>
+<li><p>A <strong>String</strong>, again of a single parsable javascript statement/expression.</p>
+</li>
+<li><p>a valid <strong>AST fragment</strong>, which should <code>escodegen.generate</code> to javascript</p>
+</li>
+<li><p>a <strong><code>function(matchingAstNode){return node}</code></strong> which again returns either undefined/null, a String with valid javascript or a generatable AST fragement.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>@example</p>
+<pre><code>resources: [
+  ...
+  [
+    <span class="string">'+remove:debug/deb'</span>, [<span class="regexp">/./</span>]
+    <span class="comment"># perform the replacement / deletion</span>
+    <span class="comment"># note: return value is ignored in '+' `isBeforeTemplate` RCs</span>
+    (modyle) -&gt; modyle.replaceCode <span class="string">'if (l.deb()){}'</span>
+  ]
+  ...  
+]</code></pre>
+<p>will remove all code that matches the <code>&#39;if (l.deb()){}&#39;</code> skeleton.</p>
+<h4><a class="anchor" href="#inject-replace-dependencies" id="inject-replace-dependencies"></a>Inject / replace dependencies</h4>
+<h4><a class="anchor" href="#replacedep" id="replacedep"></a><code>replaceDep()</code></h4>
+<p>A method <code>replaceDep(oldDep, newDep, options)</code> that replaces dependencies in the resolved dependencies arrays and the body AST (i.e <code>require(&#39;../some/dep&#39;)</code> of this module. Its taking 3 arguments:</p>
+<ul>
+<li><p><code>matchDep</code>: the dependency/ies to match and replace. It might be either :</p>
+<p><strong>String</strong>: the dep either in <a href="flexible-path-conventions#bundlerelative-vs-filerelative-paths">bundleRelative format</a>, eg <code>&#39;models/Person&#39;</code> where its calculated relative to bundle, or in fileRelative eg <code>&#39;../models/Person&#39;</code> where its calculated relative to this file/module by default (but can be overridden, see options).</p>
+<p>The String can also be either:</p>
+<ul>
+<li><p>a partial match, denoted with <code>&#39;|&#39;</code> as the last char, eg <code>&#39;data/models|&#39;</code>, which triggers a partial replacement / translation, see <a href="#partial-replacements-translation">partial replacements</a> below.</p>
+</li>
+<li><p>a <a href="https://npmjs.org/package/minimatch">mimimatch</a> String, eg <code>&#39;**/model/Person*&#39;</code></p>
+</li>
+</ul>
+<p><strong>RegExp</strong>: a regexp that matches the dep (including the possible plugin and extension), that is caclulated according to options (fileRelative with both plugin and extension by default) @todo: examples</p>
+<p><strong>Function</strong>: called with <code>depName</code>, <code>dep</code>, <code>options</code> @todo: explain better ?</p>
+</li>
+<li><p><code>newDep</code>: the dependency to replace with, which can be:</p>
+<p><strong>String</strong>: of relative type in options eg <code>&#39;mockModels/PersonMock&#39;</code> or <code>&#39;lodash&#39;</code></p>
+<p><strong>Dependency</strong>: an internal class, not currently a documented part of the user API.</p>
+<p><strong>Function</strong>: with arguments <code>depName</code> &amp; <code>dep</code> of the dependency that matched, and returns either a String or a Dependency. @todo: document better ?</p>
+<p><strong>undefined/null</strong>: If <code>newDep</code> is omitted (i.e undefined), the <strong>dependency is removed</strong> from the module&#39;s dependencies, along with its corresponding parameter (if any). <em>@note its not removed from the actual module&#39;s body, i.e if it exists as a <code>myDepVar = require(&#39;dep&#39;)</code>)</em>.</p>
+</li>
+<li><p><code>options</code> a hash with some of these props:
+<strong>relative</strong>: either <code>&#39;bundle&#39;</code> or <code>&#39;file&#39;</code>, defaults to <code>&#39;file&#39;</code> if matchDep as string starts with &#39;.&#39;, <code>&#39;bundle&#39;</code> otherwise.
+<strong>plugin</strong>: boolean, whether to consider plugin
+<strong>ext</strong>: boolean, whether to consider extension</p>
+</li>
+</ul>
+<p>@example: <code>m.replaceDep(&#39;models/Person&#39;, &#39;mockModels/PersonMock&#39;)</code></p>
+<h5><a class="anchor" href="#partial-replacements-translation" id="partial-replacements-translation"></a>Partial replacements / translation</h5>
+<p>@todo: explain better</p>
+<p>@example <code>mod.replaceDep(&#39;../lib|&#39;, &#39;../UMD&#39;, {relative:&#39;bundle&#39;})</code> will replace the starting path of all (external) dependencies that start with <code>&#39;../lib&#39;</code> (when calculated relative to bundle), with <code>&#39;../UMD&#39;</code>.</p>
+<p> So if the module is <code>&#39;somedir/myModule&#39;</code> and has a fileRelative dep <code>&#39;../../lib/someDir/someDep&#39;</code> (i.e <code>&#39;../lib/someDir/someDep&#39;</code> if calculated relative to bundle taking the path of the module into account), the dep will be translated to <code>`&#39;../../UMD/someDir/someDep&#39;</code>.</p>
+<h4><a class="anchor" href="#injectdeps" id="injectdeps"></a><code>injectDeps()</code></h4>
+<p>A method <code>injectDeps(depVars)</code> that injects one or more dependencies, along with one or more variables/identifiers to bind with on the module. Its taking only one argument of <a href="types-and-derive#depsvars">depVars type</a>.</p>
+<p>For example:</p>
+<pre><code>  modyle.injectDeps({
+    <span class="string">'lodash'</span>: <span class="string">'_'</span>,
+    <span class="string">'models/Person'</span>: [<span class="string">'persons'</span>, <span class="string">'personsModel'</span>]
+  });</code></pre>
+<p>or</p>
+<pre><code>  modyle.injectDeps([<span class="string">'lodash'</span>, <span class="string">'models/Person'</span>])</code></pre>
+<p>that <a href="masterdefaultsconfig.coffee#inferred-binding-idenifiers">infers binding idenifiers</a>.</p>
+<p>The deps are are always given in <a href="flexible-path-conventions#bundlerelative-vs-filerelative-paths">bundleRelative</a> format. It makes sure that :</p>
+<ul>
+<li><p>not two same-named parameters are injected - the &#39;late arrivals&#39; bindings are simply ignored (with a warning). So if a Module already has a parameter <code>&#39;_&#39;</code> and you try to inject <code>&#39;lodash&#39;:&#39;_&#39;</code>, it wont be injected at all.</p>
+</li>
+<li><p>Not injecting a self-dependency. If you are at module <code>&#39;agreements/isAgree&#39;</code>, trying to inject dependency <code>&#39;agreements/isAgree&#39;</code> will be ignored (without a warning, only a debug message).</p>
+</li>
+</ul>
+<p><em>Circular dependencies</em>:  </p>
+<p>Dependencies are also NOT injected in these two cases that would create Circular dependencies: </p>
+<ul>
+<li><p>In other injected bundle dependencies of <code>depVars</code> in this <code>modyle.injectDeps(depVars)</code> call. This makes sure that in</p>
+<pre><code>modyle.injectDeps({
+  <span class="string">'lodash'</span>: <span class="string">'_'</span>,
+  <span class="string">'utils/MyError'</span>: <span class="string">'MyError'</span>,
+  <span class="string">'utils/functionalUtils'</span>: <span class="string">'functionalUtils'</span>
+});</code></pre>
+<p>both <code>utils/MyError</code> &amp; <code>utils/functionalUtils</code> will NOT be injected in each other, BUT <code>&#39;lodash&#39;</code> will be (cause its a <code>local</code> and not part of your bundles modules) . </p>
+</li>
+<li><p>when the module A that is the dependency to be injected in module B, is already a dependency to B. So consider a call to </p>
+</li>
+</ul>
+<pre><code>  modyle.injectDeps({<span class="string">'config'</span>: <span class="string">'config'</span> });</code></pre>
+<p>where <code>config.js</code> module is </p>
+<pre><code>  <span class="reserved">var</span> defaultConfig = require(<span class="string">'common/defaultConfig'</span>);
+
+  module.exports = helpers.deepMerge(defaultConfig, {foo: {bar: <span class="string">''</span>}});</code></pre>
+<p>and we are about to inject <code>config.js</code> as a dependency into <code>common/defaultConfig</code>. In this case, if we injected we would have created a circular dependency which is not what we intended, so urequire will make the decision NOT to inject.</p>
+<p>In these two case, you have to do it explicitly <code>var a = require(&#39;some/other/injected/mod&#39;)</code> and know what you&#39;re doing. Also you can <code>modyle.injectDeps({&#39;config&#39;: &#39;config&#39; }, true);</code> to force circular deps to be injected.</p>
+<p>See <a href="https://github.com/anodynos/uRequire/issues/65">https://github.com/anodynos/uRequire/issues/65</a> and <a href="https://github.com/anodynos/urequire-imports-dependencies">https://github.com/anodynos/urequire-imports-dependencies</a> for more details. </p>
+<p>@note: uRequire doesn&#39;t enforce that the injected dependency is valid, for example whether it exists in the bundle - but you &#39;ll get an error report in the end.</p>
+<p>@note <code>injectDeps()</code> is used internally to inject <a href="masterdefaultsconfig.coffee#bundle.dependencies.imports"><code>dependencies.imports</code></a> (on templates that actually need this injection, i.e all except <a href="combined-template">&#39;combined&#39;</a>).</p>
+<p>@note If you &#39;re injecting a dep in all modules, consider adding to <a href="masterdefaultsconfig.coffee#bundle.dependencies.imports"><code>dependencies.imports</code></a>, to save size/speed on <a href="combined-template">&#39;combined&#39; template</a>.</p>
+<h4><a class="anchor" href="#other-properties" id="other-properties"></a>Other Properties</h4>
+<p>There is a number of properties that a Module holds, most of them are only useful internally - check <code>fileResources/Module.coffee</code> for more information - here&#39;s a small bunch of potentially useful members:</p>
+<h5><a class="anchor" href="#path" id="path"></a><code>path</code></h5>
+<p>The full path of the module within the bundle, without an extension</p>
+<p>@example <code>&#39;data/models/PersonModel&#39;</code></p>
+<h5><a class="anchor" href="#kind" id="kind"></a><code>kind</code></h5>
+<p>Either <code>&#39;AMD&#39;</code> or <code>&#39;nodejs&#39;</code></p>
+<h5><a class="anchor" href="#factorybody" id="factorybody"></a><code>factoryBody</code></h5>
+<p>For kind being :</p>
+<ul>
+<li><p>&#39;nodejs&#39; : The whole code of the module, extracted from any <a href="http://stackoverflow.com/questions/939386/immediate-function-invocation-syntax">IFI</a></p>
+</li>
+<li><p>&#39;AMD&#39;: The body of the factory function, eg for <code>define(function(){ alert(&#39;foo&#39;); }</code> its <code>alert(&#39;foo&#39;);</code></p>
+</li>
+</ul>
+<p><code>AST_factoryBody</code> holds the actual nodes, and <code>factoryBody</code> is generated (calculated property) each time its read.</p>
+<h5><a class="anchor" href="#predefineiifebody" id="predefineiifebody"></a><code>preDefineIIFEBody</code></h5>
+<p>The code preceding <code>define</code> when it is enclosed in an IFI - see <a href="combined-template#merging-pre-define-ifi-statements">Merging pre-define IFI statements</a>. <code>AST_preDefineIIFENodes</code> holds the actual AST nodes.</p>
+<hr>
+<h1><a class="anchor" href="#default-resource-converters" id="default-resource-converters"></a>Default Resource Converters</h1>
+<p>The following code <a href="#note:-literate-coffescript">(that is actually part of uRequire&#39;s code)</a>, defines the <strong>Default Resource Converters</strong> <code>&#39;javascript&#39;, &#39;coffee-script&#39;, &#39;livescript&#39; &amp; &#39;coco&#39;</code> all as <code>type:&#39;module&#39;</code> (via &#39;$&#39; flag). They are the default <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a>:</p>
+<pre><code>defaultResourceConverters = [</code></pre>
+<h3><a class="anchor" href="#the-formal-object-way-to-define-a-resource-converter" id="the-formal-object-way-to-define-a-resource-converter"></a>The formal <strong>Object way</strong> to define a Resource Converter</h3>
+<p>This is a dummy .js RC, following the <a href="#inside-a-resource-converter">formal &amp; boring ResourceConverter definition as an <code>{}</code></a>:</p>
+<pre><code>    {
+      <span class="comment"># name - with a '$' flag to denote `type: 'module'`.</span>
+      name: <span class="string">'$javascript'</span>
+
+      descr: <span class="string">"Dummy js converter, justs marks `.js` files as `Module`s."</span>
+
+      <span class="comment"># type is like `bundle.filez`, matches files RC deals with</span>
+      filez: [
+        <span class="comment"># minimatch string, with exclusions as '!**/*temp.*'</span>
+        <span class="string">'**/*.js'</span>
+
+        <span class="comment"># RegExps as well, with[.., `'!', /myRegExp/`] for exclusions</span>
+        <span class="regexp">/.*\.(javascript)$/</span>
+
+        <span class="comment"># a `function(filename){}` also valid, with '!' for exclusion</span>
+      ]
+
+      <span class="comment"># javascript needs no compilation - returns source as is</span>
+      <span class="comment"># could have `undefined` in convert's place</span>
+      <span class="comment"># we use m.converted (which defaults to m.source), cause</span>
+      <span class="comment"># you never know what super duper RC conversion run before!</span>
+      convert: (modyle) -&gt; modyle.converted
+
+      <span class="comment"># convert .js | .javascript to .js</span>
+      convFilename: (srcFilename) -&gt;
+        require(<span class="string">'upath'</span>).changeExt srcFilename, <span class="string">'js'</span>
+
+      <span class="comment"># not needed, we have '$' flag to denote `type: 'module'`</span>
+      type: <span class="string">'module'</span>
+    }</code></pre>
+<h3><a class="anchor" href="#the-alternative-less-verbose-array-way" id="the-alternative-less-verbose-array-way"></a>The alternative (less verbose) <strong>Array way</strong></h3>
+<p>Thankfully there are better &amp; quicker ways to define a ResourceConverter. The <a href="https/github.com/anodynos/urequire-rc-coffee-script">&quot;coffee-script&quot;</a> RC is defined as an <code>[]</code> instead of <code>{}</code> and is much less verbose.
+It is by default loaded as a separate <code>urequire-rc-coffee-script</code> node dependency, just referenced here.</p>
+<pre><code>    <span class="string">'coffee-script'</span></code></pre>
+<h3><a class="anchor" href="#the-alternative-even-shorter-rc-way-for-livescript-https-github.com-anodynos-urequire-rc-livescript-." id="the-alternative-even-shorter-rc-way-for-livescript-https-github.com-anodynos-urequire-rc-livescript-."></a>The alternative, even shorter <code>[]</code> RC way for <a href="https/github.com/anodynos/urequire-rc-livescript">&quot;livescript&quot;</a>.</h3>
+<p>Again loaded as <code>urequire-rc-livescript</code> node dependency with this reference.</p>
+<pre><code>    <span class="string">'livescript'</span></code></pre>
+<h3><a class="anchor" href="#the-shortest-way-ever-one-liner-no-comments-converters." id="the-shortest-way-ever-one-liner-no-comments-converters."></a>The shortest way ever, one-liner, no comments converters.</h3>
+<p>The following two are for <a href="https/github.com/anodynos/urequire-rc-iced-coffee-script">&quot;iced-coffee-script&quot;</a> &amp; <a href="https/github.com/anodynos/urequire-rc-coco">&quot;coco&quot;</a>.</p>
+<pre><code>    <span class="comment">#'iced-coffee-script' # removed from loaded as default cause of a weird npm error - add it manually (`npm install urequire-rc-iced-coffee-script` and then in your `bundle: resources: [ 'iced-coffee-script', ....]` :-)  </span></code></pre>
+<p>This is what the &#39;coco&#39; RC <a href="https://github.com/anodynos/urequire-rc-coco/blob/master/source/code/urequire-rc-coco.coffee">actually looks like</a>:</p>
+<p><code>[&#39;$coco&#39;, [ &#39;**/*.co&#39;], ((r) -&gt; require(&#39;coco&#39;).compile r.converted, @options), &#39;.js&#39;]</code>.</p>
+<p>As an example, if you wanted to pass some coco <code>options</code> (that <code>_.extend</code> default options), use this format instead of a plain <code>&#39;coco&#39;</code> String:</p>
+<pre><code>    [<span class="string">'coco'</span>, {bare: <span class="literal">false</span>}]
+]</code></pre>
+<p>How do we get such flexibility with both [] &amp; {} formats? Check <a href="https://github.com/anodynos/uRequire/blob/master/source/code/config/ResourceConverter.coffee">ResourceConverter.coffee</a></p>
+<h1><a class="anchor" href="#finito" id="finito"></a>Finito</h1>
+<p>Just export default and extra RCs and go grab a cup of coffee!</p>
+<pre><code><span class="comment"># used as is by `bundle.resources`</span>
+exports.defaultResourceConverters = defaultResourceConverters</code></pre>
+<h2><a class="anchor" href="#add-some-coffeescript-define-and-merge" id="add-some-coffeescript-define-and-merge"></a>Add some coffeescript <code>define</code> and merge</h2>
+<p>AMD Modules written in coffee, livescript, iced-coffee-script, coco and others have the advantage of <a href="combined-template#merging-pre-define-ifi-statements">merging pre-define IIFE-statements in combined template</a>.
+But for modules originally written in nodejs/common this is not the case, how can we take advantage of it?</p>
+<p>Just wrap a <code>define -&gt;</code> and <code>module.exports</code>, indent and <strong>turn any coffeescript nodejs module into AMD</strong> BEFORE compiling from .coffee to .js!</p>
+<p>We need to add this as the very 1st in <code>defaultResourceConverters</code>, and have it disabled by default.</p>
+<pre><code>ResourceConverter = require <span class="string">'./ResourceConverter'</span> <span class="comment"># circular dep, but exports is already set :-)</span>
+
+defaultResourceConverters.unshift wrapCoffeeDefineCommonJS =
+  <span class="keyword">new</span> ResourceConverter [
+    <span class="string">'wrapCoffeeDefineCommonJS'</span>
+    [ <span class="string">'**/*.coffee'</span> <span class="comment"># not working with .litcoffee</span>
+      <span class="string">'**/*.co'</span>, <span class="string">'**/*.ls'</span>, <span class="string">'**.iced'</span> ]
+
+    (r) -&gt;
+      lines = r.converted.split <span class="string">'\n'</span>
+      r.converted = <span class="string">'define -&gt;\n'</span>
+      <span class="keyword">for</span> line <span class="keyword">in</span> lines <span class="keyword">when</span> line
+        r.converted += <span class="string">'  '</span> + line + <span class="string">'\n'</span>
+      r.converted += <span class="string">"  return module.exports"</span>
+
+    <span class="comment"># no `convFilename` - extension is still coffee/co/ls/iced or whatever matched</span>
+  ]
+
+wrapCoffeeDefineCommonJS.enabled = <span class="literal">false</span></code></pre>
+<p>Now in your config, just have a <code>resources: [-&gt;(@ &#39;wrapCoffeeDefineCommonJS&#39;).enabled = true; null]</code> and treat your coffeescript nodejs source as AMD modules - just make sure that they are indeed commonjs and not AMD!</p>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>

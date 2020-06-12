@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>CLI options - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container cli-options"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>CLI options</h1><p>The simplest was to use uRequire is its CLI, running <code>$ urequire ...</code>.</p>
+<p>uRequire has a command line converter that needs to be called globally:</p>
+<pre><code>    `<span class="javascript">npm install urequire-cli -g</span>`</code></pre>
+<p>You will also need the local &#39;urequire&#39; to your package:
+         <code>npm install urequire</code></p>
+<pre><code>$ urequire -h
+
+  Usage: urequire [options] [command]
+
+  Commands:
+
+    UMD &lt;path&gt;             Converts all modules in &lt;path&gt; using 'UMD' template.
+    UMDplain &lt;path&gt;        Converts all modules in &lt;path&gt; using 'UMDplain' template.
+    AMD &lt;path&gt;             Converts all modules in &lt;path&gt; using 'AMD' template.
+    nodejs &lt;path&gt;          Converts all modules in &lt;path&gt; using 'nodejs' template.
+    combined &lt;path&gt;        Converts all modules in &lt;path&gt; using 'combined' template.
+    config &lt;configFiles...&gt;
+
+  Options:
+
+    -h, --help                     output usage information
+    -V, --version                  output the version number
+    -B, --ver                      Print urequire-cli &amp; urequire versions.
+    -o, --dstPath &lt;dstPath&gt;        Output converted files onto this directory
+    -f, --forceOverwriteSources    Overwrite *source* files (-o not needed &amp; ignored)
+    -v, --verbose                  Print module processing information
+    -d, --debugLevel &lt;debugLevel&gt;  Pring debug information (0-100)
+    -n, --noExports                Ignore all web `rootExports` in module definitions
+    -r, --webRootMap &lt;webRootMap&gt;  Where to map `/` when running in node. On RequireJS its http-server's root. Can be absolute or relative to bundle. Defaults to bundle.
+    -s, --scanAllow                By default, ALL require('') deps appear on []. to prevent RequireJS to scan @ runtime. With --s you can allow `require('')` scan @ runtime, for source modules that have no [] deps (eg nodejs source modules).
+    -a, --allNodeRequires          Pre-require all deps on node, even if they arent mapped to parameters, just like in AMD deps []. Preserves same loading order, but a possible slower starting up. They are cached nevertheless, so you might gain speed later.
+    -p, --dummyParams              Add dummy params for deps that have no corresponding param in the AMD define Array.
+    -t, --template &lt;template&gt;      Template (AMD, UMD, nodejs), to override a `configFile` setting. Should use ONLY with `config`
+    -O, --optimize                 Pass through uglify2 while saving/optimizing - currently works only for `combined` template, using r.js/almond.
+    -C, --continue                 Dont bail out while processing (module processing/conversion errors)
+    -w, --watch                    Watch for file changes in `bundle.path` &amp; reprocess them. Note: new dirs are ignored
+    -b, --bare                     Don't enclose AMD/UMD modules in Immediately Invoked Function Expression (safety wraper).
+    -f, --filez                    NOT IMPLEMENTED (in CLI - use a config file or grunt-urequire). Process only modules/files in filters - comma seprated list/Array of Strings or Regexp's
+    -j, --jsonOnly                 NOT IMPLEMENTED. Output everything on stdout using json only. Usefull if you are building build tools
+    -e, --verifyExternals          NOT IMPLEMENTED. Verify external dependencies exist on file system.
+
+  [urequire-cli] : Examples:
+
+  $ urequire UMD path/to/amd/moduleBundle -o umd/moduleBundle
+                  or
+  $ urequire AMD path/to/moduleBundle -f
+                  or
+  $ urequire config path/to/configFile.json,anotherConfig.js,masterConfig.coffee -d 30
+
+*Notes: Command line values have precedence over configFiles;
+        Values on config files on the left have precedence over those on the right (deeply traversing).*
+
+Module files in your bundle can conform to the *standard AMD* format:
+    // standard AMD module format - unnamed or named (not recommended by AMD)
+    define(['dep1', 'dep2'], function(dep1, dep2) {...});
+
+Alternativelly modules can use the *standard nodejs/CommonJs* format:
+    var dep1 = require('dep1');
+    var dep2 = require('dep2');
+    ...
+    module.exports = {my: 'module'}
+
+Finally, a 'relaxed' format can be used (combination of AMD+commonJs), along with asynch requires, requirejs plugins, rootExports + noConflict boilerplate, exports.bundle and much more - see the docs.
+    // uRequire 'relaxed' modules format
+  - define(['dep1', 'dep2'], function(dep1, dep2) {
+      ...
+      // nodejs-style requires, with no side effects
+      dep3 = require('dep3');
+      ....
+      // asynchronous AMD-style requires work in nodejs
+      require(['someDep', 'another/dep'], function(someDep, anotherDep){...});
+
+      // RequireJS plugins work on web + nodejs
+      myJson = require('json!ican/load/requirejs/plugins/myJson.json');
+      ....
+      return {my: 'module'};
+    });
+
+Notes:
+  --forceOverwriteSources (-f) is useful if your sources are not `real sources`  eg. you use coffeescript :-).
+    WARNING: -f ignores --dstPath
+
+  - Your source can be coffeescript (more will follow) - .coffee files are internally translated to js.
+
+  - configFiles can be written as a .js module, .coffee module, json and much more - see 'butter-require'
+  [urequire-cli] : urequire-cli v0.7.1, uRequire v0.6.20</code></pre>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>

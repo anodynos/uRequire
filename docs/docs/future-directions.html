@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>Future Directions - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container future-directions"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>Future Directions</h1><p><strong>This doc is somewhat outdated - some of these topics have been addressed as of 0.7.x*</strong></p>
+<h2><a class="anchor" href="#dynamic-code-serving" id="dynamic-code-serving"></a>Dynamic Code Serving</h2>
+<p><strong>If I can build a hotel (static), why can&#39;t I serve tourists (dynamic) ?</strong></p>
+<p><em>Building</em> is such an outdated &amp; static concept.</p>
+<p>Certainly for most browser apps, having a <code>combined</code> file (with a one-size-fits-all), might be better than having to load all individual AMD dependencies from the client, where a separate http call is needed for each module. Download size matters less than latency, especially for high bandwidth clients (but not so much for Mobile clients).</p>
+<p>But with dynamic environments &amp; languages like javascript, you should be able to serve your running app with only the exact code it will  require and nothing more. All non-always-needed code can be retrieved dynamically via asynchronous style requires.</p>
+<p>Out of your whole code base, you application server should be able to dynamically determine what dependencies &#39;MyLib.js&#39; requires, bundle them all up and send it to the client. Caching would make this really scalable; only when the code base changes there would be a need for one build of each requested dependency.</p>
+<p>In same way, you can still do this with current version: just set <code>template:&#39;combined&#39;</code> and <code>main:&#39;someModule&#39;</code> and only &#39;someModule&#39; and its dependencies will be bundled by requirejs.</p>
+<p>uRequire is currently a <em>build system by accident</em>, but since its aware of modules &amp; dependencies, it could evolve into something like a dynamic code serving system.</p>
+<h2><a class="anchor" href="#dynamic-resource-loaders" id="dynamic-resource-loaders"></a>Dynamic Resource Loaders</h2>
+<p><strong>Are all resources equal? Required dependencies are resources that are more equal than others.</strong></p>
+<p>Imagine having <code>require(&#39;mytextfile.txt&#39;)</code> or <code>require(&#39;mytextfile.json&#39;)</code> as a valid way to load resources, much like <a href="requirejs-loader-plugins">RequireJS Loader Plugins</a>, but having a default plugin (&amp; settings) for each extension (eg <code>&#39;json&#39;: &#39;requirejs-plugins/json&#39;</code>)</p>
+<p>Now imagine declaring the &#39;require&#39;ment of all you app&#39;s resources, either an <code>.md</code>, an <code>.xml</code>, a template like <code>coffeekup</code> or <code>jade</code> etc. And voila you have your resource available &amp; converted, either at build or even at run time.</p>
+<p>Many considerations are needed here, but it&#39;ll be an excellent way to unify how static resources are referenced as dependencies with one unified way.</p>
+<h2><a class="anchor" href="#in-memory-resource-conversion-pipelines" id="in-memory-resource-conversion-pipelines"></a>In Memory Resource Conversion Pipelines</h2>
+<p><strong>Who needs plugins ? All resources just need some conversion, dont they?</strong></p>
+<p>Although at its infancy, <a href="masterdefaultsconfig.coffee#bundle.resources"><code>bundle.resources</code></a> aims to power a streamlined light-weight conversion process. With its in memory conversion pipeline and its simplistic declaration, you can easily define :</p>
+<ul>
+<li><p>new types of modules source languages (eg. <code>Livecript</code>, <code>coco</code> etc). For example check how trivial the <code>coco</code> module converter from <a href="masterdefaultsconfig.coffee#bundle.resources">MasterDefaultsConfig</a> is (coffee):</p>
+<pre><code>   [ <span class="string">'$coco'</span>, [ <span class="string">'**/*.co'</span>], (-&gt; (require <span class="string">'coco'</span>).compile <span class="property">@source</span>, bare:<span class="literal">true</span>), <span class="string">'.js'</span>]</code></pre>
+</li>
+</ul>
+<p>Not much of a plugin eh? It works in the most minimal way; the only thing required is <code>npm install LiveScript</code></p>
+<ul>
+<li><p>concat type tasks are also trivial - check this concat task (coffee) from <a href="https://github.com/anodynos/uBerscore">uBerscore</a>:</p>
+<pre><code>  [ <span class="string">'injectVERSION'</span>,[<span class="string">'uberscore.js'</span>], -&gt;<span class="string">"var VERSION = '<span class="subst">#{pkg.version}</span>';\n<span class="subst">#{@source}</span>"</span>]</code></pre>
+</li>
+</ul>
+<p>In summary, with <code>bundle.resources</code> as they are in 0.5.x, you can devise any short of <em>&#39;plugin&#39;</em>:</p>
+<ul>
+<li><p>Code compilation of modules written in any languge that produces pure commonjs/AMD javascript (typescript, coco etc).</p>
+</li>
+<li><p>Code transformations (eg remove debug code - i.e starting with <code>if (debug) ...</code>)</p>
+</li>
+<li><p>Concatenations, code injections, banners, adding build time bumbed version numbers, etc.</p>
+</li>
+<li><p>Convert non-javascript code from one format to the other (eg <code>.less</code> -&gt; <code>.css</code>) etc</p>
+</li>
+<li><p>any other conversion/check you can think of, like <code>linting</code> etc .</p>
+</li>
+</ul>
+<p>More functionality is needed towards this aim :</p>
+<ul>
+<li><p>In memory pipelines need more thought and should be more sound; having some information about where to go next would be good.</p>
+</li>
+<li><p>handling of non-textual resources (gifs etc)</p>
+</li>
+<li><p>Currently when the same <code>dstFilename</code> is encountered in two or more resources/modules, an error is raised. But this could perhaps mean <em>pre-</em> or <em>post-</em> conversion concatenation:</p>
+<ul>
+<li><p>either all <strong>source texts</strong> are concatenated &amp; then passed to <code>convert</code>, which ends up to <code>dstFilename</code>.</p>
+</li>
+<li><p>or each resource is <code>convert</code>ed alone &amp; their <strong>converted texts</strong> are concatenated onto <code>dstFilename</code>.</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2><a class="anchor" href="#various-todos-additions" id="various-todos-additions"></a>Various todos / additions</h2>
+<p><em>Using @todo: UEG scheme - check <a href="https://github.com/anodynos/uRequire/blob/master/source/docs/todo-notes.md"><code>todo-notes.md</code></a></em></p>
+<h3><a class="anchor" href="#urequire.config" id="urequire.config"></a>uRequire.config</h3>
+<ul>
+<li><p>(4 5 6) blend requirejs config &amp; smootly integrate it! uRequire can use but also generate the requirejs config needed at run time.</p>
+</li>
+<li><p>(4 4 8) Check / cowork / integrate / piggyback with others :</p>
+<pre><code>    bower, brunch.io, yeoman.io, jam, package.json, requirejs.packages etc</code></pre>
+</li>
+</ul>
+<h3><a class="anchor" href="#build" id="build"></a>build</h3>
+<ul>
+<li><p>(6 4 5) Allow global deps to be included in a <code>combined</code> build.</p>
+</li>
+<li><p>(4 7 6) Use sourcemaps for build code</p>
+</li>
+<li><p>(5 5 4) Sanity checks of existence of external libraries, webRootMap, baseUrl, paths etc.</p>
+</li>
+</ul>
+<h3><a class="anchor" href="#module-manipulation" id="module-manipulation"></a>Module manipulation</h3>
+<ul>
+<li><p>(2 2 8) Read/write Harmony modules</p>
+</li>
+<li><p>(2 2 6) Read/write Coffescript modules - use coffeescript redux - rewrite Templates for Coffeescript</p>
+</li>
+</ul>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>

@@ -16,7 +16,7 @@ RCs work in a serial chain: one RC's [`converted`](#converted) result, is the ne
 
 ...as a callback API that enables any kind of conversion, even with *one-liners*. This is an actual ResourceConverter :
    
-   `[ '$coco', [ '**/*.co'], function(r){return require('coco').compile(r.convert)}, '.js']`
+   `[ '$coco', [ '**/*.co'], (r) => require('coco').compile(r.convert), '.js']`
    
   Authoring an RC is very simple and has a [formal spec](#Inside-a-Resource-Converter) and [space saving shortcuts](#the-alternative-even-shorter-way). 
 

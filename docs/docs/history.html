@@ -1,0 +1,320 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>History - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container history"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>History</h1><h1><a class="anchor" href="#v0.6.19-2014-08-04-latest-release" id="v0.6.19-2014-08-04-latest-release"></a>v0.6.19 (2014-08-04) - Latest release</h1>
+<ul>
+<li><code>require(&#39;./some/dirName&#39;)</code> is converted to <code>require(&#39;./some/dirName/index&#39;)</code> so it works on AMD / UMD</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.18-2014-06-02" id="v0.6.18-2014-06-02"></a>v0.6.18 (2014-06-02)</h1>
+<ul>
+<li><p>updating outdated deps (except gaze@v0.5.x)</p>
+</li>
+<li><p>travis tests only for node@v0.10</p>
+</li>
+<li><p>ignoring &quot;raw&quot; in <a href="http://esprima.org/doc/index.html">esprima.parse / AST</a> v1.x</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.16-v0.6.17" id="v0.6.16-v0.6.17"></a>v0.6.16 &amp; v0.6.17</h1>
+<ul>
+<li>Discarded / unreleased </li>
+</ul>
+<h1><a class="anchor" href="#v0.6.15-2014-04-29" id="v0.6.15-2014-04-29"></a>v0.6.15 (2014-04-29)</h1>
+<ul>
+<li><p>FIXED: AMD params with no/empty deps array was missintepreted fix #56 </p>
+</li>
+<li><p>FIXED: AMD deps with no params not loading on nodejs template (module.nodeDeps was lacking + template ommited)</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.14-2014-04-24" id="v0.6.14-2014-04-24"></a>v0.6.14 (2014-04-24)</h1>
+<ul>
+<li>NEW: <a href="masterdefaultsconfig.coffee#build.template">combined template allows <code>moduleName</code> (default is to define anonymously)</a></li>
+</ul>
+<h1><a class="anchor" href="#v0.6.13-2014-02-27" id="v0.6.13-2014-02-27"></a>v0.6.13 (2014-02-27)</h1>
+<ul>
+<li><p>build.noLoaderUMD &amp; build.warnNoLoaderUMD: fixes #53</p>
+</li>
+<li><p>fixed: 1st AMD dep would be included even if no params where present</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.6.12-2013-02-20" id="0.6.12-2013-02-20"></a>0.6.12 (2013-02-20)</h1>
+<ul>
+<li>fixed: #50 nodejs template missing &#39;var&#39; in deps</li>
+</ul>
+<h1><a class="anchor" href="#0.6.11-2013-02-05" id="0.6.11-2013-02-05"></a>0.6.11 (2013-02-05)</h1>
+<ul>
+<li><p>Mainly internals / configs fixes</p>
+</li>
+<li><p>_.flatten configs on new BunlderBuilder</p>
+</li>
+<li><p>resources: resources: &#39;|&#39;: &#39;arrayizeConcat&#39; (properly)</p>
+</li>
+<li><p>blendConfigs: withMaster</p>
+</li>
+<li><p>lazily export urequire (fixes circular deps)</p>
+</li>
+<li><p>exportsRoot variables can be non-var symbols (_.underscored)</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.10-2013-12-20" id="v0.6.10-2013-12-20"></a>v0.6.10 (2013-12-20)</h1>
+<ul>
+<li><p>IMPROVED: Module::replaceDep works with partial/translation, minimatch, regexp, callback fix #41</p>
+</li>
+<li><p>NEW: <code>build.clean</code> works for all templates fix #44</p>
+</li>
+<li><p>NEW: <code>build.dummyParams</code> option</p>
+</li>
+<li><p>IMPROVED: less verbose errors/debug messages</p>
+</li>
+<li><p>IMPROVED: banner on combined works always (independently of requirejs.optimize)</p>
+</li>
+<li><p>IMPROVED: adding function callback for derivation (arrayConcat etc) &amp; always pssing a <code>_.clone</code> parent</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.9-2013-12-07" id="v0.6.9-2013-12-07"></a>v0.6.9 (2013-12-07)</h1>
+<p>ResourceConverters:
+ <em> <code>ResourceConverters.filez</code> default = /./
+ </em> <code>enabled</code>, default true
+ * added wrapCoffeeDefineCommonJS RC, <code>enabled: false</code></p>
+<p>CHANGE: <code>bundle.dependencies: node</code>
+   <em> module / Dependency with isNode problem
+   </em> @type &#39;arrayizeConcat&#39;</p>
+<p>NEW: <code>bundle.dependencies.locals</code> as depsVars type</p>
+<p>NEW: <code>build.isInjectExportsModule: true</code>
+ * &#39;solves&#39; circular dependencies on AMD</p>
+<ul>
+<li>useStrict works properly per module or per template / <code>booleanOrFilespecs</code></li>
+</ul>
+<p>Refactoring / bug fixing</p>
+<ul>
+<li>Dependencies type &amp; isXXX</li>
+<li>templates:<ul>
+<li>rootExportsNoConflict returnModule param</li>
+<li>removed &#39;;&#39; from end, templated-module might be reused</li>
+</ul>
+</li>
+<li>FIXED: useStrict undefined semantics on rjs</li>
+<li>FIXED: better error / stack handling</li>
+<li>FIXED: depsReporter _.pad</li>
+<li>FIXED: nodeOnlyDep -&gt; _.slugify excludedDep</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.8-2013-12-02" id="v0.6.8-2013-12-02"></a>v0.6.8 - (2013-12-02)</h1>
+<p>This release has many improvements, despite the 0.0.1 increase :-)
+Not touching 0.7 issues yet, but workings are important towards 0.7 &amp; 1.0 :-)</p>
+<ul>
+<li><p>New: <a href="resourceconverters.coffee#inject-any-string-before-after-body">Merging of code sections of injected code in modules &amp; bundles</a></p>
+</li>
+<li><p>New: [&#39;useStrict&#39;, &#39;bare&#39;, &#39;globalWindow&#39;, &#39;runtimeInfo&#39;, &#39;allNodeRequires&#39;, &#39;noRootExports&#39;, &#39;scanAllow&#39;]</p>
+<ul>
+<li><p>@derive = &#39;arrayPushOrOverwrite&#39;</p>
+</li>
+<li><p>@type = &#39;booleanOrFilespecs&#39;</p>
+</li>
+</ul>
+</li>
+<li><p>New: template.banner working for normal &amp; <code>combined</code> template</p>
+</li>
+<li><p>Fixed: <code>combined</code> template was confusing local dependencies&#39;s varNames, in some rare cases</p>
+</li>
+<li><p>Improved/shorter reporting</p>
+</li>
+<li><p>Documentation is lighter &amp; more generic</p>
+<ul>
+<li><p>splitting [tags-Legend] &amp; [types-and-derive]</p>
+</li>
+<li><p>adding more subtle types</p>
+</li>
+<li><p>adding linkage</p>
+</li>
+<li><p>Ovehaul of <a href="http://urequire.org">urequire.org</a> splash page</p>
+</li>
+</ul>
+</li>
+<li><p>Internal / Refactorings</p>
+<ul>
+<li><p>Makeover of ModuleTemplate/AlmondTemplate with @sp &amp; merging of sections</p>
+</li>
+<li><p>Generic code-manipulation related code, moved to /codeUtils (mainly from Module)</p>
+</li>
+<li><p>Dependency.type &#39;global&#39; now called &#39;local&#39;</p>
+</li>
+<li><p>More specs for isFileInSpecs</p>
+</li>
+<li><p>Dependency.type &#39;node&#39; &amp; isNode</p>
+</li>
+<li><p>RCs: throw when non-module has module flags + specs</p>
+</li>
+<li><p>Bundle: glob filters files only with <em>*/</em></p>
+</li>
+<li><p>Removed lodash dependency, used from <em>B.</em></p>
+</li>
+</ul>
+</li>
+</ul>
+<h1><a class="anchor" href="#v0.6.7-2013-11-17" id="v0.6.7-2013-11-17"></a>v0.6.7 - (2013-11-17)</h1>
+<ul>
+<li><p>build: useStrict, bare, globalWindow, runtimeInfo can be truthy or <code>filez</code> spec.</p>
+</li>
+<li><p>template: {combinedFile:&#39;xxx&#39;} works independently of <code>dstPath</code>, but each acts as default to the other if missing</p>
+</li>
+<li><p><code>optimize</code> works for all templates, not only &#39;combined&#39; (&#39;uglify2&#39; only).</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.6.6-2013-11-08" id="0.6.6-2013-11-08"></a>0.6.6 - (2013-11-08)</h1>
+<ul>
+<li><p>Fixed <a href="masterdefaultsconfig.coffee#build.globalwindow"><code>build.globalWindow</code></a> is now using the enclosing IFI function to pass <code>window</code> or <code>global</code>, works well with &quot;use strict&quot; (but not with <code>build.bare</code>).</p>
+</li>
+<li><p>Change: nodejs template is <code>bare:false</code> by default.</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.6.5-2013-10-29" id="0.6.5-2013-10-29"></a>0.6.5 - (2013-10-29)</h1>
+<ul>
+<li>Added <a href="masterdefaultsconfig.coffee#build.usestrict"><code>build.useStrict</code></a> &amp; <a href="masterdefaultsconfig.coffee#build.globalwindow"><code>build.globalWindow</code></a> flags</li>
+</ul>
+<h1><a class="anchor" href="#0.6.4-2013-10-20" id="0.6.4-2013-10-20"></a>0.6.4 - (2013-10-20)</h1>
+<ul>
+<li><p>Added &#39;UMDplain&#39; template</p>
+</li>
+<li><p>revised root exports in UMD/AMD/nodejs templates</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.6.3-2013-10-19" id="0.6.3-2013-10-19"></a>0.6.3 - (2013-10-19)</h1>
+<ul>
+<li>Added <a href="masterdefaultsconfig.coffee#build.bare"><code>build.bare</code></a> &amp; <a href="masterdefaultsconfig.coffee#build.runtimeinfo"><code>build.runtimeInfo</code></a> flags</li>
+</ul>
+<h1><a class="anchor" href="#0.6.2-2013-10-01" id="0.6.2-2013-10-01"></a>0.6.2 - (2013-10-01)</h1>
+<ul>
+<li><p>Added preliminary support for <code>srcMain</code> on RCs/FileResources.</p>
+</li>
+<li><p>Added working RC examples for <code>srcMain</code> - <code>execSync</code> (sync external processes) &amp; <code>lessc</code> (LESS-to-css) - see <a href="resourceconverters.coffee#external-processes">External-Processes</a>.</p>
+</li>
+<li><p>Fixed bugs in RC.registry &amp; cloning.</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.6.1-2013-09-26" id="0.6.1-2013-09-26"></a>0.6.1 - (2013-09-26)</h1>
+<ul>
+<li>formally enabling &amp; documenting <code>build.out</code>, as alternative to default <code>resource.save()</code></li>
+</ul>
+<h1><a class="anchor" href="#0.6.0-2013-09-24" id="0.6.0-2013-09-24"></a>0.6.0 - (2013-09-24)</h1>
+<ul>
+<li><p>Module dependencies / factory extraction : </p>
+<ul>
+<li><p>new: esprima / Mozilla Parser AST is used for module information extraction. All functionality of ModuleManipulator/seekr is moved to Module, which is hugely refactored and improved.</p>
+</li>
+<li><p>new: Module has <code>replaceCode</code>, <code>beforeBody</code>, <code>afterBody</code>, <code>injectDeps</code>, <code>replaceDep</code> etc that alter the AST / dependencies (used in <code>isBeforeTemplate</code> ResourceConverters).</p>
+</li>
+</ul>
+</li>
+<li><p>ResourceConverters (<code>bundle.resources</code>): </p>
+<ul>
+<li><p><strong>Breaking from 0.4/0.5 </strong> The value of <code>this</code> in <code>convert()</code> is the RC instance, not the Resource/Module instance (which is passed as the 1st -and only- argument).</p>
+</li>
+<li><p>new: <code>isBeforeTemplate</code> &#39;+&#39; flag, passing a Module with extracted dependencies information and AST manipulation facilities, just BEFORE the template rendering.</p>
+</li>
+<li><p>new: search function can accept an Array or Function spec, returning a materialized and registered RC.</p>
+</li>
+<li><p>fixed: watching bug in refreshing <code>dstFilename</code> to <code>srcFilename</code> on touch.</p>
+</li>
+</ul>
+</li>
+<li><p>UMD/nodejs templates:    </p>
+<ul>
+<li><p>fixed: &#39;module&#39;, &#39;export&#39; being <code>require</code>d from nodejs instead of referenced.</p>
+</li>
+<li><p>fixed: #22 &amp; #8, #5 due to coffee-* helpers outside <code>define()</code> not taken into account.</p>
+</li>
+</ul>
+</li>
+<li><p>&#39;combined&#39; template has many new features, optimizations &amp; bug fixes:  </p>
+<ul>
+<li><p>new: structure for globals/dependency injections, saving from having <code>dependencies.exports.bundle</code> injected in each Module. Exported deps are available in the closure enclosing the modules, reducing size. </p>
+</li>
+<li><p>new: AMD preDefineIFI statements are merged, saving space: the <code>combined.js</code> has only a single <code>__extends</code>, <code>__slice</code> etc from coffeescript, coco, Livescript etc, when AMD is used on source Modules in which case where the coffee-* compilers place these generated helpers outside the <code>define()</code>. Before 0.6, this was preventing using <a href="https://github.com/anodynos/uRequire/issues/8">AMD with coffee</a> or <a href="https://github.com/anodynos/uRequire/issues/22">Livescript</a> etc) because that code outside define() was not read. Now these helpers are merged into one to save space on the final <code>combined.js</code>!</p>
+</li>
+<li><p>fixed: factory() was a leak to global cause var was missing.</p>
+</li>
+<li><p>new: factory is passed globals as params</p>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li><p>Various:</p>
+<ul>
+<li>Many refactorings, bug fixes and improvements on NodeRequirer, Module, Bundle, AlmondTemplates, watching, error handling, reporting, partial building, Dependency resolution, @property is gone (was error prone), using CalcCachedProperties from uBerscore 0.13 &amp; more.</li>
+</ul>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.5.0-2013-08-10" id="0.5.0-2013-08-10"></a>0.5.0 - (2013-08-10)</h1>
+<p>A revamp of <code>bundle: resources</code> &amp; <a href="resourceconverters.coffee">Resource Converters</a> - they are much more useful and stable as an in-memory conversion pipeline.</p>
+<p><strong>Breaking from 0.4.2 in ResourceConverter declarations :</strong></p>
+<ul>
+<li><p><a href="resourceconverters.coffee#inside-a-resource-converter">ResourceConverter <code>convert()</code></a> is called with just the <code>resource</code> instance as 1st argument and context (value of <code>this</code>). The instance holds all sorts of <a href="resourceconverters.coffee#filename-properties">useful information about its self</a>.</p>
+</li>
+<li><p>Helpers <code>copy</code>, <code>save</code> &amp; <code>requireUncached</code> are available on the resource instances (passed to <code>convert()</code>). Also added <code>srcRealpath</code> &amp; <code>dstRealpath</code> for <code>require</code>ing nodejs modules without worrying about relative paths.</p>
+</li>
+<li><p><code>isTerminal:false</code> as default (instead of true) - use <code>&quot;|&quot;</code> flag for true.</p>
+</li>
+<li><p><code>isModule</code> flag is gone - now <code>type</code> handle all types of <a href="resourceconverters.coffee#resource-types:-the-type-field">Resource Converters</a></p>
+</li>
+<li><p><code>dstFilename(filename)</code> changed to <code>convFilename(dstFilename, srcFilename)</code>. The resource still holds a <code>dstFilename</code> as the result of <code>convFilename()</code>.</p>
+</li>
+<li><p>Can search for registered RCs by name on <code>bundle:resources</code>, either as a plain string or a function that has the search function as its context (this).</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.4.2-2013-07-07" id="0.4.2-2013-07-07"></a>0.4.2 - (2013-07-07)</h1>
+<p>Just bug fixing </p>
+<ul>
+<li><p><code>bundle.copy</code> where it belongs, working with arrayizePusher.</p>
+</li>
+<li><p>dependencies bindings (eg <code>dependencies.exports.bundle</code>) derivation is much more robust.</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.4.1-2013-07-01" id="0.4.1-2013-07-01"></a>0.4.1 - (2013-07-01)</h1>
+<ul>
+<li><p><code>bundle.resources</code> converters now have an <code>isAfterTemplate</code> field - allows you to run code transformations either BEFORE (default) or after template has been applied to each Module.</p>
+</li>
+<li><p>Bug fixing &amp; improved documentation.</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.4.0-2013-06-28" id="0.4.0-2013-06-28"></a>0.4.0 - (2013-06-28)</h1>
+<p><code>Watch</code>ing of builds is now an option:</p>
+<ul>
+<li><p>builds only changed files</p>
+</li>
+<li><p>cache bundle &amp; module info</p>
+</li>
+<li><p>quickest possible (re)conversion</p>
+</li>
+<li><p>suports partial builds &amp; forces full build if needed (eg. &#39;combined&#39; template)</p>
+</li>
+</ul>
+<p>Config format matures a lot (but still supports v0.3 fields as DEPRACATED):</p>
+<ul>
+<li><p><code>bundle.filez</code> works with minimatch (like grunt&#39;s <code>files</code>) &amp; RegExps.</p>
+</li>
+<li><p>derivation is working properly &amp; is documented better</p>
+</li>
+</ul>
+<p>More refactoring:</p>
+<ul>
+<li><p>Better handling of resources: BundleFile &lt;- UResource &lt;- UModule</p>
+</li>
+<li><p>Improved error handling (UError, allowing nested errors &amp; props) &amp; debuging information.</p>
+</li>
+<li><p>config blending (derive) is cleaner</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#0.3.0" id="0.3.0"></a>0.3.0</h1>
+<p>v0.3.0 was never released, but gave way to 0.4 :-)</p>
+<p>Huge code revamp, can easily be used by other libraries (check <code>urequireCMD.coffee</code> &amp; <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>).</p>
+<p>Improved debugging / warning / informational handling and output.</p>
+<p><a href="combined-template">combined template</a> employing <em>r.js</em> &amp; <em>almond</em> optimization</p>
+<p>Configuration file with derivation appears.</p>
+<h1><a class="anchor" href="#0.2" id="0.2"></a>0.2</h1>
+<p>Refactoring, code documentation, more spec tests, plan for incorporating future functionality.</p>
+<p><a href="amd-template">AMD</a> &amp; <a href="nodejs-template">nodejs</a> only module tranlation, through respective (buildin) templates.</p>
+<p><a href="exporting-modules#simplified-rootexports"><code>rootExports</code></a> &amp; <a href="exporting-modules#generated-noconflict-functionality"><code>noConflict()</code></a> is declaratively offered.</p>
+<p>Mimics the behaviour of RequireJS&#39;s <code>require([&#39;dep1&#39;, &#39;dep2&#39;], function(){})</code> where if dependencies &#39;dep1&#39; &amp; &#39;dep2&#39; are already loaded (i.e cached), the factory function is called synchronously (immediatelly). <strong>UPDATE: this feature is muted, to match RequireJS 2.1.x behaviour that fixed this.</strong></p>
+<h1><a class="anchor" href="#v0.1.5-v0.1.9" id="v0.1.5-v0.1.9"></a>v0.1.5 - v0.1.9</h1>
+<p>Working towards refactoring &amp; loaderPlugins - node!, text! &amp; json! are worked out (preliminary).</p>
+<p>Support for native <a href="requirejs-loader-plugins">RequireJS loader plugins</a> (like text! and json!).</p>
+<h1><a class="anchor" href="#v0.1.0-alpha-preview-release" id="v0.1.0-alpha-preview-release"></a>v0.1.0 - Alpha/preview release</h1>
+<p>A preview of what uRequire aims to become. Quite usefull as it is, but still a non-stable/Alpha.</p>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>

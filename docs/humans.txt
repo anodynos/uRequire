@@ -1,0 +1,11 @@
+# urequire.org
+
+# uRequire: The JavaScript Universal Module & Resource Converter
+
+/* TEAM */
+
+	Agelos Pikoulas
+
+/* PROJECT */
+
+    Source: https://github.com/anodynos/urequire

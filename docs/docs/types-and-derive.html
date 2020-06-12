@@ -1,0 +1,187 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>Types And Derive - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container types-and-derive"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>Types And Derive</h1><h1><a class="anchor" href="#types" id="types"></a>Types</h1>
+<p>A description of valid reoccurring type(s) and their behavior.</p>
+<p>For somewhat complex types, there is a flexibility of values you can use as there are shortcuts, <a href="#shortcut-depsvars-types"><em>for example</em></a>.</p>
+<h2><a class="anchor" href="#filespecs" id="filespecs"></a><code>filespecs</code></h2>
+<p>Filename specifications (or simply filenames), expressed in <a href="https://github.com/anodynos/umatch">&#39;umatch&#39;</a>. In short it can be:</p>
+<ul>
+<li><p><code>String</code> in <em>gruntjs</em>&#39;s expand minimatch format (eg <code>&#39;**/*.coffee&#39;</code>) and its exclusion cousin (eg <code>&#39;!**/DRAFT*.*&#39;</code>)</p>
+</li>
+<li><p><code>RegExp</code>s that match filenames (eg <code>/./</code>) again with a</p>
+<pre><code>[..., <span class="string">'!'</span>, <span class="regexp">/regexp/</span>, ...]</code></pre>
+<p>exclusion pattern.</p>
+</li>
+<li><p>A <code>function(filename){}</code> callback, returning true if filename is to be matched. Consistently it can have a negation/exclusion flag before it:
+<code>[..., &#39;!&#39;, function(f){ return f === &#39;excludeMe.js&#39; }, ...]</code>.</p>
+<p>@note use a <code>true</code> (i.e matched) as the result preceded by &#39;!&#39; for exclusion, <strong>rather the common trap than of a false result for your <em>excluded matches</em> (cause all your non-excluded with match with true, which is probably not what you want!)</strong>.</p>
+</li>
+<li><p>@todo: NOT IMPLEMENTED: An `Array&lt;String|RegExp|Function|Array&gt;, recursive, i.e</p>
+<pre><code>[ ..., [<span class="string">'AllowMe*.*'</span>, <span class="string">'!'</span>, <span class="reserved">function</span>(f){ <span class="keyword">return</span> f === <span class="string">'excludeMe.js'</span> }, [.., []], ...], ...]</code></pre>
+<p>@see uses <a href="https://github.com/anodynos/umatch">&#39;umatch&#39;</a></p>
+</li>
+</ul>
+<p>@example</p>
+<pre><code class="lang-coffee">bundle: {
+  filez: [
+    <span class="string">'**/recources/*.*'</span>
+    <span class="string">'!dummy.json'</span>
+    <span class="regexp">/.*\.someExtension$/i</span>
+    <span class="string">'!'</span>, <span class="regexp">/.*\.excludeExtension$/i</span>
+    (filename)-&gt; filename <span class="keyword">is</span> <span class="string">'includedFile.ext'</span>
+  ]
+}</code></pre>
+<h2><a class="anchor" href="#depsvars" id="depsvars"></a><code>depsVars</code></h2>
+<p>Defines one or more <strong>dependencies</strong> (i.e <strong>Modules</strong> or other <strong>Resource</strong>s), that each is bound to one or more identifiers (i.e variable or property names).</p>
+<p>Its used in many places (like injecting deps in <a href="#bundle.dependencies.imports"><code>bundle.dependencies.imports</code></a>) and <a href="#binding-deps-and-vars-is-required">is often useful</a>.</p>
+<h3><a class="anchor" href="#formal-depsvars-type" id="formal-depsvars-type"></a>Formal <code>depsVars</code> type</h3>
+<p>The formal type, (i.e. where each depVars value ends up as, no matter how its declared as), is an Object like this:</p>
+<pre><code>{
+  <span class="string">'dep1'</span>: [<span class="string">'dep1VarName1'</span>, <span class="string">'dep1VarName2'</span>],
+  ...
+  <span class="string">'underscore'</span>: [<span class="string">'_'</span>],
+  <span class="string">'Backbone'</span>: [<span class="string">'backbone'</span>],
+  ....
+  <span class="string">'depN'</span>: [<span class="string">'depNVarName1'</span>, ...]
+}</code></pre>
+<h3><a class="anchor" href="#shortcut-depsvars-types" id="shortcut-depsvars-types"></a>Shortcut <code>depsVars</code> types</h3>
+<p>The <code>depsVars</code> type has <em>shortcuts</em>:</p>
+<ul>
+<li><p>Array: eg <code>[&#39;arrayDep1&#39;, &#39;arrayDep2&#39;, ..., &#39;arrayDepn&#39;]</code>, with one or more deps.</p>
+</li>
+<li><p>String: eg <code>&#39;soloDep&#39;</code>, of just one dep.</p>
+</li>
+<li><p>or even deps with one identifier <code>{ &#39;lodash&#39;: &#39;_&#39;, xxx: [] }</code></p>
+</li>
+</ul>
+<p><em>Shortcut types</em> are converted to the <a href="#formal-depsvars"><em>formal type</em></a> when deriving, using the <a href="types-and-derive#dependenciesbindings">dependenciesBindings</a> derive - the above will end up as</p>
+<ul>
+<li><p><code>{arrayDep1:[], arrayDep2:[], ..arrayDepn:[]}</code></p>
+</li>
+<li><p><code>{soloDep: []}</code></p>
+</li>
+<li><p><code>{ &#39;lodash&#39;: [&#39;_&#39;], xxx: [] }</code></p>
+</li>
+</ul>
+<h3><a class="anchor" href="#binding-deps-and-vars-is-required" id="binding-deps-and-vars-is-required"></a>Binding deps and vars is required</h3>
+<ul>
+<li><p><em>when injecting dependencies</em>, eg exporting declarativelly through <a href="#bundle.dependencies.imports"><code>bundle.dependencies.imports</code></a> eg &#39;lodash&#39;, bind &#39;_&#39; as the var to access the module in the code.</p>
+</li>
+<li><p><strong>when converting</strong> through <a href="combined-template">&#39;combined&#39; template</a>. Local dependencies (like <code>&#39;underscore&#39;</code> or <code>&#39;jquery&#39;</code>) are not part of the <code>combined.js</code> file.
+At run time, when running on the module-less <strong>Web</strong> side as a <code>combined.js</code> via a simple <code>&lt;script/&gt;</code>, the uRequire generated code <em>will only know how to grab</em> the dependency using the binding <code>$</code> from the <em>global</em> object (i.e <code>window</code>).</p>
+</li>
+</ul>
+<h3><a class="anchor" href="#inferred-binding-idenifiers" id="inferred-binding-idenifiers"></a>Inferred binding idenifiers</h3>
+<p>If a dependency (key) ends up with no identifier (var name), for example <code>{ myDep:[], ...}</code>, then the identifiers are automagically inferred from:</p>
+<ul>
+<li><p>the code it self, i.e when you have <code>define [&#39;lodash&#39;], (_)-&gt;</code> or <code>_ = require &#39;lodash&#39;</code> somewhere in your code, it binds <code>&#39;lodash&#39;</code> dependency with <code>_</code> identifier.</p>
+</li>
+<li><p>or using any other relevant part of the config like <a href="#bundle.dependencies.depsvars"><code>bundle.dependencies.depsVars</code></a>, <a href="#bundle.dependencies._knowndepsvars"><code>bundle.dependencies._knownDepsVars</code></a> etc.</p>
+</li>
+</ul>
+<h2><a class="anchor" href="#booleanorfilespecs" id="booleanorfilespecs"></a><code>booleanOrFilespecs</code></h2>
+<p>This type controls if a key applies to <em>all, none or some filenames/module paths</em>. Its either:</p>
+<ul>
+<li><p>boolean (true/false), so all or none files/modules get the setting.</p>
+</li>
+<li><p>A <a href="#filespecs">filespecs</a>. Important @note: if the config setting (eg <code>globalWindow</code>, <code>useStrict</code> etc) is dealing with modules (usually), a module <a href="flexible-path-conventions#bundlerelative-vs-filerelative-paths">bundleRelative</a> <em>path</em> is expected <strong>without the filename extension</strong>, i.e <code>[&#39;models/PersonModel&#39;, ...]</code> without <code>&#39;.js&#39;</code>. If dealing with general file, you have to match filename <strong>and</strong> extension.</p>
+</li>
+</ul>
+<p>Unless otherwise specified, <code>booleanOrFilespecs</code> uses derive <a href="#arraysconcatoroverwrite"><code>arraysConcatOrOverwrite</code></a>.</p>
+<hr>
+<h1><a class="anchor" href="#deriving-behaviors" id="deriving-behaviors"></a>Deriving &amp; Behaviors</h1>
+<p>A config can can be <strong>derived</strong> from one or more <strong>parent</strong> configs. Its a similar notion to classical OO Inheritance, where a subclass <em>overrides</em>
+the values of a superclass, but better.</p>
+<p>Ultimately all configs are derived (inherit) from <a href="masterdefaultsconfig"><code>MasterDefaultsConfig</code></a> which holds all default <em>parent</em> values.</p>
+<p>Derivation is more flexible than simple OO inheritance (or any <code>_.extend</code> like function) for two main reasons :</p>
+<h3><a class="anchor" href="#deeper" id="deeper"></a>Deeper</h3>
+<p>Keys of the config are not flat - derivation goes deeply in paths of keys, i.e <code>{a: {b1:11, b2:12}}</code> --derive--&gt; <code>{a: {b1:1, b3:3}}</code> gives <code>{a: {b1:11, b2:12, b3:3}}</code>, something like or <code>_.deepExtend</code>.</p>
+<h3><a class="anchor" href="#behavior" id="behavior"></a>Behavior</h3>
+<p>Behavior goes longer than depth: when inheriting in OO (or an <code>_.extend</code> like function), all overriding child keys simply overwrite (or hide) those on parent(s).</p>
+<p>With <code>derive</code> of uRequire configs, at each member/key (or keys path, since we have depth), there is a <strong>different behavior</strong> for how to <em>derive</em> (or <em>blend</em>) with the parent&#39;s values of that key.</p>
+<p>  For example when a key is supposed to hold an <code>Array</code> value with derive type <a href="types-and-derive#arrayizeconcat">arrayizeConcat</a>, the resulting <code>Array</code> is the <em>child&#39;s</em> array <code>concat</code>-ed to <em>parent&#39;s</em>. Also, if the value held is NOT already an <code>Array</code> (as it should), then that value becomes the 1st item of an <code>Array</code> first, before being concatenated to parent&#39;s. In any case, even if there just one config (nort derived by any other), the resulting value is guaranteed to be an <code>Array</code>.</p>
+<h3><a class="anchor" href="#resulting-type-structure" id="resulting-type-structure"></a>Resulting type / structure</h3>
+<p>??????</p>
+<h1><a class="anchor" href="#derive-types" id="derive-types"></a>Derive Types</h1>
+<h2><a class="anchor" href="#arrayizeconcat" id="arrayizeconcat"></a><code>arrayizeConcat</code></h2>
+<p>Both <em>parent</em> and <em>child</em> values are considered to be of Array type (or are turned into an Array first with <a href="https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co">_B.arrayize</a>).</p>
+<p>Then the items on child configs are pushed <em>after</em> the ones they inherit (the parent&#39;s array, higher up in hierarchy).The parent is always a shallow clone of the original parent array which remains intact. In v0.6.10 the <a href="#function-callback">child can be a function callback</a>.</p>
+<p>For example consider key <code>bundle.filez</code> (that has the <strong>arrayizeConcat derive behavior</strong>).</p>
+<ul>
+<li><p><em>parent</em> config <code>bundle: filez: [&#39;**/*&#39;, &#39;!DRAFT/*.*&#39;]</code></p>
+</li>
+<li><p><em>child</em> config <code>bundle: filez: [&#39;!vendor/*.*]</code></p>
+</li>
+<li><p><em>derived</em> config: <code>bundle: filez: [&#39;**/*&#39;, &#39;!DRAFT/*.*&#39;, &#39;!vendor/*.*]</code>.</p>
+</li>
+</ul>
+<h3><a class="anchor" href="#type" id="type"></a>type</h3>
+<p>The type for both child and parent values, are either <code>Array&lt;Anything&gt;</code> or <code>Anything</code> but Array (which is <a href="https://github.com/anodynos/uBerscore/blob/master/source/code/collections/array/arrayize.co">_B.arrayize</a>-d first).</p>
+<h3><a class="anchor" href="#function-callback" id="function-callback"></a>Function callback</h3>
+<p>The child can also be a callback <code>function(parentArray)</code>, that receives <strong><em>a shallow clone of parentArray</em></strong> and <strong>returns the resulted array</strong>.</p>
+<p>Example:</p>
+<ul>
+<li><p><em>parent</em> config <code>bundle:{ filez: [&#39;**/*.js&#39;, &#39;!DRAFT/*.*&#39;]}</code></p>
+</li>
+<li><p><em>child</em> config <code>bundle: { filez: function(parentArray){ parentArray.unshift(&#39;**/*.coffee&#39;); parentArray } }</code></p>
+</li>
+<li><p><em>derived</em> config: <code>bundle: { filez: [&#39;**/*.coffee&#39;, &#39;**/*.js&#39;, &#39;!DRAFT/*.*&#39;] }</code>.</p>
+</li>
+</ul>
+<p>This way you can manipulate the inherited array as desired.</p>
+<h3><a class="anchor" href="#reset-parent" id="reset-parent"></a>Reset Parent</h3>
+<p>To reset the inherited parent array (always in your new child <em>destination</em> array), use <code>[null]</code> as the 1st item of your child array. For example</p>
+<ul>
+<li><p><em>parent</em> config <code>bundle:filez: [&#39;**/*&#39;, &#39;!DRAFT/*.*&#39;]</code></p>
+</li>
+<li><p><em>child</em> config <code>bundle:filez: [[null], &#39;vendorOnly/*.*]</code></p>
+</li>
+<li><p><em>derived</em> config: <code>bundle: filez: [&#39;vendorOnly/*.*]</code>.</p>
+</li>
+</ul>
+<h2><a class="anchor" href="#arrayizeuniqueconcat" id="arrayizeuniqueconcat"></a><code>arrayizeUniqueConcat</code></h2>
+<p>Just like <a href="types-and-derive#arrayizeconcat"><em>arrayizeConcat</em></a>, but only === unique items are pushed to the result array.</p>
+<h2><a class="anchor" href="#arraysconcatoroverwrite" id="arraysconcatoroverwrite"></a><code>arraysConcatOrOverwrite</code></h2>
+<p>If <strong>both</strong> <em>child</em> and <em>parent</em> values are already an Array, then the items on child (derived) configs are pushed <em>after</em> the ones they inherit (like <a href="arrayizeconcat"><code>arrayizeConcat</code></a>).</p>
+<p>Otherwise, the child value (even if its an array) overwrites the value it inherits.</p>
+<p>For example consider key <code>build.globalWindow</code> (that has the <strong>arraysConcatOrOverwrite derive behavior</strong>).</p>
+<ul>
+<li><p>parent config <code>build: globalWindow: [&#39;**/*&#39;]</code></p>
+</li>
+<li><p>child config <code>build: globalWindow: true</code></p>
+</li>
+<li><p>blended config: <code>build: globalWindow: true</code></p>
+</li>
+</ul>
+<p>or similarly</p>
+<ul>
+<li><p>parent config <code>build: globalWindow: true</code></p>
+</li>
+<li><p>child config <code>build: globalWindow:  [&#39;**/*&#39;]</code></p>
+</li>
+<li><p>blended config: <code>build: globalWindow: [&#39;**/*&#39;]</code></p>
+</li>
+</ul>
+<p>@note <a href="#reset-parent">reset parent</a> works like arrayizeConcat&#39;s, so you can produce a new Array, even when deriving from an Array.</p>
+<h2><a class="anchor" href="#dependenciesbindings" id="dependenciesbindings"></a><code>dependenciesBindings</code></h2>
+<p>This derivation refers to <a href="types-and-derive#depsvars"><code>depsVars</code> type</a>.</p>
+<p>Each dependency name (the key) of child configs is added to the resulted object, if not already there.</p>
+<p>Its identifiers / variable names are then <a href="types-and-derive#arrayizeuniqueconcat">arrayizeUniqueConcat</a>-ed onto the array.</p>
+<p>For example with a parent value:</p>
+<pre><code>{
+  myDep1: [<span class="string">'myDep1Var1'</span>, <span class="string">'myDep1Var2'</span>]
+}</code></pre>
+<p>and a child value:</p>
+<pre><code class="lang-js">{
+  myDep1: [<span class="string">'myDep1Var1'</span>, <span class="string">'myMissingDep1Var3'</span>]
+
+  <span class="comment"># identifier is a String, not an Array</span>
+  myDep2: <span class="string">'myDep2Var'</span>
+}</code></pre>
+<p>the resulted derived object will be</p>
+<pre><code class="lang-js">{
+  <span class="comment"># only missing 'myMissingDep1Var3' identifier is appended to array</span>
+  myDep1: [<span class="string">'myDep1Var1'</span>, <span class="string">'myDep1Var2'</span>, <span class="string">'myMissingDep1Var3'</span>]
+
+  <span class="comment"># identifier is arrayized</span>
+  myDep2: [<span class="string">'myDep2Var'</span>]
+}</code></pre>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>

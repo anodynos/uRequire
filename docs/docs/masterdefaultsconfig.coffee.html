@@ -1,0 +1,821 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>MasterDefaultsConfig.coffee - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container masterdefaultsconfig.coffee"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>MasterDefaultsConfig.coffee</h1><h1><a class="anchor" href="#introduction" id="introduction"></a>Introduction</h1>
+<p><em><strong>NOTE Work In Progress</strong> Currently migrating docs from 0.6.x to 0.7.0. Everything works, but there are some undocumented parts.</em></p>
+<p>The <strong>config</strong> is the heart of <em>uRequire</em>, to the user&#39;s side. This file is both <strong>docs</strong> &amp; the <strong>defaults</strong> of the <a href="#config-usage">config file/object</a>.</p>
+<p>Scroll to some super cool <a href="#examples">config examples</a>, that show the power of uRequire &amp; its config.</p>
+<h2><a class="anchor" href="#note:-literate-coffescript" id="note:-literate-coffescript"></a>Note: Literate Coffescript</h2>
+<p>This file is written in <a href="http://ashkenas.com/literate-coffeescript">Literate Coffeescript</a>: it serves both as <em>markdown documentation</em> AND the <em>actual code</em> that represents the <em>master config</em>. Most code blocks shown (unless otherwise noted) are the actual code, i.e each key declares <strong>name</strong> and <strong>default value</strong>.</p>
+<pre><code>module.exports = MasterDefaultsConfig =</code></pre>
+<p>NOTE: This file primary location is <a href="https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md">https://github.com/anodynos/uRequire/blob/master/source/code/config/MasterDefaultsConfig.coffee.md</a> &amp; copied over to the urequire.wiki - DONT edit it separately in the wiki.</p>
+<p>@see the <a href="tags-legend"><em>tags legend</em></a> of the documentation</p>
+<h2><a class="anchor" href="#config-usage" id="config-usage"></a>Config Usage</h2>
+<p>A <code>config</code> determines a <code>bundle</code> and a <code>build</code> that uRequire will process. A config is an <code>{}</code> with <a href="masterdefaultsconfig.coffee#the-bundle-and-the-build">expected keys</a> &amp; can be used as:</p>
+<ul>
+<li><p><strong>File based</strong>, using the urequire CLI (from <code>npm install urequire -g</code>) as <code>$ urequire config myConfig.js</code>, where <code>myConfig.js</code> is a node module file that exports the <code>config</code> object. The file can actually be a <code>.coffee</code> or <code>.js</code> node module, or a <code>.json</code> file as well as many other formats - see <a href="https://github.com/anodynos/butter-require">butter-require</a>.
+The &#39;XXX&#39; of <a href="types-and-derive#deriving-behaviors">`derive:&#39;XXX&#39;</a> can be another <strong>parent file</strong> (eg <code>parentConfig.yml</code>), relative to the 1st children&#39;s path. @todo: make relative to each children&#39;s path).</p>
+</li>
+<li><p>Using <a href="https://github.com/aearly/grunt-urequire"><strong>grunt-urequire</strong></a> (preferred), having (almost) the exact <code>config</code> object of the file-base, but as a <code>urequire:XYZ</code> grunt task. The difference is that <a href="types-and-derive#deriving-behaviors">`derive:&#39;XXX&#39;</a> can be another <code>urequire:XXX</code> task, and if its not found its assumed to be a filename, relative to <code>Gruntfile.js</code>.</p>
+</li>
+<li><p>Within your tool&#39;s code, <a href="using-urequire#using-within-your-code">using <code>urequire.BundleBuilder</code></a>.</p>
+</li>
+</ul>
+<h2><a class="anchor" href="#versatility" id="versatility"></a>Versatility</h2>
+<p>uRequire configs are extremely versatile:</p>
+<ul>
+<li><p>reads keys both in the &#39;root&#39; of your config <em>OR</em> in <a href="masterdefaultsconfig.coffee#the-bundle-and-the-build">&#39;bundle&#39;/&#39;build&#39; hashes</a></p>
+</li>
+<li><p>provides <a href="types-and-derive#shortcut-depsvars-types">short-cuts</a>, to convert simple syntax to more complex.</p>
+</li>
+<li><p>has a unique inheritance scheme, <strong><a href="types-and-derive#deriving-behaviors">deriving</a> from parent configs</strong>.</p>
+</li>
+</ul>
+<h1><a class="anchor" href="#the-bundle-and-the-build" id="the-bundle-and-the-build"></a>The &#39;bundle&#39; and the &#39;build&#39;</h1>
+<p><strong>uRequire config</strong> has 2 top-level keys/hashes: <a href="#bundle"><code>bundle</code></a> and <a href="#build"><code>build</code></a>. All related information is nested bellow these two keys.</p>
+<p><strong>@note: user configs (especially simple ones) can safely omit <code>bundle</code> and <code>build</code> hashes and put the keys belonging on either on the &#39;root&#39; of their config object. uRequire safely recognises where keys belong, even if they&#39;re not in <code>bundle</code>/<code>build</code>.</strong></p>
+<hr>
+<h1><a class="anchor" href="#bundle" id="bundle"></a>bundle</h1>
+<p>The <code>bundle</code> hash defines what constitutes a bundle, i.e where files are located, which ones are converted and how etc. Consider a <code>bundle</code> as the &#39;source&#39; or the &#39;package&#39; that is then <em>processed</em> or built, based on the <code>build</code> part of the config.</p>
+<pre><code>bundle:</code></pre>
+<h2><a class="anchor" href="#bundle.path" id="bundle.path"></a>bundle.path</h2>
+<p>The filesystem path where source files reside (relative to urequire&#39;s CWD, or <code>Gruntfile.js</code> for <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>).</p>
+<p>@mandatory But, if <code>bundle.path</code> is ommited, it is implied by the 1st config&#39;s file position (only for file-based &#39;config&#39; command, not in <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>&#39;s config).</p>
+<p>@example <code>&#39;./source/code&#39;</code></p>
+<p>@alias <code>bundlePath</code> DEPRECATED</p>
+<pre><code>  path: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#bundle.filez" id="bundle.filez"></a>bundle.filez</h2>
+<p>All files that participate in the <code>bundle</code> are specified here. Its the ultimate filter of your bundle, virtually including or excluding files. Its very versatile</p>
+<p>@type <a href="types-and-derive#filespecs">filespecs</a></p>
+<p>@derive <a href="types-and-derive#arrayizeconcat">arrayizeConcat</a>.</p>
+<p>@note all files are relative to <a href="#bundle.path">bundle.path</a></p>
+<p>@alias <code>filespecs</code> DEPRECATED</p>
+<p>@note the <code>z</code> in <code>filez</code> is used to segregate from gruntjs <code>files</code>, when urequire is used within <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a> and allow its different features like RegExp &amp; deriving.</p>
+<p>@note: The master default is <code>undefined</code>, so the last child <code>filez</code> in derived hierarchy determines what is ultimately allowed.</p>
+<p>@default: <em>The actual default (runtime hard-coded)</em>, if no <code>bundle.filez</code> exists in the final cfg, is <code>[&#39;**/*&#39;]</code> (and not <code>undefined</code>). That&#39;s why its optional!</p>
+<pre><code>  filez: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#bundle.copy" id="bundle.copy"></a>bundle.copy</h2>
+<p>Copy (binary &amp; sync) of all non-resource <a href="masterdefaultsconfig.coffee#bundle.filez">bundle.filez</a> (i.e those that are <a href="(masterdefaultsconfig.coffee#bundlefile"><code>BundleFile</code></a>s) to <a href="masterdefaultsconfig.coffee#build.dstpath"><code>build.dstPath</code></a> as a convenience. If destination exists, it checks nodejs&#39;s <code>fs.statSync</code> &#39;mtime&#39; &amp; &#39;size&#39; and copies (overwrites) ONLY changed files.</p>
+<p>@example <code>copy: [&#39;**/images/*.gif&#39;, &#39;!dummy.json&#39;, /\.(txt|md)$/i]</code></p>
+<p>@type <a href="types-and-derive#filespecs">filespecs</a></p>
+<p>@derive <a href="types-and-derive#arrayizeconcat">arrayizeConcat</a>.</p>
+<p>@alias <code>copyNonResources</code> DEPRECATED</p>
+<p>@default <code>[]</code>, i.e no non-resource files are copied. You can use <code>/./</code> or <code>&#39;**/*&#39;</code> for all non-resource files to be copied.</p>
+<pre><code>  copy: []</code></pre>
+<h2><a class="anchor" href="#bundle.name" id="bundle.name"></a>bundle.name</h2>
+<p>The <em>name</em> of the bundle, eg &#39;MyLibrary&#39;.</p>
+<p>@note: <code>bundle.name</code> serves as the 1st default for <a href="#bundle.main"><code>bundle.main</code></a> (if main is not explicit).</p>
+<p>@alias <code>bundleName</code> DEPRECATED</p>
+<pre><code>  name: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#bundle.main" id="bundle.main"></a>bundle.main</h2>
+<p>The <code>&#39;main&#39;</code> or <code>&#39;index&#39;</code> module file of your bundle, that <code>require</code>s and kicks off all other modules (perhaps implicitly).</p>
+<p>@optional unless <a href="combined-template">&#39;combined&#39; template</a> is used, or you have a <a href="#build.template"><code>build.template.banner</code></a>.</p>
+<p>@example</p>
+<pre><code class="lang-coffee"> bundle: main: <span class="string">"MyAwesomeLibrary"</span></code></pre>
+<p>whereas <code>&#39;MyAwesomeLibrary.js&#39;</code> would be something like:</p>
+<pre><code> define(<span class="reserved">function</span>(){
+    <span class="keyword">return</span> {
+      aModule: require(<span class="string">'somepath/aModule'</span>),
+      anotherModule: require(<span class="string">'somepath/anotherModule'</span>)
+    }
+ }</code></pre>
+<p>or the <code>module.exports = {...}</code> version.</p>
+<h3><a class="anchor" href="#details:" id="details:"></a>Details:</h3>
+<ul>
+<li><p><code>bundle.main</code> is used as &#39;name&#39; / &#39;include&#39; on RequireJS build.js, on <a href="combined-template">combined/almond template</a>.</p>
+</li>
+<li><p>It should be the &#39;entry&#39; point module of your bundle, where all dependencies are <code>require</code>&#39;d. Then <strong>r.js</strong> recursively adds all dependency tree to the <a href="combined-template">&#39;combined&#39;</a> optimized file.</p>
+</li>
+<li><p>It is also used to as the initiation <code>require</code> on your <a href="combined-template">combined</a> bundle.
+It is the module just kicks off the app and/or requires all your other library modules.</p>
+</li>
+<li><p>Defaults to <code>bundle.name</code>, <code>&#39;index&#39;</code>, <code>&#39;main&#39;</code>: If <code>bundle.main</code> is missing, it defaults to <code>bundle.name</code>, <em>only</em> if there is a module by that name. If <code>bundle.name</code> fails to match an existing module, <code>&#39;index&#39;</code> or <code>&#39;main&#39;</code> are used as <code>bundle.main</code> (again provided there is a module named <code>&#39;index&#39;</code> or <code>&#39;main&#39;</code> - which ever found first). In all cases of automatic discovery, uRequire will issue a warning.</p>
+</li>
+<li><p>Its the name of the module <a href="#build.template"><code>build.template.banner</code></a> is added.</p>
+</li>
+</ul>
+<p>If <code>bundle.main</code> can&#39;t match an existing module, it will cause a <a href="combined-template">&#39;combined&#39; template</a> error.</p>
+<pre><code>  main: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#bundle.dependencies" id="bundle.dependencies"></a>bundle.dependencies</h2>
+<p>All information related to dependencies handling is listed here.</p>
+<pre><code>  dependencies:</code></pre>
+<h4><a class="anchor" href="#bundle.dependencies.imports" id="bundle.dependencies.imports"></a>bundle.dependencies.imports</h4>
+<p>Allows you to <em>import</em> or better <em>inject</em> via <a href="resourceconverters.coffee#injectdeps"><code>Module.injectdeps()</code></a> specific dependencies (i.e other modules) throughout the <em>whole bundle</em>, under the given variable name(s).</p>
+<p>The use case is when you want to access <code>lodash</code> from  as <code>_</code>, <code>backbone</code> as <code>Backbone</code> and even <code>myUtils/foobar</code> as <code>foobar</code> in all your other modules, without having to declare a boring <code>var _ = require(&#39;lodash&#39;)</code> in each and every module.</p>
+<p>Each module receives an <em>injection</em> of all the <code>dependencies.imports</code>, so you don&#39;t have to list them in each module.</p>
+<p>@example</p>
+<pre><code>dependencies: { 
+  imports: { 
+   <span class="string">'lodash'</span>: <span class="string">'_'</span>,
+   <span class="string">'jquery'</span>: [<span class="string">"$"</span>, <span class="string">"jQuery"</span>],
+   <span class="string">'myUtils/foobar'</span>: [<span class="string">'foobar'</span>, <span class="string">'utilsFoobar'</span>], 
+   <span class="string">'common/config'</span>: <span class="string">'config'</span>
+}}</code></pre>
+<p>will give you :</p>
+<ul>
+<li><p>Injection of Modules / dependencies <code>&#39;lodash&#39;</code>, <code>&#39;jquery&#39;</code>, <code>&#39;myUtils/foobar&#39;</code> and <code>&#39;common/config&#39;</code> to each module in the bundle, BUT avoiding circular references, so your <em>bundle&#39;s modules</em> listed in <code>dependencies.imports</code> (like <code>&#39;myUtils/foobar&#39;</code> and <code>&#39;common/config&#39;</code>) will not be injected in each other at all, but will receive all the local deps like <code>&#39;lodash&#39;</code>. See more details on this and how injection works in <a href="resourceconverters.coffee#injectdeps"><code>Module.injectdeps()</code></a>.    </p>
+</li>
+<li><p>Accessing of <code>_</code>, <code>$</code>, <code>jQuery</code> and <code>&#39;foobar&#39;</code> and <code>&#39;common&#39;</code> variables everywhere.</p>
+</li>
+<li><p>Working the same way on all templates, on any environment (AMD, nodejs, Web/Script).</p>
+</li>
+<li><p>Saving space: on <a href="combined-template">&#39;combined&#39; template</a>, all <code>dependencies.imports</code> are required (&amp; loaded) only once, made available from within the bundle&#39;s &#39;combined&#39; closure.</p>
+</li>
+</ul>
+<p>@type <a href="types-and-derive#depsvars">depsVars</a></p>
+<p>@derive <a href="types-and-derive#dependenciesbindings">dependenciesbindings</a></p>
+<p>@note the <a href="types-and-derive#shortcut-depsvars-types">shortcut depsvars format</a>, can also be used (eg <code>[&#39;underscore&#39;, &#39;jquery&#39;, &#39;models/PersonModel&#39;]</code>), in which case the <a href="types-and-derive#inferred-binding-idenifiers">vars are inferred]</a>.</p>
+<p>@see <a href="resourceconverters.coffee#injectdeps"><code>Module.injectdeps()</code></a> which powers <code>dependencies.imports</code> - use it to customize even more the dependency injection behavior.      </p>
+<p>@alias <code>bundleExports</code>, <code>exports.bundle</code> both DEPRECATED</p>
+<pre><code>    imports: {}</code></pre>
+<h4><a class="anchor" href="#bundle.dependencies.rootexports" id="bundle.dependencies.rootexports"></a>bundle.dependencies.rootExports</h4>
+<p>Make a module be available GLOBALY (by attaching it to <code>window</code> and/or nodejs&#39;s <code>global</code> object) under <code>varName</code>(s), same as in <a href="exporting-modules">Exporting Modules</a>.</p>
+<p>Access via plain <code>varName</code> works both in browser <em>and</em> nodejs.</p>
+<ul>
+<li><p>On browser its attached as a property to <code>window</code> object</p>
+</li>
+<li><p>On nodejs its attached to the <code>global</code> object with the same effect: accessing it via its name from everywhere.</p>
+</li>
+</ul>
+<p>@note: When <code>bundle.dependencies.rootExports</code> is present, you control <code>noConflict</code> via <a href="#build.rootexports.noconflict"><code>build.rootExports.noConflict</code></a> which defaults to <code>true</code> (overriding <code>noConflict</code> defined within the module, as described in <a href="exporting-modules">Exporting Modules</a>).</p>
+<p>@example</p>
+<p>  <code>bundle: dependencies: rootExports: {&#39;models/PersonModel&#39;: [&#39;persons&#39;, &#39;personsModel&#39;]}</code></p>
+<p>is like having a</p>
+<p>  <code>({rootExports: [&#39;persons&#39;, &#39;personsModel&#39;], noConflict:true});</code></p>
+<p>in module <code>&#39;models/PersonModel&#39;</code> as described in <a href="exporting-modules">Exporting Modules</a>.</p>
+<p>@type <a href="types-and-derive#depsvars">depsVars</a></p>
+<p>@derive <a href="types-and-derive#dependenciesbindings">dependenciesbindings</a></p>
+<p>@note both <code>window</code> and <code>global</code> objects exist as an alias of each other on the <a href="combined-template">&#39;combined&#39; template</a> or when <a href="#build.globalwindow"><code>build.globalWindow: true</code></a> (the default) on all other templates.</p>
+<p>@alias <code>dependencies: exports: root</code> DEPRECATED</p>
+<pre><code>    rootExports: {}</code></pre>
+<h3><a class="anchor" href="#bundle.dependencies.replace" id="bundle.dependencies.replace"></a>bundle.dependencies.replace</h3>
+<p>Replace one or more dependencies with another. Enables you to substitute with mocks, substitutes or provide compatibility etc.</p>
+<p>It replaces all right hand side dependencies (String value or []&lt;String&gt; values), to the left side (key) in the build modules.</p>
+<p>@example</p>
+<pre><code>{
+  lodash: [<span class="string">'underscore'</span>, <span class="string">'otherscore'</span>],
+  newDep2Name: <span class="string">'oldDep2Name'</span>
+}</code></pre>
+<p>replaces all <code>&#39;underscore&#39;</code> or <code>&#39;otherscore&#39;</code> deps to <code>&#39;lodash&#39;</code> and all <code>&#39;oldDep2Name&#39;</code> with <code>&#39;newDep2Name&#39;</code> in all modules of the bundle.</p>
+<p>All deps are considered / translated to <a href="http://urequire.org/flexible-path-conventions#bundlerelative-vs-filerelative-paths">bundleRelative</a>:</p>
+<ul>
+<li><p><code>&#39;depDir/dep&#39;</code> matches and/or replaces the deps that resolved to this as bundle relative, even if they are declared in the code of <code>&#39;someOtherdir/someModule&#39;</code> as <code>require(&#39;../depDir/dep&#39;)</code> (when authored with the nodejs fileRelative path convention).</p>
+</li>
+<li><p><code>&#39;../../some/external/dep&#39;</code> will fall outside the bundle, it refers to a directory that is two &#39;..&#39; steps before <code>bundle.path</code> and will match <code>require(&#39;../../../some/external/dep&#39;)</code> declared in <code>&#39;someOtherdir/someModule&#39;</code>.</p>
+</li>
+</ul>
+<p>@see <a href="resourceconverters.coffee#inject-replace-dependencies">inject / replace dependencies</a> in <a href="resourceconverters.coffee#manipulating-modules">Manipulating Modules</a>.</p>
+<p>@type <a href="types-and-derive#depsvars">depsVars</a></p>
+<p>@derive paradoxically its <a href="types-and-derive#dependenciesbindings">dependenciesbindings</a></p>
+<pre><code>    replace: {}</code></pre>
+<h3><a class="anchor" href="#bundle.dependencies.node" id="bundle.dependencies.node"></a>bundle.dependencies.node</h3>
+<p>Dependencies (<a href="types-and-derive#filespecs">declared as filespecs</a>) listed here are treated as node-only: they aren&#39;t added to the AMD dependency array (and hence <strong>not available</strong> on the Web/AMD side).</p>
+<p>Your code should not use these deps outside node - you can use <code>__isNode</code>, <code>__isAMD</code>, <code>__isWeb</code> available in uRequire compiled modules with <a href="#build.runtimeinfo"><code>build.runtimeInfo</code></a> to follow a different branch in your code.</p>
+<p>Using <code>bundle.dependencies.node</code> has the same effect as the <code>node!</code> fake plugin, eg <code>require(&#39;node!my_fs&#39;)</code>, but its probably more useful cause your code can execute on nodejs without the template conversion that strips <code>&#39;node!&#39;</code> and you can declare in them in bulk without poluting the source code.</p>
+<p>@type <a href="types-and-derive#filespecs">filespecs</a>, <strong>used WITHOUT extensions (.js)</strong>, only as deps.</p>
+<p>@derive <a href="types-and-derive#arrayizeconcat">arrayizeConcat</a>.</p>
+<p>@example <code>node: [&#39;myUtil&#39;, &#39;my_fs&#39;, &#39;node/*&#39;, &#39;!stream&#39;]</code></p>
+<p>@alias noWeb DEPRECATED</p>
+<p>@stability 2</p>
+<p>@default All known built-in nodejs packages (as of 10.8) like <code>&#39;util&#39;</code>, <code>&#39;fs&#39;</code> etc are the default of  <code>bundle.dependencies.node</code>. Use <code>node: [[null], &#39;myNodeModule&#39;]</code> to reset the <code>node</code> array with only your modules.</p>
+<p>@note: If your bundle contains a dependency that is also in <code>dependencies.node</code> (eg you have &#39;url.js&#39; <em>in the root of you bundle</em>), then <strong>this is considered to be a node-only dep</strong>, so you DO need to exclude it with <code>&#39;!url&#39;</code>, or it wont be available on the AMD side.</p>
+<pre><code>    node: [
+      <span class="string">'fs'</span>, <span class="string">'events'</span>, <span class="string">'util'</span>, <span class="string">'http'</span>, <span class="string">'path'</span>, <span class="string">'child_process'</span>,
+      <span class="string">'events'</span>, <span class="string">'crypto'</span>, <span class="string">'string_decoder'</span>, <span class="string">'timers'</span>, <span class="string">'tls'</span>
+      <span class="string">'domain'</span>, <span class="string">'buffer'</span>, <span class="string">'net'</span>, <span class="string">'dgram'</span>, <span class="string">'dns'</span>, <span class="string">'stream'</span>,
+      <span class="string">'https'</span>, <span class="string">'querystring'</span>, <span class="string">'punycode'</span>, <span class="string">'readline'</span>, <span class="string">'url'</span>,
+      <span class="string">'repl'</span>, <span class="string">'vm'</span>, <span class="string">'assert'</span>, <span class="string">'tty'</span>, <span class="string">'zlib'</span>, <span class="string">'os'</span>, <span class="string">'cluster'</span>
+      <span class="string">'console'</span>, <span class="string">'freelist'</span>, <span class="string">'sys'</span>, <span class="string">'constants'</span> <span class="comment"># 'module' conflicts with dep.isSystem</span>
+    ]</code></pre>
+<h3><a class="anchor" href="#bundle.dependencies.locals" id="bundle.dependencies.locals"></a>bundle.dependencies.locals</h3>
+<p>Declare your local packages, like <code>&#39;lodash&#39;</code> or <code>&#39;when&#39;</code> that are installed either on npm (i.e <code>node_modules</code>), bower (i.e <code>bower_components</code>) or vanilla (eg <code>/vendor</code>). Local deps are NOT considered part of the bundle, hence they are not reported as <em>&quot;Bundle-looking dependencies not found in bundle&quot;</em>.</p>
+<p>All deps that have no nested path (i.e no <code>&#39;/&#39;</code>) and are not in the bundle&#39;s path (eg <code>&#39;lodash&#39;</code>) are considered as local automatically. <strong>The only reason you would need to declare a dep as local is :</strong></p>
+<ul>
+<li>you use something like <code>require(&#39;when/callbacks&#39;)</code> and it&#39;s reported as <em>&quot;Bundle-looking dependencies not found in bundle&quot;</em>, but it shouldn&#39;t be. So you list <code>when</code> in <code>locals</code> and everything that falls below <code>&#39;when/**/*&#39;</code> is also considered local.</li>
+</ul>
+<p>@optional</p>
+<p>@stability 3</p>
+<p>@example <code>locals: [&#39;when&#39;]</code> or <code>locals: {&#39;when&#39;: &#39;bower_components/when&#39;}</code></p>
+<p>@type :</p>
+<ul>
+<li><p>Array&lt;String&gt;, eg [&#39;when&#39;, &#39;backbone&#39;, &#39;lodash&#39;]. <strong>Declare only the first path part of you local-only deps, eg <code>&#39;when&#39;</code>, instead of <code>&#39;when/node/function&#39;</code></strong></p>
+</li>
+<li><p><a href="types-and-derive#depsvars">depsVars</a> type where</p>
+<ul>
+<li><p>keys are the first part of the local dep name</p>
+</li>
+<li><p>value(s) are the paths when the dependency &#39;main&#39; can be found. eg</p>
+<pre><code>{
+ <span class="string">'when'</span>: <span class="string">"bower_components/when"</span>
+ <span class="string">'backbone'</span>: <span class="string">"node_modules/backbone"</span>
+ <span class="string">'lodash'</span>: <span class="string">"node_modules/lodash"</span>
+}</code></pre>
+<p>   locals: {}</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>@example</p>
+<pre><code>dependencies:
+ imports:
+  <span class="string">'when/callbacks'</span>: <span class="string">'whenCallbacks'</span>
+
+ locals:
+  <span class="string">'when'</span>: <span class="string">'bower_components/when'</span></code></pre>
+<p>Doesn&#39;t work with <code>combined</code> template running as plain script - <code>when</code> needs to be combined too - check their docs.</p>
+<h3><a class="anchor" href="#bundle.dependencies.paths" id="bundle.dependencies.paths"></a>bundle.dependencies.paths</h3>
+<pre><code>    paths:
+      useCache: <span class="literal">true</span>
+      override: <span class="literal">undefined</span>
+      bower: <span class="literal">undefined</span>
+      npm: <span class="literal">undefined</span>
+
+    shim: <span class="literal">true</span></code></pre>
+<h3><a class="anchor" href="#bundle.dependencies.depsvars" id="bundle.dependencies.depsvars"></a>bundle.dependencies.depsVars</h3>
+<p>List of dependencies bound with one or more vars.</p>
+<p>@optional list them only as reference/backup, when they <a href="types-and-derive#inferred-binding-idenifiers">cant be inferred]</a>, or some specific deps shouldnt be inferred.</p>
+<p>@note In case identifiers can&#39;t be inferred (i.e only used <code>require(&#39;myLocalDep&#39;)</code> without assigning to a var) and bindings aren&#39;t in <code>bundle.dependencies.depsVars</code> (or <code>_knownDepsVars</code> below), then the <a href="types-and-derive#binding-deps-and-vars-is-required">build will fail</a>.</p>
+<p>@example <code>{ underscore: [&#39;_&#39;], jquery: [&#39;$&#39;, &#39;jQuery&#39;], }</code>.</p>
+<p>@type <a href="types-and-derive#depsvars">depsVars</a></p>
+<p>@derive <a href="types-and-derive#dependenciesbindings">dependenciesBindings</a></p>
+<p>@alias variableNames DEPRECATED</p>
+<pre><code>    depsVars: {}</code></pre>
+<h3><a class="anchor" href="#bundle.dependencies._knowndepsvars" id="bundle.dependencies._knowndepsvars"></a>bundle.dependencies._knownDepsVars</h3>
+<p>Some known depsVars, have them as backup - its a private field, not meant to be extended by users (use depsVars).</p>
+<p>@type <a href="types-and-derive#depsvars">depsVars</a></p>
+<p>@derive <a href="types-and-derive#dependenciesbindings">dependenciesBindings</a></p>
+<p>@alias _knownVariableNames DEPRECATED</p>
+<p>@todo: provide some &#39;common/standard&#39; ones.</p>
+<pre><code>    _knownDepsVars:
+      chai: <span class="string">'chai'</span>
+      mocha: <span class="string">'mocha'</span>
+      lodash: <span class="string">"_"</span>
+      underscore: <span class="string">"_"</span>
+      jquery: [<span class="string">"$"</span>, <span class="string">"jQuery"</span>]
+      backbone: <span class="string">"Backbone"</span>
+      knockout: [<span class="string">"ko"</span>, <span class="string">'Knockout'</span>]</code></pre>
+<hr>
+<h2><a class="anchor" href="#bundle.resources" id="bundle.resources"></a>bundle.resources</h2>
+<p>An Array of <a href="resourceconverters.coffee"><strong>ResourceConverters (RC)</strong></a> (eg compilers, transpilers etc), that perform a conversion from one resource format (eg coffeescript, teacup) to another <strong>converted</strong> format (eg javascript, HTML).</p>
+<p><strong>ResourceConverters</strong> is a generic and extendible in-memory conversions workflow, that is trivial to use and extend with your own, perhaps one-liner, converters (eg <code>[&#39;$coco&#39;, [ &#39;**/*.co&#39;], ((r) -&gt; (require &#39;coco&#39;).compile r.converted), &#39;.js&#39;]</code> is an RC).</p>
+<p>The workflow unobtrusively uses <code>bundle</code> &amp; <code>build</code> info like paths and is a highly <em>in-memory-pipeline</em> and <em>read-convert-and-save only-when-needed</em> workflow, with an integrated <a href="masterdefaultsconfig.coffee#build.watch"><code>build.watch</code></a> capability (grunt or standalone).</p>
+<p>Read all about them in <a href="resourceconverters.coffee"><strong>ResourceConverters.coffee</strong></a>.</p>
+<h3><a class="anchor" href="#notes-on-rcs:" id="notes-on-rcs:"></a>Notes on RCs:</h3>
+<ul>
+<li><p>Each file in <a href="masterdefaultsconfig.coffee#bundle.filez"><code>bundle.filez</code></a> that is matched by an RC is considered a <a href="resourceconverters.coffee#fileresource-extends-bundlefile"><code>Resource</code></a> that needs <code>convert()</code>-ing.</p>
+</li>
+<li><p>All non-matching filez are just <a href="resourceconverters.coffee#bundlefile"><code>BundleFile</code></a>s - useful for <em>declarative sync <a href="masterdefaultsconfig.coffee#bundle.copy"><code>bundle.copy</code></a>ing at each build</em>.</p>
+</li>
+</ul>
+<p>@optional unless you want to add you own <em>Resource Converters</em> for your conversion needs.</p>
+<p>@derive <a href="types-and-derive#arrayizeconcat">arrayizeConcat</a>. Hint: You can use [null] as the 1st item to <a href="types-and-derive#reset-parent">reset inherited/parent array items</a> (i.e the ResourceConverters defined in parent configs) and add your own RC or lookup, clone and change an existing one.</p>
+<p>@stability: 3 - Stable</p>
+<p>@type An Array&lt;ResourceConverter&gt;, where a <code>ResourceConverter</code> can be either :</p>
+<ul>
+<li><p>an <a href="resourceconverters.coffee#inside-a-resource-converter">&#39;Object&#39;</a>, for <a href="resourceconverters.coffee#the-formal-object-way-to-define-a-resource-converter">boring formal RC definitions</a>.</p>
+</li>
+<li><p>an <a href="resourceconverters.coffee#the-alternative-less-verbose-array-way">&#39;Array&#39;</a> (for fancy RC-specs)</p>
+</li>
+<li><p>a &#39;String&#39; name search of a previously registered RC, eg <code>&#39;teacup&#39;</code>. Note that <a href="resourceconverters.coffee#flags-and-nameflags">name flags</a> passed on the search (eg <code>&#39;#teacup&#39;</code>), find the actual RC, modify it according to the name flags, strip the flags and then return the RC.</p>
+</li>
+<li><p>a function that returns an RC. This function is called with the 1st argument &amp; <code>this</code> with a <em>searchOrMaterialize</em>  function that takes a String name (or an Array-spec) of an RC and returns a looked up (or materialized RC). For example:</p>
+<pre><code class="lang-javascript">// example - not part of coffee.md source
+resources: [
+  // lookup &amp; clone an RC 
+  function(search){
+    // (use rc.clone() to get a proper instance)
+    var rc = search("RCname").clone();
+    // change the clone's name
+    // &amp; type to 'module' via '$' name flag
+    rc.name = '$MyNewRCname';
+    // add some file specs to `filez`
+    rc.filez.push('!**/DRAFT*.*');
+    // return the new RC, which is
+    // added to `resources` array
+    return rc;
+  },
+  // create a new RC from an Array spec
+  // add some fields and return it
+  function(materialize){
+    // create an RC {} from an RC []
+    myRC = materialize([ 'myNewRC', [/./], convertToMoreFn]);
+    // we now have an {} RC with above fields
+    myRC.srcMain = 'main.lessIsMore';
+    return myRC;
+  }  
+]</code></pre>
+<p>If the function returns null or undefined, its not added to the Array.</p>
+</li>
+</ul>
+<p>@note <strong>Important</strong>: The <strong>order of RCs in <code>resources</code> does matter</strong>, since <em>only the last matching RC determines the <a href="resourceconverters.coffee#attaching-some-clazz">actual class</a>)</em> of the created resource (file).</p>
+<p>@example </p>
+<p>A dummy example follows (in coffeescript) :</p>
+<pre><code><span class="comment"># example - not part of coffee.md source</span>
+resources: [
+ <span class="comment"># search registered RC 'teacup' &amp; use as-is</span>
+ <span class="string">'teacup'</span>
+
+ <span class="comment"># search RC, change its flags and return it</span>
+ <span class="string">'@someRCname'</span> 
+
+ <span class="comment"># search, clone, change, return in one line</span>
+ -&gt; tc = @(<span class="string">'someRC'</span>).clone(); tc.filez.push(<span class="string">'**/*.someExt'</span>); tc
+
+ <span class="comment"># define a new RC, with the fancy [] RC-spec</span>
+ [<span class="string">'$koko'</span>, [<span class="string">'**/*.ko'</span>], ((m) -&gt; require(<span class="string">'koko'</span>).compile m.converted), <span class="string">'.js'</span>]
+
+ <span class="comment"># define a new RC, with the grandaddy {} RC-spec</span>
+ {
+   name: <span class="string">'kookoo'</span>
+   type: <span class="string">'module'</span>
+   filez: [ <span class="string">'**/*.koo'</span>]
+   convert: (m) -&gt; require(<span class="string">'kookoo'</span>).compile m.source
+   convFilename: <span class="string">'.js'</span>
+ }
+
+ <span class="comment"># define a new RC, and reuse an existing</span>
+ <span class="comment"># with the magic search-create-alter function</span>
+ <span class="comment"># passed as `this` (@ in coffeescript)</span>
+ -&gt;
+   <span class="comment"># lookup an existing</span>
+   kookoo = @ <span class="string">'kookoo'</span>
+   <span class="comment"># return a new one, that uses `kookoo.convert`   </span>
+   [<span class="string">'$doodoo'</span>, [ <span class="string">'**/*.doo'</span>], kookoo.convert, <span class="string">'.js'</span>]
+]</code></pre>
+<p>@default </p>
+<p>By default <code>resources</code> has ResourceConverters <code>&#39;javascript&#39;, &#39;coffee-script&#39;, &#39;livescript&#39;, and &#39;coco&#39;</code> as defined in <a href="resourceconverters.coffee#default-resource-converters">Default Resource Converters</a>.</p>
+<p>Some <a href="resourceconverters.coffee#extra-resource-converters">extra RCs are registered</a>, but not added to &#39;resources&#39; - they can be used by searching for &#39;teacup&#39;, &#39;execSync&#39; or &#39;lessc&#39;. Feel free to contribute yours.</p>
+<pre><code>  resources: require(<span class="string">'./ResourceConverters'</span>).defaultResourceConverters</code></pre>
+<h2><a class="anchor" href="#bundle.commoncode" id="bundle.commoncode"></a>bundle.commonCode</h2>
+<p>This is an opportunity to add code once and have it included:</p>
+<ul>
+<li><p>before each module&#39;s factory body (and before moddule&#39;s <a href="resourceconverters.coffee#beforebody"><code>beforeBody</code></a> &amp; <a href="resourceconverters.coffee#mergedcode"><code>mergedCode</code></a>) for all templates except <a href="combined-template">&#39;combined&#39; template</a>.</p>
+</li>
+<li><p>Once within the bundle&#39;s closure, available to all modules, when using the <a href="combined-template">&#39;combined&#39; template</a>.</p>
+</li>
+</ul>
+<p>In all templates, the code should access only <code>bundle.dependencies.imports</code> vars &amp; other globals. It should not it self <code>require</code> anything, cause its depedencies are not (and should not be) analyzed.</p>
+<p>@see <a href="resourceconverters.coffee#inject-any-string-before-after-body">inject code and strings in modules</a> &amp; <a href="combined-template#merging-code">Merging code in bundles</a></p>
+<p>@example</p>
+<pre><code>  commonCode: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#bundle.webrootmap" id="bundle.webrootmap"></a>bundle.webRootMap</h2>
+<p><strong>When running on nodejs</strong>, for dependencies that refer to web&#39;s root (eg <code>&#39;/libs/myLib&#39;</code>), it maps <code>/</code> to a directory on the nodejs file system.</p>
+<p>When running on Web/AMD, the AMD loader (eg RequireJS) maps it to the <strong>http-server&#39;s root</strong> by default (eg <a href="http://example.com/">http://example.com/</a>).</p>
+<p><code>webRootMap</code> can be absolute (<code>&#39;/mnt/libs/&#39;</code>) or relative to <a href="masterdefaultsconfig.coffee#bundle.path"><code>bundle.path</code></a>. - it defaults to bundle.</p>
+<p>@example &quot;/var/www&quot; or &quot;/../../fakeWebRoot&quot;</p>
+<p>@note <code>webRootMap</code> is currently working only with <code>&#39;UMD&#39;</code> template.</p>
+<pre><code>  webRootMap: <span class="string">'.'</span></code></pre>
+<hr>
+<h1><a class="anchor" href="#build" id="build"></a>Build</h1>
+<p>The <code>build</code> hash holds keys that define the conversion or <code>build</code> process, such as <em>where</em> to output, details on <em>how</em> to convert/build etc.</p>
+<pre><code>build:</code></pre>
+<h2><a class="anchor" href="#build.dstpath" id="build.dstpath"></a>build.dstPath</h2>
+<p>Output converted files (Modules &amp; Resources) onto this:</p>
+<ul>
+<li><p>directory, for all templates except <a href="combined-template">&#39;combined&#39;</a></p>
+</li>
+<li><p>filename, if <a href="combined-template">&#39;combined&#39; template</a> is used and <a href="#build.template"><code>build.template.combinedFile</code></a> is undefined.</p>
+<p>If using <a href="combined-template">&#39;combined&#39; template</a> &amp; <code>combinedFile</code>, you can:</p>
+<ul>
+<li><p>omit <code>dstPath</code> and all converted resources will go in the same <em>directory</em> as the <code>combinedFile</code> file.</p>
+</li>
+<li><p>specify any alternative <code>dstPath</code>, where all other resources (non-modules) will be written.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>@note: <a href="#build.dstpath"><code>build.dstPath</code></a>, like <a href="#bundle.path"><code>bundle.path</code></a>, is relative to urequire&#39;s CWD or <code>Gruntfile.js</code> for <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>.</p>
+<p>@mandatory unless <a href="#build.forceoverwritesources"><code>build.forceOverwriteSources</code></a> or <a href="#build.template"><code>build.template.combinedFile</code></a> is used</p>
+<p>@example <code>&#39;build/code&#39;</code> or <code>&#39;build/dist/myLib-min.js&#39;</code></p>
+<p>@alias <code>outputPath</code> DEPRECATED</p>
+<pre><code>  dstPath: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#build.target" id="build.target"></a>build.target</h2>
+<p>The name of the build target - when using <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, it becomes the multi-task <code>@target</code>. So with grunt config <code>{urequire: &#39;dev&#39;: {bundle : {...}, build:{target:undefined} }}</code>, <code>build.target</code> will become <code>&#39;dev&#39;</code>.</p>
+<p>@optional coerced to @target if using grunt - otherwise set it what ever describes your build.</p>
+<p>@example <code>&#39;UMD&#39;</code>, <code>&#39;dev&#39;</code>, <code>&#39;min&#39;</code>, <code>&#39;specDev&#39;</code> etc</p>
+<pre><code>  target: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#build.forceoverwritesources" id="build.forceoverwritesources"></a>build.forceOverwriteSources</h2>
+<p>Output on the same directory as the <em>source</em> <a href="masterdefaultsconfig.coffee#bundle.path"><code>bundle.path</code></a>, overwriting all files. Useful if your sources are not <em>real sources</em>.</p>
+<p>@note: Be warned that when <code>true</code>, <a href="masterdefaultsconfig.coffee#build.dstpath">build.dstPath</a> is ignored and always takes the value of <a href="masterdefaultsconfig.coffee#bundle.path"><code>bundle.path</code></a>.</p>
+<pre><code>  forceOverwriteSources: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.template" id="build.template"></a>build.template</h2>
+<p>The <strong>template</strong> to use to either convert:</p>
+<ul>
+<li><p>each module file, to a new format like <code>&#39;UMD&#39;</code>, <code>&#39;UMDplain&#39;</code>, <code>&#39;nodejs&#39;</code>, <code>&#39;AMD&#39;</code> etc</p>
+</li>
+<li><p>all modules files into one <code>combined.js</code> file, using the special <a href="combined-template">&#39;combined&#39; template</a> that actually drives an r.js/almond conversion.</p>
+</li>
+</ul>
+<p>@type</p>
+<ul>
+<li><p>The <em>simple usage</em> is a String of the <strong>name of the template</strong> as a string among the available <a href="https://github.com/anodynos/uRequire/blob/master/source/code/process/Build.coffee">Build.templates</a> = [&#39;UMD&#39;, &#39;UMDplain&#39;, &#39;AMD&#39;, &#39;nodejs&#39;, &#39;combined&#39;]</p>
+</li>
+<li><p>A hash that has the following optional values :</p>
+<pre><code>template: {
+  name: {String}
+  moduleName: {String}
+  banner: {String|Boolean|Function}
+  debugLevel: {Number}
+}</code></pre>
+</li>
+</ul>
+<h3><a class="anchor" href="#build.template.name" id="build.template.name"></a>build.template.name</h3>
+<p>The String <strong>name of the template</strong>, as in <em>simple usage</em> above.</p>
+<h4><a class="anchor" href="#example" id="example"></a>Example</h4>
+<p>   name: &#39;combined&#39;</p>
+<h3><a class="anchor" href="#build.template.combinedfile" id="build.template.combinedfile"></a>build.template.combinedFile</h3>
+<p>For the &#39;combined&#39; template only, you can declare the <code>combinedFile</code>, if its different (or instead of) <a href="#build.dstpath"><code>build.dstPath</code></a>.</p>
+<h4><a class="anchor" href="#example" id="example"></a>Example</h4>
+<p>   combinedFile: &#39;build/someOtherPath/combinedModulesFilename.js&#39;</p>
+<h4><a class="anchor" href="#usage" id="usage"></a>Usage</h4>
+<p>The <code>combinedFile</code> and <a href="#build.dstpath"><code>build.dstPath</code></a> derive from each other, if either is undefined:</p>
+<ul>
+<li><p>In the previous example, if <code>build.dstPath</code> is undefined, it will default to <code>&#39;build/someOtherPath/&#39;</code></p>
+</li>
+<li><p>If <code>combinedFile</code> is undefined, it will use <a href="#build.dstpath"><code>build.dstPath</code></a> with a &#39;.js&#39; appended.</p>
+</li>
+<li><p>if both are undefined uRequire will quit (unless <a href="#build.forceoverwritesources"><code>forceOverwriteSources</code></a> is true).</p>
+</li>
+</ul>
+<p>If both are defined, they will be respected, leading to a possible different path where <code>combinedFile</code> is written and where all other non-combined files (that are part the bundle) are written (eg <a href="bundle.copy"><code>bundle.copy</code></a>, htmls, css etc).</p>
+<h3><a class="anchor" href="#build.template.modulename" id="build.template.modulename"></a>build.template.moduleName</h3>
+<p>By default, when AMD is present, &#39;combined&#39; template calls <code>define()</code> that registers your combined bundle as an <strong>anonymous module</strong> - this registers in the AMD system with the name of its path (eg <code>uberscore-min</code>).</p>
+<p>You can change this behavior and call <code>define</code> with a <a href="http://www.requirejs.org/docs/api.html#modulename">moduleName</a> eg <code>moduleName: &quot;foo/title&quot;</code> here.
+Its useful when you want to &#39;inject&#39; it inside some other hierarchy (than what its filename implicitly defines it as), eg you want to have <code>&#39;foo/bar&#39; as a separate package</code>foo_bar.js` but correctly register its self on your dependency tree.</p>
+<p>You can even load such a combined file with <code>moduleName</code> via plain script eg <code>&lt;script src=&#39;foo_bar.js&#39;&gt;</code>, without RequireJS throwing the <code>Error: Mismatched anonymous define()</code> and then you can do a <code>require([&#39;foo/bar&#39;, function(foo_bar){ foo_bar.doStuff()})</code>.</p>
+<p>Be careful with it though, cause RequireJS sometimes <strong>silently fails</strong> in some cases, if there&#39;s a mismatch between the declared <code>moduleName</code> and the name it would give it if it were anonymous when another module requires it. Its complicated and rough, as many things in AMD :-(</p>
+<h4><a class="anchor" href="#example" id="example"></a>Example</h4>
+<p>   moduleName: &#39;foo/bar&#39;.</p>
+<h3><a class="anchor" href="#build.template.banner" id="build.template.banner"></a>build.template.banner</h3>
+<p>Adds a banner at the top of either your <code>bundle.main</code> UMD/AMD/nodejs file, or the top of the combined file.</p>
+<p>It works perfectly along with the <a href="#build.optimize"><code>build.optimize: true</code></a>, knowing when to concat it. This has many positive implications, so for example when the rjs optimizer is used on the combined file, you can have a <code>build: rjs: preserveLicenseComments: false</code> to strip all other banners included in the bundle but yours which is added at the end of the process (but watch out for license deprivation).</p>
+<p>The value can be of 4 different types:</p>
+<ul>
+<li><p><code>String</code>: concatenated as-is.</p>
+</li>
+<li><p><code>Boolean</code>: a <code>true</code> value creates a default banner out of your <code>package.json</code> using <code>name, version, homepage, author, description, license/licenses, repository</code> and current date.</p>
+</li>
+<li><p><code>Object</code>: a hash with values resembling a <code>package.json</code>, using the default banner generator above.</p>
+</li>
+<li><p><code>Function(package, bower, bundle, build)</code>: is called with these parameters so you can build your own banner generator function that should return a <code>String</code>.</p>
+</li>
+</ul>
+<h4><a class="anchor" href="#examples" id="examples"></a>Examples</h4>
+<p>   banner: true</p>
+<p>   banner: &quot;/<em>* I am a banner on top </em>/&quot;</p>
+<p>   banner: {name: &quot;MyProject&quot;, version: &quot;2.0-beta&quot;}</p>
+<p>   banner: function(pkg) { return &quot;/<em>*&quot; + name + &quot; v&quot; + version + &quot;</em>/&quot;; }</p>
+<h3><a class="anchor" href="#build.template.debuglevel" id="build.template.debuglevel"></a>build.template.debugLevel</h3>
+<p>Template debug - outputs section comments. Values are in the range of 10, 20, 30.
+Multiply those by 10 and you&#39;ll get <code>console.log</code>s of sections while they load.
+Highly experimental and for hard core debugging only!</p>
+<h4><a class="anchor" href="#example" id="example"></a>Example</h4>
+<p>   debugLevel: 0</p>
+<p>@see <em>Conversion Templates</em> in docs.</p>
+<p>@default</p>
+<pre><code>  template: <span class="string">'UMDplain'</span></code></pre>
+<h2><a class="anchor" href="#build.runtimeinfo" id="build.runtimeinfo"></a>build.runtimeInfo</h2>
+<p>Adds <code>__isAMD</code>, <code>__isNode</code> &amp; <code>__isWeb</code> variables to your modules, so you can easily determine the execution environment your module is running in.</p>
+<p>For example they can be used to select a different execution branch, depending on where the module is executing. Make sure to add modules that are nodejs-only to <a href="#bundle.dependencies.node"><code>bundle.dependencies.node</code></a> so they aren&#39;t loaded in AMD (i.e not added to <code>define()</code> dependency array).</p>
+<p>See a Q&amp;A / tutorial on how this helps nodejs/browser cross development at <a href="http://stackoverflow.com/questions/22512486/nodejs-browser-cross-development">stackoverflow.com</a>.</p>
+<p>@note <a href="combined-template">&#39;combined&#39; template</a> always has <code>runtimeInfo</code> enabled cause it it.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<p>@example <code>runtimeInfo: [&#39;index&#39;, &#39;libs/**/*&#39;]</code></p>
+<pre><code>  runtimeInfo: <span class="literal">true</span></code></pre>
+<h2><a class="anchor" href="#build.bare" id="build.bare"></a>build.bare</h2>
+<p>Like coffeescript <code>--bare</code>:</p>
+<ul>
+<li><p>if <code>bare: false</code> (<em>the default</em>), it encloses each module in an Immediately Invoked Function Expression (IIFE):</p>
+<pre><code>(<span class="reserved">function</span> () {
+  .....
+}).call(<span class="keyword">this</span>);</code></pre>
+</li>
+<li><p>if <code>bare: true</code> it doesn&#39;t.</p>
+</li>
+</ul>
+<p>The IIFE is just a top-level safety wrapper used to prevent leaking and have all variables as local to the module and to provide the <a href="#build.globalwindow"><code>build.globalWindow</code></a> functionality.</p>
+<p>@note if <code>bare: true</code>, then <a href="#build.globalwindow"><code>build.globalWindow</code></a> <strong>functionality is disabled</strong>.</p>
+<p>@note It doesn&#39;t apply to <a href="combined-template">&#39;combined&#39; template</a>: your modules &amp; almond are always enclosed in a single IIFE, and <code>windows === global</code> is always true and the modules themselves are plain <code>define(...)</code> calls.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  bare: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.usestrict" id="build.usestrict"></a>build.useStrict</h2>
+<p>Add the famous <code>&#39;use strict&#39;;</code> so you don&#39;t have to type it at each module.</p>
+<p>Its added either at:</p>
+<ul>
+<li><p>the begining of each module&#39;s body, for modules that <a href="types-and-derive#booleanorfilespecs">pass filespecs</a> or to all modules if <code>build.useStrict: true</code>.</p>
+</li>
+<li><p>once at the closure of the <a href="combined-template">&#39;combined&#39; template</a>, only if the value is <code>true</code>.</p>
+</li>
+</ul>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<p>@default is <code>undefined</code>, which doesn&#39;t inject <code>use strict;</code> on any module, BUT in <a href="combined-template">combined template</a> it enables the corresponding <a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js">rjs config <code>useStrict: true</code></a>. Effectively this allows &#39;use strict;&#39; on the modules that already have it. Use <code>false</code> to give a false on rjs, which strips them off and <code>true</code> to inject it once on the combined template or on each module in UMD/AMD/nodejs (even if modules already have it).</p>
+<pre><code>  useStrict: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#build.globalwindow" id="build.globalwindow"></a>build.globalWindow</h2>
+<p>Allow <code>global</code> &amp; <code>window</code> to be <code>global === window</code>, whether on nodejs or the browser. It works independently of <a href="#build.runtimeinfo"><code>build.runtimeInfo</code></a> but <strong>it doesn&#39;t work if <a href="#build.bare"><code>build.bare</code></a> is <code>true</code></strong>. It uses the IIFE that&#39;s enclosing modules to pass <code>&#39;window&#39;</code> or <code>&#39;global&#39;</code> respectively.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<p>@note the <code>global === window</code> functionality is always true in <a href="combined-template">&#39;combined&#39; template</a> - <code>false</code>-ing it makes no difference!</p>
+<pre><code>  globalWindow: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.injectexportsmodule" id="build.injectexportsmodule"></a>build.injectExportsModule</h2>
+<p>Always inject <code>exports, module</code> as dependencies on AMD/UMD templates from modules that are originally AMD (it <em>always</em> inject them on originally nodejs/commonjs modules).</p>
+<p>Having <code>exports</code> around solves the <strong><a href="http://stackoverflow.com/questions/4881059/how-to-handle-circular-dependencies-with-requirejs-amd">circular dependencies</a> problem <a href="http://requirejs.org/docs/api.html#circular">with AMD</a></strong>, so its enabled by @default as <code>true</code>.</p>
+<p>@note to make this commonjs circular dependencies workaround work (see it in <a href="http://requirejs.org/docs/api.html#circular">requirejs docs</a>), you need to <strong>export only the plain <code>{}</code></strong> that <code>exports</code> already points to, not a <code>function</code> or any other value of your own. Eg you do only a <code>exports.myKey = &#39;myValue&#39; and NOT an</code>module.exports = &quot;my module value&quot;`</p>
+<p>@note uRequire fixes the AMD mandate that you still need to <code>return exports</code> or <code>return module.exports</code> that both point to {the:&#39;module&#39;} from the AMD factory (not just setting <code>module.exports = {the:&#39;module&#39;}</code>). With uRequire conversion you can use exports as you normally do with nodejs/commonjs modules, and never return it even from AMD modules.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<p>@note modules originally <code>nodejs</code> and converted to <code>AMD</code>/<code>UMD</code> always have <code>exports, module</code> injected anyway, and ALL converted modules always get a <code>require</code> dependency, so you never have declare any of the 3 stooges.</p>
+<p>@optional changing the @default being <code>true</code>, would save a few bytes in each module definition, with the cost of falling into the circular dep trap and having to <code>return exports</code> etc. Advice is to leave it on, and <em>never manually type</em> <code>define([&#39;require&#39;, &#39;exports&#39;, &#39;module&#39;, ..], function(require, exports, module, ..){..}</code> etc again!</p>
+<pre><code>  injectExportsModule: <span class="literal">true</span></code></pre>
+<h2><a class="anchor" href="#build.rootexports" id="build.rootexports"></a>build.rootExports</h2>
+<p>Holds keys relating to how <code>bundle.dependencies.rootExports</code> are build into the converted modules.</p>
+<pre><code>  rootExports:</code></pre>
+<h2><a class="anchor" href="#build.rootexports.ignore" id="build.rootexports.ignore"></a>build.rootExports.ignore</h2>
+<p>When evaluating to true for a module, it doesn&#39;t produce the boilerplate for <a href="exporting-modules">exporting modules (&amp; <code>noConflict</code>())</a>. It ignores both :</p>
+<ul>
+<li><p><code>{ rootExports: [&#39;persons&#39;, &#39;personsModel&#39;] }</code> on top of <code>&#39;models/PersonsModel.js&#39;</code>.</p>
+</li>
+<li><p><a href="#bundle.dependencies.rootexports"><code>bundle.dependencies.rootExports</code></a></p>
+</li>
+<li><p>build.rootExports.runtimes (see below)</p>
+</li>
+</ul>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<p>@alias <code>build.noRootExports</code> DEPRECATED</p>
+<pre><code>    ignore: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.rootexports.runtimes" id="build.rootexports.runtimes"></a>build.rootExports.runtimes</h2>
+<p>Builds modules in such a way that exporting <code>bundle.dependencies.rootExports</code> on root (i.e <code>window</code>/<code>global</code>) works only on the declared runtimes (among <code>&#39;AMD&#39;</code>, <code>&#39;node&#39;</code> and <code>&#39;script&#39;</code>).</p>
+<p>@type Array with one or more among <code>&#39;AMD&#39;</code>, <code>&#39;node&#39;</code> and <code>&#39;script&#39;</code>, which represent the 3 common runtimes.</p>
+<p>@derive none - child simply overwrites parent</p>
+<p>@example if you want the root exports to work both when running as <code>script</code> (eg. <code>combined</code> template or <a href="#noloaderumd"><code>noLoaderUMD</code></a> ) but also on when <code>AMD</code> loader is used (see rationale in <a href="https://github.com/umdjs/umd/blob/master/amdWebGlobal.js#L22"><code>amdWebGlobal</code> UMD variant</a>, use <code>[&#39;AMD&#39;, &#39;script&#39;]</code>.</p>
+<p>@note if you specify an empty array <code>[]</code>, its effectively like having <code>build.rootExports.ignore: true</code>.</p>
+<p>@optional</p>
+<p>@alias <code>build.exportsRoot</code> DEPRECATED</p>
+<p>@default is to export only on &#39;script&#39;, not on node&#39;s <code>global</code> object and not on <code>window</code> when loading through AMD.</p>
+<pre><code>    runtimes: [<span class="string">'script'</span>]</code></pre>
+<h2><a class="anchor" href="#build.rootexports.noconflict" id="build.rootexports.noconflict"></a>build.rootExports.noConflict</h2>
+<p>Controls the generation of the <code>noConflict</code> code - considered only when of <code>bundle.dependencies.rootExports</code> is present, in which case it overrides the <code>noConflict</code> value declared in the module it self (as described in <a href="exporting-modules">Exporting Modules</a>).</p>
+<pre><code>    noConflict: <span class="literal">true</span></code></pre>
+<h2><a class="anchor" href="#build.scanallow" id="build.scanallow"></a>build.scanAllow</h2>
+<p>By default, ALL <code>require(&#39;missing/NodeStyle/Dep&#39;)</code> in your module are added on the dependency array <code>define([&#39;existingArrayDep&#39;,.., &#39;missing/NodeStyle/Dep&#39;], ...)</code>.</p>
+<p>That&#39;s because, even if there is even one dep on the deps array, <a href="https://github.com/jrburke/requirejs/issues/467#issuecomment-8666934">runtime scan is disabled on RequireJs</a>. So, if any <code>require(&#39;dep1&#39;)</code> is not in that AMD deps array, requirejs loading halts. uRequire adds them all to prevent this problem, even if your have ommited them (and well you did, DRY is a virtue).</p>
+<p>With <code>scanAllow: true</code> you allow the <code>require(&#39;&#39;)</code> scan of requirejs that happens either at runtime (costs at starting up) or when using the <a href="combined-template">combined-template</a> at the rjs / almond optimization stage. This is meaningful <strong>only for source modules that have no other <code>define([])</code> deps (even injected)</strong>, i.e. modules using ONLY <code>require(&#39;&#39;)</code>, either written as a pure nodejs module or AMD.</p>
+<p>@note: uRequire disables <code>scanAllow</code> per module, for modules having any of these :</p>
+<ul>
+<li><p><a href="exporting-modules"><code>rootExports</code> / <code>noConflict()</code></a></p>
+</li>
+<li><p><a href="#bundle.dependencies.imports"><code>bundle.dependencies.imports</code></a></p>
+</li>
+<li><p><a href="resourceconverters.coffee#inject-replace-dependencies">injected deps</a></p>
+</li>
+<li><p><a href="#bundle.dependencies.node">node-only deps</a></p>
+</li>
+</ul>
+<p>all for a good reason.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  scanAllow: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.allnoderequires" id="build.allnoderequires"></a>build.allNodeRequires</h2>
+<p>Pre-require all <code>require(&#39;&#39;)</code> deps on node, even if they aren&#39;t mapped to any parameters, just like they are pre-loaded as AMD <code>define()</code> array deps. It preserves the same loading order as on Web/AMD, with a trade off of a possible slower starting up (they are cached nevertheless, so you gain speed later).</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  allNodeRequires: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.dummyparams" id="build.dummyparams"></a>build.dummyParams</h2>
+<p>Add dummy params <code>__dummy__param__n</code> for deps that have no corresponding param in the AMD define array. Should not be needed but might solve some issues with dependencies not loading on nodejs.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  dummyParams: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.noloaderumd" id="build.noloaderumd"></a>build.noLoaderUMD</h2>
+<p>Allow modules to execute and register their exports (as defined in [<code>bundle.dependencies.rootExports</code>] or <a href="exporting-modules">rootExports</a>), even when running without an AMD or CommonJS loader, i.e it runs on a browser via <code>&lt;script src=&#39;my/UMDModule.js&#39;&gt;</code>. It works only:</p>
+<ul>
+<li><p>on &#39;UMD&#39; and &#39;UMDplain&#39; templates.</p>
+</li>
+<li><p>if module has local/global dependencies only (eg <code>&#39;underscore&#39;</code>) and those have already load them selves (eg as <code>window._</code>).</p>
+</li>
+</ul>
+<p>If the UMD module has bundle deps (eg <code>&#39;my/models/Person&#39;</code>) it needs an AMD loader and loading as <code>&lt;script src=&quot;require.js&quot; data-main=&quot;MainModule&quot;&gt;</code>.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  noLoaderUMD: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.warnnoloaderumd" id="build.warnnoloaderumd"></a>build.warnNoLoaderUMD</h2>
+<p>Provides a warning when a UMD module is loaded as &lt;script&gt;, but the <code>build.noLoaderUMD</code> generated code is missing.</p>
+<p>@default true as a warning to new users, advice is to turn it off &amp; save space (when you know AMD or CommonJs loader is present).</p>
+<p>@see <a href="#build.noloaderumd"><code>build.noLoaderUMD</code></a></p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  warnNoLoaderUMD: <span class="literal">true</span></code></pre>
+<h2><a class="anchor" href="#build.watch" id="build.watch"></a>build.watch</h2>
+<p>Watch for changes in bundle files and reprocesses <em>only</em> changed ones.</p>
+<p>The <em>watch feature</em> of uRequire works with:</p>
+<ul>
+<li><p>Standalone urequireCmd, setting <code>watch: true</code> or -w flag.</p>
+</li>
+<li><p>Instead of <code>watch:true</code>, you use <a href="https://github.com/aearly/grunt-urequire">grunt-urequire &gt;=0.7.x</a> &amp; <a href="https://github.com/gruntjs/grunt-contrib-watch">grunt-contrib-watch &gt;=0.5.x</a>.</p>
+</li>
+</ul>
+<p>@note In <code>grunt-urequire</code>, at each <code>watch</code> event there is a <em>partial build</em>. The first time a partial build is carried out, a full build is automatically performed instead. <strong>You don&#39;t need (and shouldn&#39;t) perform a full build</strong> before the watched task (i.e dont run the <code>urequire:xxx</code> grunt task before running <code>watch: xxx: tasks: [&#39;urequire:xxx&#39;]</code>). A full build is always enforced by urequire.</p>
+<p>@type <code>truthy</code>/<code>falsey</code> OR <code>Integer</code> which the <a href="https://lodash.com/docs#debounce"><code>_.debounce wait</code></a> (in milliseconds) after each file watch event (works <em>only</em> when using <a href="https://github.com/anodynos/uRequire-cli">urequire&#39;s</a> watch instead of grunt&#39;s. Effectively its how long to wait to start the build, after each file watch event. DebounceWait defaults to <code>1000</code> otherwise.</p>
+<pre><code>  watch: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.verbose" id="build.verbose"></a>build.verbose</h2>
+<p>Print bundle, build &amp; module processing information.</p>
+<p>@type: Boolean</p>
+<p>@todo: make it less verbose / work better with <code>build.debugLevel</code></p>
+<pre><code>  verbose: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.debuglevel" id="build.debuglevel"></a>build.debugLevel</h2>
+<p>Debug levels <em>1-100</em>.</p>
+<p>@todo: make it less verbose - reassign levels</p>
+<pre><code>  debugLevel: <span class="number">0</span></code></pre>
+<h2><a class="anchor" href="#build.continue" id="build.continue"></a>build.continue</h2>
+<p>Dont bail out while processing when there are <strong>soft / module processing errors</strong>.</p>
+<p>For example ignore an RC conversion error or a missing dependency and just do all the other modules.</p>
+<p>@note: Not needed when <code>build.watch</code> is used - the <code>continue</code> behaviour is applied to <code>build.watch</code>.</p>
+<pre><code>  <span class="keyword">continue</span>: <span class="literal">false</span></code></pre>
+<h2><a class="anchor" href="#build.optimize" id="build.optimize"></a>build.optimize</h2>
+<p>Optimizes output files (i.e it minifies/compresses them for production).</p>
+<p>@type</p>
+<ul>
+<li><p><em>false</em>: no optimization.</p>
+</li>
+<li><p><em>true</em>: uses sane defaults of &#39;uglify2&#39; to minify/compress.</p>
+</li>
+<li><p>&#39;uglify2&#39; / &#39;uglify&#39;: specifically select either (with default settings).
+<strong>@note: &#39;uglify&#39; works ONLY for <a href="combined-template">&#39;combined&#39; template</a>, delegating options to <code>r.js</code>.</strong></p>
+</li>
+<li><p>Object - just like <a href="https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L138-154">&#39;uglify&#39;</a> or <a href="https://github.com/jrburke/r.js/blob/f021df4d2b68/build/example.build.js#L161-176">&#39;uglify2&#39;</a>.</p>
+</li>
+</ul>
+<p>@example</p>
+<ul>
+<li><p><code>optimize: true</code> - simplest, minifies with &#39;uglify2&#39; defaults.</p>
+</li>
+<li><p>Passing options to <a href="https://github.com/mishoo/UglifyJS2">uglify2</a>, works the same on all templates &amp; r.js optimization.</p>
+</li>
+</ul>
+<pre><code>  optimize:
+    uglify2:
+      output: beautify: <span class="literal">true</span>
+      compress: <span class="literal">false</span>
+      mangle: <span class="literal">false</span></code></pre>
+<pre><code>  optimize: <span class="literal">false</span>
+  _optimizers: [<span class="string">'uglify2'</span>, <span class="string">'uglify'</span>]</code></pre>
+<h2><a class="anchor" href="#build.out" id="build.out"></a>build.out</h2>
+<p>Callback to pass you the <a href="resourceconverters.coffee#converted"><code>converted</code></a> content &amp; <a href="resourceconverters.coffee#dstfilename"><code>dstFilename</code></a> of each resource/module, instead of saving to filesystem under <a href="#build.dstpath"><code>dstPath</code></a>/<a href="resourceconverters.coffee#dstfilename"><code>dstFilename</code></a> via <a href="resourceconverters.coffee#save"><code>FileResource.save()</code></a>.</p>
+<p>@note: Its not working on the resources when <a href="combined-template">&#39;combined&#39; template</a> is used, cause r.js optimizer doesn&#39;t yet work <em>in-memory</em>, so the files <em>have to</em> be saved for the r.js optimization to work.</p>
+<p>@type <code>function (dstFilename, converted){}</code></p>
+<p>@default undefined - uses <a href="resourceconverters.coffee#fileresource-methods"><code>FileResource.save()</code></a> instead.</p>
+<pre><code>  out: <span class="literal">undefined</span></code></pre>
+<h2><a class="anchor" href="#build.afterbuild" id="build.afterbuild"></a>build.afterBuild</h2>
+<p>This is set by either <em>urequireCMD</em> or <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a> to signify the end of a build.</p>
+<pre><code>  afterBuild: []</code></pre>
+<p>@alias <code>done</code> DEPRECATED (but still supported)</p>
+<h2><a class="anchor" href="#build.clean" id="build.clean"></a>build.clean</h2>
+<p>Clean directory or destination files in <code>build.dstPath</code>.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a></p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<h3><a class="anchor" href="#clean-rules" id="clean-rules"></a>clean rules</h3>
+<p>On every initial / full build:</p>
+<p>If <code>clean: &#39;true&#39;</code>,</p>
+<ul>
+<li><p>on non-combined template builds, the whole <code>build.dstPath</code> directory is removed before reading anyfiles, just like a <code>grunt:clean</code> task against the directory.</p>
+</li>
+<li><p>on combined template, only the <code>combined.js</code> file (and possible leftover temp directory) is deleted (cause your directory might contain other files).</p>
+</li>
+</ul>
+<p>If <code>clean</code> is a <a href="types-and-derive#filespecs">filesspec type</a> (eg `clean: [&#39;some/**/file.someext&#39;, &#39;!&#39;, (f) -&gt; f is &#39;dontDeleteMe.txt&#39;]), only files passing the filespecs filter are deleted in any case (along with any possible leftover combinedFile temp directory).</p>
+<p>On subsequent partial builds, <strong>no files are deleted</strong>.</p>
+<pre><code>  clean: <span class="literal">true</span></code></pre>
+<h2><a class="anchor" href="#build.deleteerrored" id="build.deleteerrored"></a>build.deleteErrored</h2>
+<p>Delete destination files when their source is at an error state. Useful when watching builds or when the directory is not <a href="#build.clean">clean</a>.</p>
+<p>@note One successful conversion of the source file needs to be in place for <code>dstFilename</code> to be established.</p>
+<p>@note On <a href="combined-template">&#39;combined&#39; template</a>, it also deletes the last <code>combinedFile.js</code> that was build.</p>
+<p>@type <a href="types-and-derive#booleanorfilespecs">booleanOrFilespecs</a>. Note: filespecs refer to <strong>source</strong> filenames (but of course only their corresponding destination files are deleted, not the source ones).</p>
+<p>@derive <a href="types-and-derive#arraysconcatoroverwrite">arraysConcatOrOverwrite</a></p>
+<pre><code>  deleteErrored: <span class="literal">true</span></code></pre>
+<h2><a class="anchor" href="#build.rjs" id="build.rjs"></a>build.rjs</h2>
+<p>The [r.js config] <a href="https://github.com/jrburke/r.js/blob/master/build/example.build.js">https://github.com/jrburke/r.js/blob/master/build/example.build.js</a>,
+when combining with r.js (<a href="combined-template">combined template</a>).</p>
+<p>Its keys are just <code>_.defaults</code> for urequire&#39;s idea about using r.js with combined template, <em>so use with caution</em>!</p>
+<p>@stability 2</p>
+<p>@example <code>build: rjs: preserveLicenseComments: false</code></p>
+<pre><code>  rjs: <span class="literal">undefined</span></code></pre>
+<h1><a class="anchor" href="#examples" id="examples"></a>Examples</h1>
+<p>Borrowed from the <a href="https://github.com/anodynos/uBerscore/blob/master/Gruntfile.coffee">Grunt config with comments</a> of <a href="github.com/anodynos/uberscore">uBerscore</a>, which also powers uRequire.</p>
+<p>The <code>&#39;urequire: uberscore&#39;</code> task:</p>
+<ul>
+<li><p>read from <code>source</code>, write to <code>build</code></p>
+</li>
+<li><p>filters some <code>filez</code></p>
+</li>
+<li><p>converts each module in <code>path</code> to UMD (the default)</p>
+</li>
+<li><p>copies all other files to <code>build</code></p>
+</li>
+<li><p>injects losash dep as <code>_</code> in each module</p>
+</li>
+<li><p>exports a global <code>window._B</code> with a <code>noConflict()</code></p>
+</li>
+<li><p>injects a VERSION string inside the body of a file</p>
+</li>
+<li><p>adds a banner to main (ouside UMD template/minification)</p>
+</li>
+<li><p>cleans (deletes) <code>dstPath</code> before starting the build</p>
+</li>
+<li><p>watch changes, convert only what&#39;s really changed</p>
+</li>
+</ul>
+<pre><code class="lang-coffee"><span class="comment"># config is .json, .js, gruntjs task, .coffee, .yml, you name it</span>
+uberscore:                    <span class="comment"># serves as 'name' &amp; consequently 'main'</span>
+  path: <span class="string">'source'</span>
+  dstPath: <span class="string">'build'</span>
+  filez: [<span class="string">'**/*'</span>]             <span class="comment"># can be RegExp, Function, exclusion etc</span>
+  copy: [<span class="regexp">/./</span>]                 <span class="comment"># copy non-converted files, only if changed</span>
+  main: <span class="string">'uberscore'</span>
+  dependencies:
+    exports:
+      bundle: <span class="string">'lodash'</span>: <span class="string">'_'</span>   <span class="comment"># _ will always be there for you</span>
+      root: <span class="string">'uberscore'</span>: <span class="string">'_B'</span> <span class="comment"># _B will always be there for everyone</span>
+  resources: [                <span class="comment"># simple manipulative concat</span>
+    [ <span class="string">'+inject:VERSION'</span>,      <span class="comment"># isBeforeTemplate: true, i.e AST is parsed &amp; a module is there!</span>
+      [<span class="string">'uberscore.js'</span>],       <span class="comment"># only on this module, inject the following</span>
+      (m) -&gt; m.beforeBody = <span class="string">"var VERSION = '0.0.15';"</span>]
+  ]
+  template: banner: <span class="string">"// uBerscore v0.0.15"</span>
+  clean: <span class="literal">true</span>
+  watch: <span class="literal">true</span></code></pre>
+<p>Now, lets derive from the above and:</p>
+<ul>
+<li><p>Use <a href="combined-template">&#39;combined&#39; template</a></p>
+</li>
+<li><p>adds a banner on top of the main / build file</p>
+</li>
+<li><p>all modules go into one file that runs everywhere</p>
+</li>
+</ul>
+<pre><code>dev:
+  derive: [<span class="string">'uberscore'</span>]
+  template:
+    name: <span class="string">'combined'</span>
+    banner: <span class="string">'// I am a banner that goes on top'</span>
+  dstPath: <span class="string">'build/uberscore-dev.js'</span></code></pre>
+<p>Finally the <code>&#39;urequire: min&#39;</code> task</p>
+<ul>
+<li><p>derives all from <code>&#39;urequire: dev&#39;</code>, with differences:</p>
+</li>
+<li><p>filters some more <code>filez</code></p>
+</li>
+<li><p>converts to a single <code>uberscore-min.js</code> with <a href="combined-template">&#39;combined&#39; template</a></p>
+</li>
+<li><p>injects deps (<em>different</em> than parent&#39;s)</p>
+</li>
+<li><p>manipulates each module:</p>
+<ul>
+<li><p>replaces &#39;lodash&#39; with &#39;underscore&#39; (for compatibility, mocking etc)</p>
+</li>
+<li><p>removes all debuging code, matching <em>skeletons</em></p>
+</li>
+<li><p>removes code (eg debug stuff ) and a dependency from a specific file.</p>
+</li>
+</ul>
+</li>
+<li><p>disables runtime info, for all but one files</p>
+</li>
+<li><p>minifies the combined file, with some <code>uglify2</code> options</p>
+</li>
+</ul>
+<pre><code class="lang-coffee">min:
+  derive: [<span class="string">'uberscore'</span>]
+  filez: [ <span class="string">'!**deepExtend.coffee'</span> ]
+  dstPath: <span class="string">'build/uberscore-min.js'</span>
+  dependencies:
+    imports: [
+      [<span class="literal">null</span>], <span class="string">'underscore'</span>, <span class="string">'agreement/isAgree'</span>]
+    replace: <span class="string">'underscore'</span>: [<span class="string">'lodash'</span>]
+  resources: [
+  [
+     <span class="string">'+remove:debug/deb &amp; deepExtend'</span>, [<span class="regexp">/./</span>]
+     (m) -&gt;
+       <span class="comment"># match each of these code *skeletons*</span>
+       <span class="keyword">for</span> code <span class="keyword">in</span> [ <span class="string">'if (l.deb()){}'</span>, <span class="string">'if (this.l.deb()){}'</span>,
+                     <span class="string">'l.debug()'</span>, <span class="string">'this.l.debug()'</span>]
+         <span class="comment"># replace with undefined, i.e delete</span>
+         m.replaceCode code
+       <span class="comment">#</span>
+       <span class="comment"># replace AST maching code &amp; a dependency</span>
+       <span class="comment"># from a specific file</span>
+       <span class="keyword">if</span> m.dstFilename <span class="keyword">is</span> <span class="string">'uberscore.js'</span>
+         m.replaceCode
+           type: <span class="string">'Property'</span>
+           key: {type: <span class="string">'Identifier'</span>, name: <span class="string">'deepExtend'</span>}
+         <span class="comment"># remove this dependency</span>
+         m.replaceDep <span class="string">'blending/deepExtend'</span>
+   ]
+  ]
+  runtimeInfo: [<span class="string">'!**/*'</span>, <span class="string">'Logger.js'</span>]
+  optimize: { uglify2: output: beautify: <span class="literal">false</span> }</code></pre>
+<p>Finally we easily configure our <code>grunt-contrib-watch</code> tasks</p>
+<pre><code>watch:
+  UMD:
+    files: [<span class="string">"source/**/*"</span>]
+    tasks: [<span class="string">'urequire: uberscore'</span>, <span class="string">'urequire: spec'</span>, <span class="string">'mocha'</span>]
+  options: spawn: <span class="literal">false</span></code></pre>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>

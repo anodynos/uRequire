@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"><meta charset="utf-8"><meta name="keywords" content="javascript, modules, module, convert, commonjs, AMD, UMD, UMDjs, format, converter, conversion, requirejs, require, define, browserify, dependency, dependencies, bundle, package"><meta name="description" content="Javascript Universal Module &amp; Resource Converter: convert modules from commonjs to AMD, AMD modules to commonjs, requirejs to nodejs to UMD, to standalone optimized .js"><title>Frequently Asked Questions - uRequire: JavaScript Universal Module &amp; Resource Converter: convert modules from AMD to nodejs, commonjs and back, to UMD, to plain script .js</title><link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Lato:400,700"><link rel="shortcut icon" href="../img/favicon.ico" type="image/x-icon"><!--script--><!--  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){--><!--  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),--><!--  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)--><!--  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');--><!----><!--  ga('create', 'UA-41565621-1', 'urequire.org');--><!--  ga('send', 'pageview');--></head><body class="page-docs page-secondary"><a href="https://github.com/anodynos/urequire"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="img/github_forkme_right_orange_ff7600.png" alt="Fork me on GitHub"></a><div class="navbar navbar-inverse"><div class="navbar-inner"><div class="container"><a href="/" class="brand"><img src="../img/urequire-logo.png" alt="convert, javascript, modules, commonjs, requirejs, nodejs, AMD, UMD, dependencies, resources, conversion, workflow, in-memory, asset, pipeline" class="logo"></a><div class="nav-collapse collapse"><ul class="nav"><li><a href="/docs/features.html"><i class="icon-arrow-right"></i><span>uRequire Features</span></a></li><li><a href="/docs/quick-introduction.html"><i class="icon-document-alt-stroke"></i><span>Documentation</span></a></li><li><a href="/docs/masterdefaultsconfig.coffee.html"><i class="icon-cog"></i><span>uRequire Config</span></a></li><li><a href="/docs/resourceconverters.coffee.html"><i class="icon-power-cord"></i><span>Resource Converters</span></a></li></ul></div></div></div></div><div class="content"><div class="container frequently-asked-questions"><div class="row-fluid"><div class="span9 page"><div class="hero-unit docs"><h1>Frequently Asked Questions</h1><h2><a class="anchor" href="#why-use-module-loaders" id="why-use-module-loaders"></a>Why use Module Loaders?</h2>
+<p>Cause in modern single-page apps, you&#39;re not receiving just a data REST, but also executable code.</p>
+<p>You want a dynamic code loading mechanism.</p>
+<p>You want to follow standards and the available tools.</p>
+<p>Either your app is on browser, mobile or even nodejs.
+Run single page Apps with truly dynamic code loading.</p>
+<h2><a class="anchor" href="#what-exactly-is-the-problem-with-amd-running-on-web-node-as-it-is-why-not-use-requirejs-amdefine-on-node" id="what-exactly-is-the-problem-with-amd-running-on-web-node-as-it-is-why-not-use-requirejs-amdefine-on-node"></a>What exactly is the problem with AMD running on web / node as it is ? Why not use RequireJS / amdefine on node ?</h2>
+<p>There are various problems with modules in the current era.</p>
+<p>Yes, RequireJS <a href="http://requirejs.org/docs/node.html">can be be used on node</a>. Installed as a local package via npm its a large 600kb dependency, but that is not the problem.</p>
+<ul>
+<li><p>RequireJS on node is strict on dependencies declarations on node, just like on web execution: if you ommit declaring a dependency on the dependency array <code>define([&#39;dep&#39;]...)</code>, it <a href="https://github.com/jrburke/requirejs/issues/467">will fail when you require(&#39;dep&#39;)</a> on the body (on node it actually returns &#39;undefined&#39;).</p>
+<p>Also, if you forget to list &#39;require&#39; as your first dependency, you&#39;ll unleash hell: it&#39;ll work in some cases and some paths, not in others. This is all expected, due to the &#39;strictness&#39; of the AMD standard. Hence, even this is not really the problem, just a caveat.</p>
+</li>
+<li><p>The real problem stems from the need to load your AMD-defined modules via RequireJs special &#39;adapter&#39; (loader). Taken from its documentation :</p>
+</li>
+</ul>
+<pre><code class="lang-js"><span class="reserved">var</span> requirejs = require(<span class="string">'requirejs'</span>);
+requirejs.config({nodeRequire: require});
+requirejs([<span class="string">'foo'</span>, <span class="string">'bar'</span>], <span class="reserved">function</span>(foo, bar) {});</code></pre>
+<p>This works ok for <em>your</em> AMD defined modules. But if you need to use a node-native .js module, residing on your file system, r.js fails with <code>Error: Evaluating &#39;/path/to/myLib.js&#39; as module &quot;myLib&quot; failed with error: ReferenceError: module is not defined</code>. See <code>examples/rjs</code></p>
+<p>One may ask, <em>why would I need to load native nodejs modules from AMD/UMD modules that are supposed to be runnable on the web side mainly/also ?</em>. One simple answer is <em>cause you wanna share code between client &amp; server, but also be able to inject code on either side at will</em>. Perhaps this issue is a single stopper for using AMD on node.</p>
+<p>uRequire modules overcome this problem: they can require any native node module as it is, without any special treatment, adapter or conversion. Third party code can get &#39;required&#39; and work as it is. You only need to use the fake-plugin notation of <code>require(&#39;node!./path/to/nativeNodeJsModule&#39;)</code>, to signal that this module should not appear on AMD dependency array &amp; then make sure at runtime that it gets loaded only when you are at nodejs (<code>isNode</code> &amp; <code>isWeb</code> variables are provided for this purppose). See <code>examples/nodeNative-requiredByABC_and_rjs</code> and <code>examples\abc\a-lib</code>.</p>
+<ul>
+<li><p>Similarly, your AMD defined modules can&#39;t be used by node-native modules as they are with requireJS. Your AMD modules start with <code>define</code>, which is unknown to the node runtime.
+So your node-native requiring modules need to be changed and instead load your native AMD-modules through requirejs, which means you need to alter them. This doesn&#39;t work if they happen to be third party code, or testers or other kind of loaders. And I think its a heavy burden by it self, even if its your own code. You should be focusing on you business logic, not how to load modules.</p>
+</li>
+<li><p>Path resolution is also problematic, relative &amp; absolute paths are causes of problems and it breaks on testers like mocha or when you want to use multiple &#39;bundles&#39; in one requiring module. Check <a href="https://github.com/jrburke/amdefine/issues/4">this</a> and <a href="https://github.com/jrburke/requirejs/issues/450">this</a> issues.</p>
+</li>
+<li><p>Copying from requirejs <a href="http://requirejs.org/docs/node.html#2">docs</a> <em>Even though RequireJS is an asynchronous loader in the browser, the RequireJS Node adapter loads modules synchronously in the Node environment to match the default loading behavior in Node</em>. I think this can lead to problems, where asynch based code that is developed and tested on node runs ok, but fails miserably when it runs on web. Module systems should execute the same way on all sides, to the maximum possible extend.</p>
+</li>
+</ul>
+<p>Edit: This behaviour was fixed in RequireJS 2.1 <a href="https://github.com/jrburke/requirejs/wiki/Upgrading-to-RequireJS-2.1">&#39;Enforcing async require&#39;</a>. uRequire endevours to match RequireJS&#39;s functionality, following its newest version&#39;s behaviour.</p>
+<ul>
+<li>Using <a href="https://github.com/jrburke/amdefine/">amdefine</a> also leaves a lot to be desired: a single line makes &#39;define&#39; available on node, but where does &#39;require&#39; come from ? It comes from node. Hence no bundleRelative paths and no asynch version of require. And if you use the synch/node <code>module = require(&#39;moduleName&#39;)</code>, and works on the node side, you &#39;ll need to remember to include &#39;require&#39; and &#39;moduleName&#39; on the dependencies array also. Finally mixing node-requirejs and amdefine is not an option either - they aren&#39;t meant to be used together - see some <a href="https://github.com/jrburke/requirejs/issues/450">early failed attempts</a></li>
+</ul>
+<h2><a class="anchor" href="#what-does-urequire-relaxed-notation-solve" id="what-does-urequire-relaxed-notation-solve"></a>What does urequire &#39;relaxed&#39; notation solve ?</h2>
+<p>Consider this AMD example:</p>
+<pre><code class="lang-js">define([<span class="string">'main/dep1'</span>, <span class="string">'main/helpers/dep2'</span>], <span class="reserved">function</span>(dep1, dep2) {
+   <span class="reserved">var</span> dep3 = require(<span class="string">'moredeps/dep3'</span>);
+
+   <span class="keyword">if</span> (dep3(dep1) === <span class="string">'wow'</span>){
+      require([<span class="string">'./dep4'</span>], <span class="reserved">function</span>(dep4) {
+        <span class="regexp">//</span> asynchronously <span class="keyword">do</span> things <span class="reserved">with</span> dep4
+      });
+   }
+
+   <span class="regexp">//</span> <span class="keyword">do</span> stuff <span class="reserved">with</span> dep1, dep2, dep3
+
+   <span class="keyword">return</span> {my:<span class="string">'module'</span>}
+});</code></pre>
+<p>This looks like a valid AMD module, but it would <em>not</em> work as AMD/RequireJS module. (it does only if its &#39;relaxed&#39; form is massaged by uRequire and converted to UMD).</p>
+<p>The line <code>var dep3 = require(&#39;moredeps/dep3&#39;);</code> would fail on web/requirejs for two reasons:</p>
+<p>a) <code>require</code> is not listed as a dependency</p>
+<p>and</p>
+<p>b) even if you had <code>require</code> listed, your app would halt because <code>moredeps/dep3</code> is not listed as a dependency, i.e it is a <a href="synchronous-require#never-miss-a-dependency">missing require dep</a>.</p>
+<p>Further more, even if you fixed those two errors, if you were to run this in <em>node</em>, you would be missing <code>define</code>. You could turn to <code>amdefine</code>, but that would also fail on <code>require(&#39;moredeps/dep3&#39;)</code> because of the absolute/bunldeRelative path. Remember, with amdefine, require(&#39;&#39;) comes from node - i.e. no bundleRelative paths, no plugins, no asynchronous calls. For the last reason, the 2nd require would also fail, since this asynchronous format is not supported on node&#39;s require. For more or less the same reasons, you would have issues if you used requirejs on node.</p>
+<p>With UMD produced by uRequire, you would overcome these issues instantly: your module is ready to run on both node and web as it is.</p>
+<h2><a class="anchor" href="#hey-i-like-it-so-far-but-i-think-its-another-format-on-its-own.-after-all-it-violates-standards-it-s-a-frankestein-its-a-tool-that-if-you-adopt-u-have-a-dependency-on-it" id="hey-i-like-it-so-far-but-i-think-its-another-format-on-its-own.-after-all-it-violates-standards-it-s-a-frankestein-its-a-tool-that-if-you-adopt-u-have-a-dependency-on-it"></a>Hey, I like it so far, but I think its another format on its own. After all, it violates standards, it&#39;s a frankestein, its a tool that if you adopt, u have a dependency on it!</h2>
+<p>Not really.</p>
+<ul>
+<li><p>If you stick to the standard AMD or nodeJs, you&#39;re fine on that side. And if you avoid using any DOM/node features (like node&#39;s <code>require.resolve()</code>) you get &#39;running on the other side&#39; for free. Should you choose to adhere to the 100% <a href="https://github.com/amdjs">standard syntax of AMD</a> or <a href="http://nodejs.org/api/modules.html">nodejs</a>, so that your pre-build <em>source</em> code is also valid/executable too, that&#39;s fine. uRequire will at least be usefull for performing sanity and dependency checks on your source before deploying (and get a report <code>--verbose</code> <code>build:verbose</code>}) while fixing common AMD errors like <a href="synchronous-require#never-miss-a-dependency">missing an array dependency</a>.</p>
+</li>
+<li><p>If you use AMD &#39;relaxed&#39; form, but want to go back to AMD strict for web&#39;s sake: At any time you can convert your &#39;relaxed&#39; uRequire source to strict AMD and get done with it. You &#39;ll never need uRequire again (but I&#39;m sure you &#39;ll come back!). And your code will still be able to convert to UMD so it runs on node.</p>
+</li>
+<li><p>If you use nodeJs with and have used the asynch <code>require([], function(){})</code>, and you want to go back to strict node format, you &quot;ll have some more work to do converting to <code>var a = require(&#39;a&#39;)</code> and changing its asynch nature, but it shouldn&#39;t be so hard (the other way around is much harder).</p>
+</li>
+</ul>
+<h2><a class="anchor" href="#i-ve-heard-browserify-makes-node-style-require-work-in-the-browser-with-a-server-side-build-step-.-is-it-similar-to-this-is-it-better" id="i-ve-heard-browserify-makes-node-style-require-work-in-the-browser-with-a-server-side-build-step-.-is-it-similar-to-this-is-it-better"></a>I &#39;ve heard browserify <em>makes node-style require() work in the browser with a server-side build step</em>. Is it similar to this? Is it better ?</h2>
+<p>Similar? Better? not really. And at the same time, YES, absolutely!</p>
+<p>U can think of this project as a distant counterpart to <a href="https://github.com/substack/node-browserify">browserify</a>, though it takes a completely different approach and has different results:</p>
+<ul>
+<li><p>uRequire is better/different, because it works both sides: web-to-node and node-to-web.
+Also on web side, its using AMD, which seems to be the standard way to define web modules <a href="https://github.com/amdjs">AMD</a>. The <a href="http://requirejs.org/docs/whyamd.html">claim is</a> that AMD is the proper browser-optimized module system. But that should not prevent you, from running that same code on nodejs, as it is.</p>
+</li>
+<li><p>But NO, its not &#39;better&#39; than browserify. It doesn&#39;t attempt to bring any of node&#39;s packages and functionality to the web (like browserify does). Only your modules are the issue here: your code that SHOULD run on both sides, WILL run. U must use non-dom, non-node stuff of course, if you want your code to work both ways.</p>
+<h4><a class="anchor" href="#but-hey-can-i-combine-them" id="but-hey-can-i-combine-them"></a>But hey, can I combine them ?</h4>
+<p>See below, the FAQuestions with one answser.</p>
+</li>
+</ul>
+<h2><a class="anchor" href="#have-you-got-any-examples" id="have-you-got-any-examples"></a>Have you got any examples ?</h2>
+<h3><a class="anchor" href="#uberscore" id="uberscore"></a>uBerscore</h3>
+<p>Check <a href="https://github.com/anodynos/uBerscore">github.com/anodynos/uBerscore</a> project (which actually powers uRequire):</p>
+<ul>
+<li><p>Just have a glance at the simple code structure of the <code>main</code>(MasterDefaultsConfig.coffee#bundle.main) &#39;uberscore.coffee&#39;.</p>
+</li>
+<li><p>See <code>examples/uBerscoreExample_XXX.html</code> and <code>spec/specRunnerXXX.html</code> for how each build is used.</p>
+</li>
+<li><p>Check <code>source/code/uRequireConfig.coffee</code> &amp; <code>source/code/uRequireConfig_UMDBuild.json</code> to see how easily you can define <code>bundle</code>s and <code>build</code>s.</p>
+</li>
+<li><p>In <code>Gruntfile.coffee</code> check the <code>urequire:xxx</code> tasks to see some documented examples using <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>.</p>
+</li>
+<li><p>For the full config documentation see <a href="masterdefaultsconfig.coffee"><code>MasterDefaultsConfig.coffee</code></a>.</p>
+</li>
+</ul>
+<h4><a class="anchor" href="#amd-utils-tutorial" id="amd-utils-tutorial"></a>amd-utils tutorial</h4>
+<p>Check a more real world one, UMDfying the amd-utils by <a href="https://github.com/millermedeiros">millermedeiros</a></p>
+<p>0) Grab a copy of <a href="http://millermedeiros.github.com/amd-utils/">amd-utils</a></p>
+<p>1) Install urequire in it <code>npm install urequire</code> (and globally if u haven&#39;t already)</p>
+<p>2) Run <code>urequire UMD src -o UMD/src</code>, which converts the main library files to uRequire UMD.</p>
+<p>3) Copy tests/lib and test/SpecRunner.html into UMD/tests</p>
+<p>4) Run <code>urequire UMD tests/spec -o UMD/tests/spec</code>, which converts the spec files to uRequire UMD.</p>
+<p>At this point <em>uRequire will complain that</em> &#39;Bundle-looking dependencies not found in bundle&#39; - this is expected: indeed,
+if you run it with <code>jasmine-node UMD/tests/spec --matchall</code> it will fail to find <code>src\array\append</code> etc because it has no idea where <code>src\</code> is.</p>
+<p>So just add a <code>requirejs.config.json</code> on the specs bundle root (tests/spec), copying from the requirejs config used in SpecRunner.html:</p>
+<pre><code class="lang-js"><span class="regexp">//</span>file <span class="string">'UMD/tests/spec/requirejs.config.json'</span> <span class="literal">on</span>
+{<span class="string">"paths"</span>: {<span class="string">"src"</span> : <span class="string">"../../src"</span>}}</code></pre>
+<p>Now if you run jasmine, all tests will run ok (but 3 specs requring DOM related objects).</p>
+<p>Apart from those, the UMDfied amd-utils library now runs and tests on both browser and nodejs.</p>
+<h3><a class="anchor" href="#hey-i-dont-want-to-convert-my-modules.-is-it-still-usefull" id="hey-i-dont-want-to-convert-my-modules.-is-it-still-usefull"></a>Hey, I dont want to convert my modules. Is it still usefull ?</h3>
+<p>Of course. It will run some sanity checks on your module bundles.
+More examples &amp; functionality, watch this space!</p>
+<h3><a class="anchor" href="#faquestions-with-one-answer." id="faquestions-with-one-answer."></a>FAQuestions with one answer.</h3>
+<h4><a class="anchor" href="#can-i-safely-mix-urequire-umd-modules-with-other-native-modules-at-each-runtime-i.e-on-node-and-the-browser" id="can-i-safely-mix-urequire-umd-modules-with-other-native-modules-at-each-runtime-i.e-on-node-and-the-browser"></a>Can I safely mix uRequire UMD modules with other &#39;native&#39; modules, at each runtime (i.e on node and the browser) ?</h4>
+<h4><a class="anchor" href="#can-i-substitute-a-module-at-runtime-with-a-different-version-at-each-runtime-i.e.-can-i-have-a-different-data-storage-at-each-runtime" id="can-i-substitute-a-module-at-runtime-with-a-different-version-at-each-runtime-i.e.-can-i-have-a-different-data-storage-at-each-runtime"></a>Can I substitute a module at runtime with a different version, at each runtime ? i.e. can I have a different &#39;data/storage&#39;, at each runtime ?</h4>
+<h4><a class="anchor" href="#can-i-combine-it-with-browserify-and-make-more-awesome-stuff" id="can-i-combine-it-with-browserify-and-make-more-awesome-stuff"></a>Can I combine it with Browserify and make more awesome stuff ?</h4>
+<h4><a class="anchor" href="#will-it-do-this-or-work-with-that-in-the-future" id="will-it-do-this-or-work-with-that-in-the-future"></a>Will it do <code>this</code> or work with <code>that</code> in the future ?</h4>
+<h4><a class="anchor" href="#hey-is-urequire-evolving-to-become-a-build-system-like-grunt-etc" id="hey-is-urequire-evolving-to-become-a-build-system-like-grunt-etc"></a>Hey, is uRequire evolving to become a build system like grunt etc ?</h4>
+<h4><a class="anchor" href="#does-it-rock" id="does-it-rock"></a>Does it rock ?</h4>
+<p> Well, of course. Why not. In theory. &lt;= v.0.1 was only a proof of concept. Now its v0.4 and does much more that I thought.
+ I &#39;ve tried some configurations, but only a fraction of what&#39;s out there of course!
+ They should all work, somehow, sometime.
+ If they dont, they will.
+ See the History / Roadmap below to get a better idea of future directions.
+ I am eager to know and realize more usage patterns to incorporate.
+ So, go play, try it out and make sure you let me know what issues &amp; successes you&#39;re having!</p>
+<h5><a class="anchor" href="#btw-urequire-requires-u:" id="btw-urequire-requires-u:"></a>BTW, uRequire requires U:</h5>
+<pre><code class="lang-coffeescript">require [<span class="string">'volunteers'</span>, <span class="string">'skills/solidjs/CoffeeScript'</span>, <span class="string">'awesomeness'</span>], (volunteers, jscs, awe)-&gt;
+    modules = (require <span class="string">'knowledgeOf/RequireJS/NodeJs/module/systems'</span>).preferable()
+    (uTeam.members <span class="keyword">or</span>= []).push v.welcome() <span class="keyword">for</span> v <span class="keyword">in</span> volunteers <span class="keyword">when</span> (v jscs, modules) <span class="keyword">is</span> awe;
+
+  uRequire:<span class="string">'v1.0'</span></code></pre>
+<h2><a class="anchor" href="#does-u-in-urequire-stems-from-umd" id="does-u-in-urequire-stems-from-umd"></a>Does <code>u</code> in uRequire stems from UMD ?</h2>
+<p>No, from Universal. Require.</p>
+</div></div><div class="span3"><div class="well sidebar-nav"><ul class="nav nav-list"><li class="nav-header"><i class="icon-document-alt-stroke"></i><span>Introduction</span></li><li><a href="/docs/quick-introduction.html">Quick Introduction</a></li><li><a href="/docs/ultimate-aims.html">Ultimate Aims</a></li><li><a href="/docs/features.html">Features</a></li><li><a href="/docs/installing-urequire.html">Installing uRequire</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Using &amp; Configuration</span></li><li><a href="/docs/using-urequire.html">Using uRequire</a></li><li><a href="/docs/masterdefaultsconfig.coffee.html">MasterDefaultsConfig.coffee</a></li><li><a href="/docs/resourceconverters.coffee.html">ResourceConverters.coffee</a></li><li><a href="/docs/types-and-derive.html">Types and Derive</a></li><li><a href="/docs/tags-legend.html">Tags Legend</a></li><li><a href="/docs/cli-options.html">CLI Options</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Module Authoring</span></li><li><a href="/docs/universal-module-format.html">Universal Module Format</a></li><li><a href="/docs/flexible-path-conventions.html">Flexible Path Conventions</a></li><li><a href="/docs/synchronous-require.html">Synchronous Require</a></li><li><a href="/docs/asynchronous-require.html">Asynchronous Require</a></li><li><a href="/docs/exporting-modules.html">Exporting Modules</a></li><li><a href="/docs/mappings.html">Mappings</a></li><li><a href="/docs/requirejs-loader-plugins.html">RequireJS Loader Plugins</a></li><li><a href="/docs/authoring-notes-and-warnings.html">Authoring Notes and Warnings</a></li><li><a href="/docs/deployment.html">Deployment</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Conversion Templates</span></li><li><a href="/docs/umd-template.html">UMD Template</a></li><li><a href="/docs/amd-template.html">AMD Template</a></li><li><a href="/docs/nodejs-template.html">nodejs Template</a></li><li><a href="/docs/combined-template.html">combined Template</a></li><li><a href="/docs/your-custom-template.html">your-custom Template</a></li></ul><ul class="nav nav-list"><li class="nav-header"><span>Misc</span></li><li><a href="/docs/frequently-asked-questions.html">Frequently Asked Questions</a></li><li><a href="/docs/history.html">History</a></li><li><a href="/docs/future-directions.html">Future Directions</a></li><li><a href="/docs/acknowledgements.html">Acknowledgements</a></li><li><a href="/docs/contributing.html">Contributing</a></li></ul><div class="advertisements">Powered by <a href="http://github.com/anodynos/uberscore">uBerscore</a>, the unorthodox _ experiment. uRequire's wicked <a href="/types-and-derive#deriving-behaviors">config derivation</a> is using _B.Blender.</div><div class="advertisements">Using <a href="http://gruntjs.com">gruntjs</a> ? Check <a href="https://github.com/aearly/grunt-urequire">grunt-urequire</a>, where you can use <a href="/masterdefaultsconfig.coffee#config-usage">uRequire config</a> as a grunt task.</div><div class="advertisements">Related articles: <a href="http://addyosmani.com/writing-modular-js/">Writing Modular JavaScript With AMD, CommonJS & ES Harmony</a> and <a href="http://addyosmani.com/largescalejavascript/">Patterns For Large-Scale JavaScript Application Architecture</a> by <a href="http://twitter.com/addyosmani">Addy Osmani</a>.</div><div class="advertisements">Developed with a kindly sponsored free version of <a href="http://www.jetbrains.com/idea/"><img src="/img/logo_intellij_idea.png"/></a></div></div></div></div></div></div><footer class="urequire-footer"><div class="inner"><div class="container"><ul class="pull-right"><li><a href="/contributing">Contributing</a></li><li class="social"><a href="https://github.com/anodynos/urequire" alt="uRequire on GitHub"><span class="icon-github"></span></a></li><li class="social"><a href="https://twitter.com/urequire/" alt="uRequire on Twitter"><span class="icon-twitter"></span></a></li></ul><ul class="pull-left"><li>uRequire is an open source project, MIT license. (C)<a href="http://github.com/anodynos" alt="anodynos"></a>Agelos Pikoulas 2013</li></ul></div></div></footer></body></html>
