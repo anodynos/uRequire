@@ -1,4 +1,4 @@
-# urequire.org
+# http://anodynos.github.io/uRequire
 
 # uRequire: The JavaScript Universal Module & Resource Converter
 

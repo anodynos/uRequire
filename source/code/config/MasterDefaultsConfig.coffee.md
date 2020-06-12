@@ -248,7 +248,7 @@ It replaces all right hand side dependencies (String value or []<String> values)
 
 replaces all `'underscore'` or `'otherscore'` deps to `'lodash'` and all `'oldDep2Name'` with `'newDep2Name'` in all modules of the bundle.
 
-All deps are considered / translated to [bundleRelative](http://urequire.org/flexible-path-conventions#bundlerelative-vs-filerelative-paths):
+All deps are considered / translated to [bundleRelative](http://anodynos.github.io/uRequire/flexible-path-conventions#bundlerelative-vs-filerelative-paths):
 
  * `'depDir/dep'` matches and/or replaces the deps that resolved to this as bundle relative, even if they are declared in the code of `'someOtherdir/someModule'` as `require('../depDir/dep')` (when authored with the nodejs fileRelative path convention).
 
